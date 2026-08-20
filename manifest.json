@@ -3,7 +3,7 @@
   "id": "io.github.joega.sportray",
   "name": "Sportray",
   "version": "1.0.0-rc.7",
-  "author": "Joe G",
+  "author": "@joega",
   "license": "MIT",
   "description": "Follow favorite teams with live scores, daily schedules, and alerts in the Omarchy bar.",
   "kinds": [
