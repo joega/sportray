@@ -1,0 +1,13 @@
+{
+  "sports": [{
+    "leagues": [{
+      "teams": [
+        {"team": {"id": "183", "displayName": "Columbus Crew", "shortDisplayName": "Columbus", "abbreviation": "CLB"}},
+        {"team": {"id": "189", "displayName": "New England Revolution", "shortDisplayName": "New England", "abbreviation": "NE"}},
+        {"team": {"id": "20232", "displayName": "Inter Miami CF", "shortDisplayName": "Miami", "abbreviation": "MIA"}},
+        {"team": {"id": "99999", "displayName": "Historical FC", "shortDisplayName": "Historical", "abbreviation": "HFC"}},
+        {"team": {"id": "193", "displayName": "D.C. United"}}
+      ]
+    }]
+  }]
+}

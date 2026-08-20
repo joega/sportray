@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "id": "401810101",
+      "date": "2026-10-22T23:00:00Z",
+      "competitions": [
+        {
+          "id": "401810101",
+          "venue": {"fullName": "TD Garden"},
+          "competitors": [
+            {"id": "2", "homeAway": "home", "team": {"id": "2", "displayName": "Boston Celtics", "shortDisplayName": "Celtics", "abbreviation": "BOS"}},
+            {"id": "13", "homeAway": "away", "team": {"id": "13", "displayName": "Los Angeles Lakers", "shortDisplayName": "Lakers", "abbreviation": "LAL"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 0, "type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false, "description": "Scheduled", "detail": "Thu, Oct 22 at 7:00 PM EDT"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/nba/game/_/gameId/401810101"}]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "sequences": [
+    {
+      "league": "nhl",
+      "gameId": "nhl:m6-nhl",
+      "snapshots": [
+        {"league": "nhl", "providerGameId": "m6-nhl", "status": "scheduled", "awayScore": null, "homeScore": null},
+        {"league": "nhl", "providerGameId": "m6-nhl", "status": "live", "awayScore": 0, "homeScore": 0},
+        {"league": "nhl", "providerGameId": "m6-nhl", "status": "live", "awayScore": 1, "homeScore": 0},
+        {"league": "nhl", "providerGameId": "m6-nhl", "status": "intermission", "awayScore": 1, "homeScore": 0},
+        {"league": "nhl", "providerGameId": "m6-nhl", "status": "final", "awayScore": 2, "homeScore": 0}
+      ]
+    },
+    {
+      "league": "nfl",
+      "gameId": "nfl:m6-nfl",
+      "snapshots": [
+        {"league": "nfl", "providerGameId": "m6-nfl", "status": "scheduled", "awayScore": null, "homeScore": null},
+        {"league": "nfl", "providerGameId": "m6-nfl", "status": "live", "awayScore": 0, "homeScore": 0},
+        {"league": "nfl", "providerGameId": "m6-nfl", "status": "live", "awayScore": 7, "homeScore": 0},
+        {"league": "nfl", "providerGameId": "m6-nfl", "status": "final", "awayScore": 7, "homeScore": 3}
+      ]
+    },
+    {
+      "league": "mlb",
+      "gameId": "mlb:m6-mlb",
+      "snapshots": [
+        {"league": "mlb", "providerGameId": "m6-mlb", "status": "scheduled", "awayScore": null, "homeScore": null},
+        {"league": "mlb", "providerGameId": "m6-mlb", "status": "live", "awayScore": 0, "homeScore": 0},
+        {"league": "mlb", "providerGameId": "m6-mlb", "status": "live", "awayScore": 1, "homeScore": 2},
+        {"league": "mlb", "providerGameId": "m6-mlb", "status": "intermission", "awayScore": 1, "homeScore": 2},
+        {"league": "mlb", "providerGameId": "m6-mlb", "status": "final", "awayScore": 1, "homeScore": 2}
+      ]
+    },
+    {
+      "league": "nba",
+      "gameId": "nba:m6-nba",
+      "snapshots": [
+        {"league": "nba", "providerGameId": "m6-nba", "status": "scheduled", "awayScore": null, "homeScore": null},
+        {"league": "nba", "providerGameId": "m6-nba", "status": "live", "awayScore": 0, "homeScore": 0},
+        {"league": "nba", "providerGameId": "m6-nba", "status": "live", "awayScore": 2, "homeScore": 0},
+        {"league": "nba", "providerGameId": "m6-nba", "status": "final", "awayScore": 2, "homeScore": 1}
+      ]
+    }
+  ],
+  "correction": [
+    {"league": "nhl", "providerGameId": "m6-correction", "status": "live", "awayScore": 2, "homeScore": 1},
+    {"league": "nhl", "providerGameId": "m6-correction", "status": "live", "awayScore": 1, "homeScore": 1},
+    {"league": "nhl", "providerGameId": "m6-correction", "status": "live", "awayScore": 1, "homeScore": 1}
+  ]
+}

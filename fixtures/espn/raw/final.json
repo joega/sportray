@@ -1,0 +1,17 @@
+{
+  "events": [
+    {
+      "id": "401873275",
+      "date": "2026-08-13T23:00Z",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "23", "homeAway": "home", "score": "28", "team": {"id": "23", "displayName": "Pittsburgh Steelers", "shortDisplayName": "Steelers", "abbreviation": "PIT"}},
+            {"id": "9", "homeAway": "away", "score": "9", "team": {"id": "9", "displayName": "Green Bay Packers", "shortDisplayName": "Packers", "abbreviation": "GB"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 4, "type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "description": "Final", "detail": "Final", "shortDetail": "Final"}}
+        }
+      ]
+    }
+  ]
+}

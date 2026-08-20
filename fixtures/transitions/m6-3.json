@@ -1,0 +1,68 @@
+{
+  "now": 1700000000000,
+  "favoriteSettings": {
+    "favoriteTeamIds": ["nhl:6"],
+    "notifications": {
+      "enabled": true,
+      "gameStart": true,
+      "scoreChange": true,
+      "gameFinal": true
+    }
+  },
+  "favoriteGame": {
+    "league": "nhl",
+    "providerGameId": "m6-3-favorite",
+    "status": "live",
+    "periodLabel": "2nd",
+    "clock": "08:42",
+    "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+    "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+    "awayScore": 3,
+    "homeScore": 2
+  },
+  "otherGame": {
+    "league": "nhl",
+    "providerGameId": "m6-3-other",
+    "status": "live",
+    "periodLabel": "1st",
+    "clock": "12:00",
+    "awayTeam": {"id": "nhl:10", "league": "nhl", "providerTeamId": "10", "abbreviation": "FLA"},
+    "homeTeam": {"id": "nhl:24", "league": "nhl", "providerTeamId": "24", "abbreviation": "ANA"},
+    "awayScore": 1,
+    "homeScore": 0
+  },
+  "events": [
+    {"type": "game-start", "gameId": "nhl:m6-3-favorite", "league": "nhl", "currentStatus": "live", "awayScore": 0, "homeScore": 0},
+    {"type": "score-change", "gameId": "nhl:m6-3-favorite", "league": "nhl", "currentStatus": "live", "awayScore": 3, "homeScore": 2},
+    {"type": "game-final", "gameId": "nhl:m6-3-favorite", "league": "nhl", "currentStatus": "final", "awayScore": 4, "homeScore": 2},
+    {"type": "score-change", "gameId": "nhl:m6-3-other", "league": "nhl", "currentStatus": "live", "awayScore": 1, "homeScore": 0}
+  ],
+  "expectedScoreArgv": [
+    "/usr/bin/omarchy-notification-send",
+    "--app-name", "Sportray",
+    "-u", "normal",
+    "Sportray · Score change",
+    "BOS 3–2 TOR · 2nd · 08:42"
+  ],
+  "scorePlusFinal": {
+    "previous": {
+      "league": "nhl",
+      "providerGameId": "m6-3-final",
+      "status": "intermission",
+      "periodLabel": "3rd",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": 3,
+      "homeScore": 2
+    },
+    "current": {
+      "league": "nhl",
+      "providerGameId": "m6-3-final",
+      "status": "final",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": 4,
+      "homeScore": 2
+    }
+  }
+}

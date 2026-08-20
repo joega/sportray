@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "761730",
+    "date": "2026-08-22T02:30Z",
+    "competitions": [{
+      "id": "761730",
+      "status": {"period": 1, "type": {"name": "STATUS_CANCELED", "state": "post", "completed": false, "detail": "Canceled"}},
+      "competitors": [
+        {"id": "187", "homeAway": "home", "team": {"id": "187", "displayName": "LA Galaxy", "shortDisplayName": "LA Galaxy", "abbreviation": "LA"}},
+        {"id": "191", "homeAway": "away", "team": {"id": "191", "displayName": "San Jose Earthquakes", "shortDisplayName": "San Jose", "abbreviation": "SJ"}}
+      ]
+    }]
+  }]
+}

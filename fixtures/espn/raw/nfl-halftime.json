@@ -1,0 +1,17 @@
+{
+  "events": [
+    {
+      "id": "401772903",
+      "date": "2026-09-14T00:20:00Z",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "6", "homeAway": "home", "score": "10", "team": {"id": "6", "displayName": "Chicago Bears", "shortDisplayName": "Bears", "abbreviation": "CHI"}},
+            {"id": "19", "homeAway": "away", "score": "13", "team": {"id": "19", "displayName": "Los Angeles Rams", "shortDisplayName": "Rams", "abbreviation": "LAR"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 2, "type": {"name": "STATUS_HALFTIME", "state": "in", "completed": false, "description": "Halftime", "detail": "Halftime", "shortDetail": "Halftime"}}
+        }
+      ]
+    }
+  ]
+}

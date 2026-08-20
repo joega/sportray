@@ -1,0 +1,15 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Editor and operating-system files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Generated output
+*.log
+coverage/
+node_modules/

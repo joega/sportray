@@ -1,0 +1,101 @@
+{
+  "fixture": "favorite-presentation",
+  "now": "2026-10-08T10:00:00Z",
+  "games": [
+    {
+      "league": "nhl",
+      "providerGameId": "101",
+      "startTime": "2026-10-08T09:55:00Z",
+      "status": "live",
+      "periodLabel": "2nd",
+      "clock": "08:00",
+      "awayTeam": {"league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "10", "abbreviation": "TOR"},
+      "awayScore": 3,
+      "homeScore": 2
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "102",
+      "startTime": "2026-10-08T09:50:00Z",
+      "status": "intermission",
+      "periodLabel": "1st",
+      "awayTeam": {"league": "nhl", "providerTeamId": "24", "abbreviation": "ANA"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "11", "abbreviation": "MTL"},
+      "awayScore": 1,
+      "homeScore": 1
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "103",
+      "startTime": "2026-10-08T10:20:00Z",
+      "status": "scheduled",
+      "awayTeam": {"league": "nhl", "providerTeamId": "13", "abbreviation": "MTL"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "68", "abbreviation": "UTA"},
+      "awayScore": null,
+      "homeScore": null
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "104",
+      "startTime": "2026-10-08T08:00:00Z",
+      "status": "final",
+      "awayTeam": {"league": "nhl", "providerTeamId": "13", "abbreviation": "MTL"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "3", "abbreviation": "NYR"},
+      "awayScore": 4,
+      "homeScore": 3
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "105",
+      "startTime": "2026-10-08T09:45:00Z",
+      "status": "live",
+      "periodLabel": "3rd",
+      "clock": "04:00",
+      "awayTeam": {"league": "nhl", "providerTeamId": "14", "abbreviation": "TB"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "68", "abbreviation": "UTA"},
+      "awayScore": 2,
+      "homeScore": 1
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "106",
+      "startTime": "2026-10-08T10:25:00Z",
+      "status": "scheduled",
+      "awayTeam": {"league": "nhl", "providerTeamId": "25", "abbreviation": "DAL"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "20", "abbreviation": "CGY"},
+      "awayScore": null,
+      "homeScore": null
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "107",
+      "startTime": "2026-10-08T08:30:00Z",
+      "status": "final",
+      "awayTeam": {"league": "nhl", "providerTeamId": "4", "abbreviation": "PHI"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "5", "abbreviation": "PIT"},
+      "awayScore": 2,
+      "homeScore": 5
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "108",
+      "startTime": "not-a-time",
+      "status": "unknown",
+      "awayTeam": null,
+      "homeTeam": null,
+      "awayScore": null,
+      "homeScore": null
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "109",
+      "startTime": "2026-10-08T21:00:00Z",
+      "status": "scheduled",
+      "awayTeam": {"league": "nhl", "providerTeamId": "22", "abbreviation": "FLA"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "23", "abbreviation": "CAR"},
+      "awayScore": null,
+      "homeScore": null
+    }
+  ]
+}

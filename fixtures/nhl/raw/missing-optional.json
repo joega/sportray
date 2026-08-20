@@ -1,0 +1,11 @@
+{
+  "games": [
+    {
+      "id": 2026020016,
+      "gameState": "PRE",
+      "gameScheduleState": "OK",
+      "awayTeam": {"id": 7, "abbrev": "BUF"},
+      "homeTeam": {"id": 17, "abbrev": "DET"}
+    }
+  ]
+}

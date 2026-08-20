@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "id": "401772901",
+      "date": "2026-09-13T17:00:00Z",
+      "competitions": [
+        {
+          "id": "401772901",
+          "venue": {"fullName": "Gillette Stadium"},
+          "competitors": [
+            {"id": "17", "homeAway": "home", "team": {"id": "17", "displayName": "New England Patriots", "shortDisplayName": "Patriots", "abbreviation": "NE"}},
+            {"id": "2", "homeAway": "away", "team": {"id": "2", "displayName": "Buffalo Bills", "shortDisplayName": "Bills", "abbreviation": "BUF"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 0, "type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false, "description": "Scheduled", "detail": "Sun, Sep 13 at 1:00 PM EDT"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/nfl/game/_/gameId/401772901"}]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "events": [
+    {"id": "761728", "date": "2026-08-20T01:30Z", "competitions": [{"id": "761728", "status": {"displayClock": "90'+5'", "period": 2, "type": {"name": "STATUS_FULL_TIME", "state": "post", "completed": true, "detail": "FT"}}, "competitors": [{"id": "190", "homeAway": "home", "score": "2", "team": {"id": "190", "displayName": "Red Bull New York", "abbreviation": "RBNY"}}, {"id": "18986", "homeAway": "away", "score": "2", "team": {"id": "18986", "displayName": "Nashville SC", "abbreviation": "NSH"}}]}]},
+    {"id": "761729", "competitions": [{"id": "761729", "status": {"type": {"name": "STATUS_POSTPONED", "state": "post", "completed": false}}, "competitors": [{"id": "184", "homeAway": "home", "team": {"id": "184", "displayName": "Colorado Rapids", "abbreviation": "COL"}}, {"id": "18966", "homeAway": "away", "team": {"id": "18966", "displayName": "LAFC", "abbreviation": "LAFC"}}]}]},
+    {"id": "761730", "competitions": [{"id": "761730", "status": {"type": {"name": "STATUS_CANCELED", "state": "post", "completed": false}}, "competitors": [{"id": "187", "homeAway": "home", "team": {"id": "187", "displayName": "LA Galaxy", "abbreviation": "LA"}}, {"id": "191", "homeAway": "away", "team": {"id": "191", "displayName": "San Jose Earthquakes", "abbreviation": "SJ"}}]}]},
+    {"id": "mls-malformed", "competitions": [{"id": "mls-malformed", "competitors": [{"homeAway": "home"}]}]}
+  ]
+}

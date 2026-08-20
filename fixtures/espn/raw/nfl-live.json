@@ -1,0 +1,17 @@
+{
+  "events": [
+    {
+      "id": "401772902",
+      "date": "2026-09-13T20:25:00Z",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "12", "homeAway": "home", "score": "17", "team": {"id": "12", "displayName": "Kansas City Chiefs", "shortDisplayName": "Chiefs", "abbreviation": "KC"}},
+            {"id": "33", "homeAway": "away", "score": "14", "team": {"id": "33", "displayName": "Arizona Cardinals", "shortDisplayName": "Cardinals", "abbreviation": "ARI"}}
+          ],
+          "status": {"displayClock": "6:42", "period": 3, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "3rd", "shortDetail": "3rd"}}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "events": [
+    {
+      "id": "valid-sibling",
+      "date": "2026-08-16T19:00Z",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "10", "homeAway": "home", "score": "2", "team": {"id": "10", "displayName": "Valid Home", "abbreviation": "VH"}},
+            {"id": "11", "homeAway": "away", "score": "1", "team": {"id": "11", "displayName": "Valid Away", "abbreviation": "VA"}}
+          ],
+          "status": {"period": 1, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "1st"}}
+        }
+      ]
+    },
+    {"id": "malformed-sibling", "competitions": [{"competitors": [{"id": "missing-home", "homeAway": "away", "team": {"id": "missing-home"}}]}]}
+  ]
+}

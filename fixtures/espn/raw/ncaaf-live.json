@@ -1,0 +1,17 @@
+{
+  "events": [
+    {
+      "id": "ncaaf-live-401",
+      "date": "2026-09-05T19:00Z",
+      "competitions": [{
+        "status": {"period": 3, "displayClock": "6:42", "type": {
+          "name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "detail": "3rd"
+        }},
+        "competitors": [
+          {"id": "30", "homeAway": "home", "score": "17", "team": {"id": "30", "displayName": "USC Trojans", "shortDisplayName": "USC", "abbreviation": "USC"}},
+          {"id": "23", "homeAway": "away", "score": "14", "team": {"id": "23", "displayName": "San José State Spartans", "shortDisplayName": "San José St", "abbreviation": "SJSU"}}
+        ]
+      }]
+    }
+  ]
+}

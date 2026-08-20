@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "id": "401912207",
+      "date": "2026-11-02T05:00Z",
+      "competitions": [{
+        "status": {"period": 0, "displayClock": "0:00", "type": {
+          "name": "STATUS_SCHEDULED", "state": "pre", "completed": false,
+          "detail": "11/2 - TBD", "shortDetail": "TBD"
+        }},
+        "venue": {"fullName": "Fifth Third Arena"},
+        "neutralSite": false,
+        "competitors": [
+          {"id": "2132", "homeAway": "home", "score": "0", "team": {"id": "2132", "displayName": "Cincinnati Bearcats", "shortDisplayName": "Cincinnati", "abbreviation": "CIN"}},
+          {"id": "44", "homeAway": "away", "score": "0", "team": {"id": "44", "displayName": "American University Eagles", "shortDisplayName": "American", "abbreviation": "AMER"}}
+        ]
+      }]
+    }
+  ]
+}

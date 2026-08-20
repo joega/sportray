@@ -1,0 +1,1045 @@
+import QtQuick
+import QtQuick.Controls
+import Quickshell
+import qs.Commons
+import qs.Ui
+import "components"
+import "model/FavoritePresentation.js" as FavoritePresentation
+import "model/Formatters.js" as Formatters
+import "model/PanelPresentation.js" as PanelPresentation
+import "model/ResultRows.js" as ResultRows
+import "model/ScoreboardModel.js" as ScoreboardModel
+import "model/Iconography.js" as Iconography
+import "model/DateModel.js" as DateModel
+import "model/PanelLayout.js" as PanelLayout
+import "providers/LeagueCatalog.js" as LeagueCatalog
+import "providers/NhlTeamCatalog.js" as NhlTeamCatalog
+import "providers/EspnTeamCatalog.js" as EspnTeamCatalog
+import "services"
+
+Panel {
+  id: root
+  moduleName: "io.github.joega.sportray"
+  ipcTarget: "io.github.joega.sportray"
+  manageIpc: false
+
+  property var anchorItem: null
+  property var hostWidget: null
+  property var settings: null
+  property string barRegion: ""
+  property bool settingsOpen: false
+  property string utilityReturnDestination: "following"
+  property string settingsDestination: "sports"
+  property string activeDestination: "following"
+  property int tabCursor: 0
+  property bool tabStripFocused: true
+  property int selectedRowIndex: -1
+  property string selectedRowId: ""
+  property double nowMs: Date.now()
+  property string selectedDateKey: DateModel.localDateKey(new Date())
+  property string observedTodayDateKey: DateModel.localDateKey(new Date())
+  property var scrollPositions: ({})
+  property var selectedRowIds: ({})
+  // Assigned only at deliberate view/date/settings boundaries. Polling may
+  // replace rows, but must not resize the attached card or reset its viewport.
+  property int panelContentHeightRequest: Style.space(320)
+  // A date/destination change can first expose a bounded loading row and then
+  // replace it with the fetched slate. Keep one deferred resize request alive
+  // across that fetch, but never use ordinary polling updates as a resize
+  // trigger.
+  property bool panelHeightRecalculationPending: false
+  // QML does not reliably invalidate bindings that read through a dynamic
+  // SettingsStore object. Keep the presentation boundary explicit so a
+  // picker write and a watched state-file load both rebuild Following.
+  property int presentationRevision: 0
+  readonly property var barIdentity: hostWidget || root
+
+  function copyStringList(value, fallback) {
+    var result = []
+    if (!value || typeof value.length !== "number")
+      return fallback ? fallback.slice() : result
+    for (var i = 0; i < value.length; i++) {
+      if (typeof value[i] === "string") result.push(value[i])
+    }
+    return result
+  }
+
+  readonly property var favoriteTeamIds: root.copyStringList(
+    root.settings && root.settings.settings ? root.settings.settings.favoriteTeamIds : [], [])
+  // The final argument is an invalidation token; the provider-neutral JS
+  // boundary ignores extra arguments.
+  readonly property var scoreboard: ScoreboardModel.compose(
+    fetchService.leagueStates, root.enabledLeagues, root.favoriteTeamIds,
+    FavoritePresentation.orderGames, root.selectedDateKey, root.presentationRevision)
+  readonly property var normalizedGames: scoreboard.games
+  readonly property var panelPresentation: PanelPresentation.build(
+    scoreboard, root.favoriteTeamIds, FavoritePresentation.orderGames,
+    FavoritePresentation.isFavoriteGame, root.presentationRevision)
+  readonly property var tabItems: buildTabItems()
+  readonly property var sportOptions: buildSportOptions()
+  readonly property var activeView: viewForDestination(root.activeDestination)
+  readonly property var resultRows: ResultRows.flatten(
+    root.activeView, root.activeDestination, root.selectedDateLabel)
+  readonly property var orderedGames: scoreboard.games
+  readonly property var barState: FavoritePresentation.selectBarState(
+    normalizedGames, favoriteTeamIds, null, root.presentationRevision)
+  readonly property bool hasGames: scoreboard.hasGames
+  readonly property bool hasData: scoreboard.hasData
+  readonly property var barGame: barState.game
+  readonly property string barIconName: barIconNameForState()
+  readonly property bool barHasLiveFavorite: FavoritePresentation.isLiveFavoriteState(barState)
+  readonly property var enabledLeagues: {
+    return root.copyStringList(root.settings && root.settings.settings
+      ? root.settings.settings.enabledLeagues : [], ["nhl"])
+  }
+  readonly property var pickerTeams: buildPickerTeams()
+  readonly property string barScoreText: buildBarScoreText()
+  readonly property string barTooltipText: buildBarTooltipText()
+  readonly property var verticalScoreLines: buildVerticalScoreLines()
+  readonly property string todayDateKey: DateModel.localDateKey(new Date(root.nowMs))
+  readonly property string selectedDateLabel: DateModel.displayLabel(
+    root.selectedDateKey, root.todayDateKey)
+
+  function refresh() {
+    fetchService.requestRefresh("manual")
+  }
+
+  function recalculatePanelHeight() {
+    root.panelContentHeightRequest = PanelLayout.contentRequest(root.resultRows,
+      root.settingsDestination, root.settingsOpen, {
+        compactMinimum: Style.space(280),
+        maximum: Style.space(640),
+        scoreChrome: Style.space(112),
+        section: Style.space(22),
+        game: Style.space(88),
+        status: Style.space(42),
+        loading: Style.space(170),
+        nextGame: Style.space(250),
+        empty: Style.space(104),
+        rowGap: Style.spacing.md,
+        settings: Style.space(440),
+        teams: Style.space(640),
+        notifications: Style.space(520)
+      })
+  }
+
+  function queuePanelHeightRecalculation() {
+    root.panelHeightRecalculationPending = true
+    panelHeightSettleTimer.restart()
+  }
+
+  function firstLeagueDestination() {
+    return root.tabItems.length > 1 ? root.tabItems[1].id : "following"
+  }
+
+  function selectDate(dateKey) {
+    if (!DateModel.isDateKey(dateKey) || dateKey === root.selectedDateKey) return
+    root.queuePanelHeightRecalculation()
+    root.selectedDateKey = dateKey
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    var positions = Object.assign({}, root.scrollPositions || {})
+    delete positions[root.activeDestination]
+    root.scrollPositions = positions
+    var selected = Object.assign({}, root.selectedRowIds || {})
+    delete selected[root.activeDestination]
+    root.selectedRowIds = selected
+    Qt.callLater(root.recalculatePanelHeight)
+  }
+
+  function selectRelativeDate(delta) {
+    root.selectDate(DateModel.addDays(root.selectedDateKey, delta))
+  }
+
+  function buildTabItems() {
+    var items = [{id: "following", label: "Following", iconName: "neutral"}]
+    for (var i = 0; i < panelPresentation.leagues.length; i++) {
+      var league = panelPresentation.leagues[i]
+      items.push({
+        id: league.leagueId,
+        label: league.displayName || league.leagueId.toUpperCase(),
+        iconName: Iconography.iconNameForLeague(league.leagueId)
+      })
+    }
+    return items
+  }
+
+  function buildSportOptions() {
+    var options = []
+    for (var i = 0; i < root.tabItems.length; i++) {
+      var item = root.tabItems[i]
+      options.push({value: item.id, label: item.label})
+    }
+    return options
+  }
+
+  function viewForDestination(destination) {
+    if (destination === "following") return panelPresentation.following
+    for (var i = 0; i < panelPresentation.leagues.length; i++) {
+      if (panelPresentation.leagues[i].leagueId === destination) return panelPresentation.leagues[i]
+    }
+    return panelPresentation.following
+  }
+
+  function destinationIndex(destination) {
+    for (var i = 0; i < root.tabItems.length; i++) {
+      if (root.tabItems[i].id === destination) return i
+    }
+    return 0
+  }
+
+  function selectDestination(destination) {
+    var index = root.destinationIndex(destination)
+    root.queuePanelHeightRecalculation()
+    root.saveResultPosition(root.activeDestination)
+    root.tabCursor = index
+    root.activeDestination = root.tabItems[index].id
+    root.tabStripFocused = true
+    root.restoreResultPosition()
+    root.recalculatePanelHeight()
+  }
+
+  function moveTabCursor(delta) {
+    if (root.tabItems.length === 0) return
+    root.tabCursor = Math.max(0, Math.min(root.tabItems.length - 1, root.tabCursor + delta))
+  }
+
+  function activateTabCursor() {
+    if (root.tabItems.length > 0) root.selectDestination(root.tabItems[root.tabCursor].id)
+  }
+
+  function saveResultPosition(destination) {
+    if (!destination || !resultList) return
+    var positions = Object.assign({}, root.scrollPositions || {})
+    positions[destination] = resultList.contentY
+    root.scrollPositions = positions
+
+    var selected = Object.assign({}, root.selectedRowIds || {})
+    selected[destination] = root.selectedRowId || ""
+    root.selectedRowIds = selected
+  }
+
+  function rowIndexForId(rowId) {
+    if (!rowId) return -1
+    for (var i = 0; i < root.resultRows.length; i++) {
+      if (root.resultRows[i].rowId === rowId) return i
+    }
+    return -1
+  }
+
+  function selectableRow(index) {
+    return index >= 0 && index < root.resultRows.length
+      && root.resultRows[index].action
+      && root.resultRows[index].action.enabled === true
+  }
+
+  function nearestSelectableRow(index, direction) {
+    var step = direction < 0 ? -1 : 1
+    var cursor = Math.max(0, Math.min(root.resultRows.length - 1, index))
+    while (cursor >= 0 && cursor < root.resultRows.length) {
+      if (root.selectableRow(cursor)) return cursor
+      cursor += step
+    }
+    return -1
+  }
+
+  function setSelectedRow(index) {
+    if (!root.selectableRow(index)) return
+    root.selectedRowIndex = index
+    root.selectedRowId = root.resultRows[index].rowId
+    var selected = Object.assign({}, root.selectedRowIds || {})
+    selected[root.activeDestination] = root.selectedRowId
+    root.selectedRowIds = selected
+    Qt.callLater(function() {
+      if (root.selectedRowIndex === index && resultList.count > index)
+        resultList.positionViewAtIndex(index, ListView.Contain)
+    })
+  }
+
+  function activateRow(index) {
+    if (!root.selectableRow(index)) return
+    var row = root.resultRows[index]
+    var delegate = resultList.itemAtIndex(index)
+    if (row.action.type === "choose-teams") {
+      root.openUtility("teams")
+    } else if (row.action.type === "browse-leagues") {
+      root.selectDestination(root.firstLeagueDestination())
+    } else if (delegate && typeof delegate.activatePrimaryAction === "function") {
+      delegate.activatePrimaryAction()
+    } else if (row.action.type === "retry") {
+      root.refresh()
+    }
+  }
+
+  function moveResultCursor(delta) {
+    var next = root.selectedRowIndex
+    if (next < 0) next = delta < 0 ? root.resultRows.length - 1 : 0
+    else next += delta < 0 ? -1 : 1
+    next = root.nearestSelectableRow(next, delta)
+    if (next >= 0) root.setSelectedRow(next)
+  }
+
+  function moveResultCursorByPage(direction) {
+    if (root.resultRows.length === 0) return
+    var page = Math.max(1, Math.floor(resultList.height / Style.space(56)))
+    var next = root.selectedRowIndex < 0
+      ? (direction < 0 ? root.resultRows.length - 1 : 0)
+      : root.selectedRowIndex + direction * page
+    next = Math.max(0, Math.min(root.resultRows.length - 1, next))
+    next = root.nearestSelectableRow(next, direction)
+    if (next >= 0) root.setSelectedRow(next)
+  }
+
+  function moveResultCursorToEdge(direction) {
+    var next = direction < 0 ? 0 : root.resultRows.length - 1
+    next = root.nearestSelectableRow(next, direction)
+    if (next >= 0) root.setSelectedRow(next)
+  }
+
+  function restoreResultPosition() {
+    var savedId = root.selectedRowIds && root.selectedRowIds[root.activeDestination]
+      ? root.selectedRowIds[root.activeDestination] : ""
+    var index = root.rowIndexForId(savedId)
+    root.selectedRowId = savedId
+    root.selectedRowIndex = index
+    Qt.callLater(function() {
+      var savedY = root.scrollPositions && root.scrollPositions[root.activeDestination]
+        ? root.scrollPositions[root.activeDestination] : 0
+      if (index >= 0) resultList.positionViewAtIndex(index, ListView.Contain)
+      else resultList.contentY = Math.max(0, Math.min(savedY, resultList.contentHeight - resultList.height))
+    })
+  }
+
+  function buildPickerTeams() {
+    var teams = []
+    // Favorites remain discoverable when a league is temporarily disabled;
+    // fetching and destination visibility still follow enabledLeagues.
+    var leagues = LeagueCatalog.listLeagues().map(function(league) { return league.id })
+    for (var i = 0; i < leagues.length; i++) {
+      var league = String(leagues[i]).toLowerCase()
+      if (league === "nhl") teams = teams.concat(NhlTeamCatalog.listTeams())
+      else teams = teams.concat(EspnTeamCatalog.listTeams(league))
+    }
+    return teams
+  }
+
+  function open() {
+    root.controller.show()
+  }
+
+  onOpenedChanged: if (root.opened) {
+    root.nowMs = Date.now()
+    root.panelHeightRecalculationPending = root.resultRows.some(function(row) {
+      return row.kind === "loading"
+    })
+    root.recalculatePanelHeight()
+    if (root.panelHeightRecalculationPending) panelHeightSettleTimer.restart()
+    root.activeDestination = "following"
+    root.tabCursor = 0
+    root.tabStripFocused = true
+    Qt.callLater(function() {
+      root.restoreResultPosition()
+      keyCatcher.forceActiveFocus()
+    })
+  }
+
+  onTodayDateKeyChanged: {
+    if (root.selectedDateKey === root.observedTodayDateKey)
+      root.selectedDateKey = root.todayDateKey
+    root.observedTodayDateKey = root.todayDateKey
+  }
+
+  onSelectedDateKeyChanged: {
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    Qt.callLater(root.restoreResultPosition)
+    root.syncNotificationGames()
+    Qt.callLater(root.recalculatePanelHeight)
+  }
+
+  onActiveDestinationChanged: {
+    root.tabCursor = root.destinationIndex(root.activeDestination)
+    if (sportsPicker) sportsPicker.value = root.activeDestination
+    root.recalculatePanelHeight()
+  }
+
+  onResultRowsChanged: {
+    Qt.callLater(root.restoreResultPosition)
+    if (root.panelHeightRecalculationPending) panelHeightSettleTimer.restart()
+  }
+
+  Timer {
+    id: panelHeightSettleTimer
+    interval: 250
+    repeat: false
+    onTriggered: {
+      if (!root.panelHeightRecalculationPending) return
+      if (root.activeView && root.activeView.loading === true) {
+        restart()
+        return
+      }
+      root.panelHeightRecalculationPending = false
+      root.recalculatePanelHeight()
+    }
+  }
+
+  onSettingsOpenChanged: Qt.callLater(root.recalculatePanelHeight)
+
+  onTabItemsChanged: if (root.destinationIndex(root.activeDestination) === 0
+                         && root.activeDestination !== "following")
+    root.activeDestination = "following"
+
+  function close() {
+    // The bar remains an ambient current-day indicator; browsing another day
+    // is a panel session, so closing returns the next ambient refresh to today.
+    if (root.selectedDateKey !== root.todayDateKey)
+      root.selectedDateKey = root.todayDateKey
+    root.controller.hide()
+  }
+
+  function toggle() {
+    root.opened ? root.close() : root.open()
+  }
+
+  function togglePicker() {
+    root.settingsOpen ? root.closeUtility() : root.openUtility("teams")
+  }
+
+  function toggleSettings() {
+    root.settingsOpen ? root.closeUtility() : root.openUtility("sports")
+  }
+
+  function openSettings(destination) {
+    root.openUtility(destination || "sports")
+  }
+
+  function openUtility(destination) {
+    root.utilityReturnDestination = root.activeDestination
+    root.settingsDestination = destination || "sports"
+    root.settingsOpen = true
+    settingsHub.reset(root.settingsDestination)
+    root.tabStripFocused = false
+    utilityScroll.contentY = 0
+    root.recalculatePanelHeight()
+  }
+
+  function closeUtility() {
+    root.settingsOpen = false
+    root.activeDestination = root.utilityReturnDestination
+    root.tabCursor = root.destinationIndex(root.activeDestination)
+    root.tabStripFocused = true
+    root.restoreResultPosition()
+    root.recalculatePanelHeight()
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+  }
+
+  function switchPanel(direction) {
+    if (root.bar && typeof root.bar.switchPanelFrom === "function")
+      return root.bar.switchPanelFrom(root.barIdentity, direction)
+    return false
+  }
+
+  function syncNotificationGames() {
+    if (!notificationService || !fetchService) return
+    notificationService.games = root.selectedDateKey === root.todayDateKey
+      ? fetchService.games : []
+  }
+
+  Timer {
+    interval: 60000
+    repeat: true
+    running: root.opened
+    onTriggered: root.nowMs = Date.now()
+  }
+
+  function localStartTime(value) {
+    if (typeof value !== "string") return ""
+    var date = new Date(value)
+    if (isNaN(date.getTime())) return ""
+    return Qt.formatDateTime(date, "h:mm AP")
+  }
+
+  function barFormatOptions(maxLength) {
+    var options = {leagueLabel: barState.game ? String(barState.game.league || "").toUpperCase() : "SPORTRAY"}
+    options.maxLength = typeof maxLength === "number" ? maxLength : 32
+    if (barState.game) options.startTimeText = localStartTime(barState.game.startTime)
+    return options
+  }
+
+  function barIconNameForState() {
+    // While the panel is open, the tray button represents the league the user
+    // is actually browsing. The ambient state below remains favorite-first
+    // when the panel is closed.
+    if (root.opened && !root.settingsOpen && root.activeDestination !== "following")
+      return Iconography.iconNameForLeague(root.activeDestination)
+
+    if (barState.game)
+      return Iconography.iconNameForLeague(barState.game.league)
+
+    if (barState.kind === "live-favorite-count") {
+      var liveFavorites = root.normalizedGames.filter(function(game) {
+        return FavoritePresentation.isFavoriteGame(game, root.favoriteTeamIds)
+          && (game.status === "live" || game.status === "intermission")
+      })
+      if (liveFavorites.length > 0)
+        return Iconography.iconNameForLeague(liveFavorites[0].league)
+    }
+
+    return "soccerField"
+  }
+
+  function buildBarScoreText() {
+    var text = Formatters.formatBarText(barState, root.barFormatOptions())
+    if (text !== "") return text
+    if (fetchService.loading && !fetchService.hasData) return "Sportray …"
+    if (fetchService.errorCode !== "") return "Sportray · offline"
+    return fetchService.hasData ? "Sportray · no games" : "Sportray"
+  }
+
+  function buildBarTooltipText() {
+    var text = Formatters.formatBarTooltip(barState, root.barFormatOptions(64))
+    if (root.barHasLiveFavorite && text !== "") return "Live favorite · " + text
+    if (text !== "") return text
+    if (fetchService.errorCode !== "") return "Sportray · scores unavailable"
+    return fetchService.hasData ? "Sportray · no games" : "Sportray"
+  }
+
+  function buildVerticalScoreLines() {
+    var lines = Formatters.formatBarVerticalLines(barState, {
+      leagueLabel: barState.game ? String(barState.game.league || "").toUpperCase() : "SPORT"
+    })
+    if (lines.length > 0) return lines
+    if (fetchService.loading && !fetchService.hasData) return ["SPORT", "…", ""]
+    if (fetchService.errorCode !== "") return ["SPORT", "OFF", ""]
+    return ["SPORT", "—", ""]
+  }
+
+  Connections {
+    target: root.settings
+    function onSettingsChanged() {
+      root.presentationRevision++
+    }
+  }
+
+  FetchService {
+    id: fetchService
+    enabledLeagues: root.enabledLeagues
+    favoriteTeamIds: root.favoriteTeamIds
+    selectedDateKey: root.selectedDateKey
+    lookaheadLeagueId: !root.settingsOpen && root.activeDestination !== "following"
+      ? root.activeDestination : ""
+    panelOpen: root.opened
+  }
+
+  NotificationService {
+    id: notificationService
+    settingsStore: root.settings
+
+    Component.onCompleted: root.syncNotificationGames()
+  }
+
+  Connections {
+    target: fetchService
+    function onGamesChanged() { root.syncNotificationGames() }
+  }
+
+  Connections {
+    target: settingsHub
+    function onEscapeRequested() { root.closeUtility() }
+    function onContentBoundsRequested(top, bottom) {
+      var contentTop = settingsHub.y + top
+      var contentBottom = settingsHub.y + bottom
+      if (contentTop < utilityScroll.contentY)
+        utilityScroll.contentY = Math.max(0, contentTop)
+      else if (contentBottom > utilityScroll.contentY + utilityScroll.height)
+        utilityScroll.contentY = Math.min(utilityScroll.contentHeight - utilityScroll.height,
+          Math.max(0, contentBottom - utilityScroll.height))
+    }
+  }
+
+  KeyboardPanel {
+    id: panel
+    anchorItem: root.anchorItem
+    owner: root.barIdentity
+    bar: root.bar
+    open: root.opened
+    // Keep the score surface attached to the configured bar region instead of
+    // opening as a centered dashboard. Zero margin/gap makes its top edge meet
+    // the top bar directly; KeyboardPanel keeps it on the Overlay layer above
+    // tiled application windows. The host component owns the card surface and
+    // transition; its default popup/bar backgrounds are identical in Omarchy's
+    // current theme.
+    centerOnBar: root.barRegion === "center"
+    margin: 0
+    gap: 0
+    focusTarget: keyCatcher
+    contentWidth: panel.fittedContentWidth(Style.space(400))
+    contentHeight: panel.fittedContentHeight(root.panelContentHeightRequest, Style.space(640))
+
+    PanelKeyCatcher {
+      id: keyCatcher
+      anchors.fill: parent
+      // Keep the catcher active while the search editor has focus so Escape
+      // returns through the normal panel path; text keys pass through below.
+      blocked: sportsPicker.popupOpen
+      onCloseRequested: root.settingsOpen ? root.closeUtility() : root.close()
+      onMoveRequested: function(dx, dy) {
+        if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
+        else if (dx !== 0) {
+          root.tabStripFocused = true
+          root.moveTabCursor(dx)
+        }
+        else if (dy !== 0) { root.tabStripFocused = false; root.moveResultCursor(dy) }
+      }
+      onActivateRequested: {
+        if (root.settingsOpen) settingsHub.activateCursor()
+        else if (root.tabStripFocused) root.activateTabCursor()
+          else root.activateRow(root.selectedRowIndex)
+      }
+      onTabRequested: function(direction) { root.switchPanel(direction) }
+      onTextKey: function(text) {
+        if (settingsHub.inputActive) return
+        if (text === "r" || text === "R") root.refresh()
+        if (text === "n" || text === "N") root.openSettings()
+        if (text === "[" || text === "{") root.selectRelativeDate(-1)
+        if (text === "]" || text === "}") root.selectRelativeDate(1)
+        if (text === "t" || text === "T") root.selectDate(root.todayDateKey)
+      }
+
+      // PanelKeyCatcher owns arrows, tab, activation, Escape, and text keys.
+      // Keep only the extra viewport navigation keys here; the installed
+      // Omarchy handler does not emit semantic signals for these keys.
+      Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_PageDown) {
+          root.tabStripFocused = false
+          root.moveResultCursorByPage(1)
+        } else if (event.key === Qt.Key_PageUp) {
+          root.tabStripFocused = false
+          root.moveResultCursorByPage(-1)
+        } else if (event.key === Qt.Key_Home) {
+          root.tabStripFocused = false
+          root.moveResultCursorToEdge(-1)
+        } else if (event.key === Qt.Key_End) {
+          root.tabStripFocused = false
+          root.moveResultCursorToEdge(1)
+        } else {
+          return
+        }
+        event.accepted = true
+      }
+
+      Column {
+        id: contentColumn
+        anchors.fill: parent
+        spacing: Style.spacing.md
+        // The card is intentionally bounded even when the result model is
+        // dense. The body below uses the actual fitted card height.
+
+        Row {
+          id: header
+          width: parent.width
+          spacing: Style.spacing.sm
+
+          Text {
+            id: headerTitle
+            text: (Iconography.displayText(
+              root.settingsOpen ? "settings" : "calendar",
+              Style.font.family) || "S")
+              + (root.settingsOpen ? "  Settings" : "  " + root.selectedDateLabel)
+            font.family: Style.font.family
+            font.pixelSize: Style.font.title
+            color: Color.accent
+            font.bold: true
+          }
+
+          Item {
+            width: Math.max(0, header.width - headerTitle.implicitWidth
+              - (todayButton.visible ? todayButton.implicitWidth : 0)
+              - (refreshButton.visible ? refreshButton.implicitWidth : 0)
+              - settingsButton.implicitWidth - header.spacing * 4)
+            height: 1
+          }
+
+          SemanticActionButton {
+            id: todayButton
+            visible: !root.settingsOpen && root.selectedDateKey !== root.todayDateKey
+            iconName: ""
+            text: "Show Today"
+            textBold: true
+            textFontSize: Style.font.caption
+            textVerticalPadding: Style.spacing.controlPaddingY / 2
+            tooltipText: "Return to today"
+            focusable: true
+            height: refreshButton.implicitHeight
+            onClicked: root.selectDate(root.todayDateKey)
+            Accessible.name: "Show today"
+            Accessible.role: Accessible.Button
+          }
+
+          SemanticActionButton {
+            id: refreshButton
+            visible: !root.settingsOpen
+            iconName: "refresh"
+            fallbackText: fetchService.loading ? "..." : "R"
+            tooltipText: fetchService.loading ? "Refreshing scores" : "Refresh scores"
+            enabled: !fetchService.loading
+            focusable: true
+            onClicked: root.refresh()
+            Accessible.name: fetchService.loading ? "Refreshing scores" : "Refresh scores"
+            Accessible.role: Accessible.Button
+          }
+
+          SemanticActionButton {
+            id: settingsButton
+            iconName: root.settingsOpen ? "close" : "settings"
+            fallbackText: root.settingsOpen ? "X" : "[ ]"
+            tooltipText: root.settingsOpen ? "Close settings" : "Sportray settings"
+            focusable: true
+            onClicked: root.toggleSettings()
+            Accessible.name: root.settingsOpen ? "Close settings" : "Sportray settings"
+            Accessible.role: Accessible.Button
+          }
+        }
+
+        Item {
+          id: panelBody
+          width: parent.width
+          height: Math.max(0, parent.height - header.height - contentColumn.spacing)
+
+          Flickable {
+            id: utilityScroll
+            anchors.fill: parent
+            visible: root.settingsOpen
+            contentWidth: width
+            contentHeight: utilityColumn.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.VerticalFlick
+            // Favorite teams owns the inner wheel/list. Other settings
+            // destinations use this outer surface as their single owner.
+            interactive: root.settingsDestination !== "teams" && contentHeight > height
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+            Column {
+              id: utilityColumn
+              width: utilityScroll.width
+              spacing: Style.spacing.md
+
+              SettingsHub {
+                id: settingsHub
+                width: utilityColumn.width
+                visible: root.settingsOpen
+                teams: root.pickerTeams
+                leagues: LeagueCatalog.listLeagues()
+                settingsStore: root.settings
+                notificationService: notificationService
+                settingsRevision: root.presentationRevision
+                compact: utilityScroll.width < Style.space(360)
+              }
+            }
+          }
+
+          Item {
+            id: scoreContent
+            anchors.fill: parent
+            visible: !root.settingsOpen
+
+            SportAtmosphere {
+              id: sportAtmosphere
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              height: Math.min(parent.height, Style.space(136))
+              leagueId: root.activeDestination
+              visible: !root.settingsOpen
+              z: 0
+            }
+
+            Column {
+              id: scoreChrome
+              width: parent.width
+              spacing: Style.spacing.md
+              z: 1
+
+              DateCarousel {
+                id: dateCarousel
+                width: parent.width
+                selectedDateKey: root.selectedDateKey
+                compact: parent.width < Style.space(360)
+                onDateSelected: function(dateKey) { root.selectDate(dateKey) }
+              }
+
+              Item {
+                id: tabStrip
+                width: parent.width
+                height: sportsPicker.implicitHeight
+
+                Item {
+                  id: sportChooser
+                  anchors.fill: parent
+
+                  SemanticIcon {
+                    id: activeSportIcon
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Style.space(28)
+                    height: parent.height
+                    iconName: Iconography.iconNameForLeague(root.activeDestination)
+                    fontSize: Style.font.subtitle
+                    color: Color.accent
+                    decorative: true
+                  }
+
+                  Dropdown {
+                    id: sportsPicker
+                    anchors.left: activeSportIcon.right
+                    anchors.leftMargin: Style.spacing.sm
+                    anchors.right: parent.right
+                    height: parent.height
+                    value: root.activeDestination
+                    options: root.sportOptions
+                    showLabel: false
+                    hasCursor: root.tabStripFocused
+                    Accessible.name: "Choose sport"
+                    onChanged: function(value) {
+                      root.selectDestination(value)
+                    }
+                  }
+                }
+              }
+            }
+
+            Item {
+              id: resultViewport
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: scoreChrome.bottom
+              anchors.bottom: parent.bottom
+              anchors.topMargin: Style.spacing.md
+              clip: true
+
+              ListView {
+                id: resultList
+                anchors.fill: parent
+                model: root.resultRows
+                currentIndex: root.selectedRowIndex
+                spacing: Style.spacing.md
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                interactive: contentHeight > height
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                onCurrentIndexChanged: if (currentIndex >= 0)
+                  Qt.callLater(function() { positionViewAtIndex(currentIndex, ListView.Contain) })
+
+                delegate: Item {
+                  required property var modelData
+                  required property int index
+                  readonly property var gameValue: modelData && modelData.game
+                    ? modelData.game : ({
+                      status: "unknown", awayTeam: null, homeTeam: null,
+                      awayScore: null, homeScore: null, presentation: {}
+                    })
+                  readonly property var statusValue: modelData && modelData.status
+                    ? modelData.status : ({
+                      displayName: "Scores", loading: false, stale: false,
+                      errorCode: "", errorSummary: "", partialErrorCount: 0,
+                      lastSuccessAt: null
+                    })
+                  width: ListView.view.width
+                  height: rowColumn.implicitHeight
+
+                  Column {
+                    id: rowColumn
+                    width: parent.width
+                    spacing: modelData.kind === "game" ? 0 : Style.spacing.sm
+
+                    Text {
+                      width: parent.width
+                      // Do not bind a QQuickText height to its own
+                      // implicitHeight. The delegate's bounded row height
+                      // makes that self-dependency surface as a runtime loop.
+                      height: visible ? font.pixelSize : 0
+                      visible: modelData && modelData.kind === "section-header"
+                      text: modelData.label || "Scores"
+                      color: Color.accent
+                      font.family: Style.font.family
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                    }
+
+                    GameRow {
+                      id: gameRow
+                      width: parent.width
+                      height: visible ? implicitHeight : 0
+                      visible: modelData && modelData.kind === "game"
+                      game: gameValue
+                      stale: modelData && modelData.stale === true
+                      selected: root.selectedRowId === (modelData ? modelData.rowId : "")
+                      featured: Boolean(gameValue.presentation
+                        && gameValue.presentation.isFavorite
+                        && gameValue.presentation.isLive)
+                    }
+
+                    LeagueStatus {
+                      id: leagueStatus
+                      width: parent.width
+                      height: visible ? implicitHeight : 0
+                      visible: modelData && modelData.kind === "status"
+                      status: statusValue
+                      onRetry: root.refresh()
+                    }
+
+                    LoadingState {
+                      width: parent.width
+                      height: visible ? implicitHeight : 0
+                      visible: modelData && modelData.kind === "loading"
+                      retained: modelData && modelData.retained === true
+                      labelText: modelData && modelData.label ? modelData.label : "Loading scores…"
+                    }
+
+                    BorderSurface {
+                      id: emptyCard
+                      width: parent.width
+                      height: visible ? emptyColumn.implicitHeight + Style.spacing.md * 2 : 0
+                      visible: modelData && modelData.kind === "empty"
+                      color: Util.alpha(Color.popups.background, 0.72)
+                      borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
+                      radius: Style.cornerRadius
+
+                      Column {
+                        id: emptyColumn
+                        anchors.fill: parent
+                        anchors.margins: Style.spacing.md
+                        spacing: Style.spacing.xs
+
+                        Text {
+                          width: parent.width
+                          text: modelData.title || modelData.text || "No games on this date"
+                          color: Color.popups.text
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.subtitle
+                          font.bold: Boolean(modelData.title)
+                          wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                          width: parent.width
+                          text: modelData.title ? modelData.text : ""
+                          visible: text !== ""
+                          color: Color.muted
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.bodySmall
+                          wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                          width: parent.width
+                          text: modelData.supportingText || ""
+                          visible: text !== ""
+                          color: Color.accent
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                        }
+
+                        SemanticActionButton {
+                          visible: Boolean(modelData.action && modelData.action.enabled)
+                          text: modelData.action ? modelData.action.label : ""
+                          textBold: true
+                          textFontSize: Style.font.bodySmall
+                          bordered: true
+                          focusable: true
+                          onClicked: root.activateRow(index)
+                          Accessible.name: modelData.action ? modelData.action.label : ""
+                          Accessible.role: Accessible.Button
+                        }
+                      }
+                    }
+
+                    NextGameCard {
+                      id: nextGameCard
+                      width: parent.width
+                      visible: modelData && modelData.kind === "next-game"
+                      game: gameValue
+                      dateKey: modelData.dateKey || ""
+                      onJumpRequested: root.selectDate(modelData.dateKey)
+                    }
+                  }
+
+                  TapHandler {
+                    onTapped: {
+                      root.setSelectedRow(index)
+                      root.activateRow(index)
+                    }
+                  }
+
+                  function activatePrimaryAction() {
+                    if (modelData.kind === "game") gameRow.activatePrimaryAction()
+                    else if (modelData.kind === "next-game") nextGameCard.activatePrimaryAction()
+                    else if (modelData.kind === "status") leagueStatus.activatePrimaryAction()
+                    else if (modelData.action && modelData.action.type === "choose-teams")
+                      root.openUtility("teams")
+                    else if (modelData.action && modelData.action.type === "browse-leagues")
+                      root.selectDestination(root.firstLeagueDestination())
+                    else if (modelData.action && modelData.action.type === "retry")
+                      root.refresh()
+                  }
+                }
+              }
+
+              // A refresh with retained games must not insert a row above the
+              // slate. Keep the notice in the viewport chrome so polling
+              // leaves the chooser and result positions stable.
+              BorderSurface {
+                id: refreshToast
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: Style.spacing.sm
+                visible: root.activeView && root.activeView.loading === true
+                  && root.resultRows.some(function(row) { return row.kind === "game" })
+                z: 2
+                height: refreshToastRow.implicitHeight + Style.spacing.sm * 2
+                color: Util.alpha(Color.popups.background, 0.94)
+                borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
+                radius: Style.cornerRadius
+
+                Row {
+                  id: refreshToastRow
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  anchors.leftMargin: Style.spacing.sm
+                  anchors.rightMargin: Style.spacing.sm
+                  spacing: Style.spacing.xs
+
+                  SemanticIcon {
+                    width: Style.space(18)
+                    height: width
+                    iconName: "refresh"
+                    fontSize: Style.font.bodySmall
+                    color: Color.accent
+                    decorative: true
+                  }
+
+                  Text {
+                    width: parent.width - refreshToastRow.spacing - Style.space(18)
+                    text: "Refreshing scores…"
+                    color: Color.popups.text
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.bodySmall
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
+                  }
+                }
+
+                Accessible.name: "Refreshing scores"
+                Accessible.role: Accessible.StaticText
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

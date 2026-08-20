@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.joega.sportray",
+  "name": "Sportray",
+  "version": "1.0.0-rc.7",
+  "author": "Joe G",
+  "license": "MIT",
+  "description": "Follow favorite teams with live scores, daily schedules, and alerts in the Omarchy bar.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Sportray",
+    "description": "Follow favorite teams with live scores, daily schedules, and alerts in the Omarchy bar.",
+    "category": "Status",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

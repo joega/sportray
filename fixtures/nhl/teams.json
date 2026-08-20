@@ -1,0 +1,9 @@
+{
+  "data": [
+    {"id": 6, "fullName": "Boston Bruins", "triCode": "BOS", "teamLogo": "https://assets.nhle.com/logos/nhl/svg/BOS_light.svg"},
+    {"id": 13, "fullName": "Florida Panthers", "triCode": "FLA"},
+    {"id": 36, "fullName": "Hamilton Tigers", "triCode": "HAM"},
+    {"id": 68, "fullName": "Utah Mammoth", "triCode": "UTA"},
+    {"id": 10, "fullName": "Toronto Maple Leafs", "triCode": "TOR"}
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "events": [
+    {
+      "id": "unknown-state",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "3", "homeAway": "home", "team": {"id": "3", "displayName": "Unknown Home", "abbreviation": "UNK"}},
+            {"id": "4", "homeAway": "away", "team": {"id": "4", "displayName": "Unknown Away", "abbreviation": "UAW"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 1, "type": {"name": "STATUS_NEW_PROVIDER_STATE", "state": "mystery", "completed": false, "description": "Provider update"}}
+        }
+      ]
+    }
+  ]
+}

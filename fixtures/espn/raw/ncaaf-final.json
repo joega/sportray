@@ -1,0 +1,18 @@
+{
+  "events": [
+    {
+      "id": "401752921",
+      "date": "2025-11-29T17:00Z",
+      "competitions": [{
+        "status": {"period": 4, "displayClock": "0:00", "type": {
+          "name": "STATUS_FINAL", "state": "post", "completed": true, "detail": "Final"
+        }},
+        "venue": {"fullName": "Michigan Stadium"},
+        "competitors": [
+          {"id": "130", "homeAway": "home", "score": "9", "curatedRank": {"current": 15}, "team": {"id": "130", "displayName": "Michigan Wolverines", "shortDisplayName": "Michigan", "abbreviation": "MICH"}},
+          {"id": "194", "homeAway": "away", "score": "27", "curatedRank": {"current": 1}, "team": {"id": "194", "displayName": "Ohio State Buckeyes", "shortDisplayName": "Ohio State", "abbreviation": "OSU"}}
+        ]
+      }]
+    }
+  ]
+}

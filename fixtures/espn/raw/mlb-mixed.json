@@ -1,0 +1,21 @@
+{
+  "events": [
+    {
+      "id": "401810004",
+      "date": "2026-08-16T23:10:00Z",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "6", "homeAway": "home", "score": "1", "team": {"id": "6", "displayName": "Miami Marlins", "abbreviation": "MIA"}},
+            {"id": "8", "homeAway": "away", "score": "0", "team": {"id": "8", "displayName": "Atlanta Braves", "abbreviation": "ATL"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 9, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "Top 9th"}}
+        }
+      ]
+    },
+    {
+      "id": "malformed-mlb-event",
+      "competitions": [{"competitors": [{"id": "missing-home", "homeAway": "away", "team": {"id": "missing-home", "displayName": "Incomplete MLB Away"}}]}]
+    }
+  ]
+}

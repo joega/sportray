@@ -1,0 +1,13 @@
+{
+  "sports": [{
+    "leagues": [{
+      "teams": [
+        {"team": {"id": "44", "displayName": "American University Eagles", "shortDisplayName": "American", "abbreviation": "AMER"}},
+        {"team": {"id": "9", "displayName": "Arizona State Sun Devils", "shortDisplayName": "Arizona St", "abbreviation": "ASU"}},
+        {"team": {"id": "999999", "displayName": "Unknown School", "abbreviation": "UNK"}},
+        {"team": {"id": "44", "displayName": "Duplicate American", "abbreviation": "AMER"}},
+        {"team": {"id": "9", "displayName": "Arizona State Sun Devils"}}
+      ]
+    }]
+  }]
+}

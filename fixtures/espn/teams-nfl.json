@@ -1,0 +1,12 @@
+{
+  "sports": [{
+    "leagues": [{
+      "teams": [
+        {"team": {"id": "17", "abbreviation": "NE", "displayName": "New England Patriots"}},
+        {"team": {"id": "2", "abbreviation": "BUF", "displayName": "Buffalo Bills"}},
+        {"team": {"id": "999", "abbreviation": "BAD", "displayName": "Unknown Team"}},
+        {"team": {"id": "12", "displayName": "Kansas City Chiefs"}}
+      ]
+    }]
+  }]
+}

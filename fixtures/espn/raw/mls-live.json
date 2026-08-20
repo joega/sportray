@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "761726",
+    "date": "2026-08-20T00:00Z",
+    "competitions": [{
+      "id": "761726",
+      "status": {"displayClock": "72'", "period": 2, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "detail": "72'"}},
+      "competitors": [
+        {"id": "183", "homeAway": "home", "score": "2", "team": {"id": "183", "displayName": "Columbus Crew", "shortDisplayName": "Columbus", "abbreviation": "CLB"}},
+        {"id": "9720", "homeAway": "away", "score": "1", "team": {"id": "9720", "displayName": "CF Montréal", "shortDisplayName": "CF Montréal", "abbreviation": "MTL"}}
+      ]
+    }]
+  }]
+}

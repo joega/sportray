@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "761728",
+    "date": "2026-08-20T01:30Z",
+    "competitions": [{
+      "id": "761728",
+      "status": {"displayClock": "90'+5'", "period": 2, "type": {"name": "STATUS_FULL_TIME", "state": "post", "completed": true, "detail": "FT"}},
+      "competitors": [
+        {"id": "190", "homeAway": "home", "score": "2", "team": {"id": "190", "displayName": "Red Bull New York", "shortDisplayName": "Red Bull NY", "abbreviation": "RBNY"}},
+        {"id": "18986", "homeAway": "away", "score": "2", "team": {"id": "18986", "displayName": "Nashville SC", "shortDisplayName": "Nashville", "abbreviation": "NSH"}}
+      ]
+    }]
+  }]
+}

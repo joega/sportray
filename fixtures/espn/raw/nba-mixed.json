@@ -1,0 +1,22 @@
+{
+  "events": [
+    {
+      "id": "401810105",
+      "date": "2026-10-25T23:00:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "Chase Center"},
+          "competitors": [
+            {"id": "9", "homeAway": "home", "score": "101", "team": {"id": "9", "displayName": "Golden State Warriors", "shortDisplayName": "Warriors", "abbreviation": "GS"}},
+            {"id": "17", "homeAway": "away", "score": "99", "team": {"id": "17", "displayName": "Brooklyn Nets", "shortDisplayName": "Nets", "abbreviation": "BKN"}}
+          ],
+          "status": {"displayClock": "2:14", "period": 4, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "4th Quarter"}}
+        }
+      ]
+    },
+    {
+      "id": "malformed-nba-event",
+      "competitions": [{"competitors": [{"id": "missing-home", "homeAway": "away", "team": {"id": "missing-home", "displayName": "Incomplete NBA Away"}}]}]
+    }
+  ]
+}

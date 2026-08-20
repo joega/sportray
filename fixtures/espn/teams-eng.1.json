@@ -1,0 +1,15 @@
+{
+  "sports": [{
+    "id": "600",
+    "leagues": [{
+      "id": "eng.1",
+      "teams": [
+        {"team": {"id": "359", "displayName": "Arsenal", "shortDisplayName": "Arsenal", "abbreviation": "ARS", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png"}},
+        {"team": {"id": "388", "displayName": "Coventry City", "shortDisplayName": "Coventry", "abbreviation": "COV"}},
+        {"team": {"id": "360", "displayName": "Manchester United", "shortDisplayName": "Man United", "abbreviation": "MAN"}},
+        {"team": {"id": "9999", "displayName": "Unknown FC", "shortDisplayName": "Unknown", "abbreviation": "UNK"}},
+        {"team": {"id": "361", "displayName": "Newcastle United", "shortDisplayName": "Newcastle", "abbreviation": "NEW"}}
+      ]
+    }]
+  }]
+}

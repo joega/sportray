@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "id": "401810104",
+      "date": "2026-10-21T23:00:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "United Center"},
+          "competitors": [
+            {"id": "4", "homeAway": "home", "score": "112", "team": {"id": "4", "displayName": "Chicago Bulls", "shortDisplayName": "Bulls", "abbreviation": "CHI"}},
+            {"id": "9", "homeAway": "away", "score": "118", "team": {"id": "9", "displayName": "Golden State Warriors", "shortDisplayName": "Warriors", "abbreviation": "GS"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 4, "type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "description": "Final", "detail": "Final", "shortDetail": "Final"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/nba/game/_/gameId/401810104"}]
+    }
+  ]
+}

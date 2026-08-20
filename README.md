@@ -1,0 +1,221 @@
+# Sportray
+
+Live sports scores in your Omarchy bar.
+
+![Sportray bar widget and scores panel](preview.png)
+
+Sportray is a native Omarchy Quattro `bar-widget` for checking a selected day's
+games without opening a separate application. Click the compact bar widget to
+open a favorites-first, keyboard-friendly scores panel with a bounded sport
+chooser, light date carousel, grouped score slate, and one settings hub.
+
+At a glance:
+
+- **Favorite-first** — Following puts your teams and their live games first.
+- **Eight leagues** — NHL, NFL, MLB, NBA, NCAA Football, NCAA Men's Basketball,
+  Premier League, and MLS are available from one chooser.
+- **No account or API key** — Scores, preferences, and alerts stay on your
+  machine; Sportray has no backend or telemetry.
+
+## Features
+
+- NHL, NFL, MLB, NBA, NCAA Football, NCAA Men's Basketball, English Premier League, and MLS scoreboards
+- Scheduled, live, intermediate, final, stale, empty, and unavailable states
+- Favorite-team selection with canonical league/team identities
+- A Following home for favorite-team games plus one stable destination per league
+- A five-day date carousel with previous/next-day navigation and a Today reset
+- Empty league days keep their empty message and offer the next scheduled game
+  as a one-click jump to that league day
+- Each game row links directly to its ESPN gamecast or NHL.com gamecenter page
+- Game cards show the event venue and use a restrained home-team color tint,
+  with neutral fallbacks when either field is unavailable
+- Favorite-aware bar priority and pinned favorite games in league views
+- Provider-friendly adaptive polling, bounded date caches, and one in-flight
+  request per league
+- Desktop notifications for favorite game starts, score changes, and finals
+- First-fetch suppression and bounded, restart-safe notification deduplication
+- Persistent league, favorite, and notification preferences
+- Theme-aware layout for top, bottom, left, and right bars
+- The panel anchors to its tray button and the host clamps it to the available
+  screen edge, while center placement remains centered
+- Keyboard navigation, visible focus, Escape-to-close, and bounded dense panels
+- No account, API key, Sportray server, or background daemon
+
+The score panel opens on the local current date. Use the date carousel to move
+back to completed slates or forward to upcoming games; each fetch and result
+model is scoped to the selected local date. Closing the panel returns the
+ambient bar indicator to the current date. `[` and `]` move one day while `T`
+returns to today.
+
+When an enabled league has no games on the selected day, Sportray searches the
+next bounded schedule window and shows the first upcoming game below the empty
+state. Select **View day** to jump directly to that league day. The lookahead
+uses ESPN's date-range scoreboard route and the NHL schedule route; it does not
+change the current-day score model or notification date scope.
+
+The current league catalog is NHL, NFL, MLB, NBA, NCAA Football, NCAA Men's
+Basketball, English Premier League, and MLS. NCAA Football is disabled by
+default and uses ESPN's
+canonical `college-football`
+league ID. Its picker is a bounded FBS-focused catalog because ESPN's
+provider team endpoint includes hundreds of lower-division and historical
+records; canonical favorites still use `<league>:<providerTeamId>`. English
+Premier League is also disabled by default, uses ESPN's canonical `eng.1`
+league ID and `soccer/eng.1` route, and exposes a bounded 20-team current-
+season catalog from the no-key team response. MLS is disabled by default, uses
+ESPN's canonical `usa.1` league ID and `soccer/usa.1` route, and exposes a
+bounded 30-team current-roster catalog from the no-key team response.
+NCAA Men's Basketball is disabled by default, uses ESPN's canonical
+`mens-college-basketball` league ID and `basketball/mens-college-basketball`
+route, and exposes a bounded 50-team provider-owned snapshot from the current
+no-key team response. The current off-season smoke observed the 2026-27
+regular-season metadata and 50 scheduled events; the snapshot is intentionally
+not a full historical or lower-division catalog. Favorites use only
+`mens-college-basketball:<providerTeamId>`; `ncaab` is not an alias.
+
+## Install
+
+On Omarchy 4, install and enable the public repository with:
+
+```bash
+omarchy plugin add https://github.com/joega/sportray.git --enable --yes
+```
+
+The plugin ID is `io.github.joega.sportray`. To manage it after installation:
+
+```bash
+omarchy plugin enable io.github.joega.sportray
+omarchy plugin disable io.github.joega.sportray
+omarchy plugin remove io.github.joega.sportray --yes
+```
+
+The installed shell currently requires an explicit empty argument object for
+bar-widget toggle IPC:
+
+```bash
+omarchy-shell shell toggle io.github.joega.sportray '{}'
+omarchy-shell shell hide io.github.joega.sportray
+```
+
+## Marketplace listing
+
+Proposed listing copy:
+
+> Follow your favorite teams with live scores, daily schedules, and alerts—right
+> from the Omarchy bar.
+
+Proposed category: **Widgets**. Existing tags: `bar`, `quickshell`. Suggested
+discovery tag: `sports`, if the submission form accepts new tag proposals.
+
+The current release candidate is `1.0.0-rc.7`. Its Git tag identifies the
+verified candidate; a GitHub Release and Marketplace submission are separate
+publication steps.
+
+## Settings and state
+
+Open the panel's **Settings** action to choose **Sports & leagues**, **Favorite
+teams**, or **Notifications**. Favorite teams supports search, league filters,
+selected-first ordering, resilient logo fallbacks, and keyboard navigation.
+Notification preferences control game starts, score changes, and game finals
+independently. Use **Send test notification** in that destination to preview
+the Omarchy notification channel; the preview works even when alerts are
+disabled and does not change deduplication state. Escape or Back returns from
+a utility to the prior score view before closing the panel.
+
+Sportray stores bounded schema-1 JSON outside the plugin checkout at:
+
+```text
+~/.local/state/omarchy/settings/sportray.json
+```
+
+Favorite IDs use the form `<league>:<providerTeamId>`, so abbreviations are
+never treated as team identity.
+
+## Data sources and privacy
+
+NHL scores come from the NHL public scoreboard API. NFL, MLB, NBA, NCAA
+Football, NCAA Men's Basketball, English Premier League, and MLS scores and
+team catalogs come from
+ESPN's site JSON endpoints. ESPN's site API is an undocumented website interface
+rather than a supported public developer contract; its response shape or
+availability may change. The EPL catalog is a bounded provider-owned snapshot
+because the current team endpoint is season-shaped; it is not a persistence
+boundary.
+Provider-specific parsing is isolated behind the normalized Sportray model so
+a provider change does not become a UI dependency.
+
+Each valid game exposes a labeled **ESPN** or **NHL.com** source action in the
+panel. Activating it opens the provider's game page in the Omarchy browser, so
+the scoreboard is clearly an at-a-glance view of provider data rather than an
+independent source. ESPN event links are used when supplied; otherwise Sportray
+builds the provider's standard game URL from the normalized game ID.
+
+Requests go directly from your computer to the configured sports data
+providers. Sportray has no backend, account, analytics service, or telemetry.
+It does not ask for API keys, upload preferences, or execute downloaded code.
+The plugin uses only the controlled `curl` and
+`omarchy-notification-send` command paths documented by the current Omarchy
+contract.
+
+Each score request retrieves one enabled league's complete slate for one date;
+Sportray never requests each game separately. Successful league/date snapshots
+are retained in a bounded five-date in-memory cache. A scheduled slate is not
+requested again until ten minutes before its earliest game (with a 12-hour
+maximum revalidation window for more distant schedules). Empty and completed
+slates use six-hour windows, and historical slates use 24 hours. Opening the
+panel, closing it, or changing favorites does not bypass a fresh cache; the
+explicit Refresh action does.
+
+Only the league whose data is due is fetched when the shared scheduler wakes.
+Visible live slates update about every 20 seconds, hidden live favorites every
+30 seconds, and other background live slates every two minutes. Repeated
+provider failures back off from one minute to a maximum of 30 minutes. A small
+per-session jitter spreads installations across time instead of synchronizing
+requests. The separate next-game lookup runs only for the selected empty
+league, and its result is cached across panel reopenings.
+
+## Troubleshooting
+
+Validate the checkout and inspect the running Quickshell instance with:
+
+```bash
+omarchy plugin validate /absolute/path/to/sportray
+qs list --all
+qs log --id <running-instance-id> --tail 100
+```
+
+If a provider is unavailable, its league remains isolated and shows a compact
+unavailable or stale state; healthy leagues are retained. If the widget is not
+visible, re-enable it and restart the shell using the current Omarchy commands.
+Do not delete the state file unless you intentionally want to reset leagues,
+favorites, and notification preferences.
+
+## Development
+
+Sportray is one native Quattro plugin. `BarWidget.qml` owns the bar widget and
+its nested panel; there is no second Quickshell process. Provider adapters
+normalize responses before QML sees them, and pure JavaScript behavior is
+covered by sanitized fixtures. The panel preserves Omarchy's installed
+`KeyboardPanel` overlay contract while reading the host's current bar region and
+anchoring horizontal edge placements to the actual tray button. The host's
+screen clamp keeps the card on-screen beneath that trigger. The installed host
+currently supplies a short opacity fade; a consumer-configurable slide and card
+surface-color API are not part of that contract.
+
+From a checkout, run the deterministic suite and repository checks:
+
+```bash
+tests/run-js-tests.sh
+git diff --check
+omarchy plugin validate "$PWD"
+```
+
+On an Omarchy development machine, lint changed QML with the real shell import
+path and inspect the current shell log. The installed shell's widget IPC uses
+`toggle <id> '{}'` and `hide <id>`; older no-argument examples do not apply to
+the current contract.
+
+## License
+
+Sportray is released under the [MIT License](LICENSE). See
+[CHANGELOG.md](CHANGELOG.md) for release notes.

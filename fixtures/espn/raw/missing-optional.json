@@ -1,0 +1,16 @@
+{
+  "events": [
+    {
+      "id": "missing-fields",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "1", "homeAway": "home", "team": {"id": "1", "abbreviation": "AAA"}},
+            {"id": "2", "homeAway": "away", "team": {"id": "2", "abbreviation": "BBB"}}
+          ],
+          "status": {"type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false}}
+        }
+      ]
+    }
+  ]
+}

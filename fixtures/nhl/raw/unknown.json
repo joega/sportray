@@ -1,0 +1,12 @@
+{
+  "games": [
+    {
+      "id": 2026020015,
+      "startTimeUTC": "2026-09-30T04:00:00Z",
+      "gameState": "PROVIDER_ADDED_STATE",
+      "gameScheduleState": "OK",
+      "awayTeam": {"id": 18, "name": {"default": "Predators"}, "abbrev": "NSH", "score": 0},
+      "homeTeam": {"id": 19, "name": {"default": "Blues"}, "abbrev": "STL", "score": 0}
+    }
+  ]
+}

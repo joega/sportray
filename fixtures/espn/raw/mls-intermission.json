@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "761727",
+    "date": "2026-08-20T00:30Z",
+    "competitions": [{
+      "id": "761727",
+      "status": {"displayClock": "45:00", "period": 1, "type": {"name": "STATUS_HALFTIME", "state": "in", "completed": false, "detail": "Halftime"}},
+      "competitors": [
+        {"id": "10739", "homeAway": "home", "score": "1", "team": {"id": "10739", "displayName": "Philadelphia Union", "shortDisplayName": "Philadelphia", "abbreviation": "PHI"}},
+        {"id": "20232", "homeAway": "away", "score": "0", "team": {"id": "20232", "displayName": "Inter Miami CF", "shortDisplayName": "Miami", "abbreviation": "MIA"}}
+      ]
+    }]
+  }]
+}

@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "id": "401810102",
+      "date": "2026-10-23T23:00:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "Ball Arena"},
+          "competitors": [
+            {"id": "7", "homeAway": "home", "score": "88", "team": {"id": "7", "displayName": "Denver Nuggets", "shortDisplayName": "Nuggets", "abbreviation": "DEN"}},
+            {"id": "25", "homeAway": "away", "score": "91", "team": {"id": "25", "displayName": "Oklahoma City Thunder", "shortDisplayName": "Thunder", "abbreviation": "OKC"}}
+          ],
+          "status": {"displayClock": "4:37", "period": 3, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "3rd Quarter", "shortDetail": "3rd"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/nba/game/_/gameId/401810102"}]
+    }
+  ]
+}

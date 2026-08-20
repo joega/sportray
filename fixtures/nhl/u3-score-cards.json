@@ -1,0 +1,66 @@
+{
+  "games": [
+    {
+      "providerGameId": "u3-live-away",
+      "league": "nhl",
+      "status": "live",
+      "statusDetail": "2nd",
+      "period": 2,
+      "clock": "08:42",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS", "name": "Boston Bruins"},
+      "homeTeam": {"id": "nhl:24", "league": "nhl", "providerTeamId": "24", "abbreviation": "TOR", "name": "Toronto Maple Leafs"},
+      "awayScore": 123,
+      "homeScore": 98,
+      "lastUpdated": "2026-08-19T15:55:00.000Z"
+    },
+    {
+      "providerGameId": "u3-final-home",
+      "league": "nhl",
+      "status": "final",
+      "awayTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "FLA", "name": "Florida Panthers", "logoUrl": "https://example.com/fla.png"},
+      "homeTeam": {"id": "nhl:22", "league": "nhl", "providerTeamId": "22", "abbreviation": "NYR", "name": "New York Rangers", "logoUrl": "https://example.com/nyr.png"},
+      "awayScore": 2,
+      "homeScore": 7
+    },
+    {
+      "providerGameId": "u3-final-both",
+      "league": "nhl",
+      "status": "final",
+      "awayTeam": {"id": "nhl:18", "league": "nhl", "providerTeamId": "18", "abbreviation": "DET", "name": "Detroit Red Wings"},
+      "homeTeam": {"id": "nhl:20", "league": "nhl", "providerTeamId": "20", "abbreviation": "PIT", "name": "Pittsburgh Penguins"},
+      "awayScore": 4,
+      "homeScore": 4
+    },
+    {
+      "providerGameId": "u3-stale",
+      "league": "nhl",
+      "status": "live",
+      "awayTeam": {"id": "nhl:2", "league": "nhl", "providerTeamId": "2", "abbreviation": "ANA", "name": "Anaheim Ducks"},
+      "homeTeam": {"id": "nhl:3", "league": "nhl", "providerTeamId": "3", "abbreviation": "BUF", "name": "Buffalo Sabres"},
+      "awayScore": 1,
+      "homeScore": 0,
+      "lastUpdated": "2026-08-19T14:00:00.000Z"
+    },
+    {
+      "providerGameId": "u3-postponed",
+      "league": "nhl",
+      "status": "postponed",
+      "awayTeam": {"id": "nhl:8", "league": "nhl", "providerTeamId": "8", "abbreviation": "NYI", "name": "New York Islanders"},
+      "homeTeam": {"id": "nhl:9", "league": "nhl", "providerTeamId": "9", "abbreviation": "NJD", "name": "New Jersey Devils"}
+    },
+    {
+      "providerGameId": "u3-canceled",
+      "league": "nhl",
+      "status": "canceled",
+      "awayTeam": {"id": "nhl:10", "league": "nhl", "providerTeamId": "10", "abbreviation": "OTT", "name": "Ottawa Senators"},
+      "homeTeam": {"id": "nhl:11", "league": "nhl", "providerTeamId": "11", "abbreviation": "MTL", "name": "Montreal Canadiens"}
+    },
+    {
+      "providerGameId": "u3-unavailable",
+      "league": "nhl",
+      "status": "unknown",
+      "awayTeam": {"id": "nhl:12", "league": "nhl", "providerTeamId": "12", "abbreviation": "CBJ", "name": "Columbus Blue Jackets"},
+      "homeTeam": {"id": "nhl:14", "league": "nhl", "providerTeamId": "14", "abbreviation": "WPG", "name": "Winnipeg Jets"}
+    }
+  ]
+}

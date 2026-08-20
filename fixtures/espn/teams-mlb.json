@@ -1,0 +1,8 @@
+{
+  "teams": [
+    {"id": "2", "abbreviation": "BOS", "displayName": "Boston Red Sox"},
+    {"id": "10", "abbreviation": "NYY", "displayName": "New York Yankees"},
+    {"id": "999", "abbreviation": "BAD", "displayName": "Unknown Team"},
+    {"id": "18", "displayName": "Houston Astros"}
+  ]
+}

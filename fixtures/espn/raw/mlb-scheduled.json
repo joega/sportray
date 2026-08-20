@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "id": "401810001",
+      "date": "2026-08-17T23:10:00Z",
+      "competitions": [
+        {
+          "id": "401810001",
+          "venue": {"fullName": "Fenway Park"},
+          "competitors": [
+            {"id": "2", "homeAway": "home", "team": {"id": "2", "displayName": "Boston Red Sox", "shortDisplayName": "Red Sox", "abbreviation": "BOS", "color": "bd3039"}},
+            {"id": "10", "homeAway": "away", "team": {"id": "10", "displayName": "New York Yankees", "shortDisplayName": "Yankees", "abbreviation": "NYY"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 0, "type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false, "description": "Scheduled", "detail": "Mon, Aug 17 at 7:10 PM EDT"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/mlb/game/_/gameId/401810001"}]
+    }
+  ]
+}

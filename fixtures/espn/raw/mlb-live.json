@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "id": "401810002",
+      "date": "2026-08-16T20:10:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "Dodger Stadium"},
+          "competitors": [
+            {"id": "19", "homeAway": "home", "score": "4", "team": {"id": "19", "displayName": "Los Angeles Dodgers", "shortDisplayName": "Dodgers", "abbreviation": "LAD"}},
+            {"id": "25", "homeAway": "away", "score": "5", "team": {"id": "25", "displayName": "San Diego Padres", "shortDisplayName": "Padres", "abbreviation": "SD"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 7, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "Bottom 7th", "shortDetail": "Bot 7th"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/mlb/game/_/gameId/401810002"}]
+    }
+  ]
+}

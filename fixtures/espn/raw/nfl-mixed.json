@@ -1,0 +1,21 @@
+{
+  "events": [
+    {
+      "id": "401772905",
+      "date": "2026-09-14T23:15:00Z",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "25", "homeAway": "home", "score": "3", "team": {"id": "25", "displayName": "New York Giants", "abbreviation": "NYG"}},
+            {"id": "21", "homeAway": "away", "score": "0", "team": {"id": "21", "displayName": "Tampa Bay Buccaneers", "abbreviation": "TB"}}
+          ],
+          "status": {"displayClock": "2:11", "period": 1, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "1st"}}
+        }
+      ]
+    },
+    {
+      "id": "malformed-nfl-event",
+      "competitions": [{"competitors": [{"id": "missing-home", "homeAway": "away", "team": {"id": "missing-home", "displayName": "Incomplete Away"}}]}]
+    }
+  ]
+}

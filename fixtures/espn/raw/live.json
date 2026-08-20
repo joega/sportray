@@ -1,0 +1,18 @@
+{
+  "events": [
+    {
+      "id": "401816557",
+      "date": "2026-08-16T19:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "Wrigley Field"},
+          "competitors": [
+            {"id": "16", "homeAway": "home", "score": "7", "team": {"id": "16", "displayName": "Chicago Cubs", "shortDisplayName": "Cubs", "abbreviation": "CHC"}},
+            {"id": "24", "homeAway": "away", "score": "3", "team": {"id": "24", "displayName": "Baltimore Orioles", "shortDisplayName": "Orioles", "abbreviation": "BAL"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 8, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "description": "In Progress", "detail": "Top 8th", "shortDetail": "Top 8th"}}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "401879306",
+    "date": "2026-08-25T19:00Z",
+    "competitions": [{
+      "id": "401879306",
+      "status": {"period": 1, "type": {"name": "STATUS_CANCELED", "state": "post", "completed": false, "detail": "Canceled"}},
+      "competitors": [
+        {"id": "368", "homeAway": "home", "team": {"id": "368", "displayName": "Everton", "shortDisplayName": "Everton", "abbreviation": "EVE"}},
+        {"id": "360", "homeAway": "away", "team": {"id": "360", "displayName": "Manchester United", "shortDisplayName": "Man United", "abbreviation": "MAN"}}
+      ]
+    }]
+  }]
+}

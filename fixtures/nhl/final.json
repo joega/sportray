@@ -1,0 +1,29 @@
+{
+  "fixture": "final",
+  "league": "nhl",
+  "games": [
+    {
+      "league": "nhl",
+      "providerGameId": "20261009-bos-nyr",
+      "startTime": "2026-10-09T23:00:00Z",
+      "endTime": "2026-10-10T01:42:00Z",
+      "status": "final",
+      "statusDetail": "Final",
+      "awayTeam": {
+        "league": "nhl",
+        "providerTeamId": "bruins",
+        "name": "Boston Bruins",
+        "abbreviation": "BOS"
+      },
+      "homeTeam": {
+        "league": "nhl",
+        "providerTeamId": "rangers",
+        "name": "New York Rangers",
+        "abbreviation": "NYR"
+      },
+      "awayScore": 4,
+      "homeScore": 3,
+      "link": "https://example.test/nhl/games/20261009-bos-nyr"
+    }
+  ]
+}

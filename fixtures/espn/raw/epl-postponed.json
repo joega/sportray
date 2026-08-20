@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "401879305",
+    "date": "2026-08-24T19:00Z",
+    "competitions": [{
+      "id": "401879305",
+      "status": {"period": 1, "type": {"name": "STATUS_POSTPONED", "state": "post", "completed": false, "detail": "Postponed"}},
+      "competitors": [
+        {"id": "364", "homeAway": "home", "team": {"id": "364", "displayName": "Liverpool", "shortDisplayName": "Liverpool", "abbreviation": "LIV"}},
+        {"id": "367", "homeAway": "away", "team": {"id": "367", "displayName": "Tottenham Hotspur", "shortDisplayName": "Spurs", "abbreviation": "TOT"}}
+      ]
+    }]
+  }]
+}

@@ -1,0 +1,15 @@
+{
+  "games": [
+    {
+      "id": 2026020012,
+      "startTimeUTC": "2026-09-29T23:00:00Z",
+      "gameEndTimeUTC": "2026-09-30T01:42:00Z",
+      "gameState": "FINAL",
+      "gameScheduleState": "OK",
+      "periodDescriptor": {"number": 3, "periodType": "REG"},
+      "awayTeam": {"id": 13, "name": {"default": "Panthers"}, "abbrev": "FLA", "score": 4},
+      "homeTeam": {"id": 12, "name": {"default": "Hurricanes"}, "abbrev": "CAR", "score": 3},
+      "gameCenterLink": "/gamecenter/fla-vs-car/2026/09/29/2026020012"
+    }
+  ]
+}

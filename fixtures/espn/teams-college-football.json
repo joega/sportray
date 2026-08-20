@@ -1,0 +1,13 @@
+{
+  "sports": [{
+    "leagues": [{
+      "teams": [
+        {"team": {"id": "153", "displayName": "North Carolina Tar Heels", "shortDisplayName": "North Carolina", "abbreviation": "UNC"}},
+        {"team": {"id": "2628", "displayName": "TCU Horned Frogs", "shortDisplayName": "TCU", "abbreviation": "TCU"}},
+        {"team": {"id": "999999", "displayName": "Unknown School", "abbreviation": "UNK"}},
+        {"team": {"id": "153", "displayName": "Duplicate North Carolina", "abbreviation": "UNC"}},
+        {"team": {"id": "194", "displayName": "Ohio State Buckeyes"}}
+      ]
+    }]
+  }]
+}

@@ -1,0 +1,17 @@
+{
+  "events": [
+    {
+      "id": "ncaab-halftime-401",
+      "date": "2026-11-03T03:00Z",
+      "competitions": [{
+        "status": {"period": 1, "displayClock": "0:00", "type": {
+          "name": "STATUS_HALFTIME", "state": "in", "completed": false, "detail": "Halftime"
+        }},
+        "competitors": [
+          {"id": "57", "homeAway": "home", "score": "42", "team": {"id": "57", "displayName": "Florida Gators", "shortDisplayName": "Florida", "abbreviation": "FLA"}},
+          {"id": "61", "homeAway": "away", "score": "35", "team": {"id": "61", "displayName": "Georgia Bulldogs", "shortDisplayName": "Georgia", "abbreviation": "UGA"}}
+        ]
+      }]
+    }
+  ]
+}

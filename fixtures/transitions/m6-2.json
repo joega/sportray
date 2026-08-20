@@ -1,0 +1,40 @@
+{
+  "now": 1700000000000,
+  "events": [
+    {
+      "type": "game-start",
+      "gameId": "nhl:m6-2",
+      "league": "nhl",
+      "currentStatus": "live",
+      "awayScore": 0,
+      "homeScore": 0
+    },
+    {
+      "type": "score-change",
+      "gameId": "nhl:m6-2",
+      "league": "nhl",
+      "currentStatus": "live",
+      "awayScore": 1,
+      "homeScore": 0
+    },
+    {
+      "type": "game-final",
+      "gameId": "nhl:m6-2",
+      "league": "nhl",
+      "currentStatus": "final",
+      "awayScore": 1,
+      "homeScore": 0
+    }
+  ],
+  "pruning": {
+    "now": 1000,
+    "maxFingerprints": 3,
+    "maxAgeMs": 100,
+    "entries": [
+      {"fingerprint": "nhl:old", "seenAt": 800},
+      {"fingerprint": "nhl:first", "seenAt": 901},
+      {"fingerprint": "nhl:second", "seenAt": 950},
+      {"fingerprint": "nhl:latest", "seenAt": 1000}
+    ]
+  }
+}

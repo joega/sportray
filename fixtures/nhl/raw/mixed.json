@@ -1,0 +1,26 @@
+{
+  "games": [
+    {
+      "id": 2026020017,
+      "startTimeUTC": "2026-09-30T05:00:00Z",
+      "gameState": "FUT",
+      "gameScheduleState": "OK",
+      "awayTeam": {"id": 1, "name": {"default": "Devils"}, "abbrev": "NJD"},
+      "homeTeam": {"id": 3, "name": {"default": "Rangers"}, "abbrev": "NYR"}
+    },
+    {
+      "id": null,
+      "gameState": "LIVE",
+      "awayTeam": {"id": 6, "abbrev": "BOS"},
+      "homeTeam": {"id": 8, "abbrev": "MTL"}
+    },
+    {
+      "id": 2026020018,
+      "startTimeUTC": "2026-09-30T06:00:00Z",
+      "gameState": "FINAL",
+      "gameScheduleState": "OK",
+      "awayTeam": {"id": 29, "name": {"default": "Blue Jackets"}, "abbrev": "CBJ", "score": 2},
+      "homeTeam": {"id": 5, "name": {"default": "Penguins"}, "abbrev": "PIT", "score": 5}
+    }
+  ]
+}

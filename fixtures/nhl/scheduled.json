@@ -1,0 +1,31 @@
+{
+  "fixture": "scheduled",
+  "league": "nhl",
+  "games": [
+    {
+      "league": "nhl",
+      "providerGameId": "20261007-bos-mtl",
+      "startTime": "2026-10-08T00:00:00Z",
+      "status": "scheduled",
+      "statusDetail": "7:00 PM ET",
+      "awayTeam": {
+        "league": "nhl",
+        "providerTeamId": "bruins",
+        "name": "Boston Bruins",
+        "shortName": "Boston",
+        "abbreviation": "BOS",
+        "logoUrl": "https://example.test/nhl/bos.png"
+      },
+      "homeTeam": {
+        "league": "nhl",
+        "providerTeamId": "canadiens",
+        "name": "Montreal Canadiens",
+        "shortName": "Montreal",
+        "abbreviation": "MTL"
+      },
+      "awayScore": null,
+      "homeScore": null,
+      "link": "https://example.test/nhl/games/20261007-bos-mtl"
+    }
+  ]
+}

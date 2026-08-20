@@ -1,0 +1,8 @@
+{
+  "events": [
+    {"id": "401879304", "date": "2026-08-23T15:00Z", "competitions": [{"id": "401879304", "status": {"displayClock": "90'+8'", "period": 2, "type": {"name": "STATUS_FULL_TIME", "state": "post", "completed": true, "detail": "FT"}}, "competitors": [{"id": "359", "homeAway": "home", "score": "1", "team": {"id": "359", "displayName": "Arsenal", "abbreviation": "ARS"}}, {"id": "363", "homeAway": "away", "score": "1", "team": {"id": "363", "displayName": "Chelsea", "abbreviation": "CHE"}}]}]},
+    {"id": "401879305", "competitions": [{"id": "401879305", "status": {"type": {"name": "STATUS_POSTPONED", "state": "post", "completed": false}}, "competitors": [{"id": "364", "homeAway": "home", "team": {"id": "364", "displayName": "Liverpool", "abbreviation": "LIV"}}, {"id": "367", "homeAway": "away", "team": {"id": "367", "displayName": "Tottenham Hotspur", "abbreviation": "TOT"}}]}]},
+    {"id": "401879306", "competitions": [{"id": "401879306", "status": {"type": {"name": "STATUS_CANCELED", "state": "post", "completed": false}}, "competitors": [{"id": "368", "homeAway": "home", "team": {"id": "368", "displayName": "Everton", "abbreviation": "EVE"}}, {"id": "360", "homeAway": "away", "team": {"id": "360", "displayName": "Manchester United", "abbreviation": "MAN"}}]}]},
+    {"id": "epl-malformed", "competitions": [{"id": "epl-malformed", "competitors": [{"homeAway": "home"}]}]}
+  ]
+}

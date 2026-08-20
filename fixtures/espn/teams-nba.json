@@ -1,0 +1,12 @@
+{
+  "sports": [{
+    "leagues": [{
+      "teams": [
+        {"team": {"id": "2", "abbreviation": "BOS", "displayName": "Boston Celtics"}},
+        {"team": {"id": "13", "abbreviation": "LAL", "displayName": "Los Angeles Lakers"}},
+        {"team": {"id": "999", "abbreviation": "BAD", "displayName": "Unknown Team"}},
+        {"team": {"id": "7", "displayName": "Denver Nuggets"}}
+      ]
+    }]
+  }]
+}

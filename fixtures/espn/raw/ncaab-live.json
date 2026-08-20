@@ -1,0 +1,17 @@
+{
+  "events": [
+    {
+      "id": "ncaab-live-401",
+      "date": "2026-11-03T01:30Z",
+      "competitions": [{
+        "status": {"period": 1, "displayClock": "12:34", "type": {
+          "name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "detail": "1st Half"
+        }},
+        "competitors": [
+          {"id": "9", "homeAway": "home", "score": "38", "team": {"id": "9", "displayName": "Arizona State Sun Devils", "shortDisplayName": "Arizona St", "abbreviation": "ASU"}},
+          {"id": "12", "homeAway": "away", "score": "31", "team": {"id": "12", "displayName": "Arizona Wildcats", "shortDisplayName": "Arizona", "abbreviation": "ARIZ"}}
+        ]
+      }]
+    }
+  ]
+}

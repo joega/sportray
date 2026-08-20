@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "401879303",
+    "date": "2026-08-22T14:00Z",
+    "competitions": [{
+      "id": "401879303",
+      "status": {"displayClock": "45:00", "period": 1, "type": {"name": "STATUS_HALFTIME", "state": "in", "completed": false, "detail": "Halftime"}},
+      "competitors": [
+        {"id": "370", "homeAway": "home", "score": "1", "team": {"id": "370", "displayName": "Fulham", "shortDisplayName": "Fulham", "abbreviation": "FUL"}},
+        {"id": "362", "homeAway": "away", "score": "0", "team": {"id": "362", "displayName": "Aston Villa", "shortDisplayName": "Aston Villa", "abbreviation": "AVL"}}
+      ]
+    }]
+  }]
+}

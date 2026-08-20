@@ -1,0 +1,5 @@
+{
+  "events": [
+    {"id": "ncaab-malformed", "competitions": [{"competitors": [{"homeAway": "away"}]}]}
+  ]
+}

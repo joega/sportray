@@ -1,0 +1,27 @@
+{
+  "games": [
+    {
+      "id": 2026020003,
+      "gameDate": "2026-09-29",
+      "startTimeUTC": "2026-09-30T00:00:00Z",
+      "venue": {"default": "TD Garden"},
+      "gameState": "FUT",
+      "gameScheduleState": "OK",
+      "awayTeam": {
+        "id": 3,
+        "name": {"default": "Rangers"},
+        "commonName": {"default": "Rangers"},
+        "abbrev": "NYR",
+        "logo": "https://assets.nhle.com/logos/nhl/svg/NYR_light.svg"
+      },
+      "homeTeam": {
+        "id": 6,
+        "name": {"default": "Bruins"},
+        "commonName": {"default": "Bruins"},
+        "abbrev": "BOS",
+        "logo": "https://assets.nhle.com/logos/nhl/svg/BOS_light.svg"
+      },
+      "gameCenterLink": "/gamecenter/nyr-vs-bos/2026/09/29/2026020003"
+    }
+  ]
+}

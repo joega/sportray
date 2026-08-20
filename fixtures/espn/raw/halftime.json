@@ -1,0 +1,17 @@
+{
+  "events": [
+    {
+      "id": "401902644",
+      "date": "2026-10-03T23:00Z",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "28", "homeAway": "home", "score": "54", "team": {"id": "28", "displayName": "Toronto Raptors", "shortDisplayName": "Raptors", "abbreviation": "TOR"}},
+            {"id": "14", "homeAway": "away", "score": "51", "team": {"id": "14", "displayName": "Miami Heat", "shortDisplayName": "Heat", "abbreviation": "MIA"}}
+          ],
+          "status": {"displayClock": "0.0", "period": 2, "type": {"name": "STATUS_HALFTIME", "state": "in", "completed": false, "description": "Halftime", "detail": "Halftime", "shortDetail": "Halftime"}}
+        }
+      ]
+    }
+  ]
+}

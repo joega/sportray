@@ -1,0 +1,25 @@
+{
+  "events": [
+    {
+      "id": "401856766",
+      "date": "2026-08-29T16:00Z",
+      "competitions": [{
+        "status": {"period": 0, "displayClock": "0:00", "type": {
+          "name": "STATUS_SCHEDULED", "state": "pre", "completed": false,
+          "detail": "Sat, August 29th at 12:00 PM EDT"
+        }},
+        "venue": {"fullName": "Aviva Stadium"},
+        "neutralSite": true,
+        "notes": [{"headline": "Aer Lingus College Football Classic"}],
+        "competitors": [
+          {"id": "2628", "homeAway": "home", "score": "0", "curatedRank": {"current": 99},
+            "team": {"id": "2628", "displayName": "TCU Horned Frogs", "shortDisplayName": "TCU", "abbreviation": "TCU",
+              "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/2628.png"}},
+          {"id": "153", "homeAway": "away", "score": "0", "curatedRank": {"current": 99},
+            "team": {"id": "153", "displayName": "North Carolina Tar Heels", "shortDisplayName": "North Carolina", "abbreviation": "UNC",
+              "logo": "https://a.espncdn.com/i/teamlogos/ncaa/500/153.png"}}
+        ]
+      }]
+    }
+  ]
+}

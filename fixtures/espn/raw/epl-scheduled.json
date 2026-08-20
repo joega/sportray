@@ -1,0 +1,17 @@
+{
+  "events": [{
+    "id": "401879301",
+    "date": "2026-08-21T19:00Z",
+    "competitions": [{
+      "id": "401879301",
+      "date": "2026-08-21T19:00Z",
+      "status": {"displayClock": "0'", "period": 1, "type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false, "detail": "Scheduled"}},
+      "venue": {"fullName": "Emirates Stadium"},
+      "competitors": [
+        {"id": "359", "homeAway": "home", "score": "0", "team": {"id": "359", "displayName": "Arsenal", "shortDisplayName": "Arsenal", "abbreviation": "ARS"}},
+        {"id": "388", "homeAway": "away", "score": "0", "team": {"id": "388", "displayName": "Coventry City", "shortDisplayName": "Coventry", "abbreviation": "COV"}}
+      ]
+    }],
+    "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/soccer/match/_/gameId/401879301/coventry-city-arsenal"}]
+  }]
+}

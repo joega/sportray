@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "401879302",
+    "date": "2026-08-22T14:00Z",
+    "competitions": [{
+      "id": "401879302",
+      "status": {"displayClock": "78'", "period": 2, "type": {"name": "STATUS_IN_PROGRESS", "state": "in", "completed": false, "detail": "78'"}},
+      "competitors": [
+        {"id": "359", "homeAway": "home", "score": "2", "team": {"id": "359", "displayName": "Arsenal", "shortDisplayName": "Arsenal", "abbreviation": "ARS"}},
+        {"id": "361", "homeAway": "away", "score": "0", "team": {"id": "361", "displayName": "Newcastle United", "shortDisplayName": "Newcastle", "abbreviation": "NEW"}}
+      ]
+    }]
+  }]
+}

@@ -1,0 +1,14 @@
+{
+  "events": [{
+    "id": "761729",
+    "date": "2026-08-21T01:30Z",
+    "competitions": [{
+      "id": "761729",
+      "status": {"period": 1, "type": {"name": "STATUS_POSTPONED", "state": "post", "completed": false, "detail": "Postponed"}},
+      "competitors": [
+        {"id": "184", "homeAway": "home", "team": {"id": "184", "displayName": "Colorado Rapids", "shortDisplayName": "Colorado", "abbreviation": "COL"}},
+        {"id": "18966", "homeAway": "away", "team": {"id": "18966", "displayName": "LAFC", "shortDisplayName": "LAFC", "abbreviation": "LAFC"}}
+      ]
+    }]
+  }]
+}

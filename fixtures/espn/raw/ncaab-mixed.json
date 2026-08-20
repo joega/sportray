@@ -1,0 +1,16 @@
+{
+  "events": [
+    {
+      "id": "401752922",
+      "date": "2026-03-21T23:00Z",
+      "competitions": [{
+        "status": {"period": 2, "displayClock": "0:00", "type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "detail": "Final"}},
+        "competitors": [
+          {"id": "43", "homeAway": "home", "score": "82", "team": {"id": "43", "displayName": "Yale Bulldogs", "shortDisplayName": "Yale", "abbreviation": "YALE"}},
+          {"id": "84", "homeAway": "away", "score": "78", "team": {"id": "84", "displayName": "Indiana Hoosiers", "shortDisplayName": "Indiana", "abbreviation": "IU"}}
+        ]
+      }]
+    },
+    {"id": "ncaab-malformed", "competitions": [{"competitors": [{"homeAway": "away"}]}]}
+  ]
+}

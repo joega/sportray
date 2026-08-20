@@ -1,0 +1,12 @@
+{
+  "games": [
+    {
+      "id": 2026020014,
+      "startTimeUTC": "2026-09-30T03:00:00Z",
+      "gameState": "CANC",
+      "gameScheduleState": "CNCL",
+      "awayTeam": {"id": 22, "name": {"default": "Oilers"}, "abbrev": "EDM"},
+      "homeTeam": {"id": 23, "name": {"default": "Canucks"}, "abbrev": "VAN"}
+    }
+  ]
+}

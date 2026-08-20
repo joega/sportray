@@ -1,0 +1,38 @@
+{
+  "fixture": "malformed",
+  "league": "nhl",
+  "games": [
+    null,
+    {
+      "league": "nhl",
+      "status": "live",
+      "awayScore": "not-a-score",
+      "homeScore": -4,
+      "startTime": "not-a-time",
+      "awayTeam": {
+        "league": "nhl",
+        "providerTeamId": "bruins"
+      },
+      "homeTeam": {
+        "league": "nhl",
+        "providerTeamId": "canadiens",
+        "abbreviation": "MTL"
+      }
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "20261011-unknown-state",
+      "status": "some-future-provider-state",
+      "period": "not-a-period",
+      "clock": 123,
+      "awayTeam": {
+        "league": "other-league",
+        "providerTeamId": "one",
+        "abbreviation": "ONE"
+      },
+      "homeTeam": "missing-team-object",
+      "awayScore": 2.5,
+      "homeScore": 1
+    }
+  ]
+}

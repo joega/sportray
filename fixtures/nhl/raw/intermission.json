@@ -1,0 +1,14 @@
+{
+  "games": [
+    {
+      "id": 2026020011,
+      "startTimeUTC": "2026-09-30T01:00:00Z",
+      "gameState": "LIVE",
+      "gameScheduleState": "OK",
+      "periodDescriptor": {"number": 1, "periodType": "REG"},
+      "clock": {"timeRemaining": "00:00", "secondsRemaining": 0, "running": false},
+      "awayTeam": {"id": 8, "name": {"default": "Canadiens"}, "abbrev": "MTL", "score": 1},
+      "homeTeam": {"id": 10, "name": {"default": "Maple Leafs"}, "abbrev": "TOR", "score": 1}
+    }
+  ]
+}

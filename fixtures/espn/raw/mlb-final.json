@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "id": "401810003",
+      "date": "2026-08-15T20:10:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "Daikin Park"},
+          "competitors": [
+            {"id": "18", "homeAway": "home", "score": "2", "team": {"id": "18", "displayName": "Houston Astros", "shortDisplayName": "Astros", "abbreviation": "HOU"}},
+            {"id": "13", "homeAway": "away", "score": "6", "team": {"id": "13", "displayName": "Texas Rangers", "shortDisplayName": "Rangers", "abbreviation": "TEX"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 9, "type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "description": "Final", "detail": "Final", "shortDetail": "Final"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/mlb/game/_/gameId/401810003"}]
+    }
+  ]
+}
