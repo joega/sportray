@@ -157,6 +157,12 @@ The plugin uses only the controlled `curl` and
 `omarchy-notification-send` command paths documented by the current Omarchy
 contract.
 
+Sportray is currently tested only in the United States. ESPN and NHL.com
+availability, including scoreboard and game-page access, may vary by region;
+some leagues may be unavailable outside the U.S. We are working toward broader
+regional coverage and welcome pull requests for additional data adapters,
+providers, sports, and leagues.
+
 Each score request retrieves one enabled league's complete slate for one date;
 Sportray never requests each game separately. Successful league/date snapshots
 are retained in a bounded five-date in-memory cache. A scheduled slate is not
