@@ -4,6 +4,9 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Kept Omarchy's interactive safety confirmations in the documented install
+  and removal commands, and clarified runtime dependencies, network access,
+  privilege boundaries, and retained preference state.
 - Reduced provider traffic with per-league due checks, bounded five-date and
   next-game caches, schedule-aware long polling windows, failure backoff, and
   per-session jitter. Score requests remain whole league/day slates rather

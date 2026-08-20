@@ -78,7 +78,7 @@ not a full historical or lower-division catalog. Favorites use only
 On Omarchy 4, install and enable the public repository with:
 
 ```bash
-omarchy plugin add https://github.com/joega/sportray.git --enable --yes
+omarchy plugin add https://github.com/joega/sportray.git --enable
 ```
 
 The plugin ID is `io.github.joega.sportray`. To manage it after installation:
@@ -86,8 +86,19 @@ The plugin ID is `io.github.joega.sportray`. To manage it after installation:
 ```bash
 omarchy plugin enable io.github.joega.sportray
 omarchy plugin disable io.github.joega.sportray
-omarchy plugin remove io.github.joega.sportray --yes
+omarchy plugin remove io.github.joega.sportray
 ```
+
+Sportray requires Omarchy 4 with the Quattro shell and the `curl` command
+included by Omarchy. It makes direct HTTPS requests to ESPN and NHL data
+endpoints and uses Omarchy's notification helper when favorite-team alerts are
+enabled. It does not install packages, request privileged access, create a
+service, or overwrite user configuration.
+
+The normal Omarchy removal command unloads Sportray and removes its plugin
+checkout. It intentionally leaves the preferences file documented below in
+place so a reinstall can retain the user's settings; users may remove that
+state file separately if they want a complete preference reset.
 
 The installed shell currently requires an explicit empty argument object for
 bar-widget toggle IPC:
