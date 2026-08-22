@@ -12,6 +12,7 @@ Item {
 
   signal jumpRequested()
   signal primaryActionRequested()
+  readonly property bool childActionPressed: sourceLink.pointerPressed || jumpButton.pointerPressed
 
   function teamName(team) {
     if (!team) return "TBD"

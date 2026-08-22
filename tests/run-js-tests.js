@@ -32,6 +32,7 @@ const nextEvent = require(path.join(root, "model/NextEventModel.js"));
 const lookahead = require(path.join(root, "model/LookaheadPolicy.js"));
 const monitorOwnership = require(path.join(root, "model/MonitorOwnership.js"));
 const panelLayout = require(path.join(root, "model/PanelLayout.js"));
+const pointerInteraction = require(path.join(root, "model/PointerInteractionPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -2221,6 +2222,36 @@ test("U3.1 gives actionable rows typed primary actions and safe fallbacks", () =
   assert.equal(nextCard.includes("Accessible.name: \"Next game: \""), true);
   assert.equal(picker.includes("Accessible.role: Accessible.CheckBox"), true);
   assert.equal(picker.includes("Accessible.checked: root.isFavorite(modelData)"), true);
+});
+
+test("nested pointer actions keep their tap out of the enclosing result row", () => {
+  function activate(sourcePressed, retryPressed, nextGamePressed, emptyActionPressed) {
+    const childPressed = pointerInteraction.childActionPressed(
+      sourcePressed, retryPressed, nextGamePressed, emptyActionPressed);
+    const calls = {child: childPressed ? 1 : 0, row: 0};
+    if (pointerInteraction.allowsRowActivation(childPressed)) calls.row += 1;
+    return calls;
+  }
+
+  assert.deepEqual(activate(true, false, false, false), {child: 1, row: 0}, "provider source");
+  assert.deepEqual(activate(false, true, false, false), {child: 1, row: 0}, "retry");
+  assert.deepEqual(activate(false, false, true, false), {child: 1, row: 0}, "next-game action");
+  assert.deepEqual(activate(false, false, false, true), {child: 1, row: 0}, "empty-row action");
+  assert.deepEqual(activate(false, false, false, false), {child: 0, row: 1}, "whole row");
+
+  const panel = readSource("Panel.qml");
+  const action = readSource("components/SemanticActionButton.qml");
+  const source = readSource("components/SourceLinkButton.qml");
+  const gameRow = readSource("components/GameRow.qml");
+  const status = readSource("components/LeagueStatus.qml");
+  const nextCard = readSource("components/NextGameCard.qml");
+  assert.match(panel, /enabled: PointerInteractionPolicy\.allowsRowActivation\(delegate\.nestedActionPressed\)/);
+  assert.match(panel, /if \(!PointerInteractionPolicy\.allowsRowActivation\(delegate\.nestedActionPressed\)\) return/);
+  assert.match(action, /readonly property bool pointerPressed: actionMouse\.pressed/);
+  assert.match(source, /readonly property bool pointerPressed: action\.pointerPressed/);
+  assert.match(gameRow, /readonly property bool childActionPressed: sourceLink\.pointerPressed/);
+  assert.match(status, /readonly property bool pointerPressed: retryMouse\.pressed/);
+  assert.match(nextCard, /sourceLink\.pointerPressed \|\| jumpButton\.pointerPressed/);
 });
 
 test("U2.1 result row identity stays canonical and Panel uses one virtualized result list", () => {

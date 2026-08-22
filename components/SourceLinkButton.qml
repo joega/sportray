@@ -22,6 +22,7 @@ Item {
   width: implicitWidth
   height: implicitHeight
   visible: root.sourceUrl !== ""
+  readonly property bool pointerPressed: action.pointerPressed
 
   function openSource() {
     if (root.sourceUrl === "") return

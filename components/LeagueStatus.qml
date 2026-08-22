@@ -9,6 +9,7 @@ Item {
   width: parent ? parent.width : implicitWidth
   implicitHeight: label.implicitHeight
   height: implicitHeight
+  readonly property bool pointerPressed: retryMouse.pressed
 
   activeFocusOnTab: false
   Keys.onReturnPressed: if (!root.status.loading) root.retry()
@@ -45,6 +46,7 @@ Item {
   }
 
   MouseArea {
+    id: retryMouse
     anchors.fill: parent
     enabled: !root.status.loading
     onClicked: root.retry()

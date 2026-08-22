@@ -21,6 +21,7 @@ Item {
   property bool focusable: false
   property bool hasCursor: false
   property bool bordered: false
+  readonly property bool pointerPressed: actionMouse.pressed
 
   signal clicked()
 
@@ -35,7 +36,7 @@ Item {
     ? size : Math.max(size, textLabel.implicitHeight + root.textVerticalPadding * 2)
 
   readonly property bool _showFocusRing: focusable && activeFocus
-  readonly property bool _hot: (mouse.containsMouse || root.hasCursor) && root.enabled
+  readonly property bool _hot: (actionMouse.containsMouse || root.hasCursor) && root.enabled
   readonly property var _borderSpec: _showFocusRing
     ? Border.controlSpec("focus", hoverColor, hoverColor)
     : (_hot && bordered
@@ -78,7 +79,7 @@ Item {
   }
 
   MouseArea {
-    id: mouse
+    id: actionMouse
     anchors.fill: parent
     hoverEnabled: true
     enabled: root.enabled
@@ -90,7 +91,7 @@ Item {
   }
 
   PanelToolTip {
-    visible: root.tooltipText !== "" && mouse.containsMouse
+    visible: root.tooltipText !== "" && actionMouse.containsMouse
     text: root.tooltipText
     fontFamily: root.fontFamily
   }

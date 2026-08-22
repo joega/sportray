@@ -10,6 +10,7 @@ Item {
   property bool stale: false
   property bool featured: false
   property bool selected: false
+  readonly property bool childActionPressed: sourceLink.pointerPressed
 
   signal primaryActionRequested()
 

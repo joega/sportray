@@ -12,6 +12,7 @@ import "model/ScoreboardModel.js" as ScoreboardModel
 import "model/Iconography.js" as Iconography
 import "model/DateModel.js" as DateModel
 import "model/PanelLayout.js" as PanelLayout
+import "model/PointerInteractionPolicy.js" as PointerInteractionPolicy
 import "providers/LeagueCatalog.js" as LeagueCatalog
 import "providers/NhlTeamCatalog.js" as NhlTeamCatalog
 import "providers/EspnTeamCatalog.js" as EspnTeamCatalog
@@ -850,6 +851,11 @@ Panel {
                     })
                   width: ListView.view.width
                   height: rowColumn.implicitHeight
+                  readonly property bool nestedActionPressed: PointerInteractionPolicy.childActionPressed(
+                    gameRow.childActionPressed,
+                    leagueStatus.pointerPressed,
+                    nextGameCard.childActionPressed,
+                    emptyAction.pointerPressed)
 
                   Column {
                     id: rowColumn
@@ -945,6 +951,7 @@ Panel {
                         }
 
                         SemanticActionButton {
+                          id: emptyAction
                           visible: Boolean(modelData.action && modelData.action.enabled)
                           text: modelData.action ? modelData.action.label : ""
                           textBold: true
@@ -969,7 +976,12 @@ Panel {
                   }
 
                   TapHandler {
+                    // Qt pointer handlers observe child MouseAreas too. Disable this
+                    // row handler for the duration of a nested action press so the
+                    // child keeps the tap exclusively instead of also firing the row.
+                    enabled: PointerInteractionPolicy.allowsRowActivation(delegate.nestedActionPressed)
                     onTapped: {
+                      if (!PointerInteractionPolicy.allowsRowActivation(delegate.nestedActionPressed)) return
                       root.setSelectedRow(index)
                       root.activateRow(index)
                     }
