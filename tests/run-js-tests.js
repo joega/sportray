@@ -1,5 +1,7 @@
 const assert = require("node:assert/strict");
+const childProcess = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
@@ -521,6 +523,36 @@ test("notification argv and sport-neutral score/status text are deterministic", 
   assert.equal(delivery.description.includes("goal"), false);
   assert.equal(delivery.description.includes("touchdown"), false);
   assert.equal(delivery.description.includes("home run"), false);
+});
+
+test("provider notification text cannot become helper options", () => {
+  const fixture = readNotificationFixture();
+  const game = games.normalizeGame(fixture.favoriteGame);
+  game.awayTeam.abbreviation = "--hint=string:omarchy-exec:touch /tmp/should-not-run";
+  game.homeTeam.abbreviation = "\u0000 Knicks; echo injected";
+  game.periodLabel = "--app-name injected";
+  game.clock = "a".repeat(300);
+
+  const delivery = notificationModel.buildDelivery(fixture.events[1], game);
+  assert.equal(delivery.description.startsWith("· --hint="), true);
+  assert.equal(delivery.description.includes("\u0000"), false);
+  assert.equal(delivery.description.length <= 320, true);
+  assert.equal(delivery.argv[delivery.argv.length - 1].startsWith("-"), false);
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "sportray-notification-"));
+  const capturePath = path.join(tempDir, "argv.json");
+  const stubPath = path.join(tempDir, "notify-send");
+  fs.writeFileSync(stubPath, "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$CAPTURE_PATH\"\n");
+  fs.chmodSync(stubPath, 0o700);
+  const result = childProcess.spawnSync("/bin/bash", ["/usr/bin/omarchy-notification-send", ...delivery.argv.slice(1)], {
+    env: {...process.env, PATH: tempDir, CAPTURE_PATH: capturePath},
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const helperArgs = fs.readFileSync(capturePath, "utf8").trim().split("\n");
+  assert.equal(helperArgs.at(-1), delivery.description);
+  assert.equal(helperArgs.includes("--hint=string:omarchy-exec:touch /tmp/should-not-run"), false);
+  fs.rmSync(tempDir, {recursive: true, force: true});
 });
 
 test("notification preview uses the real helper boundary without preferences", () => {

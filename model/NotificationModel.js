@@ -4,6 +4,9 @@ var EVENT_TYPES = {
   GAME_FINAL: "game-final"
 };
 
+var MAX_DISPLAY_TEXT_LENGTH = 160;
+var MAX_DESCRIPTION_LENGTH = 320;
+
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -14,9 +17,17 @@ function text(value, fallback) {
   return result || (fallback || "");
 }
 
+function notificationText(value, fallback) {
+  var result = text(value, fallback).slice(0, MAX_DISPLAY_TEXT_LENGTH);
+  // omarchy-notification-send treats a hyphen-leading description as an
+  // option. Keep provider-controlled text unambiguously positional.
+  return result.indexOf("-") === 0 ? "· " + result : result;
+}
+
 function teamLabel(team) {
   if (!isRecord(team)) return "TBD";
-  return text(team.abbreviation) || text(team.shortName) || text(team.name) || "TBD";
+  return notificationText(team.abbreviation) || notificationText(team.shortName)
+    || notificationText(team.name) || "TBD";
 }
 
 function teamId(team) {
@@ -45,8 +56,8 @@ function statusDetail(game) {
   if (!isRecord(game)) return "Status unavailable";
   if (game.status === "final") return "Final";
 
-  var period = text(game.periodLabel) || text(game.statusDetail);
-  var clock = text(game.clock);
+  var period = notificationText(game.periodLabel) || notificationText(game.statusDetail);
+  var clock = notificationText(game.clock);
   if (period && clock && period.indexOf(clock) === -1) return period + " · " + clock;
   if (period) return period;
   if (clock) return clock;
@@ -128,7 +139,7 @@ function buildDelivery(event, game) {
   if (!fingerprint || !isRecord(game) || game.isValid !== true || !game.id) return null;
 
   var summary = hasScores(game) ? scoreLine(game) : matchup(game);
-  var description = summary + " · " + statusDetail(game);
+  var description = (summary + " · " + statusDetail(game)).slice(0, MAX_DESCRIPTION_LENGTH);
   var headline = headlineFor(event.type);
   return {
     event: event,
