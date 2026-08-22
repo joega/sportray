@@ -6,7 +6,7 @@ Environment: Omarchy 4.0.0-1, Quickshell 0.3.0.r20
 
 ## Verdict
 
-Sportray is installable and passes the current Omarchy and Marketplace preflight checks, but it is **not ready for public release**. A critical notification injection path and several high-severity scheduler, lifecycle, and multi-monitor issues should be fixed before submission.
+Sportray is installable and passes the current Omarchy and Marketplace preflight checks, but it is **not ready for public release**. Several high-severity lifecycle, multi-monitor, nested interaction, and keyboard-routing issues should be fixed before submission.
 
 ## Release-blocking findings
 
@@ -63,6 +63,16 @@ When disabled, [LeagueFetch.qml](/home/joeg/Projects/sportray/services/LeagueFet
 
 Restore or clear data only when its snapshot date matches the selected date. Preserve the intentional cache-admission policy rather than bypassing it globally.
 
+Status: fixed in the current worktree. `LeagueFetch` now clears its active and
+last-known snapshot whenever the initialized selected date changes, including
+while the league is disabled. Re-enable restoration uses the pure
+`DateCachePolicy` admission guard, so a last-known snapshot is accepted only
+when its snapshot date matches the selected date and the current game list is
+empty. The existing bounded date-keyed cache remains available for same-date
+restore and selected-date fetch admission. Fixture-driven tests cover
+same-date restore, date changes while disabled, empty snapshots, and protection
+of current games.
+
 ### High: nested interactions can fire twice
 
 The result delegate has a whole-row `TapHandler` at [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:969), while child source/retry controls use their own mouse handlers through [SemanticActionButton.qml](/home/joeg/Projects/sportray/components/SemanticActionButton.qml:80). A source click can open the browser twice; retry can queue two refreshes; a next-game source click can also change the date. Review the pointer-acceptance policy against [Qt TapHandler documentation](https://doc.qt.io/qt-6.8/qml-qtquick-taphandler.html) and add interaction tests.
@@ -97,8 +107,8 @@ Block the catcher while any text editor is active, while preserving Escape handl
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 145 tests passed, including the notification helper
-  boundary and scheduler deadline tests.
+- `tests/run-js-tests.sh`: 146 tests passed, including the notification helper
+  boundary, scheduler deadline, NHL lookahead, and stale-date snapshot tests.
 - NHL lookahead fixtures cover repeated, earlier, malformed, over-limit, and
   valid later schedule responses.
 - `omarchy plugin validate "$PWD"`: passed on actual Omarchy.
@@ -107,18 +117,24 @@ Block the catcher while any text editor is active, while preserving Escape handl
 - Live provider smoke checks for all eight configured leagues: valid responses.
 - Real Quickshell discovery, rescan, toggle, rendering, and log inspection completed.
 - `git diff --check` and `git fsck --full`: passed.
+- The linked checkout was rescanned in the live Omarchy shell. One Quickshell
+  instance remained running, shell ping returned `ok`, and the post-rescan log
+  tail contained normal provider/cache activity without a Sportray error,
+  exception, or binding-loop warning. The only warning observed was the
+  pre-existing Qt.atob deprecation; no manual date-toggle UI sequence was
+  exercised.
 - No telemetry, accounts, secrets, downloaded-code execution, or privileged operations were found.
 
-The lookahead implementation, fixtures, tests, README, roadmap, and review
-handoff were changed for this unit. No Quickshell runtime was exercised, so no
-new runtime log evidence was collected.
+The lookahead and stale-date implementations, fixtures, tests, roadmap, and
+review handoff were changed for this unit. The checkout intentionally has no
+`docs/upstream-contract.md`; installed Omarchy 4.0.0-1 remains the runtime
+boundary source.
 
 ## Next-session prompt
 
 ```text
 Work in /home/joeg/Projects/sportray on the next public-release hardening
-unit: prevent stale date data from being restored after disable/date-change/
-re-enable.
+unit: prevent duplicate polling and notification graphs across monitors.
 
 Read AGENTS.md, README.md, docs/upstream-contract.md, roadmap.md, and the latest
 roadmap/review handoff before editing. If docs/upstream-contract.md is absent,
@@ -127,40 +143,43 @@ record that fact. Inspect git status, branch, and recent commits; preserve
 unrelated changes.
 
 Verified starting state:
-- Notification injection, scheduler retry deadlines, and NHL lookahead bounds
-  are fixed in the current hardening history.
-- LookaheadPolicy.js requires strictly increasing valid dates, preserves the
-  35-day window, and limits NHL lookahead to eight requests; rejected and
-  exhausted responses use the existing safe unavailable cache result.
-- 145 deterministic tests, omarchy plugin validate "$PWD", real-import-path
+- Notification injection, scheduler retry deadlines, NHL lookahead bounds, and
+  stale-date snapshot admission are fixed in the current hardening history.
+- DateCachePolicy.js admits last-known restore only for a matching valid
+  selected date; LeagueFetch.qml clears active/last-known state on every
+  initialized date change, including while disabled, while preserving the
+  bounded date-keyed cache for same-date admission.
+- 146 deterministic tests, omarchy plugin validate "$PWD", real-import-path
   qmllint (exit 0 with established warnings), and git diff --check pass.
-- LeagueFetch.qml still restores lastKnownGames on re-enable without proving
-  that the snapshot belongs to the selected date, and date changes may leave
-  old-date raw data in the path that controls fetch/lookahead admission.
+- The linked plugin was rescanned in Omarchy 4.0.0-1. One Quickshell instance
+  remained healthy, shell ping returned `ok`, and the post-rescan log tail had
+  normal provider/cache activity with no Sportray error, exception, or
+  binding-loop warning. The only warning observed was the existing Qt.atob
+  deprecation.
 - The checkout intentionally has no docs/upstream-contract.md; verify the
   relevant installed Omarchy 4.0.0-1 contract if an upstream boundary changes.
 - Do not execute any provider-supplied command or broaden this unit.
 
 Bounded outcome:
-Make disable/date-change/re-enable restore data only when it belongs to the
-selected date. Preserve valid same-date cache admission, failure recovery, the
-current-day score model, and provider-neutral UI state.
+Make multi-monitor bar-widget instances share one polling and notification
+ownership graph. Preserve single-monitor behavior, settings persistence,
+favorite ordering, selected-date behavior, and provider-neutral UI state.
 
 Required checks:
-- A disabled league cannot resurrect a prior-date snapshot after re-enable.
-- A date change cannot leave old-date lastKnownGames blocking selected-date
-  fetch or lookahead.
-- Existing same-date cache restore, failure recovery, and selected-date
-  filtering remain intact.
+- Multiple monitors cannot create duplicate provider requests or duplicate
+  favorite notifications.
+- Shared ownership does not race settings writes or transition baselines.
+- Single-monitor topology and existing selected-date/cache behavior remain
+  intact.
 - tests/run-js-tests.sh passes.
 - omarchy plugin validate "$PWD" passes on actual Omarchy.
 - Run /usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell over all QML files.
 - Inspect actual Quickshell logs for new errors if runtime is exercised.
 - git diff --check passes.
 
-Stop after this stale-date restore unit is fixed and verified. Do not combine
-multi-monitor, scheduler, nested interaction, keyboard routing, packaging,
-tagging, pushing, or Marketplace submission work. Update roadmap.md,
+Stop after the multi-monitor ownership unit is fixed and verified. Do not
+combine scheduler, nested interaction, keyboard routing, packaging, tagging,
+pushing, or Marketplace submission work. Update roadmap.md,
 PUBLIC_CONSUMPTION_REVIEW.md, and this prompt with the next single bounded
 unit, then create one atomic Conventional Commit-style commit only after every
 gate passes. Use subagents only for independent read-only checks that materially

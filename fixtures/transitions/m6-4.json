@@ -1,0 +1,36 @@
+{
+  "scenarios": [
+    {
+      "name": "same-date-disable-reenable",
+      "snapshotDateKey": "2026-08-19",
+      "selectedDateKey": "2026-08-19",
+      "lastKnownGames": [{"id": "same-date-game"}],
+      "currentGames": [],
+      "expectedRestore": true
+    },
+    {
+      "name": "date-change-while-disabled",
+      "snapshotDateKey": "2026-08-19",
+      "selectedDateKey": "2026-08-20",
+      "lastKnownGames": [{"id": "old-date-game"}],
+      "currentGames": [],
+      "expectedRestore": false
+    },
+    {
+      "name": "selected-date-current-snapshot-without-games",
+      "snapshotDateKey": "2026-08-20",
+      "selectedDateKey": "2026-08-20",
+      "lastKnownGames": [],
+      "currentGames": [],
+      "expectedRestore": false
+    },
+    {
+      "name": "current-games-are-not-overwritten",
+      "snapshotDateKey": "2026-08-19",
+      "selectedDateKey": "2026-08-19",
+      "lastKnownGames": [{"id": "cached-game"}],
+      "currentGames": [{"id": "fresh-game"}],
+      "expectedRestore": false
+    }
+  ]
+}

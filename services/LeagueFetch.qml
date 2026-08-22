@@ -4,6 +4,7 @@ import "../providers/NhlProvider.js" as NhlProvider
 import "../providers/EspnProvider.js" as EspnProvider
 import "../model/FreshnessPolicy.js" as FreshnessPolicy
 import "../model/DateModel.js" as DateModel
+import "../model/DateCachePolicy.js" as DateCachePolicy
 import "../model/NextEventModel.js" as NextEventModel
 import "../model/LookaheadPolicy.js" as LookaheadPolicy
 import "../model/PollPolicy.js" as PollPolicy
@@ -304,16 +305,17 @@ Item {
   }
 
   function handleDateChanged() {
-    if (!root.initialized || !root.leagueEnabled) return
-    root.refreshQueued = true
-    root.queuedRefreshReason = "date-changed"
+    if (!root.initialized) return
+    root.snapshotDateKey = root.dateKey
+    root.refreshQueued = root.leagueEnabled
+    root.queuedRefreshReason = root.leagueEnabled ? "date-changed" : ""
     root.activeRequestGeneration++
     if (requestProcess.running) {
       root.stoppingRequest = true
       requestProcess.running = false
     }
     root.clearSnapshot()
-    root.snapshotDateKey = root.dateKey
+    if (!root.leagueEnabled) return
     root.restoreDateCache(root.dateKey)
     if (!requestProcess.running) root.finishQueuedRefresh()
   }
@@ -460,7 +462,8 @@ Item {
         root.queuedRefreshReason = "enabled-league-changed"
         return
       }
-      if (root.lastKnownGames.length > 0 && root.games.length === 0) {
+      if (DateCachePolicy.canRestoreLastKnown(root.snapshotDateKey, root.dateKey,
+          root.lastKnownGames, root.games)) {
         root.games = root.lastKnownGames.slice()
         root.hasData = true
         root.stale = true

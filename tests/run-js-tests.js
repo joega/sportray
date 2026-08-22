@@ -27,6 +27,7 @@ const stateModel = require(path.join(root, "model/StateModel.js"));
 const notificationModel = require(path.join(root, "model/NotificationModel.js"));
 const iconography = require(path.join(root, "model/Iconography.js"));
 const dateModel = require(path.join(root, "model/DateModel.js"));
+const dateCachePolicy = require(path.join(root, "model/DateCachePolicy.js"));
 const nextEvent = require(path.join(root, "model/NextEventModel.js"));
 const lookahead = require(path.join(root, "model/LookaheadPolicy.js"));
 const panelLayout = require(path.join(root, "model/PanelLayout.js"));
@@ -79,6 +80,10 @@ function readTransitionFixture() {
 
 function readDedupeFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/transitions/m6-2.json"), "utf8"));
+}
+
+function readDateCacheFixture() {
+  return JSON.parse(fs.readFileSync(path.join(root, "fixtures/transitions/m6-4.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -778,6 +783,23 @@ test("date navigation stays provider-neutral and refresh controls live in the he
   assert.equal((fetchService.match(/dateKey: root\.selectedDateKey/g) || []).length, 8);
   assert.equal(leagueFetch.includes('NhlProvider.buildScoreUrl(root.dateKey)'), true);
   assert.equal(leagueFetch.includes('root.dateKey.replace(/-/g, "")'), true);
+});
+
+test("date cache admission preserves same-date restore and rejects stale snapshots", () => {
+  const fixture = readDateCacheFixture();
+  fixture.scenarios.forEach((scenario) => {
+    assert.equal(
+      dateCachePolicy.canRestoreLastKnown(
+        scenario.snapshotDateKey,
+        scenario.selectedDateKey,
+        scenario.lastKnownGames,
+        scenario.currentGames),
+      scenario.expectedRestore,
+      scenario.name);
+  });
+  assert.equal(dateCachePolicy.snapshotMatchesDate("2026-08-19", "2026-08-19"), true);
+  assert.equal(dateCachePolicy.snapshotMatchesDate("2026-08-19", "2026-08-20"), false);
+  assert.equal(dateCachePolicy.snapshotMatchesDate("not-a-date", "not-a-date"), false);
 });
 
 test("panel presentation keeps canonical favorites when its QML import has no require", () => {
@@ -2759,6 +2781,10 @@ test("lifecycle owner topology remains singular and destruction-safe", () => {
   assert.match(leagueFetch, /if \(requestProcess\.running\) requestProcess\.running = false/);
   assert.match(leagueFetch, /property var dateCache: \(\{\}\)/);
   assert.match(leagueFetch, /readonly property int dateCacheLimit: 5/);
+  assert.match(leagueFetch, /import "\.\.\/model\/DateCachePolicy\.js" as DateCachePolicy/);
+  assert.match(leagueFetch, /DateCachePolicy\.canRestoreLastKnown/);
+  assert.match(leagueFetch, /root\.snapshotDateKey = root\.dateKey/);
+  assert.match(leagueFetch, /if \(!root\.initialized\) return/);
   assert.match(leagueFetch, /property int lookaheadHopCount: 0/);
   assert.match(leagueFetch, /LookaheadPolicy\.decideNextDate/);
   assert.match(leagueFetch, /root\.finishLookahead\("unavailable", PollPolicy\.EMPTY_INTERVAL_MS\)/);
