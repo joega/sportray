@@ -30,6 +30,15 @@ worth reporting separately.
 
 Omarchy creates one widget instance per screen. Multi-monitor systems can therefore duplicate provider traffic and notifications, maintain separate transition baselines, and race writes to the same state file. Existing topology tests cover only one panel instance.
 
+Status: fixed in the current worktree. Because `docs/upstream-contract.md` is
+intentionally absent, installed Omarchy 4.0.0-1 `Bar.qml` was rechecked and
+confirmed to create one module/widget item per `Quickshell.screens` entry.
+`SportrayService` is now the exclusive engine-wide owner of the settings store,
+fetch graph, and notification transition baseline. Per-screen widgets/panels
+register only open/lookahead context. Deterministic two-panel ownership checks
+cover handoff and removal; a live linked-plugin rescan showed one polling
+initialization and no new Sportray runtime error.
+
 ### High: healthy updates can erase another league's retry deadline
 
 [PollScheduler.qml](/home/joeg/Projects/sportray/services/PollScheduler.qml:30) unconditionally replaces the timer when aggregate games change. A one-minute retry scheduled by one league can be replaced seconds later by another league's normal 6/12/24-hour cadence. This contradicts the documented 1–30-minute failure backoff and can strand later retry deadlines.
@@ -107,8 +116,8 @@ Block the catcher while any text editor is active, while preserving Escape handl
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 146 tests passed, including the notification helper
-  boundary, scheduler deadline, NHL lookahead, and stale-date snapshot tests.
+- `tests/run-js-tests.sh`: 147 tests passed, including notification, scheduler,
+  NHL lookahead, stale-date, and multi-monitor ownership checks.
 - NHL lookahead fixtures cover repeated, earlier, malformed, over-limit, and
   valid later schedule responses.
 - `omarchy plugin validate "$PWD"`: passed on actual Omarchy.
@@ -125,16 +134,17 @@ Block the catcher while any text editor is active, while preserving Escape handl
   exercised.
 - No telemetry, accounts, secrets, downloaded-code execution, or privileged operations were found.
 
-The lookahead and stale-date implementations, fixtures, tests, roadmap, and
-review handoff were changed for this unit. The checkout intentionally has no
-`docs/upstream-contract.md`; installed Omarchy 4.0.0-1 remains the runtime
-boundary source.
+The lookahead, stale-date, and multi-monitor ownership implementations,
+fixtures, tests, roadmap, and review handoff were changed in this hardening
+history. The checkout intentionally has no `docs/upstream-contract.md`;
+installed Omarchy 4.0.0-1 remains the runtime boundary source.
 
 ## Next-session prompt
 
 ```text
 Work in /home/joeg/Projects/sportray on the next public-release hardening
-unit: prevent duplicate polling and notification graphs across monitors.
+unit: prevent nested game-row and child-action pointer activation from firing
+two actions.
 
 Read AGENTS.md, README.md, docs/upstream-contract.md, roadmap.md, and the latest
 roadmap/review handoff before editing. If docs/upstream-contract.md is absent,
@@ -143,14 +153,16 @@ record that fact. Inspect git status, branch, and recent commits; preserve
 unrelated changes.
 
 Verified starting state:
-- Notification injection, scheduler retry deadlines, NHL lookahead bounds, and
-  stale-date snapshot admission are fixed in the current hardening history.
+- Notification injection, scheduler retry deadlines, NHL lookahead bounds,
+  stale-date admission, and multi-monitor ownership are fixed.
 - DateCachePolicy.js admits last-known restore only for a matching valid
   selected date; LeagueFetch.qml clears active/last-known state on every
   initialized date change, including while disabled, while preserving the
   bounded date-keyed cache for same-date admission.
-- 146 deterministic tests, omarchy plugin validate "$PWD", real-import-path
-  qmllint (exit 0 with established warnings), and git diff --check pass.
+- `SportrayService.qml` is the sole engine-wide owner of settings, fetch, and
+  notification state; repeated panels register only open/lookahead context.
+- 147 deterministic tests, omarchy plugin validate "$PWD", real-import-path
+  qmllint over all QML files (with established warnings), and git diff --check pass.
 - The linked plugin was rescanned in Omarchy 4.0.0-1. One Quickshell instance
   remained healthy, shell ping returned `ok`, and the post-rescan log tail had
   normal provider/cache activity with no Sportray error, exception, or
@@ -161,25 +173,22 @@ Verified starting state:
 - Do not execute any provider-supplied command or broaden this unit.
 
 Bounded outcome:
-Make multi-monitor bar-widget instances share one polling and notification
-ownership graph. Preserve single-monitor behavior, settings persistence,
-favorite ordering, selected-date behavior, and provider-neutral UI state.
+Ensure nested child controls do not also activate their enclosing game row.
+Preserve primary row activation, accessibility actions, and normalized models.
 
 Required checks:
-- Multiple monitors cannot create duplicate provider requests or duplicate
-  favorite notifications.
-- Shared ownership does not race settings writes or transition baselines.
-- Single-monitor topology and existing selected-date/cache behavior remain
-  intact.
+- Inspect the installed Qt/Omarchy pointer contract before changing handlers.
+- Add deterministic coverage for provider source, retry, and next-game child
+  actions, proving each action fires once while a row still activates once.
 - tests/run-js-tests.sh passes.
 - omarchy plugin validate "$PWD" passes on actual Omarchy.
 - Run /usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell over all QML files.
 - Inspect actual Quickshell logs for new errors if runtime is exercised.
 - git diff --check passes.
 
-Stop after the multi-monitor ownership unit is fixed and verified. Do not
-combine scheduler, nested interaction, keyboard routing, packaging, tagging,
-pushing, or Marketplace submission work. Update roadmap.md,
+Stop after the nested-interaction unit is fixed and verified. Do not combine
+keyboard routing, destruction callbacks, packaging, tagging, pushing, or
+Marketplace submission work. Update roadmap.md,
 PUBLIC_CONSUMPTION_REVIEW.md, and this prompt with the next single bounded
 unit, then create one atomic Conventional Commit-style commit only after every
 gate passes. Use subagents only for independent read-only checks that materially

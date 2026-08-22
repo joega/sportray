@@ -30,6 +30,7 @@ const dateModel = require(path.join(root, "model/DateModel.js"));
 const dateCachePolicy = require(path.join(root, "model/DateCachePolicy.js"));
 const nextEvent = require(path.join(root, "model/NextEventModel.js"));
 const lookahead = require(path.join(root, "model/LookaheadPolicy.js"));
+const monitorOwnership = require(path.join(root, "model/MonitorOwnership.js"));
 const panelLayout = require(path.join(root, "model/PanelLayout.js"));
 
 function readFixture(name) {
@@ -2236,7 +2237,7 @@ test("U2.1 result row identity stays canonical and Panel uses one virtualized re
   assert.equal(panel.includes("Qt.Key_PageUp"), true);
   assert.equal(panel.includes("Qt.Key_Home"), true);
   assert.equal(panel.includes("Qt.Key_End"), true);
-  assert.equal(panel.includes("lookaheadLeagueId"), true);
+  assert.equal(readSource("services/SportrayService.qml").includes("lookaheadLeagueId"), true);
   const nextCard = readSource("components/NextGameCard.qml");
   assert.equal(nextCard.includes('text: "NEXT GAME"'), true);
   assert.equal(nextCard.includes('text: "View day"'), true);
@@ -2795,6 +2796,34 @@ test("lifecycle owner topology remains singular and destruction-safe", () => {
   assert.match(scheduler, /function scheduleRetry\(delayMs\)/);
   assert.match(scheduler, /PollPolicy\.earliestDeadline\(root\.timerDueAtMs, requestedDueAt\)/);
   assert.match(scheduler, /PollPolicy\.delayUntil\(dueAt, now\)/);
+});
+
+test("multi-monitor panels share one polling, notification, and settings owner", () => {
+  let contexts = monitorOwnership.emptyContexts();
+  contexts = monitorOwnership.updateContext(contexts, "panel-1", true, "nhl");
+  contexts = monitorOwnership.updateContext(contexts, "panel-2", true, "nba");
+  assert.equal(monitorOwnership.anyPanelOpen(contexts), true);
+  assert.equal(monitorOwnership.lookaheadLeagueId(contexts), "nba");
+
+  contexts = monitorOwnership.updateContext(contexts, "panel-2", false, "");
+  assert.equal(monitorOwnership.anyPanelOpen(contexts), true);
+  assert.equal(monitorOwnership.lookaheadLeagueId(contexts), "nhl");
+  contexts = monitorOwnership.removeContext(contexts, "panel-1");
+  assert.equal(monitorOwnership.anyPanelOpen(contexts), false);
+  assert.equal(monitorOwnership.lookaheadLeagueId(contexts), "");
+
+  const service = readSource("services/SportrayService.qml");
+  const barWidget = readSource("BarWidget.qml");
+  const panel = readSource("Panel.qml");
+  assert.equal((service.match(/\bFetchService\s*\{/g) || []).length, 1);
+  assert.equal((service.match(/\bNotificationService\s*\{/g) || []).length, 1);
+  assert.equal((service.match(/\bSettingsStore\s*\{/g) || []).length, 1);
+  assert.equal((panel.match(/\bFetchService\s*\{/g) || []).length, 0);
+  assert.equal((panel.match(/\bNotificationService\s*\{/g) || []).length, 0);
+  assert.equal((barWidget.match(/\bSettingsStore\s*\{/g) || []).length, 0);
+  assert.match(barWidget, /Services\.SportrayService/);
+  assert.match(panel, /root\.service\.updatePanel/);
+  assert.match(panel, /root\.service\.unregisterPanel/);
 });
 
 test("NCAA Football owns one isolated fetch state in the existing scheduler", () => {

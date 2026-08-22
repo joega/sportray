@@ -3,6 +3,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 import "model/Iconography.js" as Iconography
+import "services" as Services
 
 BarWidget {
   id: root
@@ -16,7 +17,8 @@ BarWidget {
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true : false
 
-  readonly property var settingsStore: settingsStoreLoader.item
+  readonly property var sharedService: Services.SportrayService
+  readonly property var settingsStore: root.sharedService.settingsStore
   // Horizontal panels follow the configured bar region while anchoring to the
   // real button, whose item tree lets KeyboardPanel resolve the correct screen
   // and overlay layer.
@@ -48,6 +50,7 @@ BarWidget {
     var target = panelLoader.item
     if (!target) return
     if ("bar" in target) target.bar = root.bar
+    if ("service" in target) target.service = root.sharedService
     if ("settings" in target) target.settings = root.settingsStore
     if ("barRegion" in target) target.barRegion = root.barRegion
     if ("anchorItem" in target) target.anchorItem = root.panelAnchorItem
@@ -106,16 +109,6 @@ BarWidget {
       root.injectPanel()
       Qt.callLater(root.injectPanel)
     }
-  }
-
-  // Keep application settings/state hidden from the bar while injecting the
-  // store into the panel and its notification boundary.
-  Loader {
-    id: settingsStoreLoader
-    active: true
-    source: Qt.resolvedUrl("services/SettingsStore.qml")
-    visible: false
-    onItemChanged: root.injectPanel()
   }
 
   BarIconButton {

@@ -15,7 +15,7 @@ import "model/PanelLayout.js" as PanelLayout
 import "providers/LeagueCatalog.js" as LeagueCatalog
 import "providers/NhlTeamCatalog.js" as NhlTeamCatalog
 import "providers/EspnTeamCatalog.js" as EspnTeamCatalog
-import "services"
+import "services" as Services
 
 Panel {
   id: root
@@ -25,6 +25,7 @@ Panel {
 
   property var anchorItem: null
   property var hostWidget: null
+  property var service: Services.SportrayService
   property var settings: null
   property string barRegion: ""
   property bool settingsOpen: false
@@ -36,7 +37,10 @@ Panel {
   property int selectedRowIndex: -1
   property string selectedRowId: ""
   property double nowMs: Date.now()
-  property string selectedDateKey: DateModel.localDateKey(new Date())
+  property string panelToken: ""
+  readonly property var fetchService: root.service ? root.service.fetchService : null
+  readonly property string selectedDateKey: root.service
+    ? root.service.selectedDateKey : DateModel.localDateKey(new Date())
   property string observedTodayDateKey: DateModel.localDateKey(new Date())
   property var scrollPositions: ({})
   property var selectedRowIds: ({})
@@ -104,6 +108,18 @@ Panel {
     fetchService.requestRefresh("manual")
   }
 
+  function setSelectedDate(dateKey) {
+    if (!root.service || !DateModel.isDateKey(dateKey)) return
+    root.service.selectedDateKey = dateKey
+  }
+
+  function syncSharedContext() {
+    if (!root.service || !root.panelToken) return
+    root.service.updatePanel(root.panelToken, root.opened,
+      !root.settingsOpen && root.activeDestination !== "following"
+        ? root.activeDestination : "")
+  }
+
   function recalculatePanelHeight() {
     root.panelContentHeightRequest = PanelLayout.contentRequest(root.resultRows,
       root.settingsDestination, root.settingsOpen, {
@@ -135,7 +151,7 @@ Panel {
   function selectDate(dateKey) {
     if (!DateModel.isDateKey(dateKey) || dateKey === root.selectedDateKey) return
     root.queuePanelHeightRecalculation()
-    root.selectedDateKey = dateKey
+    root.setSelectedDate(dateKey)
     root.selectedRowIndex = -1
     root.selectedRowId = ""
     var positions = Object.assign({}, root.scrollPositions || {})
@@ -327,7 +343,9 @@ Panel {
     root.controller.show()
   }
 
-  onOpenedChanged: if (root.opened) {
+  onOpenedChanged: {
+    root.syncSharedContext()
+    if (!root.opened) return
     root.nowMs = Date.now()
     root.panelHeightRecalculationPending = root.resultRows.some(function(row) {
       return row.kind === "loading"
@@ -345,7 +363,7 @@ Panel {
 
   onTodayDateKeyChanged: {
     if (root.selectedDateKey === root.observedTodayDateKey)
-      root.selectedDateKey = root.todayDateKey
+      root.setSelectedDate(root.todayDateKey)
     root.observedTodayDateKey = root.todayDateKey
   }
 
@@ -353,7 +371,6 @@ Panel {
     root.selectedRowIndex = -1
     root.selectedRowId = ""
     Qt.callLater(root.restoreResultPosition)
-    root.syncNotificationGames()
     Qt.callLater(root.recalculatePanelHeight)
   }
 
@@ -361,6 +378,7 @@ Panel {
     root.tabCursor = root.destinationIndex(root.activeDestination)
     if (sportsPicker) sportsPicker.value = root.activeDestination
     root.recalculatePanelHeight()
+    root.syncSharedContext()
   }
 
   onResultRowsChanged: {
@@ -383,7 +401,10 @@ Panel {
     }
   }
 
-  onSettingsOpenChanged: Qt.callLater(root.recalculatePanelHeight)
+  onSettingsOpenChanged: {
+    Qt.callLater(root.recalculatePanelHeight)
+    root.syncSharedContext()
+  }
 
   onTabItemsChanged: if (root.destinationIndex(root.activeDestination) === 0
                          && root.activeDestination !== "following")
@@ -393,7 +414,7 @@ Panel {
     // The bar remains an ambient current-day indicator; browsing another day
     // is a panel session, so closing returns the next ambient refresh to today.
     if (root.selectedDateKey !== root.todayDateKey)
-      root.selectedDateKey = root.todayDateKey
+      root.setSelectedDate(root.todayDateKey)
     root.controller.hide()
   }
 
@@ -437,12 +458,6 @@ Panel {
     if (root.bar && typeof root.bar.switchPanelFrom === "function")
       return root.bar.switchPanelFrom(root.barIdentity, direction)
     return false
-  }
-
-  function syncNotificationGames() {
-    if (!notificationService || !fetchService) return
-    notificationService.games = root.selectedDateKey === root.todayDateKey
-      ? fetchService.games : []
   }
 
   Timer {
@@ -521,26 +536,13 @@ Panel {
     }
   }
 
-  FetchService {
-    id: fetchService
-    enabledLeagues: root.enabledLeagues
-    favoriteTeamIds: root.favoriteTeamIds
-    selectedDateKey: root.selectedDateKey
-    lookaheadLeagueId: !root.settingsOpen && root.activeDestination !== "following"
-      ? root.activeDestination : ""
-    panelOpen: root.opened
+  Component.onCompleted: {
+    root.panelToken = root.service.registerPanel()
+    root.syncSharedContext()
   }
 
-  NotificationService {
-    id: notificationService
-    settingsStore: root.settings
-
-    Component.onCompleted: root.syncNotificationGames()
-  }
-
-  Connections {
-    target: fetchService
-    function onGamesChanged() { root.syncNotificationGames() }
+  Component.onDestruction: {
+    if (root.service && root.panelToken) root.service.unregisterPanel(root.panelToken)
   }
 
   Connections {

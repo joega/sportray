@@ -1,0 +1,2 @@
+module Sportray.Services
+singleton SportrayService 1.0 SportrayService.qml
