@@ -13,6 +13,7 @@ import "model/Iconography.js" as Iconography
 import "model/DateModel.js" as DateModel
 import "model/PanelLayout.js" as PanelLayout
 import "model/PointerInteractionPolicy.js" as PointerInteractionPolicy
+import "model/KeyboardRoutingPolicy.js" as KeyboardRoutingPolicy
 import "providers/LeagueCatalog.js" as LeagueCatalog
 import "providers/NhlTeamCatalog.js" as NhlTeamCatalog
 import "providers/EspnTeamCatalog.js" as EspnTeamCatalog
@@ -582,9 +583,11 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      // Keep the catcher active while the search editor has focus so Escape
-      // returns through the normal panel path; text keys pass through below.
-      blocked: sportsPicker.popupOpen
+      // The installed catcher runs BeforeItem and otherwise consumes panel
+      // navigation keys before an active editor can receive them. Let the
+      // editor own all keys, including Escape, while it has focus.
+      blocked: KeyboardRoutingPolicy.catcherBlocked(
+        settingsHub.inputActive, sportsPicker.popupOpen)
       onCloseRequested: root.settingsOpen ? root.closeUtility() : root.close()
       onMoveRequested: function(dx, dy) {
         if (root.settingsOpen) settingsHub.moveCursor(dx, dy)

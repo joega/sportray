@@ -211,6 +211,7 @@ Item {
       leagues: root.leagues
       settings: root.settingsStore
       settingsRevision: root.settingsRevision
+      onEscapeRequested: root.escapeRequested()
     }
 
     SettingsView {

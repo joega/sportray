@@ -33,6 +33,7 @@ const lookahead = require(path.join(root, "model/LookaheadPolicy.js"));
 const monitorOwnership = require(path.join(root, "model/MonitorOwnership.js"));
 const panelLayout = require(path.join(root, "model/PanelLayout.js"));
 const pointerInteraction = require(path.join(root, "model/PointerInteractionPolicy.js"));
+const keyboardRouting = require(path.join(root, "model/KeyboardRoutingPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -2254,6 +2255,26 @@ test("nested pointer actions keep their tap out of the enclosing result row", ()
   assert.match(nextCard, /sourceLink\.pointerPressed \|\| jumpButton\.pointerPressed/);
 });
 
+test("active editors own catcher shortcuts while Escape and navigation stay routed", () => {
+  ["h", "j", "k", "l", "x"].forEach((text) => {
+    assert.equal(keyboardRouting.targetForKey("", text, true, false), "editor", text);
+  });
+  assert.equal(keyboardRouting.targetForKey("Space", " ", true, false), "editor", "space");
+  assert.equal(keyboardRouting.targetForKey("Escape", "", true, false), "editor", "editor escape");
+  assert.equal(keyboardRouting.targetForKey("Escape", "", false, false), "catcher-close", "panel escape");
+  assert.equal(keyboardRouting.targetForKey("j", "j", false, false), "catcher-navigation", "panel navigation");
+  assert.equal(keyboardRouting.targetForKey("", "a", false, false), "catcher-text", "panel text key");
+  assert.equal(keyboardRouting.targetForKey("j", "j", false, true), "editor", "popup-owned key");
+
+  const panel = readSource("Panel.qml");
+  const hub = readSource("components/SettingsHub.qml");
+  const picker = readSource("components/TeamPicker.qml");
+  assert.match(panel, /blocked: KeyboardRoutingPolicy\.catcherBlocked\(/);
+  assert.match(panel, /settingsHub\.inputActive, sportsPicker\.popupOpen/);
+  assert.match(hub, /onEscapeRequested: root\.escapeRequested\(\)/);
+  assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
+});
+
 test("U2.1 result row identity stays canonical and Panel uses one virtualized result list", () => {
   assert.equal(resultRows.gameIdentity({id: "NHL:123"}), "nhl:123");
   assert.equal(resultRows.gameIdentity({providerGameId: "GAME-9"}), "game-9");
@@ -2283,7 +2304,7 @@ test("U2.1 uses a compact vertical sport chooser instead of a clipped tab strip"
   assert.equal(panel.includes("Dropdown {"), true);
   assert.equal(panel.includes("id: sportsPicker"), true);
   assert.equal(panel.includes("options: root.sportOptions"), true);
-  assert.equal(panel.includes("blocked: sportsPicker.popupOpen"), true);
+  assert.equal(panel.includes("settingsHub.inputActive, sportsPicker.popupOpen"), true);
   assert.equal(panel.includes("orientation: ListView.Horizontal"), false);
   assert.equal(panel.includes("text: tabList.contentWidth > tabList.width"), false);
 });

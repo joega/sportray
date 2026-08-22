@@ -101,6 +101,14 @@ and accessibility activation paths are unchanged.
 
 Block the catcher while any text editor is active, while preserving Escape handling, and test actual key routing.
 
+Status: fixed in the current worktree. The installed Omarchy 4.0.0-1
+`PanelKeyCatcher` contract uses `Keys.BeforeItem`; its `blocked` property is the
+supported way to forward all keys to descendants. Sportray now combines the
+sport-popup state with `SettingsHub.inputActive`, and the TeamPicker Escape
+signal is wired through the hub to the existing close-utility path. Pure
+routing tests cover editor shortcuts, editor Escape, popup ownership, catcher
+Escape, navigation, and ordinary panel text.
+
 ## Additional risks
 
 - Destruction-time delayed callbacks produced real Quickshell log errors during screen/bar remapping: deferred work in [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:305) and [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:832) ran after the panel/ListView was destroyed. Guard or cancel those callbacks.
@@ -125,9 +133,9 @@ Block the catcher while any text editor is active, while preserving Escape handl
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 148 tests passed, including notification, scheduler,
+- `tests/run-js-tests.sh`: 149 tests passed, including notification, scheduler,
   NHL lookahead, stale-date, multi-monitor ownership, and nested-pointer
-  routing checks.
+  and editor-keyboard routing checks.
 - NHL lookahead fixtures cover repeated, earlier, malformed, over-limit, and
   valid later schedule responses.
 - `omarchy plugin validate "$PWD"`: passed on actual Omarchy.
@@ -144,7 +152,8 @@ Block the catcher while any text editor is active, while preserving Escape handl
   exercised.
 - No telemetry, accounts, secrets, downloaded-code execution, or privileged operations were found.
 
-The lookahead, stale-date, multi-monitor ownership, and nested-pointer
+The lookahead, stale-date, multi-monitor ownership, nested-pointer, and editor-
+keyboard routing
 implementations,
 fixtures, tests, roadmap, and review handoff were changed in this hardening
 history. The checkout intentionally has no `docs/upstream-contract.md`;
@@ -154,8 +163,8 @@ installed Omarchy 4.0.0-1 remains the runtime boundary source.
 
 ```text
 Work in /home/joeg/Projects/sportray on the next public-release hardening
-unit: keep ordinary text input out of the installed PanelKeyCatcher while
-preserving Escape behavior.
+unit: guard delayed panel callbacks and destruction-time work from running
+after their owning panel or list has been destroyed.
 
 Read AGENTS.md, README.md, docs/upstream-contract.md, roadmap.md, and the latest
 roadmap/review handoff before editing. If docs/upstream-contract.md is absent,
@@ -172,7 +181,7 @@ Verified starting state:
   bounded date-keyed cache for same-date admission.
 - `SportrayService.qml` is the sole engine-wide owner of settings, fetch, and
   notification state; repeated panels register only open/lookahead context.
-- 148 deterministic tests, omarchy plugin validate "$PWD", real-import-path
+- 149 deterministic tests, omarchy plugin validate "$PWD", real-import-path
   qmllint over all QML files (with established warnings), and git diff --check pass.
 - The linked plugin was rescanned in Omarchy 4.0.0-1. One Quickshell instance
   remained healthy, shell ping returned `ok`, and the post-rescan log tail had
@@ -184,23 +193,23 @@ Verified starting state:
 - Do not execute any provider-supplied command or broaden this unit.
 
 Bounded outcome:
-Ensure an active text editor receives ordinary characters, including the
-PanelKeyCatcher shortcuts, while Escape still closes or returns as documented.
-Preserve non-editor keyboard navigation and normalized models.
+Ensure delayed panel callbacks and destruction-time work cannot access destroyed
+panels or result lists. Preserve normal panel transitions and provider-neutral
+models.
 
 Required checks:
-- Inspect the installed PanelKeyCatcher contract before changing keyboard
-  routing.
-- Add deterministic coverage for editor text, catcher shortcut keys, Escape,
-  and non-editor navigation.
+- Inspect the installed Quickshell lifecycle/timer contract before changing
+  delayed callbacks.
+- Add deterministic coverage for destroyed-owner guards and normal callback
+  execution.
 - tests/run-js-tests.sh passes.
 - omarchy plugin validate "$PWD" passes on actual Omarchy.
 - Run /usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell over all QML files.
 - Inspect actual Quickshell logs for new errors if runtime is exercised.
 - git diff --check passes.
 
-Stop after the keyboard-routing unit is fixed and verified. Do not combine
-destruction callbacks, packaging, tagging, pushing, or
+Stop after the destruction-safety unit is fixed and verified. Do not combine
+asset-host policy, packaging, tagging, pushing, or
 Marketplace submission work. Update roadmap.md,
 PUBLIC_CONSUMPTION_REVIEW.md, and this prompt with the next single bounded
 unit, then create one atomic Conventional Commit-style commit only after every
