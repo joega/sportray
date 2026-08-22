@@ -5,6 +5,7 @@ import "../providers/EspnProvider.js" as EspnProvider
 import "../model/FreshnessPolicy.js" as FreshnessPolicy
 import "../model/DateModel.js" as DateModel
 import "../model/NextEventModel.js" as NextEventModel
+import "../model/LookaheadPolicy.js" as LookaheadPolicy
 import "../model/PollPolicy.js" as PollPolicy
 
 Item {
@@ -50,6 +51,7 @@ Item {
   property bool stoppingLookahead: false
   property int lookaheadGeneration: 0
   property int activeLookaheadGeneration: 0
+  property int lookaheadHopCount: 0
   property string lookaheadRequestDateKey: ""
   property string requestDateKey: ""
   property string snapshotDateKey: ""
@@ -167,6 +169,7 @@ Item {
     root.pendingLookaheadResult = null
     root.lookaheadStreamFinished = false
     root.lookaheadBodyReceived = false
+    root.lookaheadHopCount = 0
     root.lookaheadRequestDateKey = ""
     root.nextGame = null
     root.nextGameDateKey = ""
@@ -225,6 +228,10 @@ Item {
       root.finishLookahead("unavailable")
       return false
     }
+    if (root.lookaheadHopCount >= LookaheadPolicy.MAX_HOPS) {
+      root.finishLookahead("unavailable", PollPolicy.EMPTY_INTERVAL_MS)
+      return false
+    }
     if (lookaheadProcess.running) return false
 
     var url = root.lookaheadUrl(dateKey)
@@ -239,6 +246,7 @@ Item {
     root.lookaheadStreamFinished = false
     root.lookaheadBodyReceived = false
     root.pendingLookaheadResult = null
+    root.lookaheadHopCount++
     root.nextGameStatus = "loading"
     lookaheadProcess.requestGeneration = root.activeLookaheadGeneration
     lookaheadProcess.command = ["curl", "-fsSL", "--max-time", "10", url]
@@ -286,9 +294,10 @@ Item {
     }
 
     var nextDate = typeof result.nextDateKey === "string" ? result.nextDateKey : ""
-    if (DateModel.isDateKey(nextDate)
-        && DateModel.calendarDistance(nextDate, root.dateKey) <= NextEventModel.MAX_LOOKAHEAD_DAYS) {
-      root.startLookahead(nextDate)
+    var decision = LookaheadPolicy.decideNextDate(root.dateKey,
+      root.lookaheadRequestDateKey, nextDate, root.lookaheadHopCount)
+    if (decision.kind === "request") {
+      root.startLookahead(decision.dateKey)
       return
     }
     root.finishLookahead("unavailable", PollPolicy.EMPTY_INTERVAL_MS)

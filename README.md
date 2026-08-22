@@ -51,7 +51,10 @@ When an enabled league has no games on the selected day, Sportray searches the
 next bounded schedule window and shows the first upcoming game below the empty
 state. Select **View day** to jump directly to that league day. The lookahead
 uses ESPN's date-range scoreboard route and the NHL schedule route; it does not
-change the current-day score model or notification date scope.
+change the current-day score model or notification date scope. NHL lookahead
+follows only strictly later schedule dates and stops after eight requests;
+malformed, non-progressing, or over-limit responses are cached as a safe empty
+result.
 
 The current league catalog is NHL, NFL, MLB, NBA, NCAA Football, NCAA Men's
 Basketball, English Premier League, and MLS. NCAA Football is disabled by

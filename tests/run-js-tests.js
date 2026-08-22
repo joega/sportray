@@ -28,6 +28,7 @@ const notificationModel = require(path.join(root, "model/NotificationModel.js"))
 const iconography = require(path.join(root, "model/Iconography.js"));
 const dateModel = require(path.join(root, "model/DateModel.js"));
 const nextEvent = require(path.join(root, "model/NextEventModel.js"));
+const lookahead = require(path.join(root, "model/LookaheadPolicy.js"));
 const panelLayout = require(path.join(root, "model/PanelLayout.js"));
 
 function readFixture(name) {
@@ -37,6 +38,11 @@ function readFixture(name) {
 
 function readRawFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl/raw", `${name}.json`);
+  return JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+}
+
+function readLookaheadFixture(name) {
+  const fixturePath = path.join(root, "fixtures/nhl/lookahead", `${name}.json`);
   return JSON.parse(fs.readFileSync(fixturePath, "utf8"));
 }
 
@@ -1029,6 +1035,32 @@ test("NHL next-game lookup uses the schedule endpoint and keeps normalized games
   assert.equal(nhl.buildNextGamesUrl("20261001"), null);
   const result = nhl.parseScheduleResponse({gameWeek: [], nextStartDate: "2026-10-08"});
   assert.deepEqual(result, {games: [], errors: [], nextDateKey: "2026-10-08"});
+});
+
+test("NHL lookahead requires progress and caches a bounded safe outcome", () => {
+  const selected = "2026-08-19";
+  const requested = "2026-08-20";
+  const parsed = (name) => nhl.parseScheduleResponse(readLookaheadFixture(name));
+
+  assert.deepEqual(lookahead.decideNextDate(selected, requested,
+    parsed("repeated").nextDateKey, 1), {kind: "finish", reason: "non-progressing-date"});
+  assert.deepEqual(lookahead.decideNextDate(selected, requested,
+    parsed("earlier").nextDateKey, 1), {kind: "finish", reason: "non-progressing-date"});
+  assert.deepEqual(lookahead.decideNextDate(selected, requested,
+    parsed("malformed").nextDateKey, 1), {kind: "finish", reason: "invalid-date"});
+  assert.deepEqual(lookahead.decideNextDate(selected, requested,
+    parsed("malformed-response").nextDateKey, 1), {kind: "finish", reason: "invalid-date"});
+  assert.deepEqual(lookahead.decideNextDate(selected, requested,
+    parsed("valid-later").nextDateKey, 1), {
+    kind: "request", dateKey: "2026-08-21", hopCount: 2
+  });
+  const next = nextEvent.findNext(parsed("valid-later").games, selected);
+  assert.equal(next.dateKey, "2026-08-21");
+  assert.equal(next.game.providerGameId, "2026020099");
+  assert.deepEqual(lookahead.decideNextDate(selected, requested,
+    parsed("over-limit").nextDateKey, lookahead.MAX_HOPS), {
+    kind: "finish", reason: "hop-limit"
+  });
 });
 
 test("date model provides a stable local carousel and provider query keys", () => {
@@ -2727,6 +2759,9 @@ test("lifecycle owner topology remains singular and destruction-safe", () => {
   assert.match(leagueFetch, /if \(requestProcess\.running\) requestProcess\.running = false/);
   assert.match(leagueFetch, /property var dateCache: \(\{\}\)/);
   assert.match(leagueFetch, /readonly property int dateCacheLimit: 5/);
+  assert.match(leagueFetch, /property int lookaheadHopCount: 0/);
+  assert.match(leagueFetch, /LookaheadPolicy\.decideNextDate/);
+  assert.match(leagueFetch, /root\.finishLookahead\("unavailable", PollPolicy\.EMPTY_INTERVAL_MS\)/);
   assert.match(leagueFetch, /function requestDue\(reason, nowMs\)/);
   assert.match(leagueFetch, /PollPolicy\.retryDelayMs\(root\.consecutiveFailures\)/);
   assert.match(leagueFetch, /"cache-hit"/);

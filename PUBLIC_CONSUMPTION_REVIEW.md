@@ -1,7 +1,7 @@
 # Public-Consumption Review
 
 Date: 2026-08-22  
-Reviewed baseline: `4be78fd1d3a22b21b0764b9133679908f09032c6`  
+Reviewed baseline: `2f3f327c0fd862e7213630e682cda24d6aa4381e`
 Environment: Omarchy 4.0.0-1, Quickshell 0.3.0.r20
 
 ## Verdict
@@ -45,7 +45,17 @@ deadlines, and manual-refresh behavior.
 
 [LeagueFetch.qml](/home/joeg/Projects/sportray/services/LeagueFetch.qml:288) validates `nextDateKey` only against the selected date. It does not require progress beyond `lookaheadRequestDateKey`, track visited dates, or enforce a hop limit. A successful empty response repeating the same or a previous date causes serial requests indefinitely.
 
-Require strictly increasing dates, a visited/max-hop bound, and failure caching. The existing test only checks that the returned date is copied.
+The fix must require strictly increasing dates, a visited/max-hop bound, and
+failure caching. The existing test only checks that the returned date is copied.
+
+Status: fixed in the current worktree. `LookaheadPolicy` requires a valid date
+strictly later than the date just requested, retains the existing 35-day
+window, and caps the selected empty-day lookup at eight requests.
+`LeagueFetch` tracks the request count and routes malformed, repeated, earlier,
+out-of-range, and over-limit responses through the existing six-hour
+`unavailable` cache entry. Fixture-driven tests cover the rejected responses
+and confirm that a valid later response still produces the first upcoming game
+and date.
 
 ### High: disabled/date-change/re-enable can restore stale data
 
@@ -87,8 +97,10 @@ Block the catcher while any text editor is active, while preserving Escape handl
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 144 tests passed, including the notification helper
+- `tests/run-js-tests.sh`: 145 tests passed, including the notification helper
   boundary and scheduler deadline tests.
+- NHL lookahead fixtures cover repeated, earlier, malformed, over-limit, and
+  valid later schedule responses.
 - `omarchy plugin validate "$PWD"`: passed on actual Omarchy.
 - Current Marketplace validator from a clean public clone: passed.
 - Marketplace security baseline v3: passed, no findings/capabilities.
@@ -97,45 +109,60 @@ Block the catcher while any text editor is active, while preserving Escape handl
 - `git diff --check` and `git fsck --full`: passed.
 - No telemetry, accounts, secrets, downloaded-code execution, or privileged operations were found.
 
-The worktree was clean and no implementation files were changed for this review.
+The lookahead implementation, fixtures, tests, README, roadmap, and review
+handoff were changed for this unit. No Quickshell runtime was exercised, so no
+new runtime log evidence was collected.
 
 ## Next-session prompt
 
 ```text
-Work in /home/joeg/Projects/sportray on the next public-release hardening unit:
-bound NHL empty-day lookahead so repeated or non-progressing dates cannot loop.
+Work in /home/joeg/Projects/sportray on the next public-release hardening
+unit: prevent stale date data from being restored after disable/date-change/
+re-enable.
 
-Read AGENTS.md, README.md, docs/upstream-contract.md, roadmap.md, and the latest handoff before editing. If docs/upstream-contract.md is absent, verify the relevant contract against installed Omarchy 4.0.0-1 sources and record that fact.
+Read AGENTS.md, README.md, docs/upstream-contract.md, roadmap.md, and the latest
+roadmap/review handoff before editing. If docs/upstream-contract.md is absent,
+verify the relevant contract against installed Omarchy 4.0.0-1 sources and
+record that fact. Inspect git status, branch, and recent commits; preserve
+unrelated changes.
 
 Verified starting state:
-- The notification injection and scheduler retry-deadline findings are fixed in
-  the current hardening commit.
-- 144 deterministic tests, Omarchy validation, and real-import-path qmllint pass;
-  qmllint retains only the established host/import and unqualified-access
-  warnings.
-- NotificationModel bounds and sanitizes provider-derived notification text and
-  prefixes option-looking content before the installed helper boundary.
-- The helper test uses a safe notify-send stub; no supplied payload was executed.
-- NHL lookahead still accepts a repeated or earlier returned date, so an empty
-  response can trigger unbounded serial lookahead requests.
+- Notification injection, scheduler retry deadlines, and NHL lookahead bounds
+  are fixed in the current hardening history.
+- LookaheadPolicy.js requires strictly increasing valid dates, preserves the
+  35-day window, and limits NHL lookahead to eight requests; rejected and
+  exhausted responses use the existing safe unavailable cache result.
+- 145 deterministic tests, omarchy plugin validate "$PWD", real-import-path
+  qmllint (exit 0 with established warnings), and git diff --check pass.
+- LeagueFetch.qml still restores lastKnownGames on re-enable without proving
+  that the snapshot belongs to the selected date, and date changes may leave
+  old-date raw data in the path that controls fetch/lookahead admission.
+- The checkout intentionally has no docs/upstream-contract.md; verify the
+  relevant installed Omarchy 4.0.0-1 contract if an upstream boundary changes.
+- Do not execute any provider-supplied command or broaden this unit.
 
 Bounded outcome:
-Make NHL lookahead require strict date progress and enforce a bounded hop count.
-Add executable behavior tests for repeated, earlier, malformed, and over-limit
-lookahead responses while preserving the existing next-game result and cache
-behavior.
+Make disable/date-change/re-enable restore data only when it belongs to the
+selected date. Preserve valid same-date cache admission, failure recovery, the
+current-day score model, and provider-neutral UI state.
 
 Required checks:
-- A repeated or earlier lookahead date cannot start another request.
-- Lookahead has a finite request bound and caches a safe failure/empty outcome.
+- A disabled league cannot resurrect a prior-date snapshot after re-enable.
+- A date change cannot leave old-date lastKnownGames blocking selected-date
+  fetch or lookahead.
+- Existing same-date cache restore, failure recovery, and selected-date
+  filtering remain intact.
 - tests/run-js-tests.sh passes.
 - omarchy plugin validate "$PWD" passes on actual Omarchy.
-- qmllint runs with the real shell import mapping.
-- Quickshell logs show no new errors.
+- Run /usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell over all QML files.
+- Inspect actual Quickshell logs for new errors if runtime is exercised.
 - git diff --check passes.
 
-Stop after the NHL lookahead bound is fixed and verified. Do not combine
-multi-monitor, scheduler, UI, packaging, tagging, pushing, or Marketplace submission work
-into this unit. Update the review handoff, refresh this prompt, and create one
-atomic Conventional Commit-style commit only after every gate passes.
+Stop after this stale-date restore unit is fixed and verified. Do not combine
+multi-monitor, scheduler, nested interaction, keyboard routing, packaging,
+tagging, pushing, or Marketplace submission work. Update roadmap.md,
+PUBLIC_CONSUMPTION_REVIEW.md, and this prompt with the next single bounded
+unit, then create one atomic Conventional Commit-style commit only after every
+gate passes. Use subagents only for independent read-only checks that materially
+improve confidence.
 ```

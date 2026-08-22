@@ -1,0 +1,31 @@
+{
+  "gameWeek": [
+    {
+      "date": "2026-08-21",
+      "games": [
+        {
+          "id": 2026020099,
+          "gameDate": "2026-08-21",
+          "startTimeUTC": "2026-08-21T23:00:00Z",
+          "venue": {"default": "Test Arena"},
+          "gameState": "FUT",
+          "gameScheduleState": "OK",
+          "awayTeam": {
+            "id": 3,
+            "name": {"default": "Rangers"},
+            "commonName": {"default": "Rangers"},
+            "abbrev": "NYR"
+          },
+          "homeTeam": {
+            "id": 6,
+            "name": {"default": "Bruins"},
+            "commonName": {"default": "Bruins"},
+            "abbrev": "BOS"
+          },
+          "gameCenterLink": "/gamecenter/nyr-vs-bos/2026/08/21/2026020099"
+        }
+      ]
+    }
+  ],
+  "nextStartDate": "2026-08-21"
+}
