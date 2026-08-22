@@ -36,6 +36,11 @@ Omarchy creates one widget instance per screen. Multi-monitor systems can theref
 
 The scheduler should retain the earliest retry/cadence deadline, preferably with explicit per-league retry state, and needs executable behavior tests.
 
+Status: fixed in the current worktree. The scheduler now centralizes earliest
+deadline admission and preserves a pending retry when healthy aggregate updates
+request a longer cadence. Tests cover retry-versus-cadence ordering, elapsed
+deadlines, and manual-refresh behavior.
+
 ### High: NHL lookahead can loop indefinitely
 
 [LeagueFetch.qml](/home/joeg/Projects/sportray/services/LeagueFetch.qml:288) validates `nextDateKey` only against the selected date. It does not require progress beyond `lookaheadRequestDateKey`, track visited dates, or enforce a hop limit. A successful empty response repeating the same or a previous date causes serial requests indefinitely.
@@ -79,9 +84,11 @@ Block the catcher while any text editor is active, while preserving Escape handl
 
 - The notification injection finding is fixed and covered by the adversarial
   model/helper-argv test described above.
+- The scheduler retry-deadline finding is fixed and covered by the deadline
+  admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 143 tests passed, including the notification
-  helper-boundary adversarial test.
+- `tests/run-js-tests.sh`: 144 tests passed, including the notification helper
+  boundary and scheduler deadline tests.
 - `omarchy plugin validate "$PWD"`: passed on actual Omarchy.
 - Current Marketplace validator from a clean public clone: passed.
 - Marketplace security baseline v3: passed, no findings/capabilities.
@@ -96,38 +103,39 @@ The worktree was clean and no implementation files were changed for this review.
 
 ```text
 Work in /home/joeg/Projects/sportray on the next public-release hardening unit:
-preserve the earliest retry/cadence deadline in the per-league polling scheduler.
+bound NHL empty-day lookahead so repeated or non-progressing dates cannot loop.
 
 Read AGENTS.md, README.md, docs/upstream-contract.md, roadmap.md, and the latest handoff before editing. If docs/upstream-contract.md is absent, verify the relevant contract against installed Omarchy 4.0.0-1 sources and record that fact.
 
 Verified starting state:
-- The notification injection finding is fixed in the current hardening commit.
-- 143 deterministic tests, Omarchy validation, and real-import-path qmllint pass;
+- The notification injection and scheduler retry-deadline findings are fixed in
+  the current hardening commit.
+- 144 deterministic tests, Omarchy validation, and real-import-path qmllint pass;
   qmllint retains only the established host/import and unqualified-access
   warnings.
 - NotificationModel bounds and sanitizes provider-derived notification text and
   prefixes option-looking content before the installed helper boundary.
 - The helper test uses a safe notify-send stub; no supplied payload was executed.
-- The scheduler still replaces its aggregate timer when another league changes,
-  so a one-minute retry can be lost behind a longer normal cadence.
+- NHL lookahead still accepts a repeated or earlier returned date, so an empty
+  response can trigger unbounded serial lookahead requests.
 
 Bounded outcome:
-Make scheduler deadline admission retain the earliest pending retry/cadence
-deadline when healthy and failed leagues update independently. Add executable
-behavior tests for a short retry followed by a longer healthy cadence, while
-preserving manual refresh and existing backoff behavior.
+Make NHL lookahead require strict date progress and enforce a bounded hop count.
+Add executable behavior tests for repeated, earlier, malformed, and over-limit
+lookahead responses while preserving the existing next-game result and cache
+behavior.
 
 Required checks:
-- A retry deadline cannot be replaced by a later, longer aggregate cadence.
-- Manual refresh and normal per-league due checks remain intact.
+- A repeated or earlier lookahead date cannot start another request.
+- Lookahead has a finite request bound and caches a safe failure/empty outcome.
 - tests/run-js-tests.sh passes.
 - omarchy plugin validate "$PWD" passes on actual Omarchy.
 - qmllint runs with the real shell import mapping.
 - Quickshell logs show no new errors.
 - git diff --check passes.
 
-Stop after the scheduler deadline behavior is fixed and verified. Do not combine
-multi-monitor, UI, packaging, tagging, pushing, or Marketplace submission work
+Stop after the NHL lookahead bound is fixed and verified. Do not combine
+multi-monitor, scheduler, UI, packaging, tagging, pushing, or Marketplace submission work
 into this unit. Update the review handoff, refresh this prompt, and create one
 atomic Conventional Commit-style commit only after every gate passes.
 ```

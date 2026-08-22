@@ -28,18 +28,25 @@ Item {
   signal refreshRequested(string reason)
 
   function restartTimer() {
-    pollTimer.interval = root.intervalMs
-    root.timerDueAtMs = Date.now() + pollTimer.interval
+    var now = Date.now()
+    var requestedDueAt = now + root.intervalMs
+    var dueAt = pollTimer.running && root.timerDueAtMs > 0
+      ? PollPolicy.earliestDeadline(root.timerDueAtMs, requestedDueAt)
+      : requestedDueAt
+    root.timerDueAtMs = dueAt
+    pollTimer.interval = PollPolicy.delayUntil(dueAt, now)
     pollTimer.restart()
   }
 
   function scheduleRetry(delayMs) {
     var delay = Math.max(1, Number(delayMs) || 1)
-    var requestedDueAt = Date.now() + delay
-    if (pollTimer.running && root.timerDueAtMs > 0
-        && root.timerDueAtMs <= requestedDueAt) return
-    pollTimer.interval = delay
-    root.timerDueAtMs = requestedDueAt
+    var now = Date.now()
+    var requestedDueAt = now + delay
+    var dueAt = pollTimer.running && root.timerDueAtMs > 0
+      ? PollPolicy.earliestDeadline(root.timerDueAtMs, requestedDueAt)
+      : requestedDueAt
+    root.timerDueAtMs = dueAt
+    pollTimer.interval = PollPolicy.delayUntil(dueAt, now)
     pollTimer.restart()
   }
 

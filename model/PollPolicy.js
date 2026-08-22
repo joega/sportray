@@ -200,6 +200,22 @@ function spreadIntervalMs(intervalMs, jitterUnit) {
   return Math.round(interval + Math.min(interval * JITTER_RATIO, MAX_JITTER_MS) * unit);
 }
 
+function earliestDeadline(currentDueAtMs, requestedDueAtMs) {
+  var current = Number(currentDueAtMs);
+  var requested = Number(requestedDueAtMs);
+  if (!isFinite(requested) || requested <= 0) return current > 0 && isFinite(current) ? current : 0;
+  if (current > 0 && isFinite(current) && current <= requested) return current;
+  return requested;
+}
+
+function delayUntil(deadlineMs, nowMs) {
+  var deadline = Number(deadlineMs);
+  var now = Number(nowMs);
+  if (!isFinite(deadline) || deadline <= 0) return 1;
+  if (!isFinite(now)) now = Date.now();
+  return Math.max(1, deadline - now);
+}
+
 function isRequestDue(state, reason, now) {
   var source = isRecord(state) ? state : {};
   var current = nowTimestamp(now);
@@ -252,6 +268,8 @@ if (typeof module !== "undefined" && module.exports) {
     isImmediateRefreshTrigger: isImmediateRefreshTrigger,
     isRequestDue: isRequestDue,
     retryDelayMs: retryDelayMs,
+    earliestDeadline: earliestDeadline,
+    delayUntil: delayUntil,
     selectCadence: selectCadence,
     seedForGames: seedForGames,
     spreadIntervalMs: spreadIntervalMs

@@ -2601,6 +2601,19 @@ test("provider failures back off exponentially with a bounded randomized spread"
     12 * 60 * 60 * 1000 + pollPolicy.MAX_JITTER_MS);
 });
 
+test("scheduler deadlines retain the earliest retry across healthy cadence updates", () => {
+  const now = 100000;
+  const retryDueAt = now + pollPolicy.retryDelayMs(1);
+  const healthyCadenceDueAt = now + 6 * 60 * 60 * 1000;
+  assert.equal(pollPolicy.earliestDeadline(retryDueAt, healthyCadenceDueAt), retryDueAt);
+  assert.equal(pollPolicy.delayUntil(retryDueAt, now), pollPolicy.retryDelayMs(1));
+  assert.equal(pollPolicy.earliestDeadline(healthyCadenceDueAt, retryDueAt), retryDueAt);
+  assert.equal(pollPolicy.earliestDeadline(0, healthyCadenceDueAt), healthyCadenceDueAt);
+  assert.equal(pollPolicy.delayUntil(now - 1, now), 1);
+  assert.equal(pollPolicy.isRequestDue({consecutiveFailures: 1,
+    retryNotBeforeMs: retryDueAt}, "manual", now), true);
+});
+
 test("request admission reuses fresh league/date snapshots and honors manual refresh", () => {
   const now = Date.parse("2026-08-19T10:00:00.000Z");
   const nextEligible = now + (11 * 60 + 50) * 60 * 1000;
@@ -2719,7 +2732,8 @@ test("lifecycle owner topology remains singular and destruction-safe", () => {
   assert.match(leagueFetch, /"cache-hit"/);
   assert.match(leagueFetch, /signal retryRequested\(int delayMs\)/);
   assert.match(scheduler, /function scheduleRetry\(delayMs\)/);
-  assert.match(scheduler, /root\.timerDueAtMs <= requestedDueAt/);
+  assert.match(scheduler, /PollPolicy\.earliestDeadline\(root\.timerDueAtMs, requestedDueAt\)/);
+  assert.match(scheduler, /PollPolicy\.delayUntil\(dueAt, now\)/);
 });
 
 test("NCAA Football owns one isolated fetch state in the existing scheduler", () => {
