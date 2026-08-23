@@ -1,0 +1,12 @@
+{
+  "accepted": [
+    "https://a.espncdn.com/i/teamlogos/soccer/500/359.png",
+    "https://assets.nhle.com/logos/nhl/svg/BOS_light.svg"
+  ],
+  "rejected": [
+    {"label": "http", "url": "http://a.espncdn.com/i/teamlogos/nfl/500/4.png"},
+    {"label": "untrusted-host", "url": "https://images.example.test/team.png"},
+    {"label": "malformed", "url": "https://"},
+    {"label": "missing", "url": null}
+  ]
+}

@@ -35,6 +35,7 @@ const panelLayout = require(path.join(root, "model/PanelLayout.js"));
 const pointerInteraction = require(path.join(root, "model/PointerInteractionPolicy.js"));
 const keyboardRouting = require(path.join(root, "model/KeyboardRoutingPolicy.js"));
 const lifecycle = require(path.join(root, "model/LifecyclePolicy.js"));
+const assetUrlPolicy = require(path.join(root, "model/AssetUrlPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -88,6 +89,10 @@ function readDedupeFixture() {
 
 function readDateCacheFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/transitions/m6-4.json"), "utf8"));
+}
+
+function readLogoUrlFixture() {
+  return JSON.parse(fs.readFileSync(path.join(root, "fixtures/asset-hosts/team-logo-urls.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -274,6 +279,43 @@ test("team IDs are canonical and preserve provider identity", () => {
   assert.equal(teams.normalizePrimaryColor(" BD3039 "), "#bd3039");
   assert.equal(teams.normalizePrimaryColor("not-a-color"), null);
   assert.equal(teams.createUnknownTeam("nhl", "bruins").name, null);
+});
+
+test("team logo URLs accept reviewed HTTPS hosts and preserve neutral fallbacks", () => {
+  const fixture = readLogoUrlFixture();
+  assert.deepEqual(Object.keys(assetUrlPolicy.REVIEWED_LOGO_HOSTS).sort(),
+    ["a.espncdn.com", "assets.nhle.com"]);
+
+  fixture.accepted.forEach((url, index) => {
+    assert.equal(assetUrlPolicy.safeLogoUrl(url), url);
+    const team = teams.normalizeTeam({league: "nhl", providerTeamId: String(index + 1),
+      name: "Team", abbreviation: "T", logoUrl: url});
+    assert.equal(team.logoUrl, url);
+    const game = games.normalizeGame({league: "nhl", providerGameId: "logo-" + index,
+      awayTeam: {league: "nhl", providerTeamId: String(index + 1), logoUrl: url},
+      homeTeam: {league: "nhl", providerTeamId: String(index + 2), logoUrl: url}});
+    assert.equal(game.awayTeam.logoUrl, url);
+    assert.equal(game.homeTeam.logoUrl, url);
+  });
+
+  fixture.rejected.forEach(({label, url}, index) => {
+    assert.equal(assetUrlPolicy.safeLogoUrl(url), null, label);
+    const team = teams.normalizeTeam({league: "nhl", providerTeamId: "reject-" + index,
+      name: "Team", abbreviation: "T", logoUrl: url});
+    assert.equal(team.logoUrl, null, label);
+    const game = games.normalizeGame({league: "nhl", providerGameId: "reject-" + index,
+      awayTeam: {league: "nhl", providerTeamId: "reject-away-" + index, logoUrl: url},
+      homeTeam: {league: "nhl", providerTeamId: "reject-home-" + index, logoUrl: url}});
+    assert.equal(game.awayTeam.logoUrl, null, label);
+    assert.equal(game.homeTeam.logoUrl, null, label);
+  });
+
+  const gameRow = readSource("components/GameRow.qml");
+  const picker = readSource("components/TeamPicker.qml");
+  assert.match(gameRow, /source: root\.game\.awayTeam && root\.game\.awayTeam\.logoUrl/);
+  assert.match(gameRow, /visible: !awayLogo\.visible/);
+  assert.match(picker, /source: modelData\.logoUrl \|\| ""/);
+  assert.match(picker, /visible: !logo\.visible \|\| logo\.status !== Image\.Ready/);
 });
 
 test("scheduled fixture normalizes without inventing scores", () => {

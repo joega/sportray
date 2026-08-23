@@ -1,3 +1,6 @@
+var AssetUrlPolicy = null;
+if (typeof require === "function") AssetUrlPolicy = require("./AssetUrlPolicy.js");
+
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -31,6 +34,17 @@ function safeUrl(value) {
   return url;
 }
 
+function safeLogoUrl(value) {
+  if (AssetUrlPolicy) return AssetUrlPolicy.safeLogoUrl(value);
+
+  var url = cleanString(value);
+  if (!url || !/^https:\/\//i.test(url)) return null;
+  var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(url);
+  if (!match) return null;
+  var host = match[1].toLowerCase();
+  return host === "a.espncdn.com" || host === "assets.nhle.com" ? url : null;
+}
+
 function normalizePrimaryColor(value) {
   var color = cleanString(value);
   if (!color) return null;
@@ -54,7 +68,7 @@ function normalizeTeam(input) {
     shortName: cleanString(input.shortName),
     abbreviation: cleanString(input.abbreviation),
     primaryColor: normalizePrimaryColor(input.primaryColor),
-    logoUrl: safeUrl(input.logoUrl),
+    logoUrl: safeLogoUrl(input.logoUrl),
     link: safeUrl(input.link)
   };
 }

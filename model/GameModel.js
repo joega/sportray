@@ -1,6 +1,8 @@
 var TeamModel = null;
+var AssetUrlPolicy = null;
 if (typeof require === "function") {
   TeamModel = require("./TeamModel.js");
+  AssetUrlPolicy = require("./AssetUrlPolicy.js");
 }
 
 var GAME_STATES = {
@@ -24,7 +26,18 @@ function cleanString(value) {
   return result || null;
 }
 
-function safeAssetUrl(value) {
+function safeLogoUrl(value) {
+  if (AssetUrlPolicy) return AssetUrlPolicy.safeLogoUrl(value);
+
+  var url = cleanString(value);
+  if (!url || !/^https:\/\//i.test(url)) return null;
+  var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(url);
+  if (!match) return null;
+  var host = match[1].toLowerCase();
+  return host === "a.espncdn.com" || host === "assets.nhle.com" ? url : null;
+}
+
+function safeUrl(value) {
   var url = cleanString(value);
   if (!url || !/^https?:\/\//i.test(url)) return null;
   return url;
@@ -115,8 +128,8 @@ function normalizeTeamBoundary(input) {
     primaryColor: TeamModel && TeamModel.normalizePrimaryColor
       ? TeamModel.normalizePrimaryColor(input.primaryColor)
       : normalizePrimaryColor(input.primaryColor),
-    logoUrl: safeAssetUrl(input.logoUrl),
-    link: safeAssetUrl(input.link)
+    logoUrl: safeLogoUrl(input.logoUrl),
+    link: safeUrl(input.link)
   };
 }
 

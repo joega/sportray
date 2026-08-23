@@ -1,6 +1,8 @@
 var GameModel = null;
+var AssetUrlPolicy = null;
 if (typeof require === "function") {
   GameModel = require("../model/GameModel.js");
+  AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
 }
 
 var ESPN_BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
@@ -50,6 +52,16 @@ function integerOrNull(value) {
 function safeUrl(value) {
   var url = cleanString(value);
   return url && /^https?:\/\//i.test(url) ? url : null;
+}
+
+function safeLogoUrl(value) {
+  if (AssetUrlPolicy) return AssetUrlPolicy.safeLogoUrl(value);
+
+  var url = cleanString(value);
+  if (!url || !/^https:\/\//i.test(url)) return null;
+  var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(url);
+  if (!match) return null;
+  return match[1].toLowerCase() === "a.espncdn.com" ? url : null;
 }
 
 function safeGameUrl(value) {
@@ -151,7 +163,7 @@ function normalizeTeam(competitor, leagueId) {
     shortName: cleanString(team.shortDisplayName) || cleanString(team.name),
     abbreviation: cleanString(team.abbreviation),
     primaryColor: cleanString(team.color),
-    logoUrl: safeUrl(team.logo),
+    logoUrl: safeLogoUrl(team.logo),
     link: teamLink(team)
   };
 }

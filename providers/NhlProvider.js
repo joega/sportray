@@ -1,6 +1,8 @@
 var GameModel = null;
+var AssetUrlPolicy = null;
 if (typeof require === "function") {
   GameModel = require("../model/GameModel.js");
+  AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
 }
 
 var NHL_BASE_URL = "https://api-web.nhle.com";
@@ -52,6 +54,16 @@ function safeUrl(value) {
   var url = cleanString(value);
   if (!url || !/^https?:\/\//i.test(url)) return null;
   return url;
+}
+
+function safeLogoUrl(value) {
+  if (AssetUrlPolicy) return AssetUrlPolicy.safeLogoUrl(value);
+
+  var url = cleanString(value);
+  if (!url || !/^https:\/\//i.test(url)) return null;
+  var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(url);
+  if (!match) return null;
+  return match[1].toLowerCase() === "assets.nhle.com" ? url : null;
 }
 
 function safeGameUrl(value) {
@@ -138,7 +150,7 @@ function normalizeTeam(rawTeam) {
     shortName: shortName,
     abbreviation: cleanString(rawTeam.abbrev),
     primaryColor: PRIMARY_COLORS[providerTeamId] || null,
-    logoUrl: safeUrl(rawTeam.logo),
+    logoUrl: safeLogoUrl(rawTeam.logo),
     link: null
   };
 }

@@ -2,6 +2,8 @@
 // here, and use the scoreboard payload only as a source of provider IDs for
 // normalized games. Logos stay optional so the picker remains usable offline.
 var TeamModel = requireTeamModel();
+var AssetUrlPolicy = null;
+if (typeof require === "function") AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
 var ESPN_TEAM_BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
 
 var CURRENT_TEAMS = {
@@ -184,6 +186,15 @@ function normalizeTeamFallback(input) {
     var result = clean(value);
     return result && /^https?:\/\//i.test(result) ? result : null;
   }
+  function logoUrl(value) {
+    if (AssetUrlPolicy) return AssetUrlPolicy.safeLogoUrl(value);
+
+    var result = clean(value);
+    if (!result || !/^https:\/\//i.test(result)) return null;
+    var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(result);
+    if (!match || match[1].toLowerCase() !== "a.espncdn.com") return null;
+    return result;
+  }
   return {
     id: league + ":" + providerTeamId,
     league: league,
@@ -192,7 +203,7 @@ function normalizeTeamFallback(input) {
     shortName: clean(input.shortName),
     abbreviation: clean(input.abbreviation),
     primaryColor: null,
-    logoUrl: url(input.logoUrl),
+    logoUrl: logoUrl(input.logoUrl),
     link: url(input.link)
   };
 }

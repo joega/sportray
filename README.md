@@ -145,6 +145,11 @@ Sportray stores bounded schema-1 JSON outside the plugin checkout at:
 Favorite IDs use the form `<league>:<providerTeamId>`, so abbreviations are
 never treated as team identity.
 
+Provider-supplied team logos are accepted only over HTTPS from the reviewed
+asset hosts `a.espncdn.com` and `assets.nhle.com`. Missing, malformed, or
+unreviewed logo URLs keep the initials and neutral fallbacks, so team rows and
+the favorite picker remain usable when an asset is unavailable.
+
 ## Data sources and privacy
 
 NHL scores come from the NHL public scoreboard API. NFL, MLB, NBA, NCAA
