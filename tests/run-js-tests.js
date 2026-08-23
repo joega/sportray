@@ -122,6 +122,11 @@ function readAccessibilityActionsFixture() {
     path.join(root, "fixtures/accessibility-actions/actions.json"), "utf8"));
 }
 
+function readSettingsBoundaryFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/settings-boundary/panel.json"), "utf8"));
+}
+
 function readNotificationFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/transitions/m6-3.json"), "utf8"));
 }
@@ -733,10 +738,23 @@ test("panel explicitly refreshes derived presentation on settings changes", () =
   const source = readSource("Panel.qml");
   assert.equal(source.includes("property int presentationRevision: 0"), true);
   assert.equal(source.includes("function copyStringList(value, fallback)"), true);
-  assert.equal(source.includes("root.copyStringList(root.settings"), true);
-  assert.equal(source.includes("target: root.settings"), true);
+  assert.equal(source.includes("root.copyStringList(root.settingsStore"), true);
+  assert.equal(source.includes("target: root.settingsStore"), true);
   assert.equal(source.includes("function onSettingsChanged()"), true);
   assert.equal(source.includes("FavoritePresentation.isFavoriteGame, root.presentationRevision"), true);
+});
+
+test("panel keeps the host settings property and injects its distinct settings store", () => {
+  const fixture = readSettingsBoundaryFixture();
+  const panel = readSource("Panel.qml");
+  const barWidget = readSource("BarWidget.qml");
+
+  assert.equal((panel.match(new RegExp(fixture.panel.declaration, "g")) || []).length, 1);
+  assert.equal((panel.match(new RegExp(fixture.panel.forbiddenDeclaration, "g")) || []).length, 0);
+  fixture.panel.consumerTokens.forEach((token) => assert.equal(panel.includes(token), true));
+  fixture.barWidget.consumerTokens.forEach((token) => assert.equal(barWidget.includes(token), true));
+  assert.equal((panel.match(/\broot\.settings\b/g) || []).length, 0);
+  assert.equal((barWidget.match(/target\.settings\b/g) || []).length, 0);
 });
 
 test("settings are unified behind one hub with a deep-linkable favorite destination", () => {

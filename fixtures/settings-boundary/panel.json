@@ -1,0 +1,18 @@
+{
+  "panel": {
+    "declaration": "property var settingsStore: null",
+    "forbiddenDeclaration": "property var settings: null",
+    "consumerTokens": [
+      "root.settingsStore && root.settingsStore.settings",
+      "root.settingsStore.settings.favoriteTeamIds",
+      "root.settingsStore.settings.enabledLeagues",
+      "target: root.settingsStore",
+      "settingsStore: root.settingsStore"
+    ]
+  },
+  "barWidget": {
+    "consumerTokens": [
+      "if (\"settingsStore\" in target) target.settingsStore = root.settingsStore"
+    ]
+  }
+}

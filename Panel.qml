@@ -29,7 +29,7 @@ Panel {
   property var anchorItem: null
   property var hostWidget: null
   property var service: Services.SportrayService
-  property var settings: null
+  property var settingsStore: null
   property string barRegion: ""
   property bool settingsOpen: false
   property string utilityReturnDestination: "following"
@@ -76,7 +76,7 @@ Panel {
   }
 
   readonly property var favoriteTeamIds: root.copyStringList(
-    root.settings && root.settings.settings ? root.settings.settings.favoriteTeamIds : [], [])
+    root.settingsStore && root.settingsStore.settings ? root.settingsStore.settings.favoriteTeamIds : [], [])
   // The final argument is an invalidation token; the provider-neutral JS
   // boundary ignores extra arguments.
   readonly property var scoreboard: ScoreboardModel.compose(
@@ -100,8 +100,8 @@ Panel {
   readonly property string barIconName: barIconNameForState()
   readonly property bool barHasLiveFavorite: FavoritePresentation.isLiveFavoriteState(barState)
   readonly property var enabledLeagues: {
-    return root.copyStringList(root.settings && root.settings.settings
-      ? root.settings.settings.enabledLeagues : [], ["nhl"])
+    return root.copyStringList(root.settingsStore && root.settingsStore.settings
+      ? root.settingsStore.settings.enabledLeagues : [], ["nhl"])
   }
   readonly property var pickerTeams: buildPickerTeams()
   readonly property string barScoreText: buildBarScoreText()
@@ -570,7 +570,7 @@ Panel {
   }
 
   Connections {
-    target: root.settings
+    target: root.settingsStore
     function onSettingsChanged() {
       root.presentationRevision++
     }
@@ -778,7 +778,7 @@ Panel {
                 visible: root.settingsOpen
                 teams: root.pickerTeams
                 leagues: LeagueCatalog.listLeagues()
-                settingsStore: root.settings
+                settingsStore: root.settingsStore
                 notificationService: notificationService
                 settingsRevision: root.presentationRevision
                 callbackOwner: root.callbackOwner

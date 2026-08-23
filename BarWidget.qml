@@ -63,7 +63,7 @@ BarWidget {
     if (!target) return
     if ("bar" in target) target.bar = root.bar
     if ("service" in target) target.service = root.sharedService
-    if ("settings" in target) target.settings = root.settingsStore
+    if ("settingsStore" in target) target.settingsStore = root.settingsStore
     if ("barRegion" in target) target.barRegion = root.barRegion
     if ("anchorItem" in target) target.anchorItem = root.panelAnchorItem
     if ("hostWidget" in target) target.hostWidget = root
