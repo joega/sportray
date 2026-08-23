@@ -145,6 +145,15 @@ Sportray stores bounded schema-1 JSON outside the plugin checkout at:
 Favorite IDs use the form `<league>:<providerTeamId>`, so abbreviations are
 never treated as team identity.
 
+The plugin-owned `settings` directory is repaired to owner-only `0700`
+permissions before the state file is opened. The state file is repaired to
+owner-only `0600` permissions before use and after every atomic save. Shared
+ancestors such as `~/.local/state` are not changed. If a required repair fails,
+Sportray keeps the bounded in-memory defaults or current settings but does not
+persist new state until the permission boundary is healthy. This repair uses
+only the fixed system command paths `/usr/bin/mkdir`, `/usr/bin/chmod`, and
+`/usr/bin/test`; it never logs the settings contents.
+
 Provider-supplied team logos are accepted only over HTTPS from the reviewed
 asset hosts `a.espncdn.com` and `assets.nhle.com`. Missing, malformed, or
 unreviewed logo URLs keep the initials and neutral fallbacks, so team rows and
@@ -172,9 +181,10 @@ builds the provider's standard game URL from the normalized game ID.
 Requests go directly from your computer to the configured sports data
 providers. Sportray has no backend, account, analytics service, or telemetry.
 It does not ask for API keys, upload preferences, or execute downloaded code.
-The plugin uses only the controlled `curl` and
-`omarchy-notification-send` command paths documented by the current Omarchy
-contract.
+The plugin uses only controlled `/usr/bin/curl`, `/usr/bin/mkdir`,
+`/usr/bin/chmod`, `/usr/bin/test`, and
+`/usr/bin/omarchy-notification-send` command paths documented by the current
+Omarchy contract.
 
 Sportray is currently tested only in the United States. ESPN and NHL.com
 availability, including scoreboard and game-page access, may vary by region;

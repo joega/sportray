@@ -6,7 +6,7 @@ Environment: Omarchy 4.0.0-1, Quickshell 0.3.0.r20
 
 ## Verdict
 
-Sportray is installable and passes the current Omarchy and Marketplace preflight checks, but it is **not ready for public release**. Remaining settings-permission, compatibility, and release-ownership risks should be fixed or explicitly accepted before submission.
+Sportray is installable and passes the current Omarchy and Marketplace preflight checks, but it is **not ready for public release**. Remaining compatibility and release-ownership risks should be fixed or explicitly accepted before submission.
 
 ## Release-blocking findings
 
@@ -115,7 +115,7 @@ Escape, navigation, and ordinary panel text.
   errors during screen/bar remapping: deferred work in [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:305) and [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:832) ran after the panel/ListView was destroyed. **Status: fixed in the current worktree.** `LifecyclePolicy` now invalidates plain-JavaScript owner tokens during destruction; panel, result-list, bar-widget, settings-hub, and team-picker deferred callbacks reject stale generations, and panel timers stop during teardown. The enclosing result-row guard also uses its delegate parent scope, avoiding a runtime `ReferenceError`. Deterministic lifecycle tests cover live execution and destroyed-owner rejection; a fresh Omarchy shell restart, open/close exercise, and log inspection showed no new Sportray lifecycle error.
 - Provider-supplied logo URLs previously accepted arbitrary HTTP(S) hosts in [GameModel.js](/home/joeg/Projects/sportray/model/GameModel.js:27) and [TeamModel.js](/home/joeg/Projects/sportray/model/TeamModel.js:28), then loaded directly in [GameRow.qml](/home/joeg/Projects/sportray/components/GameRow.qml:108). **Status: fixed in the current worktree.** `AssetUrlPolicy` now admits only HTTPS URLs whose exact host is `a.espncdn.com` or `assets.nhle.com`; the provider fallbacks used by the QML-loaded shell enforce the same reviewed hosts. Fixture-driven tests cover accepted ESPN/NHL URLs plus HTTP, untrusted-host, malformed, and missing values. Rejected or failed images still use the existing initials/neutral bindings in `GameRow.qml` and `TeamPicker.qml`.
 - Provider response bodies previously had no size limit and `StdioCollector` buffered complete responses; provider event arrays were also unbounded. **Status: fixed in the current worktree.** `LeagueFetch` now uses `curl --max-filesize 2097152` plus a bounded `SplitParser` stream guard for both score and lookahead requests. `ResponsePolicy` rejects bodies beyond its conservative streamed-text limit, and ESPN/NHL score and schedule parsers reject more than 256 events before normalization. Invalid or oversized responses follow the existing isolated failure path and preserve last-good data.
-- The installed settings file is world-readable (`0644`) with world-traversable parent directories; it contains favorites, notification preferences, fingerprints, and timestamps. Prefer `0600`/`0700`.
+- The installed settings file was world-readable (`0644`) with world-traversable parent directories; it contains favorites, notification preferences, fingerprints, and timestamps. **Status: fixed in the current worktree.** `SettingsStore` repairs only its plugin-owned `settings` directory to `0700`, repairs existing regular state files to `0600` before opening them, and repairs each newly atomically-saved file after `FileView.saved`. Persistence is gated when the fixed repair commands cannot complete; shared ancestors are intentionally untouched. Fixture-driven policy tests cover new files, overly-permissive files, parent repair, valid schema-1 round trips, and failed-repair admission without touching the real state path.
 - Unsupported future state schemas are destructively replaced instead of preserved for rollback.
 - Mixed Following rows may clip the trailing source action; accessibility roles lack corresponding press/toggle actions.
 - [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:28) redeclares the host Panel's existing `settings` property. Omarchy 4.0.0-1 accepts it, but a distinct `settingsStore` property is safer for upstream compatibility.
@@ -134,10 +134,15 @@ Escape, navigation, and ordinary panel text.
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 152 tests passed, including notification, scheduler,
+- `tests/run-js-tests.sh`: 154 tests passed, including notification, scheduler,
   NHL lookahead, stale-date, multi-monitor ownership, and nested-pointer
   and editor-keyboard routing checks, plus reviewed team-logo and response-bound
   fixtures.
+- The actual Omarchy shell was fully restarted after the permission change.
+  The plugin repaired `~/.local/state/omarchy/settings` to `0700` and
+  `sportray.json` to `0600`; shell ping, toggle/hide IPC, and fresh log
+  inspection passed with no new Sportray error, exception, or binding-loop
+  warning.
 - Response-bound fixtures cover normal bounded bodies, oversized streamed input,
   ESPN/NHL score and lookahead event-count rejection, and preservation of a
   failed league's last-good data beside a healthy sibling.
@@ -168,7 +173,7 @@ this hardening history. The checkout intentionally has no
 `docs/upstream-contract.md`; installed Omarchy 4.0.0-1 and Quickshell 0.3.0
 remain the runtime boundary sources.
 
-## Next-session prompt
+## Historical next-session prompt (superseded by `NEXT_SESSION_PROMPT.md`)
 
 ```text
 Work in /home/joeg/Projects/sportray on the next public-release hardening

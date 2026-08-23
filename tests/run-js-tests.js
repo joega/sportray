@@ -16,6 +16,7 @@ const nhlTeams = require(path.join(root, "providers/NhlTeamCatalog.js"));
 const espnTeams = require(path.join(root, "providers/EspnTeamCatalog.js"));
 const pickerModel = require(path.join(root, "model/TeamPickerModel.js"));
 const settingsModel = require(path.join(root, "model/SettingsModel.js"));
+const settingsPermissionPolicy = require(path.join(root, "model/SettingsPermissionPolicy.js"));
 const scoreboard = require(path.join(root, "model/ScoreboardModel.js"));
 const panelPresentation = require(path.join(root, "model/PanelPresentation.js"));
 const resultRows = require(path.join(root, "model/ResultRows.js"));
@@ -98,6 +99,11 @@ function readLogoUrlFixture() {
 
 function readResponseBoundsFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/response-bounds/limits.json"), "utf8"));
+}
+
+function readSettingsPermissionFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/settings-permissions/permissions.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -1892,6 +1898,55 @@ test("settings defaults are versioned and safe", () => {
   assert.equal(result.recovered, true);
   assert.equal(result.needsWrite, true);
   assert.deepEqual(result.settings, settingsModel.createDefaults());
+});
+
+test("settings permission repair uses owner-only state paths and safe admission", () => {
+  const fixture = readSettingsPermissionFixture();
+  const commands = settingsPermissionPolicy.commands(fixture.statePath);
+  assert.deepEqual(settingsPermissionPolicy.paths(fixture.statePath), {
+    statePath: fixture.statePath,
+    stateDirectory: "/tmp/sportray-settings-test/state/omarchy/settings"
+  });
+  assert.deepEqual(commands.makeDirectory,
+    ["/usr/bin/mkdir", "-p", "--", "/tmp/sportray-settings-test/state/omarchy/settings"]);
+  assert.deepEqual(commands.hardenDirectory,
+    ["/usr/bin/chmod", "700", "--", "/tmp/sportray-settings-test/state/omarchy/settings"]);
+  assert.deepEqual(commands.hardenFile,
+    ["/usr/bin/chmod", "--no-dereference", "600", "--", fixture.statePath]);
+  assert.deepEqual(settingsPermissionPolicy.repairResult(
+    fixture.newFile.parentExitCode,
+    fixture.newFile.fileCheckExitCode,
+    fixture.newFile.fileExitCode
+  ), {parentReady: true, fileExists: false, fileReady: true, ready: true});
+  assert.deepEqual(settingsPermissionPolicy.repairResult(
+    fixture.existingOverlyPermissiveFile.parentExitCode,
+    fixture.existingOverlyPermissiveFile.fileCheckExitCode,
+    fixture.existingOverlyPermissiveFile.fileExitCode
+  ), {parentReady: true, fileExists: true, fileReady: true, ready: true});
+  assert.equal(settingsPermissionPolicy.DIRECTORY_MODE, fixture.parentDirectoryRepair.directoryMode);
+  assert.equal(settingsPermissionPolicy.FILE_MODE, fixture.parentDirectoryRepair.fileMode);
+  assert.equal(settingsPermissionPolicy.repairResult(
+    fixture.permissionFailure.parentExitCode,
+    fixture.permissionFailure.fileCheckExitCode,
+    fixture.permissionFailure.fileExitCode
+  ).ready, false);
+  assert.equal(settingsPermissionPolicy.repairResult(0, 2, null).ready, false);
+  assert.equal(settingsPermissionPolicy.writeResult(0), true);
+  assert.equal(settingsPermissionPolicy.writeResult(1), false);
+});
+
+test("SettingsStore gates FileView writes on permission repair and hardens saved files", () => {
+  const source = readSource("services/SettingsStore.qml");
+  assert.equal(source.includes("SettingsPermissionPolicy.js"), true);
+  assert.equal(source.includes("path: root.loadStarted ? root.statePath : \"\""), true);
+  assert.equal(source.includes("if (!root.permissionsReady || permissionProcess.running) return false"), true);
+  assert.equal(source.includes("permissionProcess.exec(commands.makeDirectory)"), true);
+  assert.equal(source.includes("permissionProcess.exec(commands.hardenDirectory)"), true);
+  assert.equal(source.includes("permissionProcess.exec(commands.hardenFile)"), true);
+  assert.equal(source.includes("onSaved: root.repairWrittenFile()"), true);
+  assert.equal(source.includes("console.warn(\"Sportray settings permission repair failed\""), true);
+  assert.equal(source.includes("JSON.stringify(state"), true);
+  assert.equal(source.includes("rawResponse"), false);
 });
 
 test("notification preferences toggle independently and round-trip", () => {

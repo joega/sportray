@@ -1,0 +1,30 @@
+{
+  "statePath": "/tmp/sportray-settings-test/state/omarchy/settings/sportray.json",
+  "newFile": {
+    "parentExitCode": 0,
+    "fileCheckExitCode": 1,
+    "fileExitCode": null,
+    "ready": true,
+    "fileExists": false
+  },
+  "existingOverlyPermissiveFile": {
+    "parentExitCode": 0,
+    "fileCheckExitCode": 0,
+    "fileExitCode": 0,
+    "ready": true,
+    "fileExists": true
+  },
+  "parentDirectoryRepair": {
+    "parentExitCode": 0,
+    "fileCheckExitCode": 1,
+    "fileExitCode": null,
+    "directoryMode": "700",
+    "fileMode": "600"
+  },
+  "permissionFailure": {
+    "parentExitCode": 1,
+    "fileCheckExitCode": 1,
+    "fileExitCode": null,
+    "ready": false
+  }
+}
