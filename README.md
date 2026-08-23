@@ -189,7 +189,7 @@ Requests go directly from your computer to the configured sports data
 providers. Sportray has no backend, account, analytics service, or telemetry.
 It does not ask for API keys, upload preferences, or execute downloaded code.
 The plugin uses only controlled `/usr/bin/curl`, `/usr/bin/mkdir`,
-`/usr/bin/chmod`, `/usr/bin/test`, and
+`/usr/bin/chmod`, `/usr/bin/test`, `/usr/bin/omarchy-launch-browser`, and
 `/usr/bin/omarchy-notification-send` command paths documented by the current
 Omarchy contract.
 
