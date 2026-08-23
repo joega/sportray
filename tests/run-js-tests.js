@@ -117,6 +117,11 @@ function readMixedFollowingLayoutFixture() {
     path.join(root, "fixtures/layout/mixed-following.json"), "utf8"));
 }
 
+function readAccessibilityActionsFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/accessibility-actions/actions.json"), "utf8"));
+}
+
 function readNotificationFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/transitions/m6-3.json"), "utf8"));
 }
@@ -2425,12 +2430,54 @@ test("U3.1 gives actionable rows typed primary actions and safe fallbacks", () =
   assert.equal(panel.includes("function activateRow(index)"), true);
   assert.equal(panel.includes("else root.activateRow(root.selectedRowIndex)"), true);
   assert.equal(panel.includes("root.activateRow(index)"), true);
-  assert.equal(gameRow.includes("Accessible.role: Accessible.Button"), true);
+  assert.equal(gameRow.includes("sourceLink.visible ? Accessible.Button : Accessible.StaticText"), true);
   assert.equal(gameRow.includes("External game page unavailable."), true);
   assert.equal(status.includes("Accessible.role: root.status.loading ? Accessible.StaticText : Accessible.Button"), true);
   assert.equal(nextCard.includes("Accessible.name: \"Next game: \""), true);
   assert.equal(picker.includes("Accessible.role: Accessible.CheckBox"), true);
   assert.equal(picker.includes("Accessible.checked: root.isFavorite(modelData)"), true);
+});
+
+test("U3.5 maps assistive press/toggle actions to one existing route", () => {
+  const fixture = readAccessibilityActionsFixture();
+  const sourceByPath = {};
+  fixture.pressActions.concat(fixture.toggleActions, fixture.disabledGuards).forEach((entry) => {
+    sourceByPath[entry.source] = readSource(entry.source);
+  });
+
+  fixture.pressActions.forEach((entry) => {
+    const source = sourceByPath[entry.source];
+    assert.equal(source.split(entry.signal).length - 1, 1,
+      entry.control + " declares one " + entry.signal);
+    assert.equal(source.split(entry.route).length - 1, 1,
+      entry.control + " routes to one existing callback");
+  });
+
+  fixture.toggleActions.forEach((entry) => {
+    const source = sourceByPath[entry.source];
+    assert.equal(source.split(entry.signal).length - 1, 1,
+      entry.control + " declares one " + entry.signal);
+    assert.equal(source.split(entry.route).length - 1, 1,
+      entry.control + " routes to one existing callback");
+    assert.equal(source.includes(entry.checked), true,
+      entry.control + " exposes current checked state");
+    assert.equal(source.includes(entry.checkable), true,
+      entry.control + " exposes checkbox semantics");
+  });
+
+  fixture.disabledGuards.forEach((entry) => {
+    assert.equal(sourceByPath[entry.source].includes(entry.guard), true,
+      entry.control + " remains non-activatable when unavailable");
+  });
+
+  const sourceButton = sourceByPath["components/SourceLinkButton.qml"];
+  assert.equal(sourceButton.includes('onClicked: root.openSource()'), true,
+    "source assistive press reaches the existing source callback through the shared button");
+  const panel = readSource("Panel.qml");
+  assert.equal(panel.includes("onClicked: root.activateRow(index)"), true,
+    "empty-state utility action keeps the existing row callback");
+  assert.equal(panel.includes("root.setSelectedRow(index)"), true,
+    "whole-row pointer/keyboard selection remains unchanged");
 });
 
 test("nested pointer actions keep their tap out of the enclosing result row", () => {

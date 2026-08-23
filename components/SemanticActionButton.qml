@@ -96,6 +96,12 @@ Item {
     fontFamily: root.fontFamily
   }
 
+  // QtQuick's installed Accessible contract dispatches assistive button
+  // activation through the attached pressAction signal. Keep it on the
+  // shared control so pointer, keyboard, and assistive activation all reach
+  // the same existing clicked() signal exactly once.
   Accessible.name: root.tooltipText
   Accessible.role: Accessible.Button
+  Accessible.ignored: !root.enabled
+  Accessible.onPressAction: if (root.enabled) root.clicked()
 }

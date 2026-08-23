@@ -29,6 +29,7 @@ Item {
 
   Accessible.name: root.accessibleLabel
   Accessible.role: root.status.loading ? Accessible.StaticText : Accessible.Button
+  Accessible.onPressAction: root.activatePrimaryAction()
 
   Text {
     id: label

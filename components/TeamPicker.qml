@@ -304,7 +304,9 @@ Item {
           Accessible.name: (modelData.name || modelData.shortName || modelData.abbreviation || "Unnamed team")
             + (root.isFavorite(modelData) ? ", selected favorite team" : ", not selected")
           Accessible.role: Accessible.CheckBox
+          Accessible.checkable: true
           Accessible.checked: root.isFavorite(modelData)
+          Accessible.onToggleAction: root.activateIndex(index)
         }
       }
     }

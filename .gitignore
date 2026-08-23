@@ -13,3 +13,6 @@
 *.log
 coverage/
 node_modules/
+
+# Private local review notes
+PUBLIC_CONSUMPTION_REVIEW.md

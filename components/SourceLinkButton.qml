@@ -39,6 +39,10 @@ Item {
     textHorizontalPadding: Style.spacing.xs
     textVerticalPadding: Style.spacing.xs
     focusable: true
+    enabled: root.sourceUrl !== ""
+    Accessible.name: root.sourceUrl !== ""
+      ? "Open " + root.sourceName + " game page"
+      : "External game page unavailable"
     onClicked: root.openSource()
   }
 }

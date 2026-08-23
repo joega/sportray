@@ -1,0 +1,60 @@
+{
+  "pressActions": [
+    {
+      "control": "SemanticActionButton",
+      "source": "components/SemanticActionButton.qml",
+      "signal": "Accessible.onPressAction",
+      "route": "Accessible.onPressAction: if (root.enabled) root.clicked()"
+    },
+    {
+      "control": "LeagueStatus retry",
+      "source": "components/LeagueStatus.qml",
+      "signal": "Accessible.onPressAction",
+      "route": "Accessible.onPressAction: root.activatePrimaryAction()"
+    },
+    {
+      "control": "GameRow whole row",
+      "source": "components/GameRow.qml",
+      "signal": "Accessible.onPressAction",
+      "route": "Accessible.onPressAction: root.activatePrimaryAction()"
+    },
+    {
+      "control": "NextGameCard whole row",
+      "source": "components/NextGameCard.qml",
+      "signal": "Accessible.onPressAction",
+      "route": "Accessible.onPressAction: root.activatePrimaryAction()"
+    }
+  ],
+  "toggleActions": [
+    {
+      "control": "TeamPicker favorite",
+      "source": "components/TeamPicker.qml",
+      "signal": "Accessible.onToggleAction",
+      "route": "Accessible.onToggleAction: root.activateIndex(index)",
+      "checked": "Accessible.checked: root.isFavorite(modelData)",
+      "checkable": "Accessible.checkable: true"
+    }
+  ],
+  "disabledGuards": [
+    {
+      "control": "SemanticActionButton",
+      "source": "components/SemanticActionButton.qml",
+      "guard": "Accessible.ignored: !root.enabled"
+    },
+    {
+      "control": "SourceLinkButton without URL",
+      "source": "components/SourceLinkButton.qml",
+      "guard": "enabled: root.sourceUrl !== \"\""
+    },
+    {
+      "control": "GameRow without source",
+      "source": "components/GameRow.qml",
+      "guard": "Accessible.role: sourceLink.visible ? Accessible.Button : Accessible.StaticText"
+    },
+    {
+      "control": "LeagueStatus while loading",
+      "source": "components/LeagueStatus.qml",
+      "guard": "Accessible.role: root.status.loading ? Accessible.StaticText : Accessible.Button"
+    }
+  ]
+}

@@ -44,6 +44,7 @@ Item {
     + DateModel.shortDateLabel(root.dateKey) + ". "
     + (root.venueName ? "At " + root.venueName + ". " : "") + "View day."
   Accessible.role: Accessible.Button
+  Accessible.onPressAction: root.activatePrimaryAction()
 
   BorderSurface {
     id: card

@@ -68,7 +68,10 @@ Item {
 
   Accessible.name: root.accessibleLabel
   Accessible.description: root.detailLabel
-  Accessible.role: Accessible.Button
+  Accessible.role: sourceLink.visible ? Accessible.Button : Accessible.StaticText
+  // The whole-row accessible action intentionally reuses the same guarded
+  // external-source route as the existing TapHandler/keyboard path.
+  Accessible.onPressAction: root.activatePrimaryAction()
   readonly property real logoSize: Style.space(root.featured ? 28 : 22)
   readonly property real scoreColumnWidth: Style.space(root.featured ? 58 : 52)
 
