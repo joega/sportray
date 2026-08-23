@@ -12,6 +12,12 @@ function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isFutureSchema(value) {
+  return isPlainObject(value)
+    && typeof value.schemaVersion === "number"
+    && value.schemaVersion > SCHEMA_VERSION;
+}
+
 function createDefaults() {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -191,14 +197,16 @@ function toggleNotification(value, key) {
 }
 
 function parseSettingsText(raw) {
-  var text = String(raw === undefined || raw === null ? "" : raw).trim();
+  var originalText = String(raw === undefined || raw === null ? "" : raw);
+  var text = originalText.trim();
   if (!text) {
     return {
       settings: createDefaults(),
       status: "missing",
       recovered: true,
       needsWrite: true,
-      error: null
+      error: null,
+      preservedRawText: ""
     };
   }
 
@@ -211,7 +219,8 @@ function parseSettingsText(raw) {
       status: "invalid-json",
       recovered: true,
       needsWrite: true,
-      error: String(error)
+      error: String(error),
+      preservedRawText: ""
     };
   }
 
@@ -221,17 +230,20 @@ function parseSettingsText(raw) {
       status: "invalid-root",
       recovered: true,
       needsWrite: true,
-      error: "settings root must be an object"
+      error: "settings root must be an object",
+      preservedRawText: ""
     };
   }
 
   if (value.schemaVersion !== SCHEMA_VERSION) {
+    var preserveFuture = isFutureSchema(value);
     return {
       settings: createDefaults(),
       status: "unsupported-schema",
       recovered: true,
-      needsWrite: true,
-      error: "expected schema version " + SCHEMA_VERSION
+      needsWrite: !preserveFuture,
+      error: "expected schema version " + SCHEMA_VERSION,
+      preservedRawText: preserveFuture ? originalText : ""
     };
   }
 
@@ -245,7 +257,8 @@ function parseSettingsText(raw) {
     error: null,
     invalidFields: normalized.invalidFields,
     missingFields: normalized.missingFields,
-    unknownFields: normalized.unknownFields
+    unknownFields: normalized.unknownFields,
+    preservedRawText: ""
   };
 }
 

@@ -106,6 +106,11 @@ function readSettingsPermissionFixture() {
     path.join(root, "fixtures/settings-permissions/permissions.json"), "utf8"));
 }
 
+function readSettingsSchemaFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/settings-schemas/state.json"), "utf8"));
+}
+
 function readNotificationFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/transitions/m6-3.json"), "utf8"));
 }
@@ -532,6 +537,43 @@ test("missing or corrupt persisted dedupe state recovers to safe defaults", () =
   assert.deepEqual(corrupt.transitionDedupe, transitionDedupe.createDefaults());
   assert.deepEqual(transitionDedupe.acceptEvents(corrupt.transitionDedupe, fixture.events, fixture.now).events,
     fixture.events);
+});
+
+test("future state schemas stay opaque and never request a destructive write", () => {
+  const fixture = readSettingsSchemaFixture();
+  const future = stateModel.parseStateText(fixture.futureWithExtraFields, 1700000000000,
+    settingsModel, transitionDedupe);
+  assert.equal(future.status, "unsupported-schema");
+  assert.equal(future.recovered, true);
+  assert.equal(future.needsWrite, false);
+  assert.equal(future.preservedRawText, fixture.futureWithExtraFields);
+  assert.deepEqual(future.settings, settingsModel.createDefaults());
+  assert.deepEqual(future.transitionDedupe, transitionDedupe.createDefaults());
+  assert.equal(JSON.stringify(future.settings).includes("futurePreference"), false);
+
+  const malformedFuture = stateModel.parseStateText(fixture.futureMalformed, 1700000000000,
+    settingsModel, transitionDedupe);
+  assert.equal(malformedFuture.status, "unsupported-schema");
+  assert.equal(malformedFuture.needsWrite, false);
+  assert.equal(malformedFuture.preservedRawText, fixture.futureMalformed);
+  assert.deepEqual(malformedFuture.settings, settingsModel.createDefaults());
+
+  const settingsFuture = settingsModel.parseSettingsText(fixture.futureWithExtraFields);
+  assert.equal(settingsFuture.status, "unsupported-schema");
+  assert.equal(settingsFuture.needsWrite, false);
+  assert.equal(settingsFuture.preservedRawText, fixture.futureWithExtraFields);
+
+  const schema1 = stateModel.parseStateText(fixture.schema1, 1700000000000,
+    settingsModel, transitionDedupe);
+  assert.equal(schema1.status, "valid");
+  assert.equal(schema1.needsWrite, false);
+  assert.equal(schema1.preservedRawText, "");
+
+  const corrupt = stateModel.parseStateText(fixture.corrupt, 1700000000000,
+    settingsModel, transitionDedupe);
+  assert.equal(corrupt.status, "invalid-json");
+  assert.equal(corrupt.needsWrite, true);
+  assert.equal(corrupt.preservedRawText, "");
 });
 
 test("loading persisted state never creates a first-load transition", () => {
@@ -1944,6 +1986,9 @@ test("SettingsStore gates FileView writes on permission repair and hardens saved
   assert.equal(source.includes("permissionProcess.exec(commands.hardenDirectory)"), true);
   assert.equal(source.includes("permissionProcess.exec(commands.hardenFile)"), true);
   assert.equal(source.includes("onSaved: root.repairWrittenFile()"), true);
+  assert.equal(source.includes("property string preservedRawStateText: \"\""), true);
+  assert.equal(source.includes("root.preservedRawStateText = result.preservedRawText || \"\""), true);
+  assert.equal(source.includes("if (root.preservedRawStateText.length > 0) return false"), true);
   assert.equal(source.includes("console.warn(\"Sportray settings permission repair failed\""), true);
   assert.equal(source.includes("JSON.stringify(state"), true);
   assert.equal(source.includes("rawResponse"), false);
@@ -2123,6 +2168,7 @@ test("corrupt JSON and unsupported schema recover to defaults", () => {
   const future = settingsModel.parseSettingsText(JSON.stringify({schemaVersion: 2}));
   assert.equal(future.status, "unsupported-schema");
   assert.equal(future.recovered, true);
+  assert.equal(future.needsWrite, false);
   assert.deepEqual(future.settings, settingsModel.createDefaults());
 });
 

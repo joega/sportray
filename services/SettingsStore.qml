@@ -19,6 +19,10 @@ Item {
   property string permissionStage: "idle"
   property var settings: SettingsModel.createDefaults()
   property var transitionDedupe: TransitionDedupe.createDefaults()
+  // A future schema is intentionally kept opaque. The UI receives safe
+  // defaults, but no later action may replace the file before a compatible
+  // reload supplies a schema this version understands.
+  property string preservedRawStateText: ""
   property string loadStatus: "pending"
   property bool recovered: false
   property bool ready: false
@@ -27,6 +31,7 @@ Item {
     var result = StateModel.parseStateText(raw, Date.now(), SettingsModel, TransitionDedupe)
     root.settings = result.settings
     root.transitionDedupe = result.transitionDedupe
+    root.preservedRawStateText = result.preservedRawText || ""
     root.loadStatus = result.status
     root.recovered = result.recovered
     root.ready = true
@@ -44,6 +49,7 @@ Item {
   }
 
   function writeState(candidateSettings, candidateDedupe) {
+    if (root.preservedRawStateText.length > 0) return false
     if (!root.permissionsReady || permissionProcess.running) return false
     var state = StateModel.createState(candidateSettings, candidateDedupe, SettingsModel, TransitionDedupe)
     root.settings = {

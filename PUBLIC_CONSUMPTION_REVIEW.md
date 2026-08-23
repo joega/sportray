@@ -1,7 +1,7 @@
 # Public-Consumption Review
 
 Date: 2026-08-23
-Reviewed baseline: response-bound work unit, 2026-08-23
+Reviewed baseline: unsupported-future-schema preservation work unit, 2026-08-23
 Environment: Omarchy 4.0.0-1, Quickshell 0.3.0.r20
 
 ## Verdict
@@ -116,7 +116,16 @@ Escape, navigation, and ordinary panel text.
 - Provider-supplied logo URLs previously accepted arbitrary HTTP(S) hosts in [GameModel.js](/home/joeg/Projects/sportray/model/GameModel.js:27) and [TeamModel.js](/home/joeg/Projects/sportray/model/TeamModel.js:28), then loaded directly in [GameRow.qml](/home/joeg/Projects/sportray/components/GameRow.qml:108). **Status: fixed in the current worktree.** `AssetUrlPolicy` now admits only HTTPS URLs whose exact host is `a.espncdn.com` or `assets.nhle.com`; the provider fallbacks used by the QML-loaded shell enforce the same reviewed hosts. Fixture-driven tests cover accepted ESPN/NHL URLs plus HTTP, untrusted-host, malformed, and missing values. Rejected or failed images still use the existing initials/neutral bindings in `GameRow.qml` and `TeamPicker.qml`.
 - Provider response bodies previously had no size limit and `StdioCollector` buffered complete responses; provider event arrays were also unbounded. **Status: fixed in the current worktree.** `LeagueFetch` now uses `curl --max-filesize 2097152` plus a bounded `SplitParser` stream guard for both score and lookahead requests. `ResponsePolicy` rejects bodies beyond its conservative streamed-text limit, and ESPN/NHL score and schedule parsers reject more than 256 events before normalization. Invalid or oversized responses follow the existing isolated failure path and preserve last-good data.
 - The installed settings file was world-readable (`0644`) with world-traversable parent directories; it contains favorites, notification preferences, fingerprints, and timestamps. **Status: fixed in the current worktree.** `SettingsStore` repairs only its plugin-owned `settings` directory to `0700`, repairs existing regular state files to `0600` before opening them, and repairs each newly atomically-saved file after `FileView.saved`. Persistence is gated when the fixed repair commands cannot complete; shared ancestors are intentionally untouched. Fixture-driven policy tests cover new files, overly-permissive files, parent repair, valid schema-1 round trips, and failed-repair admission without touching the real state path.
-- Unsupported future state schemas are destructively replaced instead of preserved for rollback.
+- Unsupported future state schemas were destructively replaced instead of
+  preserved for rollback. **Status: fixed in the current worktree.** Numeric
+  schema versions newer than 1 are treated as opaque by `StateModel` and
+  `SettingsModel`: safe schema-1 defaults remain available, `needsWrite` is
+  false, and the exact raw state text is retained without logging. The
+  `SettingsStore` blocks startup-recovery, settings, and transition writes
+  until a compatible reload replaces the future file. Fixture-driven coverage
+  includes extra fields, malformed future field shapes, exact raw preservation,
+  valid schema-1 input, and corrupt JSON recovery. Permission hardening and
+  bounded fields remain unchanged.
 - Mixed Following rows may clip the trailing source action; accessibility roles lack corresponding press/toggle actions.
 - [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:28) redeclares the host Panel's existing `settings` property. Omarchy 4.0.0-1 accepts it, but a distinct `settingsStore` property is safer for upstream compatibility.
 
@@ -134,10 +143,10 @@ Escape, navigation, and ordinary panel text.
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 154 tests passed, including notification, scheduler,
+- `tests/run-js-tests.sh`: 155 tests passed, including notification, scheduler,
   NHL lookahead, stale-date, multi-monitor ownership, and nested-pointer
   and editor-keyboard routing checks, plus reviewed team-logo and response-bound
-  fixtures.
+  fixtures and unsupported-future-schema preservation.
 - The actual Omarchy shell was fully restarted after the permission change.
   The plugin repaired `~/.local/state/omarchy/settings` to `0700` and
   `sportray.json` to `0600`; shell ping, toggle/hide IPC, and fresh log
@@ -172,6 +181,28 @@ implementations, fixtures, tests, roadmap, and review handoff were changed in
 this hardening history. The checkout intentionally has no
 `docs/upstream-contract.md`; installed Omarchy 4.0.0-1 and Quickshell 0.3.0
 remain the runtime boundary sources.
+
+## Latest handoff — 2026-08-23 unsupported future settings schema preservation
+
+The unsupported-schema preservation unit is complete. This checkout
+intentionally has no `docs/upstream-contract.md`; installed Omarchy 4.0.0-1
+and Quickshell 0.3.0.r20 sources were inspected. `FileView` continues to use
+`QDir::mkpath` for missing parents and `QSaveFile` for atomic writes, with no
+permission-setting or rollback API; no upstream boundary change was needed.
+
+Future state files now remain byte-for-byte unchanged while the UI uses safe
+defaults and all persistence writes are gated. Schema-1 and corrupt recovery,
+permission hardening, reinstall retention, bounded fields, and canonical IDs
+remain intact. The deterministic suite has 155 passing tests, plugin
+validation, real-import-path QML lint, and diff checks pass, and tests never
+touch the real settings path. No runtime restart was needed for this pure
+parser/store gate, so no fresh Quickshell log or live permission measurement
+was claimed.
+
+Next bounded unit: fix the mixed Following row geometry so the trailing source
+action remains visible and reachable at the narrowest supported panel width.
+Keep provider parsing and normalized row identity unchanged; stop before
+accessibility, packaging, release, or Marketplace work.
 
 ## Historical next-session prompt (superseded by `NEXT_SESSION_PROMPT.md`)
 

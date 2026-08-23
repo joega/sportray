@@ -154,6 +154,13 @@ persist new state until the permission boundary is healthy. This repair uses
 only the fixed system command paths `/usr/bin/mkdir`, `/usr/bin/chmod`, and
 `/usr/bin/test`; it never logs the settings contents.
 
+If the existing state file declares a schema version newer than 1, Sportray
+keeps that file opaque and unchanged for rollback. It uses safe schema-1
+in-memory defaults so the panel remains available, skips startup recovery and
+later persistence writes, and resumes persistence only after a compatible
+state-file reload replaces the future-schema contents. No migration or raw
+future-schema data is logged.
+
 Provider-supplied team logos are accepted only over HTTPS from the reviewed
 asset hosts `a.espncdn.com` and `assets.nhle.com`. Missing, malformed, or
 unreviewed logo URLs keep the initials and neutral fallbacks, so team rows and

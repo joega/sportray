@@ -13,6 +13,12 @@ function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isFutureSchema(value) {
+  return isRecord(value)
+    && typeof value.schemaVersion === "number"
+    && value.schemaVersion > SCHEMA_VERSION;
+}
+
 function copySettingsFields(value) {
   var source = isRecord(value) ? value : {};
   return {
@@ -48,7 +54,8 @@ function createState(settings, dedupeState, settingsApi, dedupeApi, currentTime)
 function parseStateText(raw, currentTime, settingsApi, dedupeApi) {
   var Settings = settingsModule(settingsApi);
   var Dedupe = dedupeModule(dedupeApi);
-  var text = String(raw === undefined || raw === null ? "" : raw).trim();
+  var originalText = String(raw === undefined || raw === null ? "" : raw);
+  var text = originalText.trim();
   if (!text) {
     var missing = createState(Settings.createDefaults(), Dedupe.createDefaults(), Settings, Dedupe, currentTime);
     return {
@@ -57,7 +64,8 @@ function parseStateText(raw, currentTime, settingsApi, dedupeApi) {
       status: "missing",
       recovered: true,
       needsWrite: true,
-      unknownFields: []
+      unknownFields: [],
+      preservedRawText: ""
     };
   }
 
@@ -73,19 +81,22 @@ function parseStateText(raw, currentTime, settingsApi, dedupeApi) {
       recovered: true,
       needsWrite: true,
       unknownFields: [],
-      error: String(error)
+      error: String(error),
+      preservedRawText: ""
     };
   }
 
   if (!isRecord(value) || value.schemaVersion !== SCHEMA_VERSION) {
+    var preserveFuture = isFutureSchema(value);
     var unsupported = createState(Settings.createDefaults(), Dedupe.createDefaults(), Settings, Dedupe, currentTime);
     return {
       settings: copySettingsFields(unsupported),
       transitionDedupe: unsupported.transitionDedupe,
       status: "unsupported-schema",
       recovered: true,
-      needsWrite: true,
-      unknownFields: []
+      needsWrite: !preserveFuture,
+      unknownFields: [],
+      preservedRawText: preserveFuture ? originalText : ""
     };
   }
 
@@ -109,7 +120,8 @@ function parseStateText(raw, currentTime, settingsApi, dedupeApi) {
     invalidFields: settingsResult.invalidFields,
     missingFields: settingsResult.missingFields,
     unknownFields: unknownFields,
-    error: null
+    error: null,
+    preservedRawText: ""
   };
 }
 
