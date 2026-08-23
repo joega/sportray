@@ -4,6 +4,9 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Clarified that the current post-`1.0.0-rc.7` hardening tree remains
+  unreleased; the manifest retains the last assigned version until the next
+  version and tag are explicitly assigned.
 - Kept Omarchy's interactive safety confirmations in the documented install
   and removal commands, and clarified runtime dependencies, network access,
   privilege boundaries, and retained preference state.

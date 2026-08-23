@@ -121,9 +121,11 @@ Proposed listing copy:
 Proposed category: **Widgets**. Existing tags: `bar`, `quickshell`. Suggested
 discovery tag: `sports`, if the submission form accepts new tag proposals.
 
-The current release candidate is `1.0.0-rc.7`. Its Git tag identifies the
-verified candidate; a GitHub Release and Marketplace submission are separate
-publication steps.
+The last tagged release candidate is `1.0.0-rc.7`. This checkout contains
+unreleased hardening changes after that tag, while `manifest.json` retains the
+last assigned `1.0.0-rc.7` value until the owner explicitly assigns the next
+version. The existing tag is unchanged; a GitHub Release and Marketplace
+submission are separate publication steps.
 
 ## Settings and state
 
