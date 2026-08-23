@@ -1,12 +1,12 @@
 # Public-Consumption Review
 
 Date: 2026-08-23
-Reviewed baseline: `a7142526afee8ac99d7463080cccb37304e3eb62`
+Reviewed baseline: response-bound work unit, 2026-08-23
 Environment: Omarchy 4.0.0-1, Quickshell 0.3.0.r20
 
 ## Verdict
 
-Sportray is installable and passes the current Omarchy and Marketplace preflight checks, but it is **not ready for public release**. Remaining response-size, settings-permission, compatibility, and release-ownership risks should be fixed or explicitly accepted before submission.
+Sportray is installable and passes the current Omarchy and Marketplace preflight checks, but it is **not ready for public release**. Remaining settings-permission, compatibility, and release-ownership risks should be fixed or explicitly accepted before submission.
 
 ## Release-blocking findings
 
@@ -114,7 +114,7 @@ Escape, navigation, and ordinary panel text.
 - Destruction-time delayed callbacks previously produced real Quickshell log
   errors during screen/bar remapping: deferred work in [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:305) and [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:832) ran after the panel/ListView was destroyed. **Status: fixed in the current worktree.** `LifecyclePolicy` now invalidates plain-JavaScript owner tokens during destruction; panel, result-list, bar-widget, settings-hub, and team-picker deferred callbacks reject stale generations, and panel timers stop during teardown. The enclosing result-row guard also uses its delegate parent scope, avoiding a runtime `ReferenceError`. Deterministic lifecycle tests cover live execution and destroyed-owner rejection; a fresh Omarchy shell restart, open/close exercise, and log inspection showed no new Sportray lifecycle error.
 - Provider-supplied logo URLs previously accepted arbitrary HTTP(S) hosts in [GameModel.js](/home/joeg/Projects/sportray/model/GameModel.js:27) and [TeamModel.js](/home/joeg/Projects/sportray/model/TeamModel.js:28), then loaded directly in [GameRow.qml](/home/joeg/Projects/sportray/components/GameRow.qml:108). **Status: fixed in the current worktree.** `AssetUrlPolicy` now admits only HTTPS URLs whose exact host is `a.espncdn.com` or `assets.nhle.com`; the provider fallbacks used by the QML-loaded shell enforce the same reviewed hosts. Fixture-driven tests cover accepted ESPN/NHL URLs plus HTTP, untrusted-host, malformed, and missing values. Rejected or failed images still use the existing initials/neutral bindings in `GameRow.qml` and `TeamPicker.qml`.
-- `curl` has no HTTPS-only redirect policy or response-size limit; `StdioCollector` buffers complete responses and provider event arrays are not bounded.
+- Provider response bodies previously had no size limit and `StdioCollector` buffered complete responses; provider event arrays were also unbounded. **Status: fixed in the current worktree.** `LeagueFetch` now uses `curl --max-filesize 2097152` plus a bounded `SplitParser` stream guard for both score and lookahead requests. `ResponsePolicy` rejects bodies beyond its conservative streamed-text limit, and ESPN/NHL score and schedule parsers reject more than 256 events before normalization. Invalid or oversized responses follow the existing isolated failure path and preserve last-good data.
 - The installed settings file is world-readable (`0644`) with world-traversable parent directories; it contains favorites, notification preferences, fingerprints, and timestamps. Prefer `0600`/`0700`.
 - Unsupported future state schemas are destructively replaced instead of preserved for rollback.
 - Mixed Following rows may clip the trailing source action; accessibility roles lack corresponding press/toggle actions.
@@ -134,9 +134,13 @@ Escape, navigation, and ordinary panel text.
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 151 tests passed, including notification, scheduler,
+- `tests/run-js-tests.sh`: 152 tests passed, including notification, scheduler,
   NHL lookahead, stale-date, multi-monitor ownership, and nested-pointer
-  and editor-keyboard routing checks, plus the reviewed team-logo host fixture.
+  and editor-keyboard routing checks, plus reviewed team-logo and response-bound
+  fixtures.
+- Response-bound fixtures cover normal bounded bodies, oversized streamed input,
+  ESPN/NHL score and lookahead event-count rejection, and preservation of a
+  failed league's last-good data beside a healthy sibling.
 - Team-logo fixtures prove the exact reviewed HTTPS hosts are accepted and HTTP,
   untrusted-host, malformed, and missing values normalize to neutral `null`
   logos; image bindings retain initials when a logo is absent or fails.
@@ -151,79 +155,88 @@ Escape, navigation, and ordinary panel text.
 - The linked checkout was rescanned in the live Omarchy shell. One Quickshell
   instance remained running, shell ping returned `ok`, and the post-rescan log
   tail contained normal provider/cache activity without a Sportray error,
-  exception, or binding-loop warning. The only warning observed was the
-  pre-existing Qt.atob deprecation; no manual date-toggle UI sequence was
-  exercised.
+  exception, or binding-loop warning. The normal provider fetch and toggle/hide
+  path was exercised; the only warnings observed were the pre-existing Qt.atob
+  deprecation and unrelated desktop portal registration warning. An intentionally
+  oversized live provider response was not injected.
 - No telemetry, accounts, secrets, downloaded-code execution, or privileged operations were found.
 
 The lookahead, stale-date, multi-monitor ownership, nested-pointer, editor-
-keyboard routing, destruction-safety, and reviewed asset-host implementations,
-fixtures, tests, roadmap, and review handoff were changed in this hardening
-history. The checkout intentionally has no `docs/upstream-contract.md`;
-installed Omarchy 4.0.0-1 remains the runtime boundary source.
+keyboard routing, destruction-safety, reviewed asset-host, and response-bound
+implementations, fixtures, tests, roadmap, and review handoff were changed in
+this hardening history. The checkout intentionally has no
+`docs/upstream-contract.md`; installed Omarchy 4.0.0-1 and Quickshell 0.3.0
+remain the runtime boundary sources.
 
 ## Next-session prompt
 
 ```text
 Work in /home/joeg/Projects/sportray on the next public-release hardening
-unit: bound provider response sizes and parsed event counts before they reach
-the normalized scoreboard model.
+unit: protect the persisted settings file and its parent directories with
+least-privilege permissions.
 
 Read AGENTS.md, README.md, docs/upstream-contract.md, roadmap.md, and the latest
-roadmap/review handoff before editing. If docs/upstream-contract.md is absent,
-verify the relevant contract against installed Omarchy 4.0.0-1 sources and
-record that fact. Inspect git status, branch, and recent commits; preserve
-unrelated changes.
+roadmap/review handoff before editing. This checkout intentionally has no
+docs/upstream-contract.md; verify any Omarchy/Quickshell boundary against
+installed Omarchy 4.0.0-1 sources and record that fact. Inspect git status,
+branch, and recent commits; preserve unrelated changes.
 
 Verified starting state:
 - Notification injection, scheduler retry deadlines, NHL lookahead bounds,
   stale-date admission, multi-monitor ownership, nested pointer routing,
-  editor keyboard routing, destruction-safe callbacks, and team-logo asset
-  host validation are fixed.
-- DateCachePolicy.js admits last-known restore only for a matching valid
-  selected date; LeagueFetch.qml clears active/last-known state on every
-  initialized date change, including while disabled, while preserving the
-  bounded date-keyed cache for same-date admission.
-- `SportrayService.qml` is the sole engine-wide owner of settings, fetch, and
-  notification state; repeated panels register only open/lookahead context.
-- 151 deterministic tests, omarchy plugin validate "$PWD", real-import-path
-  qmllint over all QML files (with established warnings), and git diff --check pass.
-- `model/AssetUrlPolicy.js` admits only HTTPS `a.espncdn.com` and
-  `assets.nhle.com` logo hosts; provider fallback paths enforce the same rule,
-  and rejected logos retain initials/neutral QML fallbacks.
-- The linked plugin was rescanned in Omarchy 4.0.0-1. One Quickshell instance
-  remained healthy, shell ping returned `ok`, and the post-rescan log tail had
-  normal provider/cache activity with no Sportray error, exception, or
-  binding-loop warning. The only warning observed was the existing Qt.atob
-  deprecation.
-- The checkout intentionally has no docs/upstream-contract.md; verify the
-  relevant installed Omarchy 4.0.0-1 contract if an upstream boundary changes.
-- Do not execute any provider-supplied command or broaden this unit.
+  editor keyboard routing, destruction-safe callbacks, reviewed logo hosts,
+  and provider response/event bounds are fixed.
+- model/ResponsePolicy.js sets a 2 MiB curl transport limit, a conservative
+  streamed-text admission limit, and a 256-event provider limit. LeagueFetch
+  uses curl --max-filesize and bounded SplitParser chunks for both score and
+  lookahead requests; ESPN and NHL parsers reject over-count payloads before
+  normalization.
+- fixtures/response-bounds/limits.json covers normal input, oversized streamed
+  input, ESPN/NHL score and lookahead over-counts, and preservation of a failed
+  league beside a healthy sibling.
+- 152 deterministic tests, omarchy plugin validate "$PWD", real-import-path
+  qmllint over all QML files (with established warnings), and git diff --check
+  pass.
+- Installed Omarchy is 4.0.0-1 and Quickshell 0.3.0. Process wraps QProcess,
+  StdioCollector buffers all parser input, and this checkout has no
+  docs/upstream-contract.md; the response unit uses SplitParser chunk
+  admission plus the curl bound.
+- The linked plugin was rescanned and normal provider fetch plus toggle/hide
+  was exercised. One Quickshell instance remained healthy, shell ping returned
+  ok, and the fresh log tail had no new Sportray error, exception, or
+  binding-loop warning. No oversized live response was injected.
+- Known remaining risks are settings permissions, unsupported future schemas,
+  mixed Following layout, accessibility actions, release metadata, and
+  preview rights. Do not execute provider-supplied commands or broaden this
+  unit.
 
 Bounded outcome:
-Ensure provider response bodies and event arrays are bounded before complete
-payloads can be buffered or expanded into normalized games. Preserve last-good
-data, provider isolation, and the existing provider-neutral models.
+Ensure ~/.local/state/omarchy/settings/sportray.json is created or repaired
+with owner-only file permissions and owner-only parent directories, while
+keeping schema-1 persistence, safe recovery, reinstall retention, and existing
+user settings behavior intact. Do not redesign the schema or move the path.
 
 Required checks:
-- Inspect the installed Omarchy/Quickshell 4.0.0-1 process and collector
-  contract before changing the curl boundary; the checkout still intentionally
-  has no docs/upstream-contract.md.
-- Inspect `services/LeagueFetch.qml`, provider response admission, and all
-  existing fixtures before choosing limits. Keep provider parsing out of QML
-  views and add deterministic fixture-driven coverage for oversized or
-  over-count responses plus normal bounded responses.
-- tests/run-js-tests.sh passes.
-- omarchy plugin validate "$PWD" passes on actual Omarchy.
+- Inspect services/SettingsStore.qml, all state-file read/write paths, and the
+  installed Omarchy/Quickshell file-write boundary before editing. Record any
+  upstream deviation in roadmap.md and later the README.
+- Add deterministic coverage for a new file, an overly-permissive existing
+  file, parent-directory repair, valid schema-1 round trips, and safe behavior
+  when permissions cannot be repaired. Use a temporary path or pure policy
+  seam; never mutate the user’s real settings during tests.
+- Preserve corrupt/unsupported-schema recovery and never log raw settings or
+  provider data. Do not weaken bounded fields or canonical IDs.
+- Run tests/run-js-tests.sh.
+- Run omarchy plugin validate "$PWD" on actual Omarchy.
 - Run /usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell over all QML files.
-- Inspect actual Quickshell logs for new errors if runtime is exercised.
-- git diff --check passes.
+- Run git diff --check; if runtime is exercised, inspect Quickshell logs for
+  new Sportray errors, exceptions, or binding-loop warnings.
 
-Stop after the response-limit unit is fixed and verified. Do not combine
-settings permissions, packaging, tagging, pushing, or Marketplace submission
-work. Update roadmap.md,
-PUBLIC_CONSUMPTION_REVIEW.md, and this prompt with the next single bounded
-unit, then create one atomic Conventional Commit-style commit only after every
-gate passes. Use subagents only for independent read-only checks that materially
-improve confidence.
+Stop after this settings-permission unit. Do not combine unsupported-schema,
+layout, accessibility, packaging, tagging, pushing, release, or Marketplace
+work. Use subagents only for independent read-only upstream/file-permission
+reconnaissance that materially improves confidence. When the gate passes,
+update roadmap.md, PUBLIC_CONSUMPTION_REVIEW.md, and this prompt with the next
+single bounded unit, then create one atomic Conventional Commit-style commit.
+Do not commit a knowingly failing unit.
 ```

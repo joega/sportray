@@ -191,6 +191,11 @@ slates use six-hour windows, and historical slates use 24 hours. Opening the
 panel, closing it, or changing favorites does not bypass a fresh cache; the
 explicit Refresh action does.
 
+Provider score and next-game responses are transport-limited to 2 MiB and are
+also accumulated through a bounded stream admission guard. Responses with more
+than 256 provider events are rejected before normalization. A rejected response
+is isolated to its league and retains the last-good snapshot when one exists.
+
 Only the league whose data is due is fetched when the shared scheduler wakes.
 Visible live slates update about every 20 seconds, hidden live favorites every
 30 seconds, and other background live slates every two minutes. Repeated

@@ -1,12 +1,15 @@
 var GameModel = null;
 var AssetUrlPolicy = null;
+var ResponsePolicy = null;
 if (typeof require === "function") {
   GameModel = require("../model/GameModel.js");
   AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
+  ResponsePolicy = require("../model/ResponsePolicy.js");
 }
 
 var ESPN_BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
 var ESPN_PROVIDER = "espn";
+var MAX_EVENTS = ResponsePolicy ? ResponsePolicy.MAX_EVENTS : 256;
 
 var LEAGUE_METADATA = {
   nfl: {id: "nfl", displayName: "NFL", sport: "football", slug: "nfl"},
@@ -275,6 +278,10 @@ function parseScoreboardResponse(payload, leagueId) {
   }
   if (!isRecord(payload) || !Array.isArray(payload.events)) {
     result.errors.push(errorFor(leagueId, "invalid-scoreboard-response", null));
+    return result;
+  }
+  if (payload.events.length > MAX_EVENTS) {
+    result.errors.push(errorFor(metadata.id, "too-many-events", null));
     return result;
   }
 

@@ -8,6 +8,7 @@ import "../model/DateCachePolicy.js" as DateCachePolicy
 import "../model/NextEventModel.js" as NextEventModel
 import "../model/LookaheadPolicy.js" as LookaheadPolicy
 import "../model/PollPolicy.js" as PollPolicy
+import "../model/ResponsePolicy.js" as ResponsePolicy
 
 Item {
   id: root
@@ -37,6 +38,8 @@ Item {
   property string nextGameStatus: "idle"
 
   property var pendingResult: null
+  property string pendingResponseBody: ""
+  property bool responseTooLarge: false
   property bool streamFinished: false
   property bool bodyReceived: false
   property bool refreshQueued: false
@@ -47,6 +50,8 @@ Item {
   property int activeRequestGeneration: 0
   property bool initialized: false
   property var pendingLookaheadResult: null
+  property string pendingLookaheadBody: ""
+  property bool lookaheadResponseTooLarge: false
   property bool lookaheadStreamFinished: false
   property bool lookaheadBodyReceived: false
   property bool stoppingLookahead: false
@@ -168,6 +173,8 @@ Item {
       lookaheadProcess.running = false
     }
     root.pendingLookaheadResult = null
+    root.pendingLookaheadBody = ""
+    root.lookaheadResponseTooLarge = false
     root.lookaheadStreamFinished = false
     root.lookaheadBodyReceived = false
     root.lookaheadHopCount = 0
@@ -247,10 +254,13 @@ Item {
     root.lookaheadStreamFinished = false
     root.lookaheadBodyReceived = false
     root.pendingLookaheadResult = null
+    root.pendingLookaheadBody = ""
+    root.lookaheadResponseTooLarge = false
     root.lookaheadHopCount++
     root.nextGameStatus = "loading"
     lookaheadProcess.requestGeneration = root.activeLookaheadGeneration
-    lookaheadProcess.command = ["curl", "-fsSL", "--max-time", "10", url]
+    lookaheadProcess.command = ["curl", "-fsSL", "--max-time", "10",
+      "--max-filesize", String(ResponsePolicy.MAX_RESPONSE_BYTES), url]
     lookaheadProcess.running = true
     return true
   }
@@ -266,7 +276,7 @@ Item {
   }
 
   function parseLookaheadBody(raw) {
-    if (!raw) return null
+    if (!raw || !ResponsePolicy.bodyWithinLimit(raw)) return null
     try {
       var payload = JSON.parse(raw)
       if (root.leagueId === "nhl") return NhlProvider.parseScheduleResponse(payload)
@@ -321,7 +331,7 @@ Item {
   }
 
   function parseBody(raw) {
-    if (!raw) return null
+    if (!raw || !ResponsePolicy.bodyWithinLimit(raw)) return null
     try {
       var payload = JSON.parse(raw)
       if (root.leagueId === "nhl") return NhlProvider.parseScoreResponse(payload)
@@ -377,12 +387,15 @@ Item {
     root.errorSummary = ""
     root.partialErrorCount = 0
     root.pendingResult = null
+    root.pendingResponseBody = ""
+    root.responseTooLarge = false
     root.streamFinished = false
     root.bodyReceived = false
     root.stoppingRequest = false
     // The NHL endpoint redirects to a dated slate. -L is harmless for ESPN
     // and keeps redirect handling inside this transport boundary.
-    requestProcess.command = ["curl", "-fsSL", "--max-time", "10", url]
+    requestProcess.command = ["curl", "-fsSL", "--max-time", "10",
+      "--max-filesize", String(ResponsePolicy.MAX_RESPONSE_BYTES), url]
     requestProcess.requestGeneration = root.activeRequestGeneration
     requestProcess.running = true
     console.debug("Sportray league fetch", root.leagueId,
@@ -455,6 +468,32 @@ Item {
     root.loading = false
   }
 
+  function appendRequestChunk(chunk) {
+    if (root.responseTooLarge) return
+    var value = String(chunk || "")
+    if (!ResponsePolicy.canAppend(root.pendingResponseBody, value)) {
+      root.responseTooLarge = true
+      if (requestProcess.running) requestProcess.signal(9)
+      return
+    }
+    root.pendingResponseBody += value
+    root.bodyReceived = root.pendingResponseBody !== ""
+    root.streamFinished = root.bodyReceived
+  }
+
+  function appendLookaheadChunk(chunk) {
+    if (root.lookaheadResponseTooLarge) return
+    var value = String(chunk || "")
+    if (!ResponsePolicy.canAppend(root.pendingLookaheadBody, value)) {
+      root.lookaheadResponseTooLarge = true
+      if (lookaheadProcess.running) lookaheadProcess.signal(9)
+      return
+    }
+    root.pendingLookaheadBody += value
+    root.lookaheadBodyReceived = root.pendingLookaheadBody !== ""
+    root.lookaheadStreamFinished = root.lookaheadBodyReceived
+  }
+
   function handleEnabledChanged() {
     if (root.leagueEnabled) {
       if (root.stoppingRequest || requestProcess.running) {
@@ -481,6 +520,8 @@ Item {
       requestProcess.running = false
     }
     root.pendingResult = null
+    root.pendingResponseBody = ""
+    root.responseTooLarge = false
     root.streamFinished = false
     root.bodyReceived = false
     root.games = []
@@ -558,15 +599,12 @@ Item {
         "process-running", requestGeneration)
     }
 
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(data) {
         if (requestProcess.requestGeneration !== root.activeRequestGeneration
             || root.stoppingRequest || root.ownerDestroyed) return
-        var raw = String(text || "").trim()
-        root.bodyReceived = raw !== ""
-        root.pendingResult = root.parseBody(raw)
-        root.streamFinished = true
+        root.appendRequestChunk(data)
       }
     }
 
@@ -577,11 +615,14 @@ Item {
       root.stoppingRequest = false
       console.debug("Sportray league fetch", root.leagueId,
         "process-exited", exitCode, exitStatus, completedGeneration)
-      var result = root.pendingResult
+      var result = root.responseTooLarge ? null
+        : root.parseBody(root.pendingResponseBody.trim())
       root.pendingResult = null
       if (root.ownerDestroyed || wasStopping || !root.leagueEnabled) {
         root.streamFinished = false
         root.bodyReceived = false
+        root.pendingResponseBody = ""
+        root.responseTooLarge = false
         root.finishQueuedRefresh()
         return
       }
@@ -590,11 +631,15 @@ Item {
           : root.bodyReceived ? "invalid-data" : "unavailable")
         root.streamFinished = false
         root.bodyReceived = false
+        root.pendingResponseBody = ""
+        root.responseTooLarge = false
         root.finishQueuedRefresh()
         return
       }
       root.streamFinished = false
       root.bodyReceived = false
+      root.pendingResponseBody = ""
+      root.responseTooLarge = false
       root.applyResult(result)
       root.syncLookahead()
       root.finishQueuedRefresh()
@@ -606,15 +651,12 @@ Item {
     running: false
     property int requestGeneration: 0
 
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(data) {
         if (lookaheadProcess.requestGeneration !== root.activeLookaheadGeneration
             || root.stoppingLookahead || root.ownerDestroyed) return
-        var raw = String(text || "").trim()
-        root.lookaheadBodyReceived = raw !== ""
-        root.pendingLookaheadResult = root.parseLookaheadBody(raw)
-        root.lookaheadStreamFinished = true
+        root.appendLookaheadChunk(data)
       }
     }
 
@@ -623,21 +665,28 @@ Item {
       var generationMatches = completedGeneration === root.activeLookaheadGeneration
       var wasStopping = root.stoppingLookahead || !generationMatches
       root.stoppingLookahead = false
-      var result = root.pendingLookaheadResult
+      var result = root.lookaheadResponseTooLarge ? null
+        : root.parseLookaheadBody(root.pendingLookaheadBody.trim())
       root.pendingLookaheadResult = null
       if (root.ownerDestroyed || wasStopping || !root.lookaheadEnabled || !root.leagueEnabled) {
         root.lookaheadStreamFinished = false
         root.lookaheadBodyReceived = false
+        root.pendingLookaheadBody = ""
+        root.lookaheadResponseTooLarge = false
         return
       }
       if (exitCode !== 0 || !root.lookaheadStreamFinished || !result) {
         root.finishLookahead("unavailable", PollPolicy.RETRY_MAX_INTERVAL_MS)
         root.lookaheadStreamFinished = false
         root.lookaheadBodyReceived = false
+        root.pendingLookaheadBody = ""
+        root.lookaheadResponseTooLarge = false
         return
       }
       root.lookaheadStreamFinished = false
       root.lookaheadBodyReceived = false
+      root.pendingLookaheadBody = ""
+      root.lookaheadResponseTooLarge = false
       root.applyLookaheadResult(result)
     }
   }

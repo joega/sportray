@@ -36,6 +36,7 @@ const pointerInteraction = require(path.join(root, "model/PointerInteractionPoli
 const keyboardRouting = require(path.join(root, "model/KeyboardRoutingPolicy.js"));
 const lifecycle = require(path.join(root, "model/LifecyclePolicy.js"));
 const assetUrlPolicy = require(path.join(root, "model/AssetUrlPolicy.js"));
+const responsePolicy = require(path.join(root, "model/ResponsePolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -93,6 +94,10 @@ function readDateCacheFixture() {
 
 function readLogoUrlFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/asset-hosts/team-logo-urls.json"), "utf8"));
+}
+
+function readResponseBoundsFixture() {
+  return JSON.parse(fs.readFileSync(path.join(root, "fixtures/response-bounds/limits.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -1726,6 +1731,59 @@ test("ESPN provider isolates malformed sibling events with provider context", ()
   }]);
 });
 
+test("provider response and event bounds reject oversized input before normalization", () => {
+  const fixture = readResponseBoundsFixture();
+  assert.equal(responsePolicy.MAX_RESPONSE_BYTES, 2 * 1024 * 1024);
+  assert.equal(responsePolicy.MAX_EVENTS, fixture.events.overLimitCount - 1);
+  assert.equal(responsePolicy.bodyWithinLimit(fixture.response.normalBody), true);
+  assert.equal(responsePolicy.bodyWithinLimit(
+    "x".repeat(responsePolicy.MAX_RESPONSE_CHARS + fixture.response.oversizedExtraChars)), false);
+  assert.equal(responsePolicy.canAppend("x".repeat(responsePolicy.MAX_RESPONSE_CHARS - 1), "xx"), false);
+
+  const espnPayload = readEspnFixture("nfl-scheduled");
+  assert.equal(espnPayload.events.length, fixture.events.normalCount);
+  assert.equal(espn.parseScoreboardResponse(espnPayload, "nfl").games.length, 1);
+  const espnOverLimit = {events: Array.from({length: fixture.events.overLimitCount},
+    () => espnPayload.events[0])};
+  assert.deepEqual(espn.parseScoreboardResponse(espnOverLimit, "nfl"), {
+    games: [],
+    errors: [{
+      provider: "espn",
+      league: "nfl",
+      endpoint: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+      index: null,
+      code: "too-many-events"
+    }]
+  });
+  assert.deepEqual(espn.parseNextGamesResponse(espnOverLimit, "nfl").games, []);
+
+  const nhlPayload = readRawFixture("scheduled");
+  assert.equal(nhl.parseScoreResponse(nhlPayload).games.length, 1);
+  const nhlOverLimit = {games: Array.from({length: fixture.events.overLimitCount},
+    () => nhlPayload.games[0])};
+  assert.deepEqual(nhl.parseScoreResponse(nhlOverLimit), {
+    games: [], errors: [{index: null, code: "too-many-events"}]
+  });
+  const scheduleOverLimit = {gameWeek: [{games: nhlOverLimit.games}]};
+  assert.deepEqual(nhl.parseScheduleResponse(scheduleOverLimit), {
+    games: [], errors: [{index: null, code: "too-many-events"}], nextDateKey: ""
+  });
+
+  const healthyNhl = nhl.parseScoreResponse(nhlPayload).games[0];
+  const healthyMlb = espn.parseScoreboardResponse(readEspnFixture("mlb-live"), "mlb").games[0];
+  const failedNhl = freshness.applyFailure({
+    games: [healthyNhl], hasData: true, lastSuccessAt: "2026-08-17T12:00:00.000Z"
+  }, "invalid-data");
+  const composed = scoreboard.compose([
+    Object.assign({leagueId: "nhl", displayName: "NHL"}, failedNhl),
+    {leagueId: "mlb", displayName: "MLB", games: [healthyMlb], hasData: true}
+  ], ["nhl", "mlb"], []);
+  assert.equal(composed.games.some((game) => game.league === "nhl"), true);
+  assert.equal(composed.games.some((game) => game.league === "mlb"), true);
+  assert.equal(composed.sections.find((section) => section.leagueId === "nhl").stale, true);
+  assert.equal(composed.sections.find((section) => section.leagueId === "mlb").stale, false);
+});
+
 function assertNormalizedGame(game) {
   assert.equal(game.isValid, true);
   assert.deepEqual(Object.keys(game).sort(), [
@@ -2894,6 +2952,7 @@ test("timeout, no-connection, and malformed recovery returns to healthy state", 
 test("lifecycle owner topology remains singular and destruction-safe", () => {
   const scheduler = readSource("services/PollScheduler.qml");
   const leagueFetch = readSource("services/LeagueFetch.qml");
+  const responsePolicySource = readSource("model/ResponsePolicy.js");
   assert.equal((scheduler.match(/\bTimer\s*\{/g) || []).length, 1);
   assert.equal((scheduler.match(/\bProcess\s*\{/g) || []).length, 0);
   assert.equal((leagueFetch.match(/\bProcess\s*\{/g) || []).length, 2);
@@ -2918,6 +2977,14 @@ test("lifecycle owner topology remains singular and destruction-safe", () => {
   assert.match(scheduler, /function scheduleRetry\(delayMs\)/);
   assert.match(scheduler, /PollPolicy\.earliestDeadline\(root\.timerDueAtMs, requestedDueAt\)/);
   assert.match(scheduler, /PollPolicy\.delayUntil\(dueAt, now\)/);
+  assert.match(responsePolicySource, /MAX_RESPONSE_BYTES = 2 \* 1024 \* 1024/);
+  assert.match(responsePolicySource, /MAX_EVENTS = 256/);
+  assert.match(leagueFetch, /--max-filesize/);
+  assert.equal((leagueFetch.match(/stdout: SplitParser/g) || []).length, 2);
+  assert.equal((leagueFetch.match(/StdioCollector/g) || []).length, 0);
+  assert.match(leagueFetch, /ResponsePolicy\.canAppend/);
+  assert.match(leagueFetch, /requestProcess\.signal\(9\)/);
+  assert.match(leagueFetch, /lookaheadProcess\.signal\(9\)/);
 });
 
 test("multi-monitor panels share one polling, notification, and settings owner", () => {

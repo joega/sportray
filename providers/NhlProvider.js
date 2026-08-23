@@ -1,13 +1,16 @@
 var GameModel = null;
 var AssetUrlPolicy = null;
+var ResponsePolicy = null;
 if (typeof require === "function") {
   GameModel = require("../model/GameModel.js");
   AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
+  ResponsePolicy = require("../model/ResponsePolicy.js");
 }
 
 var NHL_BASE_URL = "https://api-web.nhle.com";
 var NHL_SCORE_PATH = "/v1/score";
 var NHL_SITE_URL = "https://www.nhl.com";
+var MAX_EVENTS = ResponsePolicy ? ResponsePolicy.MAX_EVENTS : 256;
 
 // The NHL scoreboard contract supplies logos but no colors. Keep this small,
 // reviewed current-team palette provider-owned and let TeamModel reject any
@@ -205,6 +208,10 @@ function parseScoreResponse(payload) {
     result.errors.push({index: null, code: "invalid-score-response"});
     return result;
   }
+  if (payload.games.length > MAX_EVENTS) {
+    result.errors.push({index: null, code: "too-many-events"});
+    return result;
+  }
 
   payload.games.forEach(function(event, index) {
     var game = parseGame(event);
@@ -238,6 +245,17 @@ function parseScheduleResponse(payload) {
   if (!isRecord(payload) || !Array.isArray(payload.gameWeek)) {
     result.errors.push({index: null, code: "invalid-schedule-response"});
     return result;
+  }
+
+  var eventCount = 0;
+  for (var dayIndex = 0; dayIndex < payload.gameWeek.length; dayIndex++) {
+    var day = payload.gameWeek[dayIndex];
+    if (!isRecord(day) || !Array.isArray(day.games)) continue;
+    eventCount += day.games.length;
+    if (eventCount > MAX_EVENTS) {
+      result.errors.push({index: null, code: "too-many-events"});
+      return result;
+    }
   }
 
   payload.gameWeek.forEach(function(day, dayIndex) {
