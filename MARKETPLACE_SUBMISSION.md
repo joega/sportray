@@ -1,7 +1,9 @@
 # Marketplace submission draft
 
-This repository-local draft is for owner review. It has not been submitted
-and must not be sent to GitHub without explicit owner approval.
+This repository-local draft mirrors the body of the existing owner-submitted
+issue [#873](https://github.com/HANCORE-linux/omarchy-plugin-marketplace/issues/873).
+Update that issue in place for an authorized refresh; do not create a duplicate
+submission issue.
 
 Source guide: <https://github.com/HANCORE-linux/omarchy-plugin-marketplace/blob/main/SUBMISSION.md>
 
