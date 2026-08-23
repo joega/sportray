@@ -2912,7 +2912,7 @@ test("U3.5 release assets and listing copy describe the current candidate", () =
   assert.equal(readme.includes("Select **View day**"), true);
   assert.equal(readme.includes("Proposed category: **Widgets**"), true);
   assert.equal(readme.includes("View <date>"), false);
-  assert.equal(manifest.version, "1.0.0-rc.7");
+  assert.equal(manifest.version, "1.0.0-rc.8");
   assert.match(manifest.description, /favorite teams.*daily schedules.*alerts/);
   assert.match(changelog, /## 1\.0\.0-rc\.7/);
 });

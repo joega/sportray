@@ -121,11 +121,12 @@ Proposed listing copy:
 Proposed category: **Widgets**. Existing tags: `bar`, `quickshell`. Suggested
 discovery tag: `sports`, if the submission form accepts new tag proposals.
 
-The last tagged release candidate is `1.0.0-rc.7`. This checkout contains
-unreleased hardening changes after that tag, while `manifest.json` retains the
-last assigned `1.0.0-rc.7` value until the owner explicitly assigns the next
-version. The existing tag is unchanged; a GitHub Release and Marketplace
-submission are separate publication steps.
+The next assigned release candidate is `1.0.0-rc.8`. This checkout contains
+unreleased hardening changes after the last tagged `1.0.0-rc.7`; the existing
+tag remains unchanged, and no release date is asserted. The owner captured
+`preview.png` personally and confirmed permission to submit it as shown,
+including the visible provider and team marks. A GitHub Release and
+Marketplace submission are separate publication steps.
 
 ## Settings and state
 
