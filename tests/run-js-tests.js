@@ -34,6 +34,7 @@ const monitorOwnership = require(path.join(root, "model/MonitorOwnership.js"));
 const panelLayout = require(path.join(root, "model/PanelLayout.js"));
 const pointerInteraction = require(path.join(root, "model/PointerInteractionPolicy.js"));
 const keyboardRouting = require(path.join(root, "model/KeyboardRoutingPolicy.js"));
+const lifecycle = require(path.join(root, "model/LifecyclePolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -2246,8 +2247,8 @@ test("nested pointer actions keep their tap out of the enclosing result row", ()
   const gameRow = readSource("components/GameRow.qml");
   const status = readSource("components/LeagueStatus.qml");
   const nextCard = readSource("components/NextGameCard.qml");
-  assert.match(panel, /enabled: PointerInteractionPolicy\.allowsRowActivation\(delegate\.nestedActionPressed\)/);
-  assert.match(panel, /if \(!PointerInteractionPolicy\.allowsRowActivation\(delegate\.nestedActionPressed\)\) return/);
+  assert.match(panel, /enabled: PointerInteractionPolicy\.allowsRowActivation\(parent\.nestedActionPressed\)/);
+  assert.match(panel, /if \(!PointerInteractionPolicy\.allowsRowActivation\(parent\.nestedActionPressed\)\) return/);
   assert.match(action, /readonly property bool pointerPressed: actionMouse\.pressed/);
   assert.match(source, /readonly property bool pointerPressed: action\.pointerPressed/);
   assert.match(gameRow, /readonly property bool childActionPressed: sourceLink\.pointerPressed/);
@@ -2273,6 +2274,33 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   assert.match(panel, /settingsHub\.inputActive, sportsPicker\.popupOpen/);
   assert.match(hub, /onEscapeRequested: root\.escapeRequested\(\)/);
   assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
+});
+
+test("deferred callbacks run for live owners and reject destroyed owners", () => {
+  const owner = lifecycle.createOwnerState();
+  const generation = lifecycle.captureGeneration(owner);
+  let runs = 0;
+  if (lifecycle.canRun(owner, generation)) runs += 1;
+  assert.equal(runs, 1, "live callback executes");
+  assert.equal(lifecycle.invalidate(owner), true, "owner invalidates once");
+  assert.equal(lifecycle.canRun(owner, generation), false, "destroyed callback is rejected");
+  assert.equal(lifecycle.invalidate(owner), false, "owner stays invalidated");
+
+  const nextGeneration = lifecycle.captureGeneration(owner);
+  assert.equal(lifecycle.canRun(owner, nextGeneration), false, "new generation cannot revive owner");
+  const panel = readSource("Panel.qml");
+  const widget = readSource("BarWidget.qml");
+  const hub = readSource("components/SettingsHub.qml");
+  const picker = readSource("components/TeamPicker.qml");
+  assert.match(panel, /function deferPanelCallback\(callback\)/);
+  assert.match(panel, /function deferResultListCallback\(callback\)/);
+  assert.match(panel, /LifecyclePolicy\.invalidate\(root\.callbackOwner\)/);
+  assert.match(panel, /Component\.onDestruction: LifecyclePolicy\.invalidate\(callbackOwner\)/);
+  assert.match(panel, /panelHeightSettleTimer\.stop\(\)/);
+  assert.match(widget, /function deferCallback\(callback\)/);
+  assert.match(widget, /Component\.onDestruction: LifecyclePolicy\.invalidate\(root\.callbackOwner\)/);
+  assert.match(hub, /root\.deferCallback\(root\.focusContent\)/);
+  assert.match(picker, /root\.deferCallback\(root\.ensureCursorVisible\)/);
 });
 
 test("U2.1 result row identity stays canonical and Panel uses one virtualized result list", () => {
@@ -2532,7 +2560,7 @@ test("U3.3 keeps sparse states compact while dense and utility views stay bounde
   assert.equal(panel.includes("onResultRowsChanged: {"), true);
   assert.equal(panel.includes("id: panelHeightSettleTimer"), true);
   assert.equal(panel.includes("root.activeView && root.activeView.loading === true"), true);
-  assert.equal(panel.includes("Qt.callLater(root.recalculatePanelHeight)"), true);
+  assert.equal(panel.includes("root.deferPanelCallback(root.recalculatePanelHeight)"), true);
   assert.equal(panel.includes("fittedContentHeight(Style.space(560)"), false);
   assert.equal(panel.includes("interactive: root.settingsDestination !== \"teams\""), true);
   assert.equal(carousel.includes("root.compact ? 1 : root.radius"), true);

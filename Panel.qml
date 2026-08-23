@@ -14,6 +14,7 @@ import "model/DateModel.js" as DateModel
 import "model/PanelLayout.js" as PanelLayout
 import "model/PointerInteractionPolicy.js" as PointerInteractionPolicy
 import "model/KeyboardRoutingPolicy.js" as KeyboardRoutingPolicy
+import "model/LifecyclePolicy.js" as LifecyclePolicy
 import "providers/LeagueCatalog.js" as LeagueCatalog
 import "providers/NhlTeamCatalog.js" as NhlTeamCatalog
 import "providers/EspnTeamCatalog.js" as EspnTeamCatalog
@@ -40,6 +41,10 @@ Panel {
   property string selectedRowId: ""
   property double nowMs: Date.now()
   property string panelToken: ""
+  // Qt.callLater cannot be canceled. Keep the guard as a plain JS object so
+  // a deferred closure can reject itself without dereferencing a destroyed
+  // QML object first.
+  readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
   readonly property var fetchService: root.service ? root.service.fetchService : null
   readonly property string selectedDateKey: root.service
     ? root.service.selectedDateKey : DateModel.localDateKey(new Date())
@@ -141,6 +146,30 @@ Panel {
       })
   }
 
+  function deferPanelCallback(callback) {
+    if (typeof callback !== "function") return
+    var owner = root.callbackOwner
+    var generation = LifecyclePolicy.captureGeneration(owner)
+    Qt.callLater(function() {
+      if (!LifecyclePolicy.canRun(owner, generation)) return
+      callback()
+    })
+  }
+
+  function deferResultListCallback(callback) {
+    if (typeof callback !== "function" || !resultList) return
+    var panelOwner = root.callbackOwner
+    var list = resultList
+    var listOwner = list.callbackOwner
+    var panelGeneration = LifecyclePolicy.captureGeneration(panelOwner)
+    var listGeneration = LifecyclePolicy.captureGeneration(listOwner)
+    Qt.callLater(function() {
+      if (!LifecyclePolicy.canRun(panelOwner, panelGeneration)
+          || !LifecyclePolicy.canRun(listOwner, listGeneration)) return
+      callback(list)
+    })
+  }
+
   function queuePanelHeightRecalculation() {
     root.panelHeightRecalculationPending = true
     panelHeightSettleTimer.restart()
@@ -162,7 +191,7 @@ Panel {
     var selected = Object.assign({}, root.selectedRowIds || {})
     delete selected[root.activeDestination]
     root.selectedRowIds = selected
-    Qt.callLater(root.recalculatePanelHeight)
+    root.deferPanelCallback(root.recalculatePanelHeight)
   }
 
   function selectRelativeDate(delta) {
@@ -268,9 +297,9 @@ Panel {
     var selected = Object.assign({}, root.selectedRowIds || {})
     selected[root.activeDestination] = root.selectedRowId
     root.selectedRowIds = selected
-    Qt.callLater(function() {
-      if (root.selectedRowIndex === index && resultList.count > index)
-        resultList.positionViewAtIndex(index, ListView.Contain)
+    root.deferResultListCallback(function(list) {
+      if (root.selectedRowIndex === index && list.count > index)
+        list.positionViewAtIndex(index, ListView.Contain)
     })
   }
 
@@ -320,11 +349,11 @@ Panel {
     var index = root.rowIndexForId(savedId)
     root.selectedRowId = savedId
     root.selectedRowIndex = index
-    Qt.callLater(function() {
+    root.deferResultListCallback(function(list) {
       var savedY = root.scrollPositions && root.scrollPositions[root.activeDestination]
         ? root.scrollPositions[root.activeDestination] : 0
-      if (index >= 0) resultList.positionViewAtIndex(index, ListView.Contain)
-      else resultList.contentY = Math.max(0, Math.min(savedY, resultList.contentHeight - resultList.height))
+      if (index >= 0) list.positionViewAtIndex(index, ListView.Contain)
+      else list.contentY = Math.max(0, Math.min(savedY, list.contentHeight - list.height))
     })
   }
 
@@ -357,7 +386,7 @@ Panel {
     root.activeDestination = "following"
     root.tabCursor = 0
     root.tabStripFocused = true
-    Qt.callLater(function() {
+    root.deferPanelCallback(function() {
       root.restoreResultPosition()
       keyCatcher.forceActiveFocus()
     })
@@ -372,8 +401,8 @@ Panel {
   onSelectedDateKeyChanged: {
     root.selectedRowIndex = -1
     root.selectedRowId = ""
-    Qt.callLater(root.restoreResultPosition)
-    Qt.callLater(root.recalculatePanelHeight)
+    root.deferPanelCallback(root.restoreResultPosition)
+    root.deferPanelCallback(root.recalculatePanelHeight)
   }
 
   onActiveDestinationChanged: {
@@ -384,7 +413,7 @@ Panel {
   }
 
   onResultRowsChanged: {
-    Qt.callLater(root.restoreResultPosition)
+    root.deferPanelCallback(root.restoreResultPosition)
     if (root.panelHeightRecalculationPending) panelHeightSettleTimer.restart()
   }
 
@@ -393,6 +422,8 @@ Panel {
     interval: 250
     repeat: false
     onTriggered: {
+      if (!LifecyclePolicy.canRun(root.callbackOwner,
+          LifecyclePolicy.captureGeneration(root.callbackOwner))) return
       if (!root.panelHeightRecalculationPending) return
       if (root.activeView && root.activeView.loading === true) {
         restart()
@@ -404,7 +435,7 @@ Panel {
   }
 
   onSettingsOpenChanged: {
-    Qt.callLater(root.recalculatePanelHeight)
+    root.deferPanelCallback(root.recalculatePanelHeight)
     root.syncSharedContext()
   }
 
@@ -418,6 +449,12 @@ Panel {
     if (root.selectedDateKey !== root.todayDateKey)
       root.setSelectedDate(root.todayDateKey)
     root.controller.hide()
+  }
+
+  function closeForPopoutSwitch() {
+    root.popoutSwitchClosing = true
+    root.close()
+    root.deferPanelCallback(function() { root.popoutSwitchClosing = false })
   }
 
   function toggle() {
@@ -453,7 +490,7 @@ Panel {
     root.tabStripFocused = true
     root.restoreResultPosition()
     root.recalculatePanelHeight()
-    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
   }
 
   function switchPanel(direction) {
@@ -463,6 +500,7 @@ Panel {
   }
 
   Timer {
+    id: panelClockTimer
     interval: 60000
     repeat: true
     running: root.opened
@@ -544,6 +582,9 @@ Panel {
   }
 
   Component.onDestruction: {
+    LifecyclePolicy.invalidate(root.callbackOwner)
+    panelHeightSettleTimer.stop()
+    panelClockTimer.stop()
     if (root.service && root.panelToken) root.service.unregisterPanel(root.panelToken)
   }
 
@@ -740,6 +781,7 @@ Panel {
                 settingsStore: root.settings
                 notificationService: notificationService
                 settingsRevision: root.presentationRevision
+                callbackOwner: root.callbackOwner
                 compact: utilityScroll.width < Style.space(360)
               }
             }
@@ -826,6 +868,7 @@ Panel {
 
               ListView {
                 id: resultList
+                readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
                 anchors.fill: parent
                 model: root.resultRows
                 currentIndex: root.selectedRowIndex
@@ -836,7 +879,11 @@ Panel {
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                 onCurrentIndexChanged: if (currentIndex >= 0)
-                  Qt.callLater(function() { positionViewAtIndex(currentIndex, ListView.Contain) })
+                  root.deferResultListCallback(function(list) {
+                    list.positionViewAtIndex(currentIndex, ListView.Contain)
+                  })
+
+                Component.onDestruction: LifecyclePolicy.invalidate(callbackOwner)
 
                 delegate: Item {
                   required property var modelData
@@ -982,9 +1029,9 @@ Panel {
                     // Qt pointer handlers observe child MouseAreas too. Disable this
                     // row handler for the duration of a nested action press so the
                     // child keeps the tap exclusively instead of also firing the row.
-                    enabled: PointerInteractionPolicy.allowsRowActivation(delegate.nestedActionPressed)
+                    enabled: PointerInteractionPolicy.allowsRowActivation(parent.nestedActionPressed)
                     onTapped: {
-                      if (!PointerInteractionPolicy.allowsRowActivation(delegate.nestedActionPressed)) return
+                      if (!PointerInteractionPolicy.allowsRowActivation(parent.nestedActionPressed)) return
                       root.setSelectedRow(index)
                       root.activateRow(index)
                     }

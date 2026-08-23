@@ -3,6 +3,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 import "model/Iconography.js" as Iconography
+import "model/LifecyclePolicy.js" as LifecyclePolicy
 import "services" as Services
 
 BarWidget {
@@ -23,6 +24,17 @@ BarWidget {
   // real button, whose item tree lets KeyboardPanel resolve the correct screen
   // and overlay layer.
   property string barRegion: ""
+  readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
+
+  function deferCallback(callback) {
+    if (typeof callback !== "function") return
+    var owner = root.callbackOwner
+    var generation = LifecyclePolicy.captureGeneration(owner)
+    Qt.callLater(function() {
+      if (!LifecyclePolicy.canRun(owner, generation)) return
+      callback()
+    })
+  }
 
   function resolveBarRegion() {
     var slots = root.bar && root.bar.moduleSlots ? root.bar.moduleSlots : []
@@ -94,11 +106,13 @@ BarWidget {
 
   Component.onCompleted: {
     resolveBarRegion()
-    Qt.callLater(function() {
+    root.deferCallback(function() {
       root.resolveBarRegion()
       root.injectPanel()
     })
   }
+
+  Component.onDestruction: LifecyclePolicy.invalidate(root.callbackOwner)
 
   Loader {
     id: panelLoader
@@ -107,7 +121,7 @@ BarWidget {
     visible: false
     onLoaded: {
       root.injectPanel()
-      Qt.callLater(root.injectPanel)
+      root.deferCallback(root.injectPanel)
     }
   }
 

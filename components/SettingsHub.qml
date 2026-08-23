@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import qs.Commons
 import qs.Ui
+import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
 Item {
   id: root
@@ -15,6 +16,8 @@ Item {
   property int sectionCursor: 0
   property bool contentFocused: false
   property bool compact: false
+  property var callbackOwner: null
+  readonly property var localCallbackOwner: LifecyclePolicy.createOwnerState()
 
   readonly property var destinations: [
     {id: "sports", label: "Sports & leagues", shortLabel: "Sports"},
@@ -42,7 +45,17 @@ Item {
     root.sectionCursor = index
     root.destination = root.destinations[index].id
     root.contentFocused = true
-    Qt.callLater(root.focusContent)
+    root.deferCallback(root.focusContent)
+  }
+
+  function deferCallback(callback) {
+    if (typeof callback !== "function") return
+    var owner = root.callbackOwner || root.localCallbackOwner
+    var generation = LifecyclePolicy.captureGeneration(owner)
+    Qt.callLater(function() {
+      if (!LifecyclePolicy.canRun(owner, generation)) return
+      callback()
+    })
   }
 
   function moveCursor(dx, dy) {
@@ -60,7 +73,7 @@ Item {
     if (root.destination === "sports") sportsSettings.moveCursor(dy)
     else if (root.destination === "teams") favoriteTeams.moveCursor(dy)
     else notificationSettings.moveCursor(dy)
-    Qt.callLater(root.ensureCursorVisible)
+    root.deferCallback(root.ensureCursorVisible)
   }
 
   function activateCursor() {
@@ -90,6 +103,8 @@ Item {
     root.sectionCursor = root.destinationIndex(root.destination)
     root.contentFocused = false
   }
+
+  Component.onDestruction: LifecyclePolicy.invalidate(root.localCallbackOwner)
 
   Column {
     id: hubColumn
@@ -211,6 +226,7 @@ Item {
       leagues: root.leagues
       settings: root.settingsStore
       settingsRevision: root.settingsRevision
+      callbackOwner: root.callbackOwner
       onEscapeRequested: root.escapeRequested()
     }
 

@@ -3,6 +3,7 @@ import QtQuick.Controls as QQC
 import qs.Commons
 import qs.Ui
 import "../model/TeamPickerModel.js" as PickerModel
+import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
 Item {
   id: root
@@ -14,6 +15,8 @@ Item {
   property int cursorIndex: 0
   property string query: ""
   property string leagueFilter: "all"
+  property var callbackOwner: null
+  readonly property var localCallbackOwner: LifecyclePolicy.createOwnerState()
 
   readonly property var favoriteIds: {
     var revision = root.settingsRevision
@@ -47,7 +50,17 @@ Item {
     if (root.visibleTeams.length === 0) return
     root.cursorIndex = PickerModel.clampCursor(root.cursorIndex, delta, root.visibleTeams.length)
     teamList.positionViewAtIndex(root.cursorIndex, ListView.Contain)
-    Qt.callLater(root.ensureCursorVisible)
+    root.deferCallback(root.ensureCursorVisible)
+  }
+
+  function deferCallback(callback) {
+    if (typeof callback !== "function") return
+    var owner = root.callbackOwner || root.localCallbackOwner
+    var generation = LifecyclePolicy.captureGeneration(owner)
+    Qt.callLater(function() {
+      if (!LifecyclePolicy.canRun(owner, generation)) return
+      callback()
+    })
   }
 
   function activateCursor() {
@@ -94,6 +107,8 @@ Item {
   // destination is hidden. Release it explicitly so the panel key catcher
   // receives the next shortcut after Escape/Back returns to scores.
   onVisibleChanged: if (!root.visible) searchInput.focus = false
+
+  Component.onDestruction: LifecyclePolicy.invalidate(root.localCallbackOwner)
 
   Column {
     id: pickerColumn

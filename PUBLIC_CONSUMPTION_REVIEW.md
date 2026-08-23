@@ -111,7 +111,8 @@ Escape, navigation, and ordinary panel text.
 
 ## Additional risks
 
-- Destruction-time delayed callbacks produced real Quickshell log errors during screen/bar remapping: deferred work in [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:305) and [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:832) ran after the panel/ListView was destroyed. Guard or cancel those callbacks.
+- Destruction-time delayed callbacks previously produced real Quickshell log
+  errors during screen/bar remapping: deferred work in [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:305) and [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:832) ran after the panel/ListView was destroyed. **Status: fixed in the current worktree.** `LifecyclePolicy` now invalidates plain-JavaScript owner tokens during destruction; panel, result-list, bar-widget, settings-hub, and team-picker deferred callbacks reject stale generations, and panel timers stop during teardown. The enclosing result-row guard also uses its delegate parent scope, avoiding a runtime `ReferenceError`. Deterministic lifecycle tests cover live execution and destroyed-owner rejection; a fresh Omarchy shell restart, open/close exercise, and log inspection showed no new Sportray lifecycle error.
 - Provider-supplied logo URLs accept arbitrary HTTP(S) hosts in [GameModel.js](/home/joeg/Projects/sportray/model/GameModel.js:27) and [TeamModel.js](/home/joeg/Projects/sportray/model/TeamModel.js:28), then load directly in [GameRow.qml](/home/joeg/Projects/sportray/components/GameRow.qml:108). Restrict to HTTPS and reviewed asset hosts.
 - `curl` has no HTTPS-only redirect policy or response-size limit; `StdioCollector` buffers complete responses and provider event arrays are not bounded.
 - The installed settings file is world-readable (`0644`) with world-traversable parent directories; it contains favorites, notification preferences, fingerprints, and timestamps. Prefer `0600`/`0700`.
