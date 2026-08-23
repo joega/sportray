@@ -1,0 +1,36 @@
+{
+  "description": "Mixed Following footer geometry at the compact and normal panel widths",
+  "cardInset": 6,
+  "spacing": 3,
+  "minimumDetailWidth": 1,
+  "panelWidths": [
+    {"name": "minimum", "panelWidth": 280},
+    {"name": "normal", "panelWidth": 400}
+  ],
+  "rows": [
+    {
+      "rowId": "game:nhl:u3-live-away",
+      "contextNaturalWidth": 34,
+      "favoriteWidth": 14,
+      "sourceWidth": 64
+    },
+    {
+      "rowId": "game:mlb:u3-mixed",
+      "contextNaturalWidth": 154,
+      "favoriteWidth": 14,
+      "sourceWidth": 64
+    },
+    {
+      "rowId": "game:nhl:u3-final-both",
+      "contextNaturalWidth": 34,
+      "favoriteWidth": 14,
+      "sourceWidth": 64
+    },
+    {
+      "rowId": "game:nhl:u3-final-home",
+      "contextNaturalWidth": 34,
+      "favoriteWidth": 14,
+      "sourceWidth": 64
+    }
+  ]
+}

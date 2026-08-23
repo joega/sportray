@@ -127,6 +127,13 @@ Escape, navigation, and ordinary panel text.
   valid schema-1 input, and corrupt JSON recovery. Permission hardening and
   bounded fields remain unchanged.
 - Mixed Following rows may clip the trailing source action; accessibility roles lack corresponding press/toggle actions.
+  **Mixed-row geometry status: fixed in the current worktree.** `GameRow` now
+  reserves the trailing source button independently from the flexible context,
+  favorite, and detail region. `GameRowLayout.footerLayout` and
+  `fixtures/layout/mixed-following.json` cover the 280px compact panel and
+  400px normal panel widths, proving source reachability, non-overlap, and the
+  unchanged normalized row identity/order. The source control remains
+  focusable and keeps its existing provider URL policy.
 - [Panel.qml](/home/joeg/Projects/sportray/Panel.qml:28) redeclares the host Panel's existing `settings` property. Omarchy 4.0.0-1 accepts it, but a distinct `settingsStore` property is safer for upstream compatibility.
 
 ## Release and documentation gates
@@ -143,10 +150,11 @@ Escape, navigation, and ordinary panel text.
 - The scheduler retry-deadline finding is fixed and covered by the deadline
   admission behavior test described above.
 
-- `tests/run-js-tests.sh`: 155 tests passed, including notification, scheduler,
+- `tests/run-js-tests.sh`: 156 tests passed, including notification, scheduler,
   NHL lookahead, stale-date, multi-monitor ownership, and nested-pointer
   and editor-keyboard routing checks, plus reviewed team-logo and response-bound
-  fixtures and unsupported-future-schema preservation.
+  fixtures, unsupported-future-schema preservation, and compact/normal
+  mixed-Following row geometry.
 - The actual Omarchy shell was fully restarted after the permission change.
   The plugin repaired `~/.local/state/omarchy/settings` to `0700` and
   `sportray.json` to `0600`; shell ping, toggle/hide IPC, and fresh log
@@ -168,11 +176,12 @@ Escape, navigation, and ordinary panel text.
 - `git diff --check` and `git fsck --full`: passed.
 - The linked checkout was rescanned in the live Omarchy shell. One Quickshell
   instance remained running, shell ping returned `ok`, and the post-rescan log
-  tail contained normal provider/cache activity without a Sportray error,
-  exception, or binding-loop warning. The normal provider fetch and toggle/hide
-  path was exercised; the only warnings observed were the pre-existing Qt.atob
-  deprecation and unrelated desktop portal registration warning. An intentionally
-  oversized live provider response was not injected.
+  tail contained normal provider/cache activity without a new Sportray error,
+  exception, or binding-loop warning. The changed plugin was exercised through
+  toggle/hide IPC; isolated MLB timeout warnings remained on the provider retry
+  path. The existing Qt.atob deprecation and unrelated desktop portal
+  registration warning were unchanged. An intentionally oversized live
+  provider response was not injected.
 - No telemetry, accounts, secrets, downloaded-code execution, or privileged operations were found.
 
 The lookahead, stale-date, multi-monitor ownership, nested-pointer, editor-
@@ -203,6 +212,47 @@ Next bounded unit: fix the mixed Following row geometry so the trailing source
 action remains visible and reachable at the narrowest supported panel width.
 Keep provider parsing and normalized row identity unchanged; stop before
 accessibility, packaging, release, or Marketplace work.
+
+## Latest handoff — 2026-08-23 mixed Following row geometry
+
+The mixed Following layout unit is complete in the current worktree. The
+checkout intentionally has no `docs/upstream-contract.md`; installed Omarchy
+4.0.0-1 and Quickshell 0.3.0.r20 sources were rechecked. `KeyboardPanel`
+requests the desired 400px width but fits it to available screen space, while
+Sportray's compact panel bound is 280px. No upstream API deviation was
+introduced.
+
+`GameRow` now separates the footer metadata region from the source action. The
+source action is anchored to the trailing edge, and `GameRowLayout.footerLayout`
+accounts for mixed-league context text, favorite metadata, source width, all
+gaps, and a minimum detail budget. The provider-neutral game model, favorite
+ordering, source URL policy, row actions, and panel height bounds are
+unchanged. Fixture-driven coverage exercises the verified mixed Following
+identity/order at 280px and 400px, proving a non-empty reachable source region
+without overlap.
+
+The complete deterministic suite passes with 156 tests. `omarchy plugin
+validate "$PWD"`, real-import-path QML lint over all QML files (exit 0 with
+the established warnings), and `git diff --check` pass. The linked plugin was
+rescanned on actual Omarchy; one Quickshell instance remained healthy, shell
+ping returned `ok`, toggle/hide IPC worked, and the fresh log showed no new
+Sportray error, exception, or binding-loop warning. The isolated MLB timeout
+warnings stayed on the existing provider retry path. The settings directory
+remains `0700` and `sportray.json` remains `0600`.
+
+No push, tag, release, or Marketplace action was performed. Remaining risks
+are accessibility actions, the host `settings` property compatibility note,
+release metadata, and preview rights.
+
+Next bounded unit: complete one accessibility-action slice for the existing
+scoreboard and utility controls: inspect the installed Qt/Omarchy accessibility
+contract, then ensure the source, retry, View day, empty-state, favorite, and
+whole-row actions expose one usable assistive press/toggle route without
+changing provider parsing, row identity/order, pointer routing, or persisted
+settings. Stop before packaging, tagging, pushing, release, or Marketplace
+work. The next unit must add fixture/source-driven coverage, rerun all
+repository gates, update the roadmap/review/next prompt, and create one
+atomic commit only after the gate passes.
 
 ## Historical next-session prompt (superseded by `NEXT_SESSION_PROMPT.md`)
 

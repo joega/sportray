@@ -2,6 +2,7 @@ import QtQuick
 import qs.Commons
 import qs.Ui
 import "../model/Formatters.js" as Formatters
+import "../model/GameRowLayout.js" as GameRowLayout
 
 Item {
   id: root
@@ -258,45 +259,76 @@ Item {
         }
       }
 
-      Row {
+      Item {
+        id: footer
         width: parent.width
-        spacing: Style.spacing.xs
+        implicitHeight: Math.max(detailText.implicitHeight, sourceLink.implicitHeight)
+        height: implicitHeight
 
-        Text {
-          visible: root.showLeagueContext && root.leagueLabel !== ""
-          text: root.showLeagueContext && root.leagueLabel !== "" ? root.leagueLabel + " ·" : ""
-          color: Color.muted
-          font.family: Style.font.family
-          font.pixelSize: Style.font.bodySmall
-          elide: Text.ElideRight
-        }
+        readonly property var footerGeometry: GameRowLayout.footerLayout(
+          width,
+          root.showLeagueContext && root.leagueLabel !== ""
+            ? leagueContextText.implicitWidth : 0,
+          root.favorite ? Style.space(14) : 0,
+          sourceLink.visible ? sourceLink.implicitWidth : 0,
+          Style.spacing.xs,
+          Style.space(1))
 
-        SemanticIcon {
-          visible: root.favorite
-          width: root.favorite ? Style.space(14) : 0
-          height: Style.space(14)
-          iconName: "star"
-          fontSize: Style.font.bodySmall
-          color: Color.accent
-          decorative: true
-        }
+        Item {
+          id: footerContent
+          anchors.left: parent.left
+          anchors.top: parent.top
+          anchors.bottom: parent.bottom
+          anchors.right: sourceLink.visible ? sourceLink.left : parent.right
+          anchors.rightMargin: sourceLink.visible ? Style.spacing.xs : 0
 
-        Text {
-          width: Math.max(0, parent.width
-            - (root.favorite ? Style.space(14) + Style.spacing.xs : 0)
-            - (sourceLink.visible ? sourceLink.width + Style.spacing.xs : 0))
-          text: root.detailWithVenueLabel
-          color: root.unavailable || root.stale || root.live
-            || root.game.status === "postponed" || root.game.status === "canceled"
-            ? Color.urgent : Color.muted
-          font.family: Style.font.family
-          font.pixelSize: Style.font.bodySmall
-          font.bold: root.live || root.featured || root.stale
-          elide: Text.ElideRight
+          Row {
+            id: footerMeta
+            anchors.fill: parent
+            spacing: Style.spacing.xs
+
+            Text {
+              id: leagueContextText
+              visible: root.showLeagueContext && root.leagueLabel !== ""
+                && footer.footerGeometry.contextWidth > 0
+              width: footer.footerGeometry.contextWidth
+              text: root.showLeagueContext && root.leagueLabel !== ""
+                ? root.leagueLabel + " ·" : ""
+              color: Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              elide: Text.ElideRight
+            }
+
+            SemanticIcon {
+              visible: root.favorite && footer.footerGeometry.favoriteWidth > 0
+              width: footer.footerGeometry.favoriteWidth
+              height: Style.space(14)
+              iconName: "star"
+              fontSize: Style.font.bodySmall
+              color: Color.accent
+              decorative: true
+            }
+
+            Text {
+              id: detailText
+              width: footer.footerGeometry.detailWidth
+              text: root.detailWithVenueLabel
+              color: root.unavailable || root.stale || root.live
+                || root.game.status === "postponed" || root.game.status === "canceled"
+                ? Color.urgent : Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              font.bold: root.live || root.featured || root.stale
+              elide: Text.ElideRight
+            }
+          }
         }
 
         SourceLinkButton {
           id: sourceLink
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
           game: root.game
           Accessible.name: root.game.link ? "Open " + sourceLink.sourceName + " game page" : "External game page unavailable"
         }

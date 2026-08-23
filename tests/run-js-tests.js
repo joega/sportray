@@ -33,6 +33,7 @@ const nextEvent = require(path.join(root, "model/NextEventModel.js"));
 const lookahead = require(path.join(root, "model/LookaheadPolicy.js"));
 const monitorOwnership = require(path.join(root, "model/MonitorOwnership.js"));
 const panelLayout = require(path.join(root, "model/PanelLayout.js"));
+const gameRowLayout = require(path.join(root, "model/GameRowLayout.js"));
 const pointerInteraction = require(path.join(root, "model/PointerInteractionPolicy.js"));
 const keyboardRouting = require(path.join(root, "model/KeyboardRoutingPolicy.js"));
 const lifecycle = require(path.join(root, "model/LifecyclePolicy.js"));
@@ -109,6 +110,11 @@ function readSettingsPermissionFixture() {
 function readSettingsSchemaFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/settings-schemas/state.json"), "utf8"));
+}
+
+function readMixedFollowingLayoutFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/layout/mixed-following.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -2673,6 +2679,55 @@ test("U3.2 annotates each followed side and adds league context only to mixed Fo
     {leagueId: "nhl", displayName: "NHL", sport: "hockey", games: [away]}
   ]}, ["nhl:6"]);
   assert.equal(single.following.games[0].presentation.showLeagueContext, false);
+});
+
+test("U3.4 reserves a reachable trailing source action in mixed Following rows", () => {
+  const fixture = readMixedFollowingLayoutFixture();
+  const source = readSource("components/GameRow.qml");
+  const sourceButton = readSource("components/SourceLinkButton.qml");
+  const fixtureGames = readU3ScoreCardFixture().games.map((game) => games.normalizeGame(game));
+  const away = Object.assign({}, fixtureGames[0], {link: "https://www.nhl.com/game/away"});
+  const home = Object.assign({}, fixtureGames[1], {link: "https://www.nhl.com/game/home"});
+  const both = Object.assign({}, fixtureGames[2], {link: "https://www.nhl.com/game/both"});
+  const mlb = Object.assign({}, home, {
+    id: "mlb:u3-mixed",
+    league: "mlb",
+    link: "https://www.espn.com/mlb/game/mixed",
+    awayTeam: Object.assign({}, home.awayTeam, {id: "mlb:2", league: "mlb"}),
+    homeTeam: Object.assign({}, home.homeTeam, {id: "mlb:10", league: "mlb"})
+  });
+  const composed = {
+    leagueStates: [
+      {leagueId: "nhl", displayName: "NHL", sport: "hockey", games: [away, home, both]},
+      {leagueId: "mlb", displayName: "MLB", sport: "baseball", games: [mlb]}
+    ]
+  };
+  const presentationView = panelPresentation.build(composed,
+    ["nhl:6", "nhl:22", "nhl:18", "nhl:20", "mlb:2"]);
+  const rows = resultRows.flatten(presentationView.following, "following")
+    .filter((row) => row.kind === "game");
+  assert.deepEqual(rows.map((row) => row.rowId), fixture.rows.map((row) => row.rowId));
+  assert.equal(rows.every((row) => row.game.presentation.showLeagueContext), true);
+
+  fixture.panelWidths.forEach((panelWidth) => {
+    const rowWidth = panelWidth.panelWidth - fixture.cardInset * 2;
+    fixture.rows.forEach((row) => {
+      const layout = gameRowLayout.footerLayout(rowWidth, row.contextNaturalWidth,
+        row.favoriteWidth, row.sourceWidth, fixture.spacing, fixture.minimumDetailWidth);
+      assert.equal(layout.sourceReachable, true,
+        `${panelWidth.name} source action must remain reachable for ${row.rowId}`);
+      assert.equal(layout.sourceWidth > 0, true);
+      assert.equal(layout.detailWidth >= fixture.minimumDetailWidth, true,
+        `${panelWidth.name} detail must retain a budget for ${row.rowId}`);
+      assert.equal(layout.nonOverlapping, true,
+        `${panelWidth.name} metadata must not overlap source for ${row.rowId}`);
+    });
+  });
+
+  assert.match(source, /GameRowLayout\.footerLayout/);
+  assert.match(source, /anchors\.right: parent\.right/);
+  assert.match(source, /anchors\.right: sourceLink\.visible \? sourceLink\.left : parent\.right/);
+  assert.match(sourceButton, /focusable: true/);
 });
 
 test("U3.2 keeps every scoreboard state textual and separates stale age from status", () => {
