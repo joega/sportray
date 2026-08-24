@@ -2953,3 +2953,45 @@ shortcut adds no new interaction surface. The pure decision lives in
 fixture-tested. Stop before new cursor targets, settings persistence for the
 filter, month-grid rendering, provider work, packaging, tagging, pushing,
 release, or Marketplace work.
+
+## Latest handoff — 2026-08-24 post-filter calendar consistency audit
+
+A read-only consistency audit of the calendar feature found no contradictions
+between the README's calendar/keyboard behavior text, the roadmap acceptance
+evidence for the calendar and keyboard-filter units, and the current sources.
+No documentation or source edit was required beyond this handoff.
+
+Evidence checked against source:
+
+- README `C` toggle, bounded five-day day list around the selected date,
+  All games/Favorites filter, neutral "No games" days, detail-drill-down rows,
+  and the Escape chain match `KeyboardRoutingPolicy.calendarFilterAction`
+  (only `f`/`F` with the calendar open and settings/detail closed),
+  `CalendarModel.DEFAULT_HALF_WIDTH_DAYS = 2` (five-day window),
+  `MAX_GAMES_PER_DAY = 64`, `emptyDayRow` ("No games"), the `open-detail`
+  game-row action, and the panel's `onTextKey`/`onCloseRequested` routes.
+- The header filter button tooltip and accessible name advertise `(F)`
+  exactly as the keyboard handoff records.
+- "Never starts new requests" holds: `LeagueFetch.calendarSnapshot()` reads
+  only the existing bounded `dateCache`, and `FetchService.buildCalendarStates()`
+  composes those snapshots without any request path.
+- The roadmap's keyboard-filter acceptance evidence (200 tests, key names,
+  fail-closed rejections, runtime exercise record) matches the current tree.
+
+Gates rerun for this documentation-only outcome: `tests/run-js-tests.sh`
+passes with 200 deterministic tests, `git diff --check` passes,
+`omarchy plugin validate "$PWD"` passes on actual Omarchy, and real-import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
+exits 0 with the established standalone import/unqualified-access warnings. No
+QML changed, so no shell restart or log claim is made. No push, tag, release,
+Marketplace, or remote action occurred. The checkout intentionally has no
+`docs/upstream-contract.md`. Known limitations remain: pointer clicks on the
+filter button are unexercised (no reliable injector), the settings-open/
+detail-open `f` rejection is covered only by fixtures, and the calendar shows
+only dates present in the five-entry per-league caches.
+
+Next bounded unit: add one pure fixture-driven provider-fallback chain policy
+for the existing per-league fetch boundary — the last unimplemented capability
+of the recorded minimum competitive baseline — keeping it separate from QML
+and timers until its contract is accepted. Stop before wiring it into
+services, changing polling, adding endpoints, or publication work.
