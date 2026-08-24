@@ -1,16 +1,33 @@
 var GameModel = null;
 var AssetUrlPolicy = null;
 var ResponsePolicy = null;
+var StandingsModel = null;
 if (typeof require === "function") {
   GameModel = require("../model/GameModel.js");
   AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
   ResponsePolicy = require("../model/ResponsePolicy.js");
+  StandingsModel = require("../model/StandingsModel.js");
 }
 
 var NHL_BASE_URL = "https://api-web.nhle.com";
 var NHL_SCORE_PATH = "/v1/score";
+var NHL_STANDINGS_PATH = "/v1/standings";
 var NHL_SITE_URL = "https://www.nhl.com";
 var MAX_EVENTS = ResponsePolicy ? ResponsePolicy.MAX_EVENTS : 256;
+
+// The standings endpoint identifies teams by triCode, while favorites use the
+// numeric IDs from the bounded current-roster catalog. Keep this map explicit
+// so a provider-added or historical team cannot silently become a favorite.
+var TEAM_IDS_BY_ABBREVIATION = {
+  ANA: "24", BOS: "6", BUF: "7", CAR: "12", CBJ: "29", CGY: "20",
+  CHI: "16", COL: "21", DAL: "25", DET: "17", EDM: "22", FLA: "13",
+  LAK: "26", MIN: "30", MTL: "8", NJD: "1", NSH: "18", NYI: "2",
+  NYR: "3", OTT: "9", PHI: "4", PIT: "5", SEA: "55", SJS: "28",
+  STL: "19", TBL: "14", TOR: "10", UTA: "68", VAN: "23", VGK: "54",
+  WPG: "52", WSH: "15"
+};
+
+var CONFERENCE_ORDER = ["E", "W"];
 
 // The NHL scoreboard contract supplies logos but no colors. Keep this small,
 // reviewed current-team palette provider-owned and let TeamModel reject any
@@ -45,6 +62,12 @@ function integerOrNull(value) {
   if (typeof value === "string" && /^\d+$/.test(value.trim())) value = Number(value);
   if (typeof value !== "number" || !isFinite(value) || value < 0 || Math.floor(value) !== value)
     return null;
+  return value;
+}
+
+function numberOrNull(value) {
+  if (typeof value === "string" && value.trim() !== "") value = Number(value.trim());
+  if (typeof value !== "number" || !isFinite(value)) return null;
   return value;
 }
 
@@ -88,6 +111,10 @@ function absoluteNhlLink(value) {
 function defaultText(value) {
   if (!isRecord(value)) return null;
   return cleanString(value.default);
+}
+
+function standingsText(value) {
+  return cleanString(value) || defaultText(value);
 }
 
 function normalizeTimestamp(value) {
@@ -275,16 +302,140 @@ function parseScheduleResponse(payload) {
   return result;
 }
 
+function standingsTeam(entry) {
+  if (!isRecord(entry)) return null;
+
+  var abbreviation = standingsText(entry.teamAbbrev);
+  if (!abbreviation) return null;
+  abbreviation = abbreviation.toUpperCase();
+  var providerTeamId = TEAM_IDS_BY_ABBREVIATION[abbreviation];
+  if (!providerTeamId) return null;
+
+  return normalizeTeam({
+    id: providerTeamId,
+    name: entry.teamName,
+    commonName: entry.teamCommonName,
+    abbrev: abbreviation,
+    logo: entry.teamLogo
+  });
+}
+
+function conferenceId(entry) {
+  var id = standingsText(entry.conferenceAbbrev);
+  if (id) return id.toUpperCase();
+  var name = standingsText(entry.conferenceName);
+  return name ? name.toLowerCase().replace(/\s+/g, "-") : "league";
+}
+
+function conferenceLabel(entry) {
+  var name = standingsText(entry.conferenceName);
+  if (!name) return "League";
+  return /conference$/i.test(name) ? name : name + " Conference";
+}
+
+function standingsRank(entry) {
+  var conferenceSequence = positiveIntegerOrNull(entry.conferenceSequence);
+  return conferenceSequence !== null
+    ? conferenceSequence : positiveIntegerOrNull(entry.leagueSequence);
+}
+
+function standingsRecordLabel(entry) {
+  var wins = integerOrNull(entry.wins);
+  var losses = integerOrNull(entry.losses);
+  var overtimeLosses = integerOrNull(entry.otLosses);
+  if (wins === null || losses === null || overtimeLosses === null) return null;
+  return wins + "-" + losses + "-" + overtimeLosses;
+}
+
+function normalizeStandingsEntry(entry) {
+  if (!isRecord(entry)) return null;
+  var team = standingsTeam(entry);
+  if (!team) return null;
+
+  return {
+    team: team,
+    rank: standingsRank(entry),
+    played: integerOrNull(entry.gamesPlayed),
+    wins: integerOrNull(entry.wins),
+    losses: integerOrNull(entry.losses),
+    // NHL's third record value is overtime losses, not ties. The generic
+    // standings projection uses this slot for the sport's third record value.
+    ties: integerOrNull(entry.otLosses),
+    points: integerOrNull(entry.points),
+    differential: numberOrNull(entry.goalDifferential),
+    recordLabel: standingsRecordLabel(entry),
+    conferenceId: conferenceId(entry),
+    conferenceLabel: conferenceLabel(entry)
+  };
+}
+
+function orderedConferenceGroups(groupMap) {
+  var groups = [];
+  CONFERENCE_ORDER.forEach(function(id) {
+    if (groupMap[id]) groups.push(groupMap[id]);
+  });
+  Object.keys(groupMap).forEach(function(id) {
+    if (CONFERENCE_ORDER.indexOf(id) === -1) groups.push(groupMap[id]);
+  });
+  return groups;
+}
+
+function parseStandingsResponse(payload) {
+  var result = {leagueId: "nhl", groups: [], rows: [], errors: []};
+  if (!isRecord(payload) || !Array.isArray(payload.standings)) {
+    result.errors.push({index: null, code: "invalid-standings-response"});
+    return result;
+  }
+  if (payload.standings.length > MAX_EVENTS) {
+    result.errors.push({index: null, code: "too-many-standings"});
+    return result;
+  }
+
+  var groupMap = {};
+  payload.standings.forEach(function(entry, index) {
+    var normalized = normalizeStandingsEntry(entry);
+    if (!normalized) {
+      result.errors.push({index: index, code: "invalid-standing-entry"});
+      return;
+    }
+    var id = normalized.conferenceId;
+    if (!groupMap[id]) {
+      groupMap[id] = {
+        id: id,
+        label: normalized.conferenceLabel,
+        entries: []
+      };
+    }
+    groupMap[id].entries.push(normalized);
+  });
+
+  var groups = orderedConferenceGroups(groupMap);
+  return StandingsModel
+    ? StandingsModel.normalizeGroups(groups, "nhl", result.errors)
+    : result;
+}
+
+function buildStandingsUrl(date) {
+  if (date === undefined || date === null || date === "")
+    return NHL_BASE_URL + NHL_STANDINGS_PATH + "/now";
+  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return NHL_BASE_URL + NHL_STANDINGS_PATH + "/" + date;
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     NHL_BASE_URL: NHL_BASE_URL,
     ENDPOINT: NHL_BASE_URL + NHL_SCORE_PATH + "/now",
+    STANDINGS_ENDPOINT: NHL_BASE_URL + NHL_STANDINGS_PATH + "/now",
     buildScoreUrl: buildScoreUrl,
+    buildStandingsUrl: buildStandingsUrl,
     buildNextGamesUrl: buildNextGamesUrl,
     buildGameUrl: buildGameUrl,
     normalizeStatus: normalizeStatus,
     parseGame: parseGame,
     parseScoreResponse: parseScoreResponse,
-    parseScheduleResponse: parseScheduleResponse
+    parseScheduleResponse: parseScheduleResponse,
+    normalizeStandingsEntry: normalizeStandingsEntry,
+    parseStandingsResponse: parseStandingsResponse
   };
 }

@@ -23,8 +23,8 @@ At a glance:
 - Scheduled, live, intermediate, final, stale, empty, and unavailable states
 - Favorite-team selection with canonical league/team identities
 - A Following home for favorite-team games plus one stable destination per league
-- Grouped standings on ESPN-backed league destinations, with missing provider
-  fields shown as neutral blanks and one-click favorite-team toggles
+- Grouped standings on ESPN-backed and NHL league destinations, with missing
+  provider fields shown as neutral blanks and one-click favorite-team toggles
 - A five-day date carousel with previous/next-day navigation and a Today reset
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
@@ -196,9 +196,13 @@ Football, NCAA Men's Basketball, English Premier League, and MLS scores and
 team catalogs come from
 ESPN's site JSON endpoints. ESPN's site API is an undocumented website interface
 rather than a supported public developer contract; its response shape or
-availability may change. ESPN-backed league destinations also use its standings
-route when the standings view is opened; NHL remains scores-only until its
-standings adapter is verified. The EPL catalog is a bounded provider-owned snapshot
+availability may change. ESPN-backed league destinations use ESPN's standings
+route when the standings view is opened. NHL standings use the verified
+`api-web.nhle.com/v1/standings/now` response, grouped by conference and ordered
+by the provider's conference sequence; tri-codes are resolved through the
+bounded current-team catalog before favorites are exposed. Missing optional
+metrics remain neutral blanks and unknown or missing tri-codes are rejected.
+The EPL catalog is a bounded provider-owned snapshot
 because the current team endpoint is season-shaped; it is not a persistence
 boundary.
 Provider-specific parsing is isolated behind the normalized Sportray model so

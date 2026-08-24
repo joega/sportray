@@ -4,7 +4,7 @@ var NHL = {
   displayName: "NHL",
   enabledByDefault: true,
   provider: "nhl",
-  standingsSupported: false
+  standingsSupported: true
 };
 
 var ESPN_LEAGUE_METADATA = {

@@ -2228,3 +2228,82 @@ Next bounded unit: implement a verified NHL standings adapter and standings
 presentation projection. Stop before rich detail, pregame/close alerts,
 provider fallback, broader discovery, specialist sports, packaging, tagging,
 pushing, release, or Marketplace work.
+
+## NHL standings adapter/projection — 2026-08-24
+
+Status: complete as a bounded NHL standings vertical slice. NHL league
+destinations now use the existing on-demand standings route, with conference
+groups, NHL sequence ordering, nullable metrics, canonical current-team
+identity, reviewed logo admission, and the existing favorite toggle action.
+
+Evidence:
+
+- The current no-key NHL response was verified from
+  `https://api-web.nhle.com/v1/standings/now` on 2026-08-24. It supplies a
+  flat `standings` array, Eastern/Western conference metadata,
+  `conferenceSequence`/`leagueSequence`, numeric record fields, tri-code
+  identity, and `assets.nhle.com` logos. The fixture follows that observed
+  shape but remains bounded to five records.
+- `providers/NhlProvider.js` maps only the 32 tri-codes in the current
+  `NhlTeamCatalog` roster to numeric provider IDs, rejects unknown or missing
+  tri-codes, preserves missing optional values as nulls, formats the NHL
+  W-L-OT record, and returns the existing provider-neutral standings model.
+- `services/StandingsFetch.qml` selects the NHL adapter at the provider
+  boundary; `LeagueCatalog.js` enables NHL standings, so the existing header
+  action, `StandingsRows` projection, canonical favorite toggle, and neutral
+  missing-field display are reused without a new QML view contract.
+- `fixtures/nhl/standings.json` and `tests/run-js-tests.js` cover conference
+  ordering, NHL OT-loss records, canonical IDs, reviewed logos, missing
+  fields, unknown-team rejection, malformed/empty payloads, and favorite
+  routing. The live endpoint also parsed to 32 rows, two groups, and zero
+  errors during this unit.
+- `./tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell services/StandingsFetch.qml`,
+  and `git diff --check` pass. QML lint retains the known standalone warning
+  for the existing `Process.onExited` parameter type.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0.r20 rescanned the linked
+  checkout and successfully summoned the Sportray panel. The inspected
+  Quickshell log contains normal Sportray fetch activity and no new QML
+  exception, binding-loop, or standings error. The installed bar-widget IPC
+  does not expose child view methods, and the available desktop input path did
+  not complete a reliable popup focus/toggle exercise; no UI-route success is
+  claimed from that attempt.
+
+Decision log: use the verified current standings route only, group by
+conference in Eastern/Western order, and use `conferenceSequence` as the NHL
+display rank with `leagueSequence` as a safe fallback. Resolve tri-codes
+through the existing bounded catalog because the standings payload has no
+numeric team ID. Keep the generic standings model and favorite action shared;
+represent the NHL third record value as the existing generic `ties` slot plus
+an explicit W-L-OT label. Do not add a second standings endpoint, division or
+wild-card specialist UI, fallback provider, alerts, rich detail, discovery,
+packaging, release, tag, push, or Marketplace work.
+
+The private `docs/upstream-contract.md` remains intentionally absent from this
+checkout; the installed Omarchy shell sources were inspected directly for the
+bar-widget, rescan, IPC, and import-path boundaries. The unrelated deletion of
+`MARKETPLACE_SUBMISSION.md` remains untouched and unstaged.
+
+## Latest handoff — 2026-08-24 NHL standings adapter/projection
+
+The NHL standings unit is implemented in the current worktree and passes the
+deterministic suite, provider response bounds, fixture checks, plugin
+validation, real-import-path QML lint, and diff check. The live NHL standings
+response is verified and parses into 32 canonical rows in Eastern/Western
+conference groups. The existing NHL score route, favorite/settings behavior,
+and generic standings presentation remain provider-neutral.
+
+Actual Omarchy rescanned and summoned the linked Sportray bar widget; logs
+show normal fetch activity with no new QML exception, binding-loop, or
+standings error. The host IPC can summon/hide bar widgets but cannot call the
+child panel's route methods, and no reliable desktop pointer injector was
+available for a final visual standings-toggle exercise. Treat that as a
+runtime verification limitation, not evidence of a passing UI interaction.
+
+No rich game detail, pregame/close alerts, provider fallback, broader
+discovery, specialist sport work, calendar redesign, packaging, release, tag,
+push, or Marketplace action occurred. The local deletion of
+`MARKETPLACE_SUBMISSION.md` remains preserved and unstaged.
+
+Next bounded unit: add one optional rich-detail section using an already
+normalized ESPN fixture, without a new endpoint or NHL standings changes.

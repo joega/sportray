@@ -1,63 +1,63 @@
-Work in `/home/joeg/Projects/sportray` on the next bounded product unit:
-implement a verified NHL standings adapter and standings presentation
-projection, based on the private feature-parity backlog in `competition.md`.
+Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
+unit: add one optional rich game-detail section using an already normalized
+ESPN fixture, without adding a new endpoint.
 
-Before any edit, read `AGENTS.md`, `README.md`,
-`docs/upstream-contract.md`, `roadmap.md`, `competition.md`, and this latest
-handoff. The upstream-contract file is intentionally absent; verify current
-Omarchy/Quickshell boundaries against installed sources. Inspect `git status`,
-the current branch, recent commits, the latest roadmap handoff, NHL provider
-code, existing ESPN standings model/presentation, fixtures, and tests.
-Preserve unrelated changes, especially the existing deletion of
-`MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
+Before editing, read `AGENTS.md`, `README.md`,
+`docs/upstream-contract.md`, `roadmap.md`, `competition.md`, and the latest
+handoff in this file. `docs/upstream-contract.md` is intentionally absent in
+this checkout; inspect the installed Omarchy/Quickshell sources directly and
+record any material boundary deviation. Inspect `git status`, branch and
+recent commits, then review `model/GameDetailModel.js`, normalized ESPN game
+payloads, the existing local detail route, fixtures, and tests. Preserve the
+unrelated deletion of `MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
 
 Verified current state:
 
-- Sportray has eight leagues, canonical favorites, Following and league views,
-  date navigation, ESPN-backed standings, a local keyboard-accessible game
-  detail view, compact/full ambient modes, live-favorite rotation, adaptive
-  polling, bounded caches/responses, source links, settings, accessibility,
-  and favorite-only start/score/final notifications.
-- NHL is intentionally scores-only because no verified NHL standings contract
-  has been accepted yet. ESPN standings are already provider-neutralized and
-  should remain the model/presentation reference.
-- `competition.md` records the current catalog peers and the remaining parity
-  backlog. After NHL standings, the recommended slices are one optional rich
-  detail section and one pregame reminder policy.
-- Provider parsing stays in `providers/`; QML consumes normalized projections.
-  Preserve the no-account/no-backend/no-daemon default and all response,
-  settings, notification, and privacy bounds.
-- No public or Marketplace action is in scope. `origin/main` still contains
-  historical private planning/Marketplace files; do not push or attempt remote
-  cleanup in this unit.
+- Sportray supports eight leagues, canonical favorites, Following and stable
+  league destinations, bounded date/cache/polling behavior, settings,
+  accessibility, source attribution, notifications, and a local provider-
+  neutral game-detail route.
+- ESPN and NHL standings now use the shared normalized standings model and
+  presentation. NHL standings are sourced from the verified
+  `api-web.nhle.com/v1/standings/now` shape, grouped by Eastern/Western
+  conference, ordered by conference sequence, and mapped through the bounded
+  current NHL team catalog. Do not modify that unit here.
+- The existing detail model is a sparse projection of an already loaded game;
+  it has no second endpoint. ESPN provider fixtures already contain the
+  normalized event data needed for one optional section.
+- Provider parsing stays in `providers/`; QML consumes bounded projections.
+  Preserve the no-account/no-backend/no-daemon, response-size, item-count,
+  safe-URL, and canonical favorite boundaries.
+- Actual Omarchy validation, real-import-path lint, and JS tests passed for the
+  NHL unit. The bar-widget can be summoned, but child route IPC and a reliable
+  desktop pointer injector were unavailable for a final visual standings
+  toggle; do not turn that limitation into an unsupported runtime claim.
 
 Bounded outcome:
 
-Inspect installed/current NHL source and identify one reliable standings
-payload shape. Add a pure NHL standings parser/projection, a bounded fixture,
-and the smallest existing league-view integration needed to show standings
-with sport-appropriate ordering and safe missing-field behavior. Keep team
-identity canonical and preserve existing favorite actions if the route already
-supports them. If no reliable standings payload can be verified, implement
-only the pure contract/fixture rejection path, document the blocker, and stop.
+Inspect the existing normalized ESPN detail fixture and add exactly one small,
+optional provider-neutral detail section (for example a bounded venue or
+status/timing context already present in the normalized game) to the existing
+local detail projection and route. Keep all existing base fields and source
+actions unchanged. Add fixture-driven parser/model/projection coverage for
+present, missing, malformed, and bounded values. Do not fetch another endpoint,
+add provider fallback, or begin sport-specific detail.
 
 Required checks and stop condition:
 
-- Add fixture-driven coverage for valid ordering, ties or missing values,
-  malformed entries, empty standings, canonical team identity, and favorite
-  routing if changed.
-- Run `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, real-import-
-  path `qmllint` over changed QML, and `git diff --check`.
-- On actual Omarchy, rescan/restart the linked plugin as required by the
-  installed host, inspect the Quickshell log, and manually exercise an NHL
-  league view if QML behavior changes. Do not claim runtime success without an
-  actual Omarchy check.
-- Stop before rich game detail, pregame/close alerts, provider fallback
-  chains, broader team discovery, calendar redesign, specialist sports,
-  packaging, tagging, pushing, releases, or Marketplace work.
+- Run `./tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`,
+  real-import-path `qmllint` over any changed QML, and `git diff --check`.
+- If QML changes, rescan the linked plugin on actual Omarchy, exercise the
+  existing detail route as far as the host allows, and inspect Quickshell logs.
+  Do not claim actual-runtime success without actual Omarchy evidence.
+- Stop before richer multi-section detail, new endpoints, NHL standings
+  changes, pregame/close alerts, provider fallback chains, broader discovery,
+  calendar redesign, specialist sports, packaging, tagging, pushing, releases,
+  or Marketplace work.
 
 At completion, update `roadmap.md` with evidence, decisions, and a dated
-handoff; replace this file with the next single bounded prompt; and create one
-atomic Conventional Commit-style commit only after all gates pass. Use no
-subagents unless an independent read-only NHL contract investigation would
-materially improve confidence.
+handoff; replace this file with the next self-contained single-unit prompt;
+and create one atomic Conventional Commit-style commit only after the gates
+pass. Use subagents only for independent read-only fixture or upstream
+reconnaissance that materially improves confidence; the main agent owns all
+edits, integration, validation, handoff, and commit.

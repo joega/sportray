@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell.Io
 import "../providers/EspnProvider.js" as EspnProvider
+import "../providers/NhlProvider.js" as NhlProvider
+import "../model/StandingsModel.js" as StandingsModel
 import "../model/ResponsePolicy.js" as ResponsePolicy
 
 // One shared, on-demand standings request. It intentionally does not join the
@@ -48,7 +50,19 @@ Item {
   function parseBody(raw, targetLeague) {
     if (!raw || !ResponsePolicy.bodyWithinLimit(raw)) return null
     try {
-      return EspnProvider.parseStandingsResponse(JSON.parse(raw), targetLeague)
+      var payload = JSON.parse(raw)
+      var parsed = targetLeague === "nhl"
+        ? NhlProvider.parseStandingsResponse(payload)
+        : EspnProvider.parseStandingsResponse(payload, targetLeague)
+      if (!parsed || !Array.isArray(parsed.groups) || !Array.isArray(parsed.errors)) return null
+      var groups = parsed.groups.map(function(group) {
+        return {
+          id: group.id,
+          label: group.label,
+          entries: Array.isArray(group.entries) ? group.entries : group.rows
+        }
+      })
+      return StandingsModel.normalizeGroups(groups, targetLeague, parsed.errors)
     } catch (error) {
       return null
     }
@@ -87,7 +101,9 @@ Item {
 
   function load(targetLeague, force) {
     if (root.ownerDestroyed || typeof targetLeague !== "string" || targetLeague === "") return false
-    var url = EspnProvider.buildStandingsUrl(targetLeague)
+    var url = targetLeague === "nhl"
+      ? NhlProvider.buildStandingsUrl()
+      : EspnProvider.buildStandingsUrl(targetLeague)
     if (!url) {
       root.leagueId = targetLeague
       root.groups = []

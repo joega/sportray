@@ -1,0 +1,67 @@
+{
+  "standingsDateTimeUtc": "2026-08-24T14:26:30Z",
+  "wildCardIndicator": true,
+  "standings": [
+    {
+      "conferenceAbbrev": "W",
+      "conferenceName": "Western",
+      "conferenceSequence": 2,
+      "leagueSequence": 3,
+      "gamesPlayed": 82,
+      "wins": 50,
+      "losses": 20,
+      "otLosses": 12,
+      "points": 112,
+      "goalDifferential": 53,
+      "teamName": {"default": "Dallas Stars"},
+      "teamCommonName": {"default": "Stars"},
+      "teamAbbrev": {"default": "DAL"},
+      "teamLogo": "https://assets.nhle.com/logos/nhl/svg/DAL_light.svg"
+    },
+    {
+      "conferenceAbbrev": "E",
+      "conferenceName": "Eastern",
+      "conferenceSequence": 1,
+      "leagueSequence": 2,
+      "gamesPlayed": 82,
+      "wins": 53,
+      "losses": 22,
+      "otLosses": 7,
+      "points": 113,
+      "goalDifferential": 56,
+      "teamName": {"default": "Carolina Hurricanes"},
+      "teamCommonName": {"default": "Hurricanes"},
+      "teamAbbrev": {"default": "CAR"},
+      "teamLogo": "https://assets.nhle.com/logos/nhl/svg/CAR_light.svg"
+    },
+    {
+      "conferenceAbbrev": "E",
+      "conferenceName": "Eastern",
+      "conferenceSequence": 5,
+      "leagueSequence": 5,
+      "teamAbbrev": {"default": "BOS"}
+    },
+    {
+      "conferenceAbbrev": "W",
+      "conferenceName": "Western",
+      "conferenceSequence": 1,
+      "leagueSequence": 1,
+      "gamesPlayed": 82,
+      "wins": 55,
+      "losses": 16,
+      "otLosses": 11,
+      "points": 121,
+      "goalDifferential": 99,
+      "teamName": {"default": "Colorado Avalanche"},
+      "teamCommonName": {"default": "Avalanche"},
+      "teamAbbrev": {"default": "COL"},
+      "teamLogo": "https://assets.nhle.com/logos/nhl/svg/COL_light.svg"
+    },
+    {
+      "conferenceAbbrev": "W",
+      "conferenceName": "Western",
+      "conferenceSequence": 3,
+      "teamAbbrev": {"default": "???"}
+    }
+  ]
+}

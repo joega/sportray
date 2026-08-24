@@ -71,6 +71,11 @@ function readStandingsFixture() {
     path.join(root, "fixtures/espn/raw/standings-nfl.json"), "utf8"));
 }
 
+function readNhlStandingsFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/nhl/standings.json"), "utf8"));
+}
+
 function readGameDetailFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/espn/raw/game-detail.json"), "utf8"));
@@ -197,6 +202,7 @@ test("catalog exposes NHL enabled by default", () => {
     "usa.1": {id: "usa.1", name: "MLS", displayName: "MLS", enabledByDefault: false, provider: "espn", sport: "soccer", slug: "usa.1", standingsSupported: true},
     "mens-college-basketball": {id: "mens-college-basketball", name: "NCAA Men's Basketball", displayName: "NCAA Men's Basketball", enabledByDefault: false, provider: "espn", sport: "basketball", slug: "mens-college-basketball", standingsSupported: true}
   });
+  assert.equal(catalog.NHL.standingsSupported, true);
 });
 
 test("ESPN team catalogs expose canonical identities without provider payloads", () => {
@@ -278,6 +284,53 @@ test("NHL team discovery normalizes current records and skips history", () => {
   assert.equal(result.teams.find((team) => team.id === "nhl:6").logoUrl,
     "https://assets.nhle.com/logos/nhl/svg/BOS_light.svg");
   assert.equal(result.errors.length, 0);
+});
+
+test("NHL standings fixture projects conference order, canonical teams, and nulls", () => {
+  assert.equal(nhl.buildStandingsUrl(), "https://api-web.nhle.com/v1/standings/now");
+  assert.equal(nhl.STANDINGS_ENDPOINT, nhl.buildStandingsUrl());
+  assert.equal(nhl.buildStandingsUrl("2026-08-24"),
+    "https://api-web.nhle.com/v1/standings/2026-08-24");
+  assert.equal(nhl.buildStandingsUrl("20260824"), null);
+
+  const result = nhl.parseStandingsResponse(readNhlStandingsFixture());
+  assert.deepEqual(result.groups.map((group) => group.label),
+    ["Eastern Conference", "Western Conference"]);
+  assert.deepEqual(result.rows.map((row) => row.team.id),
+    ["nhl:12", "nhl:6", "nhl:21", "nhl:25"]);
+  assert.deepEqual(result.groups.map((group) => group.rows.map((row) => row.rank)),
+    [[1, 5], [1, 2]]);
+  assert.equal(result.rows[0].ties, 7);
+  assert.equal(result.rows[0].recordLabel, "53-22-7");
+  assert.equal(result.rows[0].team.logoUrl,
+    "https://assets.nhle.com/logos/nhl/svg/CAR_light.svg");
+  assert.equal(result.rows[1].team.id, "nhl:6");
+  assert.equal(result.rows[1].team.name, null);
+  assert.equal(result.rows[1].played, null);
+  assert.equal(result.rows[1].wins, null);
+  assert.equal(result.rows[1].points, null);
+  assert.equal(result.rows[1].recordLabel, null);
+  assert.equal(result.errors.length, 1);
+  assert.deepEqual(result.errors[0], {index: 4, code: "invalid-standing-entry"});
+  assert.equal(JSON.stringify(result).includes("teamLogo"), false);
+});
+
+test("NHL standings rejects malformed and empty payloads without inventing rows", () => {
+  assert.deepEqual(nhl.parseStandingsResponse({standings: []}), {
+    leagueId: "nhl", groups: [], rows: [], errors: []
+  });
+  assert.equal(nhl.parseStandingsResponse({}).errors[0].code,
+    "invalid-standings-response");
+  const mixed = nhl.parseStandingsResponse({standings: [
+    {conferenceAbbrev: "E", conferenceName: "Eastern", conferenceSequence: 1,
+      teamAbbrev: {default: "NOPE"}},
+    {conferenceAbbrev: "E", conferenceName: "Eastern", conferenceSequence: 2,
+      teamAbbrev: {default: "NYR"}, wins: "not-a-number"}
+  ]});
+  assert.equal(mixed.rows.length, 1);
+  assert.equal(mixed.rows[0].team.id, "nhl:3");
+  assert.equal(mixed.rows[0].wins, null);
+  assert.equal(mixed.errors[0].code, "invalid-standing-entry");
 });
 
 test("malformed or missing team data fails safely", () => {
@@ -1294,6 +1347,16 @@ test("standings rows keep existing favorite routing and expose bounded actions",
     {type: "toggle-favorite-team", label: "Add favorite", enabled: true});
   const source = readSource("components/StandingsRow.qml");
   assert.equal(source.includes("root.settings.toggleFavoriteTeam(root.standing.team.id)"), true);
+  const nhlRows = standingsRows.flatten(nhl.parseStandingsResponse(readNhlStandingsFixture()), ["nhl:12"]);
+  assert.equal(nhlRows[1].favorite, true);
+  assert.deepEqual(nhlRows[1].action,
+    {type: "toggle-favorite-team", label: "Remove favorite", enabled: true});
+  const fetch = readSource("services/StandingsFetch.qml");
+  assert.equal(fetch.includes('import "../providers/NhlProvider.js" as NhlProvider'), true);
+  assert.equal(fetch.includes('import "../model/StandingsModel.js" as StandingsModel'), true);
+  assert.equal(fetch.includes('? NhlProvider.parseStandingsResponse(payload)'), true);
+  assert.equal(fetch.includes("return StandingsModel.normalizeGroups(groups, targetLeague, parsed.errors)"), true);
+  assert.equal(fetch.includes('? NhlProvider.buildStandingsUrl()'), true);
 });
 
 test("generic game details normalize ESPN games into ordered provider-neutral fields", () => {
