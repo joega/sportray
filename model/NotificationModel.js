@@ -2,7 +2,8 @@ var EVENT_TYPES = {
   GAME_START: "game-start",
   SCORE_CHANGE: "score-change",
   GAME_FINAL: "game-final",
-  PREGAME_REMINDER: "pregame-reminder"
+  PREGAME_REMINDER: "pregame-reminder",
+  CLOSE_GAME: "close-game"
 };
 
 var MAX_DISPLAY_TEXT_LENGTH = 160;
@@ -75,6 +76,7 @@ function eventKey(event) {
   if (event.type === EVENT_TYPES.GAME_START) return gameId + ":start";
   if (event.type === EVENT_TYPES.GAME_FINAL) return gameId + ":final";
   if (event.type === EVENT_TYPES.PREGAME_REMINDER) return gameId + ":pregame";
+  if (event.type === EVENT_TYPES.CLOSE_GAME) return gameId + ":close";
   if (event.type === EVENT_TYPES.SCORE_CHANGE
       && typeof event.awayScore === "number" && typeof event.homeScore === "number"
       && isFinite(event.awayScore) && isFinite(event.homeScore)
@@ -94,7 +96,8 @@ function notificationsFor(settings) {
     gameStart: value.gameStart === true,
     scoreChange: value.scoreChange === true,
     gameFinal: value.gameFinal === true,
-    pregameReminder: value.pregameReminder === true
+    pregameReminder: value.pregameReminder === true,
+    closeGame: value.closeGame === true
   };
 }
 
@@ -105,6 +108,7 @@ function eventEnabled(event, settings) {
   if (event.type === EVENT_TYPES.SCORE_CHANGE) return notifications.scoreChange;
   if (event.type === EVENT_TYPES.GAME_FINAL) return notifications.gameFinal;
   if (event.type === EVENT_TYPES.PREGAME_REMINDER) return notifications.pregameReminder;
+  if (event.type === EVENT_TYPES.CLOSE_GAME) return notifications.closeGame;
   return false;
 }
 
@@ -136,6 +140,7 @@ function headlineFor(type) {
   if (type === EVENT_TYPES.SCORE_CHANGE) return "Sportray · Score change";
   if (type === EVENT_TYPES.GAME_FINAL) return "Sportray · Final";
   if (type === EVENT_TYPES.PREGAME_REMINDER) return "Sportray · Upcoming game";
+  if (type === EVENT_TYPES.CLOSE_GAME) return "Sportray · Close game";
   return "Sportray";
 }
 

@@ -20,6 +20,7 @@ Item {
   readonly property var settingsStore: settingsStore
   readonly property var fetchService: fetchService
   readonly property var standingsService: standingsService
+  readonly property var notificationService: notificationServiceImpl
 
   function registerPanel() {
     root.nextPanelToken += 1
@@ -62,6 +63,7 @@ Item {
   }
 
   NotificationService {
+    id: notificationServiceImpl
     settingsStore: settingsStore
     games: root.selectedDateKey === root.todayDateKey ? fetchService.games : []
   }

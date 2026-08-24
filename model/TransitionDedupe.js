@@ -7,7 +7,8 @@ var EVENT_TYPES = {
   GAME_START: "game-start",
   SCORE_CHANGE: "score-change",
   GAME_FINAL: "game-final",
-  PREGAME_REMINDER: "pregame-reminder"
+  PREGAME_REMINDER: "pregame-reminder",
+  CLOSE_GAME: "close-game"
 };
 
 function isRecord(value) {
@@ -131,6 +132,7 @@ function fingerprintForEvent(event) {
   if (event.type === EVENT_TYPES.GAME_START) return gameId + ":start";
   if (event.type === EVENT_TYPES.GAME_FINAL) return gameId + ":final";
   if (event.type === EVENT_TYPES.PREGAME_REMINDER) return gameId + ":pregame";
+  if (event.type === EVENT_TYPES.CLOSE_GAME) return gameId + ":close";
   if (event.type === EVENT_TYPES.SCORE_CHANGE) {
     var awayScore = score(event.awayScore);
     var homeScore = score(event.homeScore);

@@ -1,0 +1,105 @@
+{
+  "todayDateKey": "2026-10-10",
+  "settings": {
+    "favoriteTeamIds": ["nhl:6"],
+    "notifications": {
+      "enabled": true,
+      "closeGame": true
+    }
+  },
+  "eligible": {
+    "previous": {
+      "league": "nhl",
+      "providerGameId": "m6-6-eligible",
+      "startTime": "2026-10-10T23:00:00Z",
+      "status": "live",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": 4,
+      "homeScore": 2
+    },
+    "current": {
+      "league": "nhl",
+      "providerGameId": "m6-6-eligible",
+      "startTime": "2026-10-10T23:00:00Z",
+      "status": "live",
+      "periodLabel": "3rd",
+      "clock": "04:12",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": 4,
+      "homeScore": 3
+    }
+  },
+  "expectedEvent": {
+    "type": "close-game",
+    "gameId": "nhl:m6-6-eligible",
+    "league": "nhl",
+    "currentStatus": "live",
+    "awayScore": 4,
+    "homeScore": 3
+  },
+  "expectedArgv": [
+    "/usr/bin/omarchy-notification-send",
+    "--app-name", "Sportray",
+    "-u", "normal",
+    "Sportray · Close game",
+    "BOS 4–3 TOR · 3rd · 04:12"
+  ],
+  "disabled": {
+    "favoriteTeamIds": ["nhl:6"],
+    "notifications": {"enabled": true, "closeGame": false}
+  },
+  "nonFavorite": {
+    "league": "nhl",
+    "providerGameId": "m6-6-other-team",
+    "startTime": "2026-10-10T23:00:00Z",
+    "status": "live",
+    "awayTeam": {"id": "nhl:10", "league": "nhl", "providerTeamId": "10", "abbreviation": "FLA"},
+    "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+    "awayScore": 2,
+    "homeScore": 2
+  },
+  "notApplicable": [
+    {
+      "league": "nhl",
+      "providerGameId": "m6-6-final",
+      "startTime": "2026-10-10T23:00:00Z",
+      "status": "final",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": 4,
+      "homeScore": 3
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-6-missing-score",
+      "startTime": "2026-10-10T23:00:00Z",
+      "status": "live",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": null,
+      "homeScore": 3
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-6-wide",
+      "startTime": "2026-10-10T23:00:00Z",
+      "status": "live",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": 5,
+      "homeScore": 1
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-6-malformed-date",
+      "startTime": "not-a-date",
+      "status": "live",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"},
+      "awayScore": 2,
+      "homeScore": 2
+    }
+  ]
+}

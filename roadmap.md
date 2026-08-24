@@ -2460,3 +2460,82 @@ notification/dedupe pipeline. Preserve the new pregame reminder and all
 start/score/final behavior; stop before adding a second endpoint, provider UI,
 fallback, broader discovery, specialist sports, packaging, tagging, pushing,
 releases, or Marketplace work.
+
+## Latest handoff — 2026-08-24 close-game alert and settings-preview wiring
+
+Status: complete. Sportray now supports one independently configurable,
+favorite-only close-game alert through the existing normalized-game
+notification pipeline. `model/CloseGamePolicy.js` admits only a transition into
+an in-progress (`live` or `intermission`) favorite game whose valid normalized
+scores are tied or separated by one point, and only when the game's local start
+date matches the current local date. It fails closed for disabled preferences,
+non-favorites, scheduled/final games, missing or malformed scores/timestamps,
+and wider margins. The prior snapshot is required, so first-fetch snapshots
+remain silent.
+
+The schema-1 notification settings now include `closeGame`, defaulting to
+`false`; the Notifications destination exposes the independent **Close-game
+alerts** toggle. `NotificationService` evaluates the pure policy on the
+existing today-game snapshot and sends a bounded provider-neutral delivery
+through the existing helper and persisted transition dedupe. The new
+`gameId:close` fingerprint suppresses repeats across polling and state reloads.
+Existing start, score-change, final, test-preview, and pregame behavior remains
+unchanged.
+
+The settings-page test-notification report was also reproduced and diagnosed:
+the direct helper and prior real Sportray alert history were healthy, but
+`Panel.qml` passed an unqualified undefined `notificationService` into
+`SettingsHub`, so `SettingsView` silently had no service to call. The singleton
+now explicitly exposes its `NotificationService`, and Panel injects that
+object. This is a wiring correction within the existing notification boundary;
+the helper contract and queue remain unchanged.
+
+Evidence:
+
+- `fixtures/transitions/m6-6.json` and deterministic tests cover an eligible
+  close transition, disabled preference, non-favorite, non-live, missing and
+  malformed score/date state, wider margin, bounded text, canonical-ID text
+  exclusion, and duplicate suppression across state reload. The complete
+  JavaScript suite passes with 190 tests.
+- `omarchy plugin validate "$PWD"`, real-import-path QML lint over the changed
+  QML and all QML files, `./tests/test-summon-helper.sh`, and `git diff --check`
+  pass. QML lint exits 0 with the established standalone import, unresolved
+  host-type, and unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0 revision
+  `28771c7c74b42e20afca0b1b63980cb46515537` was inspected. The installed
+  `/usr/bin/omarchy-notification-send` was exercised directly with the exact
+  Sportray argv and returned exit 0; the Omarchy notification history recorded
+  the resulting `Sportray · Settings-path verification` toast. Existing history also contains
+  real Sportray start, score-change, and final notifications. Plugin discovery
+  still lists Sportray enabled, the shell ping returns `ok`, and no helper,
+  QML-load, exception, or binding-loop error was present in the inspected shell
+  log. A child-panel IPC method and reliable desktop pointer injector remain
+  unavailable, so no manual settings click-through is claimed.
+
+Decision log: define close as a provider-neutral one-score margin rather than
+inventing sport-specific thresholds; include intermission because it is an
+in-progress normalized state; require a transition into the margin and reuse
+the existing persisted dedupe to avoid a notification on every polling tick.
+Keep the setting default-off and preserve schema-1 recovery/future-schema
+opacity. Repair the settings preview by exposing the existing service object,
+not by adding a second helper or notification route. The private
+`docs/upstream-contract.md` remains intentionally absent; installed Omarchy
+and Quickshell sources were inspected directly and no material host-boundary
+deviation was found.
+
+Known risks: a snapshot that first arrives after a game has already entered the
+one-score margin will not alert because the policy requires a prior snapshot;
+the alert depends on the existing scoreboard refresh cadence; and actual
+settings click-through still needs a host-supported child-route or pointer
+test. Provider availability and regional behavior are unchanged. No push, tag,
+release, Marketplace, or remote action was performed, and unrelated repository
+state remains preserved.
+
+Next bounded unit: perform one actual Omarchy settings-page **Send test
+notification** runtime verification against the now-explicit service wiring.
+Use the installed host's current child-panel IPC or a reliable desktop input
+path if available; inspect the notification history and Quickshell logs. If
+the host still cannot expose a reliable settings interaction, record that
+external blocker and leave Sportray source unchanged. Stop before adding a
+second notification route, provider endpoint, alert type, UI discovery,
+specialist sports, packaging, tagging, pushing, release, or Marketplace work.

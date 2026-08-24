@@ -102,6 +102,7 @@ Panel {
   readonly property var resultRows: ResultRows.flatten(
     root.activeView, root.activeDestination, root.selectedDateLabel)
   readonly property var standingsService: root.service ? root.service.standingsService : null
+  readonly property var notificationService: root.service ? root.service.notificationService : null
   readonly property var standingsState: root.standingsService
     && typeof root.standingsService.snapshot === "function"
     ? root.standingsService.snapshot() : ({leagueId: "", groups: [], rows: [], hasData: false,
@@ -889,7 +890,7 @@ Panel {
                 teams: root.pickerTeams
                 leagues: LeagueCatalog.listLeagues()
                 settingsStore: root.settingsStore
-                notificationService: notificationService
+                notificationService: root.notificationService
                 settingsRevision: root.presentationRevision
                 callbackOwner: root.callbackOwner
                 compact: utilityScroll.width < Style.space(360)

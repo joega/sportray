@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell.Io
 import "../model/DateModel.js" as DateModel
+import "../model/CloseGamePolicy.js" as CloseGamePolicy
 import "../model/NotificationModel.js" as NotificationModel
 import "../model/PregameReminderPolicy.js" as PregameReminderPolicy
 import "../model/TransitionDedupe.js" as TransitionDedupe
@@ -52,6 +53,10 @@ Item {
     var events = TransitionDetector.detectGames(previous, current).concat(
       PregameReminderPolicy.eligibleEvents(
         current, root.settingsStore.settings, nowMs,
+        DateModel.localDateKey(new Date(nowMs)))
+    ).concat(
+      CloseGamePolicy.eligibleEvents(
+        previous, current, root.settingsStore.settings,
         DateModel.localDateKey(new Date(nowMs)))
     )
     if (events.length === 0 || typeof root.settingsStore.acceptTransitionEvents !== "function") return

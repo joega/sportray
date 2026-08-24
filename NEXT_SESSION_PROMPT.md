@@ -1,75 +1,69 @@
 Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
-unit: add one independently configurable, favorite-only close-game alert
-through the existing normalized-game notification pipeline.
+unit: perform one actual Omarchy runtime verification of the Settings-page
+**Send test notification** path after the close-game alert unit's service
+wiring fix.
 
-Before editing, read `AGENTS.md`, `README.md`,
-`docs/upstream-contract.md`, `roadmap.md`, `competition.md`, and the latest
-handoff in this file. `docs/upstream-contract.md` is intentionally absent in
-this checkout; inspect installed Omarchy/Quickshell sources directly and
-record any material boundary deviation. Inspect `git status`, the current
-branch, and recent commits. Preserve unrelated user changes, including any
-deletion of `MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
+Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`,
+`competition.md`, and the latest handoff in this file. Read
+`docs/upstream-contract.md` when it is present; it is intentionally absent in
+this checkout, so inspect the installed/current Omarchy and Quickshell sources
+directly and record any material boundary deviation. Inspect `git status`, the
+current branch, and recent commits. Preserve unrelated user changes, including
+any deletion of `MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
 
 Verified current state:
 
-- Sportray supports eight leagues, canonical favorites, Following and stable
-  league destinations, bounded date/cache/polling behavior, settings,
-  accessibility, source attribution, notifications, and NHL/ESPN standings.
-- The local game-details route is removed. Whole-row activation uses the
-  existing guarded ESPN/NHL.com source page. `Panel.qml` does not mount
-  `GameDetailView` or own detail state; the retained detail model/view are
-  future groundwork.
-- `model/GameDetailModel.js` has one optional provider-neutral `outcome`
-  projection from complete bounded final scores. It is not mounted in QML and
-  must remain unchanged in this unit.
-- `model/PregameReminderPolicy.js` and the `pregameReminder` schema-1 setting
-  are complete. The opt-in policy is favorite-only, local-today scoped,
-  scheduled-status-only, silent for invalid/stale timestamps, bounded to the
-  next 30 minutes, first-fetch silent, and deduplicated by the existing
-  persisted transition state using `gameId:pregame` fingerprints.
-- The existing notification pipeline is favorite-only, first-fetch silent,
-  bounded, restart-safe, and routed through
-  `/usr/bin/omarchy-notification-send`. Existing start, score-change, final,
-  test-preview, and pregame behavior must remain intact. Normalized games
-  already carry scores/status/startTime; do not fetch per-game data.
-- The latest completed unit passed 188 deterministic JavaScript tests,
-  plugin validation, full real-import-path QML lint, diff check, and an actual
-  Omarchy rescan/summon/hide/log health check. Child-route IPC and a reliable
-  desktop pointer injector remain unavailable; do not claim manual UI success
-  without direct evidence.
+- Sportray supports eight leagues, canonical favorites, bounded date/cache/
+  polling behavior, settings, accessibility, standings, source-page routing,
+  and favorite-only first-fetch-silent deduplicated start, score-change, final,
+  pregame, and opt-in close-game notifications.
+- `model/CloseGamePolicy.js` is pure and fixture-tested. It admits a transition
+  into a favorite live/intermission game with valid normalized scores tied or
+  within one point, scoped to the current local start date. Its default-off
+  `closeGame` schema-1 setting and `gameId:close` dedupe fingerprint are
+  complete; do not broaden the alert contract in this unit.
+- The Settings-page preview bug was fixed by exposing the existing
+  `NotificationService` from the `SportrayService` singleton and passing it
+  explicitly from `Panel.qml` to `SettingsHub`/`SettingsView`. The direct
+  `/usr/bin/omarchy-notification-send` helper test passed and Omarchy history
+  recorded the toast, but no manual settings click-through has been claimed.
+- The complete JavaScript suite passes with 190 tests; plugin validation,
+  real-import-path QML lint, summon-helper tests, and `git diff --check` pass.
+  QML lint retains established host-import/unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 and Quickshell 0.3.0 revision
+  `28771c7c74b42e20afca0b1b63980cb46515537` are installed. Sportray is enabled,
+  shell ping returns `ok`, and the linked checkout can be rescanned/summoned.
+  The current limitation is that child-panel IPC does not expose a method for
+  the settings action and no reliable desktop pointer injector has been
+  available.
 
 Bounded outcome:
 
-Implement one pure, fixture-driven close-game admission/projection using
-existing normalized live-game scores/status and then connect only the minimum
-existing notification call path required by that policy. The policy must be
-opt-in, favorite-only, bounded to a clearly documented provider-neutral
-condition, silent for missing/malformed/inapplicable score state, date-scoped,
-bounded in text, and deduplicated through the existing transition state. Do
-not expose canonical IDs in notification text. Keep the new alert independent
-from game starts, score changes, finals, and pregame reminders.
+Verify the Settings destination's **Send test notification** action on actual
+Omarchy using only an available child-panel IPC or reliable desktop input
+mechanism. Confirm the notification appears in the Omarchy notification
+history and that the Quickshell log has no Sportray helper/QML/exception or
+binding-loop failure. If the host still cannot provide a reliable interaction,
+record the unchanged external blocker and make no Sportray source change.
 
-Required coverage and checks:
+Required checks:
 
-- Add fixtures/tests for an eligible close game, disabled preference,
-  non-favorite, non-live or missing-score state, out-of-threshold score state,
-  bounded notification text, and duplicate suppression across state reload.
-- Add one notification-settings toggle with a default-off schema-1 value only
-  if needed to make the opt-in behavior user-controllable; preserve old
-  schema-1 recovery and future-schema opacity.
-- Run `./tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the real
-  import-path `qmllint` over changed QML (and all QML if practical), and
-  `git diff --check`.
-- If QML changes, rescan the linked plugin on actual Omarchy, exercise only
-  what the host allows, and inspect Quickshell logs. Do not report runtime UI
-  success without evidence.
+- Inspect installed Omarchy/Quickshell widget, panel, IPC, and notification
+  sources before choosing the runtime interaction path.
+- Rescan the linked plugin on actual Omarchy, exercise only the host-supported
+  settings action, inspect `qs list --all`, the current Quickshell log, and the
+  notification history.
+- If source changes become necessary, run `./tests/run-js-tests.sh`,
+  `omarchy plugin validate "$PWD"`, real-import-path `qmllint`, and
+  `git diff --check`. Do not claim manual UI success without direct evidence.
 
-Stop before a second endpoint, provider-specific UI, provider fallback,
-broader discovery, calendar redesign, specialist sports, packaging, tagging,
-pushing, releases, or Marketplace work. At completion, update `roadmap.md`
-with evidence, decisions, and a dated handoff; replace this file with the next
-self-contained single-unit prompt; and create one atomic Conventional
-Commit-style commit only after all gates pass. Use subagents only for
-independent read-only notification or upstream reconnaissance that materially
-improves confidence; the main agent owns all edits, integration, validation,
-handoff, and commit.
+Known risks and stop conditions: child-route IPC and pointer injection may
+remain unavailable; do not add a second helper route, alert type, provider
+endpoint, broader discovery, specialist sports, packaging, tagging, pushing,
+release, or Marketplace work. Stop after the runtime evidence or unchanged
+blocker is recorded. Update `roadmap.md` with the dated handoff and evidence,
+replace this file with the next self-contained single-unit prompt, and create
+one atomic Conventional Commit-style commit only if a source/documentation
+change was required and all applicable gates pass. Use subagents only for
+independent read-only upstream/runtime reconnaissance that materially improves
+confidence; the main agent owns any edits, validation, handoff, and commit.

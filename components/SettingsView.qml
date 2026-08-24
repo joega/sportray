@@ -15,7 +15,8 @@ Item {
     {key: "gameStart", label: "Game starts", description: "Notify when a favorite game becomes live."},
     {key: "scoreChange", label: "Score changes", description: "Notify when a favorite team's score changes."},
     {key: "gameFinal", label: "Game finals", description: "Notify when a favorite game ends."},
-    {key: "pregameReminder", label: "Pregame reminders", description: "Remind before a favorite game starts."}
+    {key: "pregameReminder", label: "Pregame reminders", description: "Remind before a favorite game starts."},
+    {key: "closeGame", label: "Close-game alerts", description: "Alert when a favorite game reaches a one-score margin."}
   ]
 
   implicitHeight: settingsColumn.implicitHeight

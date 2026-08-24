@@ -46,6 +46,7 @@ const responsePolicy = require(path.join(root, "model/ResponsePolicy.js"));
 const liveFavoriteRotation = require(path.join(root, "model/LiveFavoriteRotationPolicy.js"));
 const countdownProjection = require(path.join(root, "model/CountdownProjectionPolicy.js"));
 const pregameReminder = require(path.join(root, "model/PregameReminderPolicy.js"));
+const closeGame = require(path.join(root, "model/CloseGamePolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -175,6 +176,11 @@ function readNotificationFixture() {
 
 function readPregameReminderFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/transitions/m6-5.json"), "utf8"));
+}
+
+function readCloseGameFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/transitions/m6-6.json"), "utf8"));
 }
 
 function normalizeFixtureGames(fixture) {
@@ -675,8 +681,8 @@ test("future state schemas stay opaque and never request a destructive write", (
 
   const schema1 = stateModel.parseStateText(fixture.schema1, 1700000000000,
     settingsModel, transitionDedupe);
-  assert.equal(schema1.status, "valid");
-  assert.equal(schema1.needsWrite, false);
+  assert.equal(schema1.status, "field-recovered");
+  assert.equal(schema1.needsWrite, true);
   assert.equal(schema1.preservedRawText, "");
 
   const corrupt = stateModel.parseStateText(fixture.corrupt, 1700000000000,
@@ -865,6 +871,61 @@ test("pregame reminder fingerprints use the existing persisted transition dedupe
   assert.equal(replay.events.length, 0);
 });
 
+test("close-game policy admits only an opted-in favorite entering a one-score margin", () => {
+  const fixture = readCloseGameFixture();
+  const previous = games.normalizeGame(fixture.eligible.previous);
+  const current = games.normalizeGame(fixture.eligible.current);
+  const settings = settingsModel.normalizeSettings({
+    schemaVersion: 1,
+    enabledLeagues: ["nhl"],
+    favoriteTeamIds: fixture.settings.favoriteTeamIds,
+    notifications: fixture.settings.notifications
+  }).settings;
+  const events = closeGame.eligibleEvents([previous], [current], settings,
+    fixture.todayDateKey);
+  assert.deepEqual(events, [fixture.expectedEvent]);
+
+  const delivery = notificationModel.buildDelivery(events[0], current);
+  assert.deepEqual(delivery.argv, fixture.expectedArgv);
+  assert.equal(delivery.description.includes("nhl:m6-6-eligible"), false);
+  assert.equal(delivery.description.length <= 320, true);
+
+  const disabled = settingsModel.normalizeSettings({
+    schemaVersion: 1,
+    enabledLeagues: ["nhl"],
+    favoriteTeamIds: fixture.disabled.favoriteTeamIds,
+    notifications: fixture.disabled.notifications
+  }).settings;
+  assert.deepEqual(closeGame.eligibleEvents([previous], [current], disabled,
+    fixture.todayDateKey), []);
+
+  const nonFavorite = games.normalizeGame(fixture.nonFavorite);
+  assert.deepEqual(closeGame.eligibleEvents([], [nonFavorite], settings,
+    fixture.todayDateKey), []);
+
+  const notApplicable = fixture.notApplicable.map((game) => games.normalizeGame(game));
+  assert.deepEqual(closeGame.eligibleEvents([], notApplicable, settings,
+    fixture.todayDateKey), []);
+});
+
+test("close-game alerts use one persisted fingerprint across reloads", () => {
+  const fixture = readCloseGameFixture();
+  const event = fixture.expectedEvent;
+  assert.equal(notificationModel.eventKey(event), "nhl:m6-6-eligible:close");
+  assert.equal(transitionDedupe.fingerprintForEvent(event), "nhl:m6-6-eligible:close");
+
+  const now = Date.parse("2026-10-10T23:31:00Z");
+  const first = transitionDedupe.acceptEvents(
+    transitionDedupe.createDefaults(), [event], now);
+  const persisted = stateModel.createState(settingsModel.createDefaults(), first.state,
+    settingsModel, transitionDedupe, now);
+  const loaded = stateModel.parseStateText(JSON.stringify(persisted), now + 1,
+    settingsModel, transitionDedupe);
+  const replay = transitionDedupe.acceptEvents(loaded.transitionDedupe, [event], now + 1);
+  assert.equal(first.events.length, 1);
+  assert.equal(replay.events.length, 0);
+});
+
 test("panel explicitly refreshes derived presentation on settings changes", () => {
   const source = readSource("Panel.qml");
   assert.equal(source.includes("property int presentationRevision: 0"), true);
@@ -886,6 +947,10 @@ test("panel keeps the host settings property and injects its distinct settings s
   fixture.barWidget.consumerTokens.forEach((token) => assert.equal(barWidget.includes(token), true));
   assert.equal((panel.match(/\broot\.settings\b/g) || []).length, 0);
   assert.equal((barWidget.match(/target\.settings\b/g) || []).length, 0);
+  assert.equal(panel.includes("readonly property var notificationService: root.service"), true);
+  assert.equal(panel.includes("notificationService: root.notificationService"), true);
+  assert.equal(readSource("services/SportrayService.qml").includes(
+    "readonly property var notificationService: notificationServiceImpl"), true);
 });
 
 test("settings are unified behind one hub with a deep-linkable favorite destination", () => {
@@ -2298,7 +2363,8 @@ test("settings defaults are versioned and safe", () => {
       gameStart: false,
       scoreChange: false,
       gameFinal: false,
-      pregameReminder: false
+      pregameReminder: false,
+      closeGame: false
     }
   });
   const result = settingsModel.parseSettingsText("");
@@ -2362,7 +2428,7 @@ test("SettingsStore gates FileView writes on permission repair and hardens saved
 
 test("notification preferences toggle independently and round-trip", () => {
   const base = settingsModel.createDefaults();
-  const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder"];
+  const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder", "closeGame"];
   let selected = base;
 
   keys.forEach((key) => {
@@ -2374,7 +2440,8 @@ test("notification preferences toggle independently and round-trip", () => {
     gameStart: true,
     scoreChange: true,
     gameFinal: true,
-    pregameReminder: true
+    pregameReminder: true,
+    closeGame: true
   });
 
   keys.forEach((key) => {
@@ -2386,7 +2453,7 @@ test("notification preferences toggle independently and round-trip", () => {
 });
 
 test("global notification off preserves event choices and blocks deliveries", () => {
-  const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder"];
+  const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder", "closeGame"];
   let settings = settingsModel.createDefaults();
   keys.forEach((key) => { settings = settingsModel.toggleNotification(settings, key); });
 
@@ -2397,7 +2464,8 @@ test("global notification off preserves event choices and blocks deliveries", ()
     gameStart: true,
     scoreChange: true,
     gameFinal: true,
-    pregameReminder: true
+    pregameReminder: true,
+    closeGame: true
   });
 
   const fixture = readNotificationFixture();
@@ -2408,12 +2476,16 @@ test("global notification off preserves event choices and blocks deliveries", ()
 
   assert.equal(readSource("components/SettingsView.qml").includes(
     'key: "pregameReminder"'), true);
+  assert.equal(readSource("components/SettingsView.qml").includes(
+    'key: "closeGame"'), true);
   assert.equal(readSource("services/NotificationService.qml").includes(
     "PregameReminderPolicy.eligibleEvents"), true);
+  assert.equal(readSource("services/NotificationService.qml").includes(
+    "CloseGamePolicy.eligibleEvents"), true);
 });
 
 test("notification preferences persist through the schema-1 state serializer", () => {
-  const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder"];
+  const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder", "closeGame"];
   let settings = settingsModel.createDefaults();
   keys.forEach((key) => { settings = settingsModel.toggleNotification(settings, key); });
 
@@ -2429,7 +2501,8 @@ test("notification preferences persist through the schema-1 state serializer", (
     gameStart: true,
     scoreChange: true,
     gameFinal: true,
-    pregameReminder: true
+    pregameReminder: true,
+    closeGame: true
   });
 });
 
@@ -2443,7 +2516,8 @@ test("valid schema 1 settings round-trip without provider or raw response fields
       gameStart: true,
       scoreChange: false,
       gameFinal: true,
-      pregameReminder: false
+      pregameReminder: false,
+      closeGame: false
     }
   };
   const result = settingsModel.parseSettingsText(JSON.stringify(input));
@@ -2558,7 +2632,8 @@ test("invalid types and bounded values never escape the schema", () => {
       gameStart: true,
       scoreChange: 1,
       gameFinal: false,
-      pregameReminder: false
+      pregameReminder: false,
+      closeGame: false
     },
     rawResponse: {games: [{gameState: "LIVE"}]}
   }));
@@ -2575,7 +2650,8 @@ test("invalid types and bounded values never escape the schema", () => {
     gameStart: true,
     scoreChange: false,
     gameFinal: false,
-    pregameReminder: false
+    pregameReminder: false,
+    closeGame: false
   });
   assert.ok(result.unknownFields.includes("rawResponse"));
   assert.equal(JSON.stringify(result.settings).includes("gameState"), false);
@@ -2593,7 +2669,8 @@ test("picker favorite updates preserve the exact schema-1 store shape", () => {
       gameStart: false,
       scoreChange: false,
       gameFinal: false,
-      pregameReminder: false
+      pregameReminder: false,
+      closeGame: false
     }
   });
   assert.deepEqual(settingsModel.toggleFavoriteTeam(selected, "nhl:6"), base);
