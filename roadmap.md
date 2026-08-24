@@ -3189,3 +3189,84 @@ candidate decision list recorded in `competition.md`. If the owner selects a
 slice, implement that single bounded vertical slice under the existing
 guardrails; if no direction is given, do not infer one and stop after
 recording the still-pending decision.
+
+## Latest handoff — 2026-08-24 team-statistics rich-detail projection
+
+Status: complete. The third optional rich-detail section is implemented as a
+bounded provider-neutral projection. `model/GameDetailModel.js` now exposes an
+optional `stats` record — `{away: [{key, label, value}...], home: [...]}` or
+`null` — projected from the already fetched ESPN scoreboard snapshot without a
+new endpoint, without touching `GameModel`'s normalized shape, and without a
+new settings schema.
+
+Evidence:
+
+- On 2026-08-24 the live MLB scoreboard response was inspected directly and
+  confirmed to carry top-level numeric competitor `hits` and `errors` fields
+  (NFL competitors carry `records`/`statistics`, intentionally not extracted in
+  this unit). No second fetch is required.
+- `GameDetailModel` bounds each side at `MAX_STAT_ROWS = 8` entries, keys at
+  32 lowercase-slug characters, labels at 24 characters, and values at the
+  existing 9,999 bound; duplicate keys, key/label-shape violations, over-bound
+  values, side-length mismatches, and pairwise key mismatches fail closed to
+  `stats: null`. `emptyDetail` carries `stats: null`.
+- `providers/EspnProvider.js` extracts `hits`/`errors` from the same payload
+  inside `parseGameDetailResponse` only, keyed by provider game ID with the
+  fixed neutral label table (`Hits`/`Errors`), and merges them into the detail
+  candidate before normalization. `parseScoreboardResponse`, the normalized
+  game shape, polling, and all other consumers are unchanged.
+- `components/GameDetailView.qml` renders a bounded `TEAM STATS` table
+  (label, away, home columns) with the same neutral `—` placeholder convention
+  when the projection is null. No routing, cursor, source-action, or panel
+  state changed.
+- `fixtures/espn/raw/game-detail-stats.json` covers valid rows, a partial
+  single-key projection, malformed value rejection, over-bound rejection, and
+  missing fields. One new deterministic test asserts accepted projections,
+  every rejected case as `null`, the new bounds, and the absence of raw
+  provider fields; the route fixture and view-source assertions now cover the
+  `TEAM STATS` placeholder. The complete suite passes with 211 tests.
+- `./tests/test-summon-helper.sh`, `git diff --check`, `omarchy plugin
+  validate "$PWD"`, and real-import-path `/usr/lib/qt6/bin/qmllint -I
+  /usr/share/omarchy/shell` over all QML files pass; lint exits 0 with the
+  established standalone import/unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported `omarchy restart
+  shell` loaded the linked checkout into one instance (PID 911404); shell ping
+  returned `ok`, the summon helper returned `ok`, and the plugin is enabled.
+  Keyboard exercise: Down/Return opened the rendered `Game details` view for
+  `mlb:401816655` (BOS @ MIA, scheduled) showing participants, status, timing,
+  venue, `Outcome —`, `SCORING BY PERIOD —`, and the new `TEAM STATS` section
+  with its neutral `—` placeholder; Escape returned to the scores route and the
+  hide route completed. Populated stats rows were not exercised at runtime
+  because today's slate had not started (4:40 PM first pitch); the populated
+  path is covered by the fixture-driven suite, matching the earlier per-period
+  lines precedent. The fresh log contains normal Sportray provider/cache
+  activity (47 lines) and no Sportray exception, QML load failure, or
+  binding-loop warning; only the pre-existing unrelated portal registration
+  warning remains.
+
+Decision log: keep team statistics strictly a detail-section concept fed from
+the already fetched scoreboard snapshot; do not add fields to every normalized
+game. Extract only the two verified numeric fields with fixed neutral labels;
+season aggregates (`statistics`) and record summaries (`records`) remain
+unverified for this boundary and are not projected. Fail closed per side so a
+partially valid table never renders invented rows. The detail view stays a
+presentation-only projection with no second endpoint.
+
+Known risks: ESPN is an undocumented site API; hits/errors presence varies by
+league and state (pre-event slates carry none, which projects `null`), and NHL
+detail remains sparse. Scoring plays, leaders, and situation data remain open
+P0-1 remainder items requiring their own verified-field review.
+
+Boundary note: `docs/upstream-contract.md` remains intentionally absent. The
+installed Omarchy/Quickshell shell restart, summon, and import-path contracts
+were used as verified. No push, tag, release, or Marketplace action occurred.
+The unrelated absence of `MARKETPLACE_SUBMISSION.md` remains untouched and
+unstaged.
+
+Next bounded unit: implement broader team discovery (P1-5) as one bounded
+vertical slice — cross-league team search in the favorite picker through
+bounded static catalogs or a verified request path with canonical
+`<league>:<providerTeamId>` identity, reusing the existing picker UI and
+settings persistence without a schema change. Stop before any second-provider
+adapter, calendar extension, broadcast links, packaging, tagging, pushing,
+release, or Marketplace work.

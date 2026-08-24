@@ -1,0 +1,193 @@
+{
+ "events": [
+  {
+   "id": "stats-final",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "5",
+       "hits": 7,
+       "errors": 0,
+       "team": {
+        "id": "2",
+        "displayName": "Buffalo Bisons",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "3",
+       "hits": 5,
+       "errors": 1,
+       "team": {
+        "id": "17",
+        "displayName": "New England Pilgrims",
+        "abbreviation": "NEP"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "stats-partial",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "2",
+       "errors": 3,
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "1",
+       "errors": 0,
+       "team": {
+        "id": "17",
+        "abbreviation": "NEP"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "stats-malformed",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "4",
+       "hits": 6,
+       "errors": 2,
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "4",
+       "hits": "many",
+       "errors": 0,
+       "team": {
+        "id": "17",
+        "abbreviation": "NEP"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "stats-over-bound",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "9",
+       "hits": 10000,
+       "errors": 1,
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "8",
+       "hits": 9,
+       "errors": 1,
+       "team": {
+        "id": "17",
+        "abbreviation": "NEP"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "stats-missing",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "team": {
+        "id": "17",
+        "abbreviation": "NEP"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_NOT_STARTED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Scheduled"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

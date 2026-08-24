@@ -8,5 +8,5 @@
     "escapeWhileOpen": "close-detail",
     "escapeFromScores": "close-panel"
   },
-  "sparsePlaceholders": ["—", "Start ", "End ", "Venue   ", "Outcome   ", "SCORING BY PERIOD"]
+  "sparsePlaceholders": ["—", "Start ", "End ", "Venue   ", "Outcome   ", "SCORING BY PERIOD", "TEAM STATS"]
 }

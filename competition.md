@@ -68,11 +68,11 @@ evidence.
 ### P0 — close the generalist gap
 
 1. **Rich game detail — partially closed.** The local detail route now renders
-   an optional final-outcome section and bounded per-period lines projected
-   from the already normalized ESPN scoreboard snapshot, with neutral
-   placeholders for nulls. Still open: scoring plays, leaders, and sport
-   situation data; these require verified provider fields before any adapter
-   work.
+   an optional final-outcome section, bounded per-period lines, and bounded
+   team statistic rows (MLB hits/errors) projected from the already normalized
+   ESPN scoreboard snapshot, with neutral placeholders for nulls. Still open:
+   scoring plays, leaders, and sport situation data; these require verified
+   provider fields before any adapter work.
 2. **Complete standings coverage — closed.** The NHL standings adapter is
    implemented and live-verified (conference grouping, `conferenceSequence`
    ordering, tri-code resolution through the bounded catalog); ESPN standings
@@ -149,7 +149,8 @@ for owner decision:
    candidate for any league.
 3. **Richer detail sections** (P0-1 remainder / P2-7): scoring plays,
    leaders, or one sport-specific situation projection from already normalized
-   data only; stop before any second endpoint.
+   data only; stop before any second endpoint. The team-statistics rows slice
+   from this candidate landed 2026-08-24.
 4. **Calendar extensions** (P1-6 remainder): direct date jumps and/or local-
    time rendering choices within the existing cache-only boundary.
 5. **Broadcast/event links** (P2-8): safe attributable stream/VOD/event URLs

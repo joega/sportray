@@ -1611,6 +1611,58 @@ test("optional game lines project bounded per-side period scores without provide
   assert.equal(JSON.stringify(details["lines-final"].lines).includes("displayValue"), false);
 });
 
+test("optional team stats project bounded rows without provider fields", () => {
+  const result = espn.parseGameDetailResponse(readEspnFixture("game-detail-stats"), "nfl");
+  assert.deepEqual(result.errors, []);
+
+  const details = Object.fromEntries(result.details.map((detail) => [detail.providerGameId, detail]));
+  assert.deepEqual(details["stats-final"].stats, {
+    away: [
+      {key: "hits", label: "Hits", value: 5},
+      {key: "errors", label: "Errors", value: 1}
+    ],
+    home: [
+      {key: "hits", label: "Hits", value: 7},
+      {key: "errors", label: "Errors", value: 0}
+    ]
+  });
+  assert.deepEqual(details["stats-partial"].stats, {
+    away: [{key: "errors", label: "Errors", value: 0}],
+    home: [{key: "errors", label: "Errors", value: 3}]
+  });
+
+  ["stats-malformed", "stats-over-bound", "stats-missing"].forEach((id) =>
+    assert.equal(details[id].stats, null, id));
+
+  assert.equal(gameDetails.MAX_STAT_ROWS, 8);
+  assert.equal(gameDetails.MAX_STAT_KEY_LENGTH, 32);
+  assert.equal(gameDetails.MAX_STAT_LABEL_LENGTH, 24);
+  assert.equal(
+    gameDetails.normalizeStatSide(
+      Array.from({length: gameDetails.MAX_STAT_ROWS + 1},
+        (_, index) => ({key: `stat-${index}`, label: "S", value: index}))),
+    null);
+  assert.equal(gameDetails.normalizeStatSide([
+    {key: "hits", label: "Hits", value: 1},
+    {key: "hits", label: "Hits", value: 2}
+  ]), null);
+  assert.equal(
+    gameDetails.normalizeStatSide([{key: "Bad Key", label: "Hits", value: 1}]), null);
+  assert.equal(
+    gameDetails.normalizeStatSide([
+      {key: "x".repeat(gameDetails.MAX_STAT_KEY_LENGTH + 1), label: "Hits", value: 1}
+    ]),
+    null);
+  assert.equal(gameDetails.normalizeStatSide([{key: "hits", label: "", value: 1}]), null);
+  assert.equal(
+    gameDetails.normalizeStatSide([{key: "hits", label: "Hits", value: 10000}]), null);
+  assert.equal(gameDetails.normalizeStats({stats: {
+    away: [{key: "hits", label: "Hits", value: 1}],
+    home: [{key: "errors", label: "Errors", value: 1}]
+  }}), null);
+  assert.equal(JSON.stringify(details["stats-final"].stats).includes("displayValue"), false);
+});
+
 test("loaded game rows route to local detail while keeping the safe source action", () => {
   const fixture = readGameDetailRouteFixture();
   const game = espn.parseScoreboardResponse(readEspnFixture("nfl-final"), "nfl").games[0];
@@ -1663,6 +1715,10 @@ test("game detail renders optional outcome and bounded lines with null placehold
   assert.match(detail, /root\.linePeriods\(\)/);
   assert.match(detail, /root\.lineValues\(linesSideRow\.modelData\)/);
   assert.match(gameDetail, /MAX_LINE_PERIODS = 12/);
+  assert.match(detail, /readonly property var statsData: root\.detail\.stats/);
+  assert.match(detail, /text: "TEAM STATS"/);
+  assert.match(detail, /visible: !root\.statsData/);
+  assert.match(detail, /root\.statRows\(\)/);
 
   const final = espn.parseGameDetailResponse(readEspnFixture("game-detail-lines"), "nfl")
     .details.find((value) => value.providerGameId === "lines-final");

@@ -9,6 +9,9 @@ var MAX_DETAILS = 256;
 var MAX_OUTCOME_SCORE = 9999;
 var MAX_LINE_PERIODS = 12;
 var MAX_LINE_PERIOD_NUMBER = 99;
+var MAX_STAT_ROWS = 8;
+var MAX_STAT_KEY_LENGTH = 32;
+var MAX_STAT_LABEL_LENGTH = 24;
 var VALID_STATES = {
   scheduled: true,
   live: true,
@@ -118,6 +121,39 @@ function normalizeLines(game) {
   return {away: away, home: home};
 }
 
+function normalizeStats(game) {
+  if (!isRecord(game) || !isRecord(game.stats)) return null;
+  var away = normalizeStatSide(game.stats.away);
+  var home = normalizeStatSide(game.stats.home);
+  if (!away || !home || away.length !== home.length) return null;
+  for (var i = 0; i < away.length; i++) {
+    if (away[i].key !== home[i].key) return null;
+  }
+  return {away: away, home: home};
+}
+
+function normalizeStatSide(value) {
+  if (!Array.isArray(value)) return null;
+  if (value.length < 1 || value.length > MAX_STAT_ROWS) return null;
+
+  var entries = [];
+  for (var i = 0; i < value.length; i++) {
+    var entry = value[i];
+    if (!isRecord(entry)) return null;
+    var key = cleanString(entry.key);
+    if (!key || key.length > MAX_STAT_KEY_LENGTH || !/^[a-z0-9-]+$/.test(key)) return null;
+    var label = cleanString(entry.label);
+    if (!label || label.length > MAX_STAT_LABEL_LENGTH) return null;
+    var statValue = nonNegativeInteger(entry.value);
+    if (statValue === null || statValue > MAX_OUTCOME_SCORE) return null;
+    for (var j = 0; j < entries.length; j++) {
+      if (entries[j].key === key) return null;
+    }
+    entries.push({key: key, label: label, value: statValue});
+  }
+  return entries;
+}
+
 function emptyDetail(errorCode) {
   return {
     id: null,
@@ -142,6 +178,7 @@ function emptyDetail(errorCode) {
     venue: null,
     outcome: null,
     lines: null,
+    stats: null,
     source: {
       provider: null,
       label: null,
@@ -192,6 +229,7 @@ function normalizeDetail(game, source) {
     venue: cleanString(game.venue),
     outcome: normalizeOutcome(game),
     lines: normalizeLines(game),
+    stats: normalizeStats(game),
     source: normalizeSource(source, game),
     isValid: true,
     errors: []
@@ -245,11 +283,16 @@ if (typeof module !== "undefined" && module.exports) {
     MAX_OUTCOME_SCORE: MAX_OUTCOME_SCORE,
     MAX_LINE_PERIODS: MAX_LINE_PERIODS,
     MAX_LINE_PERIOD_NUMBER: MAX_LINE_PERIOD_NUMBER,
+    MAX_STAT_ROWS: MAX_STAT_ROWS,
+    MAX_STAT_KEY_LENGTH: MAX_STAT_KEY_LENGTH,
+    MAX_STAT_LABEL_LENGTH: MAX_STAT_LABEL_LENGTH,
     compareDetails: compareDetails,
     createDefaultDetail: createDefaultDetail,
     normalizeOutcome: normalizeOutcome,
     normalizeLineSide: normalizeLineSide,
     normalizeLines: normalizeLines,
+    normalizeStatSide: normalizeStatSide,
+    normalizeStats: normalizeStats,
     normalizeDetail: normalizeDetail,
     normalizeDetails: normalizeDetails
   };

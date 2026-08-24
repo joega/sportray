@@ -314,10 +314,14 @@ function parseGameDetailResponse(payload, leagueId) {
   var scoreboard = parseScoreboardResponse(payload, leagueId);
   if (!GameDetailModel) return {details: [], errors: scoreboard.errors};
   var lines = detailLinesByGameId(payload);
+  var stats = detailStatsByGameId(payload);
   var candidates = scoreboard.games.map(function(game) {
     var eventLines = lines[game.providerGameId];
-    if (!eventLines) return game;
-    return Object.assign({}, game, {lines: eventLines});
+    var eventStats = stats[game.providerGameId];
+    if (!eventLines && !eventStats) return game;
+    return Object.assign({}, game,
+      eventLines ? {lines: eventLines} : {},
+      eventStats ? {stats: eventStats} : {});
   });
   var details = GameDetailModel.normalizeDetails(candidates, {
     provider: ESPN_PROVIDER,
@@ -361,6 +365,47 @@ function detailLinesByGameId(payload) {
         away = competitionLineSide(competitor);
       if (competitor.homeAway === "home" && !home)
         home = competitionLineSide(competitor);
+    }
+    if (!away || !home) continue;
+
+    var providerGameId = providerId(event.id || competition.id);
+    if (!providerGameId) continue;
+    result[providerGameId] = {away: away, home: home};
+  }
+  return result;
+}
+
+var DETAIL_STAT_KEYS = {hits: "Hits", errors: "Errors"};
+
+function competitionStatSide(competitor) {
+  if (!isRecord(competitor)) return null;
+  var entries = [];
+  Object.keys(DETAIL_STAT_KEYS).forEach(function(key) {
+    var value = integerOrNull(competitor[key]);
+    if (value === null) return;
+    entries.push({key: key, label: DETAIL_STAT_KEYS[key], value: value});
+  });
+  return entries.length > 0 ? entries : null;
+}
+
+function detailStatsByGameId(payload) {
+  var result = {};
+  if (!isRecord(payload) || !Array.isArray(payload.events)) return result;
+
+  for (var i = 0; i < payload.events.length; i++) {
+    var event = payload.events[i];
+    var competition = findCompetition(event);
+    if (!competition || !Array.isArray(competition.competitors)) continue;
+
+    var away = null;
+    var home = null;
+    for (var j = 0; j < competition.competitors.length; j++) {
+      var competitor = competition.competitors[j];
+      if (!isRecord(competitor)) continue;
+      if (competitor.homeAway === "away" && !away)
+        away = competitionStatSide(competitor);
+      if (competitor.homeAway === "home" && !home)
+        home = competitionStatSide(competitor);
     }
     if (!away || !home) continue;
 

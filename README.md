@@ -239,8 +239,10 @@ Each valid game keeps its score, participants, status/timing, and venue on the
 scoreboard card. Whole-row activation opens a local game-details drill-down for
 that already loaded game: participants, status/timing, venue, the guarded
 ESPN/NHL.com source action, and, when the provider snapshot supplies them, an
-optional final outcome and bounded per-period scoring lines. Fields the
-provider omits — including pre-event lines and most NHL detail — render as
+optional final outcome, bounded per-period scoring lines, and bounded team
+statistic rows (such as MLB hits and errors). Fields the
+provider omits — including pre-event lines, non-MLB statistics, and most NHL
+detail — render as
 neutral placeholders rather than implying box-score depth. The labeled
 **ESPN** or **NHL.com** source action opens the provider's game page in the
 Omarchy browser. Sportray never fetches a second per-game endpoint; detail is

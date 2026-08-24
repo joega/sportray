@@ -77,6 +77,19 @@ Item {
   }
 
   readonly property var linesData: root.detail.lines
+  readonly property var statsData: root.detail.stats
+
+  function statRows() {
+    if (!root.statsData) return []
+    return root.statsData.away.map(function(entry, index) {
+      var homeEntry = root.statsData.home[index]
+      return {
+        label: entry.label,
+        away: String(entry.value),
+        home: homeEntry ? String(homeEntry.value) : "—"
+      }
+    })
+  }
 
   function linePeriods() {
     if (!root.linesData) return []
@@ -434,6 +447,69 @@ Item {
                   font.bold: true
                   horizontalAlignment: Text.AlignRight
                 }
+              }
+            }
+          }
+        }
+
+        Column {
+          width: parent.width
+          spacing: Style.spacing.xxs
+
+          Text {
+            width: parent.width
+            text: "TEAM STATS"
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+
+          Text {
+            width: parent.width
+            visible: !root.statsData
+            text: "—"
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+          }
+
+          Repeater {
+            model: root.statRows()
+
+            delegate: Row {
+              id: statRow
+              required property var modelData
+              width: parent.width
+              spacing: Style.spacing.sm
+
+              Text {
+                width: parent.width - Style.space(44) * 2 - parent.spacing * 2
+                text: statRow.modelData.label
+                color: Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+                elide: Text.ElideRight
+              }
+
+              Text {
+                width: Style.space(44)
+                text: statRow.modelData.away
+                color: Color.popups.text
+                font.family: Style.font.family
+                font.pixelSize: Style.font.bodySmall
+                font.bold: true
+                horizontalAlignment: Text.AlignRight
+              }
+
+              Text {
+                width: Style.space(44)
+                text: statRow.modelData.home
+                color: Color.popups.text
+                font.family: Style.font.family
+                font.pixelSize: Style.font.bodySmall
+                font.bold: true
+                horizontalAlignment: Text.AlignRight
               }
             }
           }
