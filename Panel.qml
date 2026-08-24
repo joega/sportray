@@ -848,6 +848,9 @@ Panel {
         if (text === "n" || text === "N") root.openSettings()
         if ((text === "c" || text === "C") && !root.settingsOpen && !root.detailOpen)
           root.toggleCalendar()
+        if (KeyboardRoutingPolicy.calendarFilterAction(text, root.calendarOpen,
+            root.settingsOpen, root.detailOpen) === "toggle-calendar-filter")
+          root.toggleCalendarFilter()
         if ((text === "s" || text === "S") && !root.settingsOpen)
           root.toggleStandings()
         if (text === "[" || text === "{") root.selectRelativeDate(-1)
@@ -974,7 +977,7 @@ Panel {
             iconName: ""
             fallbackText: ""
             tooltipText: root.calendarFavoritesOnly
-              ? "Show every enabled league" : "Show only favorite games"
+              ? "Show every enabled league (F)" : "Show only favorite games (F)"
             text: root.calendarFavoritesOnly ? "Favorites" : "All games"
             textFontSize: Style.font.caption
             textBold: true
@@ -983,7 +986,7 @@ Panel {
             focusable: true
             onClicked: root.toggleCalendarFilter()
             Accessible.name: root.calendarFavoritesOnly
-              ? "Show every enabled league" : "Show only favorite games"
+              ? "Show every enabled league (F)" : "Show only favorite games (F)"
             Accessible.role: Accessible.Button
           }
 

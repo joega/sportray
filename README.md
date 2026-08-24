@@ -58,7 +58,8 @@ ambient bar indicator to the current date. `[` and `]` move one day while `T`
 returns to today. On an ESPN-backed league destination, `S` toggles the
 standings view. `C` toggles the calendar view: a bounded five-day day list
 around the selected date built only from the date caches already fetched, with
-an All games/Favorites filter and neutral "No games" days. Calendar game rows
+an All games/Favorites filter and neutral "No games" days. `F` toggles that
+filter while the calendar is open. Calendar game rows
 open the same local detail drill-down, and Escape returns from detail,
 settings, and calendar before closing the panel.
 

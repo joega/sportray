@@ -3079,6 +3079,31 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
 });
 
+test("calendar filter is reachable through the panel text-key routing policy", () => {
+  const fixture = JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/keyboard-routing/filter-shortcut.json"), "utf8"));
+  fixture.cases.forEach((testCase) => {
+    assert.equal(
+      keyboardRouting.calendarFilterAction(testCase.text, testCase.calendarOpen,
+        testCase.settingsOpen, testCase.detailOpen),
+      testCase.expected,
+      `${testCase.text} with calendar=${testCase.calendarOpen} settings=${testCase.settingsOpen} detail=${testCase.detailOpen}`);
+  });
+
+  const panel = readSource("Panel.qml");
+  assert.match(panel,
+    /KeyboardRoutingPolicy\.calendarFilterAction\(text, root\.calendarOpen,\s*\n\s*root\.settingsOpen, root\.detailOpen\)/);
+  assert.match(panel,
+    /=== "toggle-calendar-filter"\)\s*\n\s*root\.toggleCalendarFilter\(\)/);
+  // The route lives inside the catcher's text-key path only; no second
+  // interaction surface or pointer-only behavior was added.
+  const textKeyIndex = panel.indexOf("onTextKey: function(text) {");
+  const filterRouteIndex = panel.indexOf('KeyboardRoutingPolicy.calendarFilterAction(text');
+  const extraKeysIndex = panel.indexOf("Keys.onPressed: function(event) {");
+  assert.ok(textKeyIndex !== -1 && filterRouteIndex > textKeyIndex
+    && filterRouteIndex < extraKeysIndex, "filter route stays in onTextKey");
+});
+
 test("deferred callbacks run for live owners and reject destroyed owners", () => {
   const owner = lifecycle.createOwnerState();
   const generation = lifecycle.captureGeneration(owner);

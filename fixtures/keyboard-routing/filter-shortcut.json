@@ -1,0 +1,14 @@
+{
+  "comment": "Pure text-key routing decisions for the calendar All games/Favorites filter. Each case is one KeyboardRoutingPolicy.calendarFilterAction input and its expected result.",
+  "cases": [
+    { "text": "f", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "toggle-calendar-filter" },
+    { "text": "F", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "toggle-calendar-filter" },
+    { "text": "f", "calendarOpen": false, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "F", "calendarOpen": false, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "f", "calendarOpen": true, "settingsOpen": true, "detailOpen": false, "expected": "none" },
+    { "text": "f", "calendarOpen": true, "settingsOpen": false, "detailOpen": true, "expected": "none" },
+    { "text": "c", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "r", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "none" }
+  ]
+}

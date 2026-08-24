@@ -2898,3 +2898,58 @@ Known risks: the calendar can only show dates present in the five-entry
 per-league caches, so freshly opened panels show one populated day until the
 user browses more dates; ESPN remains an undocumented API; the filter toggle
 and pointer paths remain manually unexercised.
+
+## Latest handoff — 2026-08-24 keyboard-reachable calendar filter
+
+Status: complete. The calendar All games/Favorites filter is now reachable
+through the panel's existing keyboard model without a pointer, a second
+interaction surface, or a host-side change.
+
+Evidence:
+
+- `model/KeyboardRoutingPolicy.js` adds the pure `calendarFilterAction`
+  decision: only `f`/`F` with the calendar open and settings/detail closed
+  returns `toggle-calendar-filter`; every other state fails closed to `none`.
+  The pure calendar model, provider boundaries, and cursor routing are
+  unchanged.
+- `Panel.qml` routes the catcher's existing text-key path through that policy
+  into the existing `toggleCalendarFilter()` function, so pointer clicks,
+  assistive activation, and the keyboard shortcut all reach one route. The
+  header filter button tooltip and accessible name now advertise `(F)`.
+- `fixtures/keyboard-routing/filter-shortcut.json` and one deterministic test
+  cover the accepted `f`/`F` case, closed-calendar, open-settings, open-detail,
+  non-matching-key, and empty-key rejections, plus source assertions that the
+  route lives only inside `onTextKey` and calls `toggleCalendarFilter()`. The
+  complete suite passes with 200 tests.
+- `tests/run-js-tests.sh`, `git diff --check`, `omarchy plugin validate
+  "$PWD"`, and real-import-path `/usr/lib/qt6/bin/qmllint -I
+  /usr/share/omarchy/shell` over all QML files pass with the established
+  standalone import/unqualified-access and host-type warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported
+  `omarchy restart shell` loaded the linked checkout into one instance (PID
+  889127); `shell ping` returned `ok` and the summon helper returned `ok`.
+  Keyboard exercise: `C` opened the calendar showing the "All games" header
+  filter with the full Mon Aug 24 slate (MLB, live Premier League, NFL);
+  `f` flipped the header to "Favorites" and the day list to favorite games
+  only; a second `f` restored "All games" and the full slate; Escape returned
+  to the Today scores view and a second Escape closed the panel. Screenshots
+  confirmed each state. The fresh log shows normal provider/cache activity and
+  no Sportray exception, QML load failure, or binding-loop warning; only the
+  unrelated Hyprland xkbcomp noise appears.
+
+Not exercised: pointer clicks on the filter button (no reliable injector; the
+keyboard route was used) and the settings-open/detail-open `f` rejection at
+runtime (covered by the fixture path). No push, tag, release, Marketplace, or
+remote action occurred. The unrelated absence of `MARKETPLACE_SUBMISSION.md`
+remains untouched. The checkout intentionally has no
+`docs/upstream-contract.md`; installed Omarchy sources remain the boundary
+evidence and no upstream deviation was needed.
+
+Decision log: use the panel's existing text-key routing policy rather than
+folding the filter into the arrow-cursor model, because the header row is not
+a cursor target in the installed `PanelKeyCatcher` contract and a text-key
+shortcut adds no new interaction surface. The pure decision lives in
+`KeyboardRoutingPolicy.js` so the QML binding stays declarative and
+fixture-tested. Stop before new cursor targets, settings persistence for the
+filter, month-grid rendering, provider work, packaging, tagging, pushing,
+release, or Marketplace work.

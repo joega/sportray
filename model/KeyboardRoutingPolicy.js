@@ -13,9 +13,17 @@ function targetForKey(key, text, editorActive, popupOpen) {
   return "descendant";
 }
 
+function calendarFilterAction(text, calendarOpen, settingsOpen, detailOpen) {
+  if (text !== "f" && text !== "F") return "none";
+  if (calendarOpen !== true || settingsOpen === true || detailOpen === true)
+    return "none";
+  return "toggle-calendar-filter";
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     catcherBlocked: catcherBlocked,
-    targetForKey: targetForKey
+    targetForKey: targetForKey,
+    calendarFilterAction: calendarFilterAction
   };
 }
