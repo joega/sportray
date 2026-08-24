@@ -132,6 +132,12 @@ tries at most five times with 250 ms spacing after unsuccessful results, then
 exits nonzero with a concise error. It never calls `hide`, is not part of the
 plugin runtime path, and does not change normal hide behavior.
 
+When developing against an already-running bar widget, `rescanPlugins` and a
+successful summon do not necessarily replace the existing widget instance.
+Use `omarchy restart shell` when a QML change is not visible in the open
+widget, then summon Sportray again. This is an installed Omarchy bar-widget
+lifecycle boundary; it does not require a second Sportray process.
+
 ## Marketplace listing
 
 Proposed listing copy:

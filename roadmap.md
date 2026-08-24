@@ -2539,3 +2539,61 @@ the host still cannot expose a reliable settings interaction, record that
 external blocker and leave Sportray source unchanged. Stop before adding a
 second notification route, provider endpoint, alert type, UI discovery,
 specialist sports, packaging, tagging, pushing, release, or Marketplace work.
+
+## Latest handoff — 2026-08-24 Settings-page notification runtime verification
+
+Status: complete. The previously reported missing Settings-page test toast
+was reproduced against the live Omarchy bar widget and traced to a stale
+already-loaded QML instance, not to the notification helper or the explicit
+`NotificationService` wiring completed in `0c128f7`. The stale Settings view
+predated the Pregame reminders and Close-game alerts controls, confirming that
+the active widget had not loaded the current checkout. `rescanPlugins` and a
+successful bar-widget summon did not replace that active instance.
+
+The installed/current Omarchy boundary was inspected directly: `shell call`
+only addresses panel/overlay/menu loaders and returns `unknown` for this
+bar-widget; bar widgets are managed through the summon/toggle path. Running
+the supported `omarchy restart shell` replaced the shell instance, after which
+the current Notifications destination rendered all six preferences and the
+**Send test notification** control. Keyboard activation through the real
+settings route caused Omarchy notification history to record
+`Sportray · Test notification` with body `Alerts are working. This is a preview
+from Sportray.` The fresh Quickshell log showed normal Sportray startup and
+provider/cache activity with no Sportray QML-load, exception, binding-loop, or
+notification-helper failure.
+
+Evidence:
+
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0 revision
+  `28771c7c74b42e20afca0b1b63980cb46515537` was used. `omarchy plugin list`
+  still reports Sportray enabled, `omarchy-shell shell ping` returns `ok`, and
+  the restarted shell has one live Sportray bar widget.
+- The current settings screenshot showed Notifications, Game starts, Score
+  changes, Game finals, Pregame reminders, Close-game alerts, and Send test
+  notification. The notification history recorded six successful preview
+  deliveries from the exercised keyboard sequence; the helper path itself is
+  therefore confirmed, while repeated-key behavior is not expanded into this
+  unit.
+- No Sportray source change was required. The public README now documents the
+  installed lifecycle boundary and the recovery command. The private
+  `docs/upstream-contract.md` remains absent, so installed Omarchy and
+  Quickshell sources remain the boundary source of truth.
+
+Decision log: treat an active bar-widget that survives rescan as a host
+lifecycle/cache condition. Recover with the supported shell restart rather
+than adding a second plugin process, a second notification route, or an
+unsupported child-panel IPC path. Preserve the existing explicit service
+wiring and `/usr/bin/omarchy-notification-send` queue.
+
+Known risks: a user or developer may need to restart the Omarchy shell after
+source changes when rescan leaves an old bar-widget instance alive; no
+reliable desktop pointer injector was available in this environment, so the
+runtime interaction was completed through real keyboard input rather than a
+pointer click. No provider, settings schema, notification policy, packaging,
+tagging, pushing, release, Marketplace, or remote state changed.
+
+Next bounded unit: perform one read-only release-readiness consistency audit
+of the current notification behavior and its README/roadmap evidence after
+the verified shell-restart recovery. Reconcile only directly observed stale
+documentation or acceptance claims; do not change provider, notification,
+settings, QML, packaging, or Marketplace behavior without a new owner request.

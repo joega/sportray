@@ -1,69 +1,67 @@
-Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
-unit: perform one actual Omarchy runtime verification of the Settings-page
-**Send test notification** path after the close-game alert unit's service
-wiring fix.
+Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap unit:
+perform one read-only release-readiness consistency audit of the current
+notification behavior and its README/roadmap evidence after the verified
+Omarchy shell-restart recovery.
 
-Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`,
-`competition.md`, and the latest handoff in this file. Read
-`docs/upstream-contract.md` when it is present; it is intentionally absent in
-this checkout, so inspect the installed/current Omarchy and Quickshell sources
-directly and record any material boundary deviation. Inspect `git status`, the
-current branch, and recent commits. Preserve unrelated user changes, including
-any deletion of `MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
+Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`, and
+the latest handoff in this file. Read `docs/upstream-contract.md` when it is
+present; it is intentionally absent in this checkout, so inspect the
+installed/current Omarchy and Quickshell sources directly and record any
+material boundary deviation in `roadmap.md` and later the README. Inspect
+`git status`, the current branch, and recent commits. Preserve unrelated user
+changes, including any deletion of `MARKETPLACE_SUBMISSION.md`; do not restore
+or stage it.
 
 Verified current state:
 
-- Sportray supports eight leagues, canonical favorites, bounded date/cache/
-  polling behavior, settings, accessibility, standings, source-page routing,
-  and favorite-only first-fetch-silent deduplicated start, score-change, final,
+- Sportray is an Omarchy Quattro `bar-widget` with eight leagues, settings,
+  standings, bounded game data, and favorite-only start, score-change, final,
   pregame, and opt-in close-game notifications.
-- `model/CloseGamePolicy.js` is pure and fixture-tested. It admits a transition
-  into a favorite live/intermission game with valid normalized scores tied or
-  within one point, scoped to the current local start date. Its default-off
-  `closeGame` schema-1 setting and `gameId:close` dedupe fingerprint are
-  complete; do not broaden the alert contract in this unit.
-- The Settings-page preview bug was fixed by exposing the existing
-  `NotificationService` from the `SportrayService` singleton and passing it
-  explicitly from `Panel.qml` to `SettingsHub`/`SettingsView`. The direct
-  `/usr/bin/omarchy-notification-send` helper test passed and Omarchy history
-  recorded the toast, but no manual settings click-through has been claimed.
-- The complete JavaScript suite passes with 190 tests; plugin validation,
-  real-import-path QML lint, summon-helper tests, and `git diff --check` pass.
-  QML lint retains established host-import/unqualified-access warnings.
-- Actual Omarchy 4.0.0-1 and Quickshell 0.3.0 revision
-  `28771c7c74b42e20afca0b1b63980cb46515537` are installed. Sportray is enabled,
-  shell ping returns `ok`, and the linked checkout can be rescanned/summoned.
-  The current limitation is that child-panel IPC does not expose a method for
-  the settings action and no reliable desktop pointer injector has been
-  available.
+- The Settings-page preview wiring is explicit: `SportrayService` exposes the
+  existing `NotificationService`, and `Panel.qml` passes it to
+  `SettingsHub`/`SettingsView`. The helper queue and notification argv are
+  unchanged.
+- On actual Omarchy 4.0.0-1 with Quickshell 0.3.0 revision
+  `28771c7c74b42e20afca0b1b63980cb46515537`, the current Notifications view
+  rendered all six preferences plus **Send test notification** after
+  `omarchy restart shell`; the settings route produced entries in Omarchy
+  notification history with the expected Sportray preview text.
+- `rescanPlugins` and a successful summon do not necessarily replace an
+  already-loaded bar-widget instance. `shell call` is not a bar-widget child
+  route. The supported recovery is `omarchy restart shell`, followed by
+  summon/toggle. No Sportray source change was needed for the verified issue.
+- The complete JavaScript suite, plugin validation, real-import-path QML lint,
+  summon-helper test, and `git diff --check` passed for the preceding source
+  unit. Established standalone-import, host-type, and unqualified-access
+  lint warnings remain expected.
 
 Bounded outcome:
 
-Verify the Settings destination's **Send test notification** action on actual
-Omarchy using only an available child-panel IPC or reliable desktop input
-mechanism. Confirm the notification appears in the Omarchy notification
-history and that the Quickshell log has no Sportray helper/QML/exception or
-binding-loop failure. If the host still cannot provide a reliable interaction,
-record the unchanged external blocker and make no Sportray source change.
+Audit the public README, private roadmap, and current source/runtime evidence
+for stale or contradictory notification and shell-lifecycle claims. Make only
+minimal documentation corrections that are directly supported by the checked
+out state. Do not modify provider logic, notification policies, settings
+schema, QML interaction, packaging, or remote state.
 
 Required checks:
 
-- Inspect installed Omarchy/Quickshell widget, panel, IPC, and notification
-  sources before choosing the runtime interaction path.
-- Rescan the linked plugin on actual Omarchy, exercise only the host-supported
-  settings action, inspect `qs list --all`, the current Quickshell log, and the
-  notification history.
-- If source changes become necessary, run `./tests/run-js-tests.sh`,
+- Inspect the installed Omarchy/Quickshell lifecycle and notification sources
+  if any boundary claim is uncertain; do not rely on an obsolete plan.
+- Run `git diff --check`. If documentation changes are made, also run the
+  complete applicable repository gates: `./tests/run-js-tests.sh`,
   `omarchy plugin validate "$PWD"`, real-import-path `qmllint`, and
-  `git diff --check`. Do not claim manual UI success without direct evidence.
+  `./tests/test-summon-helper.sh`.
+- Do not claim a new Omarchy runtime pass unless an actual shell/widget/log
+  check is performed. Do not push, tag, publish, submit, or change Marketplace
+  state.
 
-Known risks and stop conditions: child-route IPC and pointer injection may
-remain unavailable; do not add a second helper route, alert type, provider
-endpoint, broader discovery, specialist sports, packaging, tagging, pushing,
-release, or Marketplace work. Stop after the runtime evidence or unchanged
-blocker is recorded. Update `roadmap.md` with the dated handoff and evidence,
-replace this file with the next self-contained single-unit prompt, and create
-one atomic Conventional Commit-style commit only if a source/documentation
-change was required and all applicable gates pass. Use subagents only for
-independent read-only upstream/runtime reconnaissance that materially improves
-confidence; the main agent owns any edits, validation, handoff, and commit.
+Known risks and stop conditions: the active bar-widget may require a shell
+restart after source changes; pointer injection may remain unavailable; and
+the previous batched keyboard exercise produced multiple history entries, so
+do not infer a new repeated-key contract from it. Stop after the consistency
+audit and directly supported documentation changes. Update `roadmap.md` with
+a dated handoff and evidence, replace this file with the next self-contained
+single-unit prompt, and create one atomic Conventional Commit-style commit
+when the documentation gate passes. Request subagents only for independent
+read-only source/documentation reconnaissance that materially improves
+confidence; the main agent owns edits, validation, handoff, and commit.
