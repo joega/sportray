@@ -28,9 +28,9 @@ function gameRow(game, stale) {
     game: game,
     stale: stale === true,
     action: {
-      type: "open-provider",
-      label: "Open game page",
-      enabled: typeof game.link === "string" && game.link.trim() !== ""
+      type: "open-detail",
+      label: "View game details",
+      enabled: game.isValid === true
     }
   };
 }

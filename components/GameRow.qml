@@ -60,15 +60,16 @@ Item {
     + (root.homeIsFavorite ? "Followed home team. " : "")
     + root.stateLabel + ". " + (root.venueName ? "At " + root.venueName + ". " : "")
     + (root.showLeagueContext ? root.leagueLabel + ". " : "")
+    + (root.game && root.game.isValid === true ? "View game details. " : "")
     + (root.game.link ? "Open external game page." : "External game page unavailable.")
 
   function activatePrimaryAction() {
-    if (sourceLink.visible) sourceLink.openSource()
+    if (root.game && root.game.isValid === true) root.primaryActionRequested()
   }
 
   Accessible.name: root.accessibleLabel
   Accessible.description: root.detailLabel
-  Accessible.role: sourceLink.visible ? Accessible.Button : Accessible.StaticText
+  Accessible.role: root.game && root.game.isValid === true ? Accessible.Button : Accessible.StaticText
   // The whole-row accessible action intentionally reuses the same guarded
   // external-source route as the existing TapHandler/keyboard path.
   Accessible.onPressAction: root.activatePrimaryAction()

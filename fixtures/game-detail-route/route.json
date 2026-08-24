@@ -1,0 +1,12 @@
+{
+  "rowAction": {
+    "type": "open-detail",
+    "label": "View game details"
+  },
+  "detailActions": {
+    "back": "close-detail",
+    "escapeWhileOpen": "close-detail",
+    "escapeFromScores": "close-panel"
+  },
+  "sparsePlaceholders": ["—", "Start ", "End ", "Venue   "]
+}

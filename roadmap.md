@@ -1216,3 +1216,82 @@ new provider request. It must handle loading-free sparse/null fields and the
 existing ESPN/NHL source link safely. Stop before detail endpoint fetching,
 box-score/play-by-play adapters, bar modes, live rotation, alerts, new leagues,
 provider fallback, niche sports, packaging, or publication work.
+
+## Game-detail drill-down UI slice — 2026-08-23
+
+Status: complete. The smallest existing-route detail presentation is now
+implemented in the current working tree. A valid loaded game row opens a local
+detail view; the view owns its selected game and cursor state inside the current
+panel and does not issue a request.
+
+Evidence:
+
+- `components/GameDetailView.qml` projects the already normalized game through
+  `GameDetailModel.normalizeDetail`, then renders provider-neutral identity,
+  away/home participants and scores, status/timing, venue, and the existing
+  guarded `SourceLinkButton`. Missing scores, timing, venue, and source metadata
+  remain neutral placeholders.
+- `model/ResultRows.js` gives valid game rows the typed `open-detail` action even
+  when the provider URL is absent. `GameRow.qml` routes whole-row pointer,
+  keyboard, and assistive activation to the local detail route while its nested
+  source button remains the existing safe browser action.
+- `Panel.qml` keeps `detailOpen` and `detailGame` local, bounds the detail height,
+  exposes Back as the first keyboard target and the provider source as the second
+  when available, and routes Escape/Back to detail close before panel close.
+  Closing the panel clears the local detail state; scores, standings, settings,
+  polling, and provider fetch routes remain unchanged.
+- `fixtures/game-detail-route/route.json`, the accessibility-action fixture, and
+  the JavaScript suite cover row/action reachability, sparse placeholders, source
+  preservation, and safe back/close routing. The complete suite passes with 168
+  deterministic tests.
+- Installed Omarchy 4.0.0-1 and Quickshell 0.3.0.r20 were rechecked. The linked
+  plugin passed validation and rescan; the shell was restarted once to load the
+  current checkout, remained a single Quickshell instance, and shell ping
+  returned `ok`. On actual Omarchy, keyboard Down/Return opened the rendered
+  `Game details` view for an ESPN game, showing both teams, scores, final status,
+  timing, venue, and source; Escape returned safely to the scores route. The
+  fresh log contained normal polling/fetch activity and no Sportray error,
+  exception, or binding-loop warning.
+- The real import-path `qmllint` command over every QML file exits 0 with the
+  established standalone import/unqualified-access warnings. `git diff --check`
+  and `omarchy plugin validate "$PWD"` pass.
+
+Decision log: the first drill-down is a presentation-only projection of the
+scoreboard snapshot. Keep the source action nested and provider-safe, do not
+fetch a second detail endpoint, and do not expose box-score, play-by-play, or
+provider-specific fields. NHL remains eligible for the same sparse projection
+when a normalized game is already loaded, but no NHL detail adapter was added.
+The intentionally absent `docs/upstream-contract.md` was checked against the
+installed Omarchy/Quickshell sources; the current `Panel`, `KeyboardPanel`, and
+`PanelKeyCatcher` contract was preserved.
+
+Known risks: ESPN remains an undocumented site API, and the projection can only
+show fields present in the existing scoreboard payload. Null-heavy games are
+intentionally shallow and neutral rather than implying richer detail. No new
+provider contract was required for this unit.
+
+## Latest handoff — 2026-08-23 game-detail drill-down UI complete
+
+The existing-route game-detail UI slice is complete and ready for its atomic
+commit. Valid loaded game rows now open a local, keyboard-accessible detail
+presentation backed by `GameDetailModel`; whole-row activation no longer opens
+the provider directly, while the nested ESPN/NHL.com source action remains
+unchanged and guarded. The detail route renders identity, ordered participants,
+nullable scores, status/timing, venue, source metadata/action, and neutral
+placeholders, with Back and Escape returning to the scores route before panel
+close.
+
+The fixture/source-driven suite passes with 168 tests. Omarchy validation,
+real-import-path QML lint, and diff check pass. Actual Omarchy 4.0.0-1 with
+Quickshell 0.3.0.r20 was restarted once to load the linked checkout, rescanned,
+manually exercised through keyboard Down/Return and Escape, and inspected with
+one running shell and a clean fresh log. The final source contains no temporary
+runtime probes. No new endpoint, provider adapter, league, box score,
+play-by-play, alert, bar mode, packaging, release, tag, push, or Marketplace
+action occurred.
+
+Next bounded unit: implement one fixture-driven compact/full ambient bar
+presentation policy for the existing normalized game state, preserving today
+focus and the current bar priority/polling boundaries. Start with the pure
+policy/model and one existing bar consumer only; do not add live rotation,
+countdown requests, new provider fields, new leagues, or publication work.

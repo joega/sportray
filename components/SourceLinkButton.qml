@@ -16,6 +16,7 @@ Item {
     if (url.indexOf("nhl.com") !== -1) return "NHL.com"
     return "Source"
   }
+  property bool hasCursor: false
 
   implicitWidth: action.implicitWidth
   implicitHeight: action.implicitHeight
@@ -29,6 +30,10 @@ Item {
     Quickshell.execDetached(["omarchy-launch-browser", root.sourceUrl])
   }
 
+  function focusAction() {
+    if (root.sourceUrl !== "") action.forceActiveFocus()
+  }
+
   SemanticActionButton {
     id: action
     anchors.fill: parent
@@ -39,6 +44,7 @@ Item {
     textHorizontalPadding: Style.spacing.xs
     textVerticalPadding: Style.spacing.xs
     focusable: true
+    hasCursor: root.hasCursor
     enabled: root.sourceUrl !== ""
     Accessible.name: root.sourceUrl !== ""
       ? "Open " + root.sourceName + " game page"

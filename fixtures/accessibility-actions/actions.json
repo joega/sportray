@@ -49,7 +49,7 @@
     {
       "control": "GameRow without source",
       "source": "components/GameRow.qml",
-      "guard": "Accessible.role: sourceLink.visible ? Accessible.Button : Accessible.StaticText"
+      "guard": "Accessible.role: root.game && root.game.isValid === true ? Accessible.Button : Accessible.StaticText"
     },
     {
       "control": "LeagueStatus while loading",
