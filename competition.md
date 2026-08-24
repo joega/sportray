@@ -2,7 +2,9 @@
 
 Private product-planning reference. Reviewed 2026-08-24 against the live
 [Omarchy plugin catalog](https://omarchyplugins.com/catalog.json) and the
-linked public repositories. Keep this file, the Marketplace review, and the
+linked public repositories. Backlog status last reconciled 2026-08-24 after
+the wired provider-fallback chain unit closed out the recorded minimum
+competitive baseline. Keep this file, the Marketplace review, and the
 roadmap out of the public product tree unless the owner explicitly chooses to
 publish planning material.
 
@@ -35,13 +37,23 @@ The current checkout now has meaningful parity with the generalists:
 - eight leagues, canonical team favorites, a Following home, and stable league
   destinations;
 - bounded date navigation and empty-day next-game lookahead;
-- ESPN-backed standings views with favorite actions;
-- a local keyboard-accessible game-detail view projected from normalized data;
-- automatic compact/full ambient bar presentation and live-favorite rotation;
-- adaptive polling, bounded caches and responses, last-good snapshots, source
-  attribution, and isolated provider failures;
+- grouped standings on ESPN-backed and NHL destinations (verified
+  `api-web.nhle.com/v1/standings/now` adapter) with favorite actions;
+- a local keyboard-accessible game-detail drill-down projected from normalized
+  data, with optional final-outcome and bounded per-period lines sections and
+  no second endpoint;
+- a bounded calendar day list projecting the already-fetched five-date caches,
+  with favorite-only filtering and an `F` keyboard shortcut; it never starts
+  new requests;
+- automatic ambient bar presentation: icon-only tray with accent/urgent status
+  dots on horizontal and vertical bars, live-favorite rotation, and countdown
+  projection feeding the indicator state;
+- adaptive polling, bounded caches and responses (2 MiB transport, streamed
+  admission, 256-event cap), last-good snapshots, per-league provider fallback
+  chains with cooldown/isolation, source attribution, and fixture coverage;
 - settings UI, keyboard/focus/accessibility coverage, and favorite-only,
-  first-fetch-silent, deduplicated start/score/final notifications; and
+  first-fetch-silent, deduplicated start/score/final notifications plus opt-in
+  pregame reminders and close-game alerts; and
 - no account, key, backend, telemetry, database, or daemon.
 
 These are deliberate differentiators and should not be traded away while
@@ -50,48 +62,58 @@ chasing feature count.
 ## Feature-parity backlog
 
 Priority is based on user-visible leverage and fit with Sportray's existing
-architecture.
+architecture. Status reconciled 2026-08-24 against the roadmap acceptance
+evidence.
 
 ### P0 — close the generalist gap
 
-1. **Rich game detail.** Extend the existing local detail route with optional
-   period/inning lines, scoring plays, leaders, and sport situation data. Keep
-   the base record provider-neutral; providers may contribute bounded optional
-   sections. Do not fetch a second endpoint until the provider contract and
-   freshness behavior are explicit.
-2. **Complete standings coverage.** ESPN standings work today, but NHL remains
-   scores-only. Add a verified NHL standings adapter and preserve sport-aware
-   ordering, neutral missing fields, and favorite actions.
-3. **Alert depth.** Add independently configurable pregame reminders and
-   close-game alerts. Keep team alerts separate from league browsing so a
-   followed league does not become noisy by default.
+1. **Rich game detail — partially closed.** The local detail route now renders
+   an optional final-outcome section and bounded per-period lines projected
+   from the already normalized ESPN scoreboard snapshot, with neutral
+   placeholders for nulls. Still open: scoring plays, leaders, and sport
+   situation data; these require verified provider fields before any adapter
+   work.
+2. **Complete standings coverage — closed.** The NHL standings adapter is
+   implemented and live-verified (conference grouping, `conferenceSequence`
+   ordering, tri-code resolution through the bounded catalog); ESPN standings
+   were already shipped. Sport-aware ordering beyond conference/league
+   sequence remains future depth, not a parity gap.
+3. **Alert depth — closed.** Independently configurable, favorite-only pregame
+   reminders (30-minute window) and close-game alerts (tied or one-score
+   margin on transition) shipped through the existing notification/dedupe
+   pipeline, both default-off.
 
 ### P1 — reliability and discovery
 
-4. **Provider fallback chains.** Allow a league to name an ordered set of
-   reviewed adapters, retaining last-good data and clearly identifying the
-   active source. Start with a concrete, legally and operationally reviewed
-   MLB or NHL fallback rather than building an abstract registry first.
-5. **Broader team discovery.** Add search across supported competitions where
-   the provider can return canonical identity, crest, and league metadata
-   safely. Keep the catalog bounded and never persist provider display data as
+4. **Provider fallback chains — wiring closed; multi-provider open.** The pure
+   chain policy is wired into every per-league score request with cooldown,
+   last-good retention, isolation, and exhaustion handling. Production chains
+   are single-candidate because each league has exactly one verified adapter.
+   Live multi-provider fallback requires a second reviewed adapter (for
+   example an MLB or NHL alternative source) and remains open until that
+   provider's terms, reliability, and response shape are verified.
+5. **Broader team discovery — open.** Search across supported competitions
+   where the provider returns canonical identity, crest, and league metadata
+   safely. Keep catalogs bounded; never persist provider display data as
    identity.
-6. **Calendar and schedule context.** Add a bounded calendar view or larger
-   schedule window for league destinations, with local-time rendering and
-   direct date jumps. Preserve the existing five-day carousel as the fast path.
+6. **Calendar and schedule context — largely closed.** The bounded calendar
+   day list with favorite-only filtering and the preserved five-day carousel
+   are shipped and runtime-verified. Still open: direct date jumps, explicit
+   local-time rendering choices, and any window wider than the five-date
+   caches without new fetch ownership.
 
 ### P2 — specialist depth
 
-7. **Sport-specific panels.** Add focused projections only when a provider
-   supports them reliably: baseball situation, F1 session/leaderboard, or
-   esports series state. These should be optional projections, not fields every
-   `Game` must carry.
-8. **Broadcast and event links.** Expose streams, VODs, standings pages, or
-   event pages when the provider supplies safe, attributable URLs. Keep the
-   existing labeled provider source action for every game.
-9. **Venue and competition context.** Consider venue-local time, circuit
-   weather/maps, and competition metadata after the generic detail and
-   calendar foundations are stable.
+7. **Sport-specific panels — open.** Baseball situation, F1 session/leaderboard,
+   esports series state, and racing projections. Optional sections only when a
+   provider supports them reliably; never fields every normalized game must
+   carry.
+8. **Broadcast and event links — open.** Streams, VODs, standings pages, or
+   event pages where the provider supplies safe attributable URLs, keeping the
+   labeled provider source action for every game.
+9. **Venue and competition context — open.** Venue-local time, circuit
+   weather/maps, and competition metadata after generic foundations remain
+   stable. Venue text itself is already shown on cards and in detail.
 
 ## Product principles taken from the scan
 
@@ -109,15 +131,32 @@ architecture.
 - Beautiful means coherent under every Omarchy theme, bar orientation, dense
   panel width, keyboard path, and degraded network state.
 
-## Recommended next slices
+## Recommended next slices — awaiting owner direction
 
-1. Implement and fixture-test the NHL standings adapter.
-2. Add the first optional rich-detail section using an existing normalized
-   ESPN fixture, without a new endpoint.
-3. Add one opt-in pregame reminder policy and its notification deduplication
-   coverage.
-4. Reassess provider fallback and broader discovery only after those three
-   slices have passed the existing runtime and privacy gates.
+All three previously recommended slices (NHL standings adapter, first optional
+rich-detail sections, opt-in pregame reminder policy) plus the close-game
+alerts, calendar, and provider-fallback follow-ups have landed and passed the
+runtime/privacy gates. No next product slice is selected yet. Candidate slices
+for owner decision:
+
+1. **Broader team discovery** (P1-5): cross-league search in the favorite
+   picker where providers return canonical identity safely. Scope: bounded
+   search request path or expanded static catalogs; settings/picker UI reuse;
+   no new persistence.
+2. **A second verified provider adapter for live multi-provider fallback**
+   (P1-4 remainder): requires an explicit provider review (terms, region,
+   reliability, response shape) before `providerChain()` gains a second
+   candidate for any league.
+3. **Richer detail sections** (P0-1 remainder / P2-7): scoring plays,
+   leaders, or one sport-specific situation projection from already normalized
+   data only; stop before any second endpoint.
+4. **Calendar extensions** (P1-6 remainder): direct date jumps and/or local-
+   time rendering choices within the existing cache-only boundary.
+5. **Broadcast/event links** (P2-8): safe attributable stream/VOD/event URLs
+   alongside the labeled source action.
+6. **Release/publication follow-up**: owner-assigned release actions for the
+   unreleased `1.0.0-rc.8` candidate (tagging/release/Marketplace verification)
+   remain separate, owner-controlled steps outside feature work.
 
 ## Constraints
 

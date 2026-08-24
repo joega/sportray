@@ -3128,3 +3128,64 @@ implemented, perform one read-only consistency audit across `README.md`,
 `roadmap.md` acceptance evidence, and the private competition backlog;
 record which recorded gaps are closed and present the remaining candidate
 product slices for owner direction before implementing any new feature work.
+
+## Latest handoff — 2026-08-24 post-baseline consistency audit and owner decision list
+
+Status: complete as a read-only audit. No feature, source, or runtime
+behavior changed.
+
+Audit outcome:
+
+- Every README behavior claim added during the baseline slices was checked
+  against current sources and recorded acceptance evidence: standings on
+  ESPN-backed and NHL destinations (`services/StandingsFetch.qml`,
+  `providers/NhlProvider.js`), bounded detail drill-down with optional
+  outcome/per-period lines (`components/GameDetailView.qml`,
+  `model/GameDetailModel.js`), calendar view plus favorites filter
+  (`model/CalendarModel.js`, `KeyboardRoutingPolicy.calendarFilterAction`),
+  icon-only ambient bar with status dots and hover details
+  (`BarWidget.qml`, `model/BarPresentation.js`), notification preferences
+  including pregame reminders and close-game alerts
+  (`model/SettingsModel.js`, `model/PregameReminderPolicy.js`,
+  `model/CloseGamePolicy.js`), response bounds (2 MiB / streamed admission /
+  256 events in `model/ResponsePolicy.js`), and wired per-league provider
+  fallback chains (`providers/LeagueCatalog.providerChain`,
+  `services/LeagueFetch.qml`). No contradictory wording was found, so no
+  README edit was required.
+- `competition.md` backlog reconciled: P0-2 standings coverage closed,
+  P0-3 alert depth closed, P0-1 rich detail partially closed (outcome +
+  lines shipped; scoring plays/leaders/situation open), P1-4 provider
+  fallback wiring closed with live multi-provider open pending a second
+  verified adapter, P1-6 calendar largely closed (date jumps/local-time
+  choices open), P1-5 discovery and all P2 specialist items open.
+- The old "Recommended next slices" section (NHL standings, first rich-detail
+  section, pregame reminder) is fully delivered; it was replaced with an
+  owner-facing decision list: broader team discovery; a second verified
+  provider adapter for live multi-provider fallback; richer detail sections;
+  calendar extensions; broadcast/event links; and separate owner-controlled
+  release/publication follow-ups for the unreleased `rc.8` candidate.
+
+Evidence — gates rerun to record the unchanged baseline:
+`tests/run-js-tests.sh` passes with 210 deterministic tests;
+`./tests/test-summon-helper.sh` passes; `omarchy plugin validate "$PWD"`
+passes on actual Omarchy; real-import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
+exits 0 with the established standalone import/unqualified-access warnings;
+and `git diff --check` passes. This documentation-only audit makes no new
+shell rescan or fresh-log claim because no runtime-behavior claim changed.
+
+The checkout intentionally has no `docs/upstream-contract.md`; no host
+boundary claim required new installed-source inspection beyond prior verified
+evidence. The unrelated absence of `MARKETPLACE_SUBMISSION.md` remains
+untouched and unstaged. No push, tag, release, Marketplace, or remote action
+occurred.
+
+Known risks unchanged: ESPN remains an undocumented API; live multi-provider
+fallback cannot be exercised until a second verified adapter exists; release
+metadata/tagging remain owner-controlled.
+
+Next bounded unit: blocked pending an explicit owner selection from the
+candidate decision list recorded in `competition.md`. If the owner selects a
+slice, implement that single bounded vertical slice under the existing
+guardrails; if no direction is given, do not infer one and stop after
+recording the still-pending decision.
