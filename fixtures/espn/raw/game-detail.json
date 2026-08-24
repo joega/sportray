@@ -1,0 +1,50 @@
+{
+  "events": [
+    {
+      "id": "detail-scheduled",
+      "date": "2026-09-14T19:00:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "Detail Stadium"},
+          "competitors": [
+            {"id": "17", "homeAway": "home", "score": "24", "team": {"id": "17", "displayName": "New England Patriots", "shortDisplayName": "Patriots", "abbreviation": "NE"}},
+            {"id": "2", "homeAway": "away", "score": "21", "team": {"id": "2", "displayName": "Buffalo Bills", "shortDisplayName": "Bills", "abbreviation": "BUF"}}
+          ],
+          "status": {"type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false, "detail": "Mon, Sep 14 at 3:00 PM EDT"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/nfl/game/_/gameId/detail-scheduled"}]
+    },
+    {
+      "id": "detail-final",
+      "date": "2026-08-14T19:00:00Z",
+      "competitions": [
+        {
+          "venue": {"fullName": "Final Field"},
+          "competitors": [
+            {"id": "8", "homeAway": "away", "score": "14", "team": {"id": "8", "displayName": "Cincinnati Bengals", "shortDisplayName": "Bengals", "abbreviation": "CIN"}},
+            {"id": "33", "homeAway": "home", "score": "17", "team": {"id": "33", "displayName": "Cleveland Browns", "shortDisplayName": "Browns", "abbreviation": "CLE"}}
+          ],
+          "status": {"displayClock": "0:00", "period": 4, "type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "detail": "Final"}}
+        }
+      ],
+      "links": [{"rel": ["summary", "event"], "href": "https://www.espn.com/nfl/game/_/gameId/detail-final"}]
+    },
+    {
+      "id": "broken-detail",
+      "competitions": [{"competitors": [{"homeAway": "home"}]}]
+    },
+    {
+      "id": "detail-missing",
+      "competitions": [
+        {
+          "competitors": [
+            {"id": "1", "homeAway": "home", "team": {"id": "1", "abbreviation": "JAX"}},
+            {"id": "4", "homeAway": "away", "team": {"id": "4", "abbreviation": "IND"}}
+          ],
+          "status": {"type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false}}
+        }
+      ]
+    }
+  ]
+}

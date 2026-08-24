@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "..");
 const catalog = require(path.join(root, "providers/LeagueCatalog.js"));
 const teams = require(path.join(root, "model/TeamModel.js"));
 const games = require(path.join(root, "model/GameModel.js"));
+const gameDetails = require(path.join(root, "model/GameDetailModel.js"));
 const formatters = require(path.join(root, "model/Formatters.js"));
 const presentation = require(path.join(root, "model/FavoritePresentation.js"));
 const nhl = require(path.join(root, "providers/NhlProvider.js"));
@@ -65,6 +66,11 @@ function readEspnFixture(name) {
 function readStandingsFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/espn/raw/standings-nfl.json"), "utf8"));
+}
+
+function readGameDetailFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/espn/raw/game-detail.json"), "utf8"));
 }
 
 function readEspnTeamFixture(league) {
@@ -1258,6 +1264,86 @@ test("standings rows keep existing favorite routing and expose bounded actions",
     {type: "toggle-favorite-team", label: "Add favorite", enabled: true});
   const source = readSource("components/StandingsRow.qml");
   assert.equal(source.includes("root.settings.toggleFavoriteTeam(root.standing.team.id)"), true);
+});
+
+test("generic game details normalize ESPN games into ordered provider-neutral fields", () => {
+  const result = espn.parseGameDetailResponse(readGameDetailFixture(), "nfl");
+  assert.deepEqual(result.details.map((detail) => detail.id), [
+    "nfl:detail-final", "nfl:detail-scheduled", "nfl:detail-missing"
+  ]);
+  assert.deepEqual(result.errors, [{
+    provider: "espn",
+    league: "nfl",
+    endpoint: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+    index: 2,
+    code: "invalid-event"
+  }]);
+
+  const final = result.details[0];
+  assert.equal(final.league, "nfl");
+  assert.equal(final.providerGameId, "detail-final");
+  assert.deepEqual(final.participants.map((participant) => participant.side), ["away", "home"]);
+  assert.equal(final.participants[0].team.id, "nfl:8");
+  assert.equal(final.participants[1].team.abbreviation, "CLE");
+  assert.deepEqual(final.participants.map((participant) => participant.score), [14, 17]);
+  assert.deepEqual(final.status, {
+    state: "final", detail: "Final", period: 4, periodLabel: null, clock: "0:00"
+  });
+  assert.deepEqual(final.timing, {
+    startTime: "2026-08-14T19:00:00.000Z", endTime: null, lastUpdated: null
+  });
+  assert.equal(final.venue, "Final Field");
+  assert.deepEqual(final.source, {
+    provider: "espn", label: "ESPN",
+    url: "https://www.espn.com/nfl/game/_/gameId/detail-final"
+  });
+  assert.equal(final.isValid, true);
+  assert.deepEqual(final.errors, []);
+  assert.equal(JSON.stringify(final).includes("competitions"), false);
+  assert.equal(JSON.stringify(final).includes("STATUS_FINAL"), false);
+});
+
+test("generic game details preserve explicit nulls for omitted normalized fields", () => {
+  const detail = espn.parseGameDetailResponse(readGameDetailFixture(), "nfl").details
+    .find((value) => value.providerGameId === "detail-missing");
+  assert.equal(detail.participants[0].team.name, null);
+  assert.equal(detail.participants[0].team.shortName, null);
+  assert.equal(detail.participants[0].score, null);
+  assert.equal(detail.participants[0].team.abbreviation, "IND");
+  assert.equal(detail.participants[1].team.abbreviation, "JAX");
+  assert.equal(detail.status.detail, null);
+  assert.equal(detail.status.period, null);
+  assert.equal(detail.status.periodLabel, null);
+  assert.equal(detail.status.clock, null);
+  assert.equal(detail.timing.startTime, null);
+  assert.equal(detail.timing.endTime, null);
+  assert.equal(detail.timing.lastUpdated, null);
+  assert.equal(detail.venue, null);
+  assert.equal(detail.source.provider, "espn");
+  assert.equal(detail.source.label, "ESPN");
+  assert.equal(detail.source.url, "https://www.espn.com/nfl/game/_/gameId/detail-missing");
+});
+
+test("generic game-detail model bounds malformed input without raw payload fields", () => {
+  const invalid = gameDetails.normalizeDetail(games.createDefaultGame(), {
+    provider: "espn", label: "ESPN"
+  });
+  assert.equal(invalid.isValid, false);
+  assert.deepEqual(invalid.participants, [
+    {side: "away", team: null, score: null},
+    {side: "home", team: null, score: null}
+  ]);
+  assert.deepEqual(invalid.errors, [{code: "invalid-game"}]);
+
+  const validGame = espn.parseScoreboardResponse(readEspnFixture("nfl-final"), "nfl").games[0];
+  assert.deepEqual(gameDetails.normalizeDetails("not-an-array", {}).errors,
+    [{index: null, code: "invalid-games"}]);
+  const overLimit = gameDetails.normalizeDetails(
+    Array.from({length: gameDetails.MAX_DETAILS + 1}, () => validGame), {});
+  assert.deepEqual(overLimit, {
+    details: [], errors: [{index: null, code: "too-many-games"}]
+  });
+  assert.equal(JSON.stringify(invalid).includes("raw"), false);
 });
 
 test("NHL next-game lookup uses the schedule endpoint and keeps normalized games", () => {

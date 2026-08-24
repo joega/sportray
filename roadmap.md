@@ -1148,3 +1148,71 @@ the current provider payloads and installed upstream boundaries, then implement
 only a provider-neutral detail shape plus one fixture-backed provider parser if
 the contract is reliable. Do not add the detail QML drill-down in that unit
 unless its acceptance can remain one small existing-route extension.
+
+## Game-detail data/model slice — 2026-08-23
+
+Status: complete. The first generic game-detail data/model slice is implemented
+without opening a drill-down route or changing the Quickshell boundary. It
+consumes the existing normalized `GameModel` game shape and exposes a bounded,
+provider-neutral detail record for a future view.
+
+Evidence:
+
+- `model/GameDetailModel.js` provides stable identity, away/home participants,
+  nullable scores, normalized status, timing, venue, source metadata, and
+  bounded error shaping. Missing optional values remain explicit `null`s.
+- `providers/EspnProvider.js` adds one fixture-backed
+  `parseGameDetailResponse` path. It reuses the verified ESPN scoreboard parser
+  and then maps only normalized games into the detail model; no provider event
+  payload reaches a consumer.
+- `fixtures/espn/raw/game-detail.json` covers out-of-order valid events,
+  missing optional fields, and one malformed sibling. The deterministic suite
+  now passes 165 tests covering detail ordering, participant normalization,
+  null preservation, malformed input, and the 256-record bound.
+- `omarchy plugin validate "$PWD"` passes on installed Omarchy 4.0.0-1.
+  Real-import-path `qmllint` over every QML file exits 0 with the established
+  standalone host/import and unqualified-access warnings. `git diff --check`
+  passes. No QML file changed, so no plugin rescan, fresh runtime log, or live
+  route exercise was required for this pure model/provider unit.
+
+Decision log: keep detail as a projection of the existing normalized game
+boundary, with fixed away/home participant ordering and no provider-specific
+fields. Use ESPN's already verified scoreboard event shape for the first
+adapter; do not infer a separate event endpoint, box score, play-by-play, or
+NHL detail contract. The provider supplies `ESPN` source metadata while the
+normalized game's existing safe canonical link remains the URL source.
+
+Known risks: ESPN is an undocumented site API and the fixture-backed detail
+projection has no dedicated live event endpoint. NHL has no verified detail
+adapter. A future UI must treat null participants, timing, scores, venue, and
+source URL as ordinary sparse states and must not imply box-score depth that
+this slice does not provide.
+
+## Latest handoff — 2026-08-23 game-detail data/model slice complete
+
+The generic game-detail data/model unit is complete and ready for its atomic
+commit. `GameDetailModel` projects the existing normalized game shape into
+provider-neutral identity, ordered participants, nullable score/status/timing
+fields, venue, and source metadata. ESPN exposes one fixture-backed parser
+path that reuses scoreboard normalization; malformed siblings are isolated and
+detail records are sorted deterministically by start time with null times last.
+
+The fixture suite covers valid ordering, normalization, omitted-field nulls,
+malformed input, raw-payload exclusion, and the bounded 256-record admission.
+The full JavaScript suite passes with 165 tests. `omarchy plugin validate
+"$PWD"`, real-import-path QML lint over every QML file, and `git diff --check`
+pass. No QML or Quickshell boundary changed, so no live rescan, log inspection,
+or manual route exercise was claimed.
+
+Installed Omarchy 4.0.0-1 and Quickshell 0.3.0.r20 remain the verified
+boundaries; `docs/upstream-contract.md` is intentionally absent. No new
+league, provider fallback, alert, bar mode, packaging, tag, push, release, or
+Marketplace action occurred. Marketplace issue #873 and public publication
+remain owner-controlled.
+
+Next bounded unit: add the smallest existing-route game-detail drill-down UI
+that renders this projection from an already loaded normalized game, with no
+new provider request. It must handle loading-free sparse/null fields and the
+existing ESPN/NHL source link safely. Stop before detail endpoint fetching,
+box-score/play-by-play adapters, bar modes, live rotation, alerts, new leagues,
+provider fallback, niche sports, packaging, or publication work.

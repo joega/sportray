@@ -2,11 +2,13 @@ var GameModel = null;
 var AssetUrlPolicy = null;
 var ResponsePolicy = null;
 var StandingsModel = null;
+var GameDetailModel = null;
 if (typeof require === "function") {
   GameModel = require("../model/GameModel.js");
   AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
   ResponsePolicy = require("../model/ResponsePolicy.js");
   StandingsModel = require("../model/StandingsModel.js");
+  GameDetailModel = require("../model/GameDetailModel.js");
 }
 
 var ESPN_BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
@@ -308,6 +310,19 @@ function parseNextGamesResponse(payload, leagueId) {
   return parseScoreboardResponse(payload, leagueId);
 }
 
+function parseGameDetailResponse(payload, leagueId) {
+  var scoreboard = parseScoreboardResponse(payload, leagueId);
+  if (!GameDetailModel) return {details: [], errors: scoreboard.errors};
+  var details = GameDetailModel.normalizeDetails(scoreboard.games, {
+    provider: ESPN_PROVIDER,
+    label: "ESPN"
+  });
+  return {
+    details: details.details,
+    errors: scoreboard.errors.concat(details.errors)
+  };
+}
+
 function standingsStat(stats, names) {
   if (!Array.isArray(stats) || !Array.isArray(names)) return null;
   for (var i = 0; i < stats.length; i++) {
@@ -428,6 +443,7 @@ if (typeof module !== "undefined" && module.exports) {
     parseGame: parseGame,
     parseScoreboardResponse: parseScoreboardResponse,
     parseNextGamesResponse: parseNextGamesResponse,
+    parseGameDetailResponse: parseGameDetailResponse,
     parseStandingsResponse: parseStandingsResponse,
     normalizeStandingsEntry: normalizeStandingsEntry
   };

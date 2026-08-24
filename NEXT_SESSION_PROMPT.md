@@ -1,63 +1,62 @@
 Work in `/home/joeg/Projects/sportray` on the next bounded product unit:
-design and implement the first generic game-detail data/model slice that
-follows the completed standings/league-view unit.
+implement the smallest existing-route game-detail drill-down UI backed by the
+completed generic game-detail data/model slice.
 
 Before any edit, read `AGENTS.md`, `README.md`,
 `docs/upstream-contract.md`, `roadmap.md`, and this latest handoff. This
 checkout intentionally has no `docs/upstream-contract.md`; verify any
 Omarchy/Quickshell boundary against installed Omarchy and Quickshell sources.
-Inspect `git status`, the current branch, recent commits, the standings handoff,
-provider adapters, normalized game model, fixtures, and tests. Preserve
-unrelated changes.
+Inspect `git status`, the current branch, recent commits, the game-detail
+handoff, `model/GameDetailModel.js`, `model/GameModel.js`, the ESPN adapter,
+fixtures, tests, and the existing Panel/GameRow route. Preserve unrelated
+changes.
 
 Verified current state:
 
-- The standings slice is complete: `StandingsModel` and `StandingsRows` provide
-  provider-neutral grouped rows, nullable metrics, deterministic ordering,
-  empty/error shaping, and canonical team IDs for existing favorite actions.
-- `EspnProvider` has one fixture-backed standings parser path and
-  `StandingsFetch.qml` is a single on-demand fetch boundary. Existing ESPN
-  league destinations have a small grouped standings route; NHL remains
-  scores-only because no standings adapter has been verified.
-- The scores route, normalized game model, date/cache boundaries, settings,
-  accessibility, privacy, and notification contracts remain in place. Provider
-  parsing stays outside QML.
-- Fixture tests cover standings ordering, missing values, empty/malformed
-  payloads, and favorite routing. The JS suite, actual Omarchy plugin
-  validation, real-import-path QML lint, diff check, plugin rescan, fresh log
-  inspection, and live empty-state route exercise passed for the completed
-  unit. The live ESPN offseason payload was sparse/empty, so populated standings
-  remain fixture-verified.
-- `docs/upstream-contract.md` is intentionally absent; the completed unit used
-  installed Omarchy/Quickshell sources. Marketplace issue #873 and all public
-  publication work remain owner-controlled and out of scope.
+- `GameDetailModel` projects an already normalized game into fixed
+  provider-neutral identity, away/home participants, nullable scores, status,
+  timing, venue, source metadata, and bounded error fields.
+- `EspnProvider.parseGameDetailResponse` reuses the existing verified ESPN
+  scoreboard normalization path and maps one fixture-backed payload into
+  deterministically ordered detail records. No detail QML consumer exists yet.
+- Detail fixtures and the JavaScript suite cover ordering, participant and
+  status normalization, omitted-field nulls, malformed siblings, raw-payload
+  exclusion, and the 256-record bound. The suite currently passes 165 tests.
+- The existing scores route and source-link actions remain unchanged. NHL has
+  no verified detail adapter, and the current detail projection does not imply
+  box-score or play-by-play data. Provider parsing must remain outside QML.
+- Installed Omarchy 4.0.0-1 and Quickshell 0.3.0.r20 are the runtime boundary
+  sources. The prior pure model/provider unit passed plugin validation, real
+  import-path QML lint, and diff check; it made no QML changes.
 
 Bounded outcome:
 
-Implement only a generic provider-neutral game-detail model and one
-fixture-backed provider parser path, using the existing normalized game shape
-as the source boundary. Cover the smallest useful detail fields (identity,
-participants, status, timing, score, venue/source metadata) with explicit
-nulls for omissions and bounded malformed-input errors. Add fixture-driven
-ordering/normalization/missing-field/malformed-input tests. Do not add a new
-league, provider fallback, alerts, bar mode, packaging, or a broad QML redesign.
-If provider payloads cannot support a reliable shape, document the adapter
-contract and stop after pure model/fixture work.
+Add one small, keyboard-accessible detail presentation reachable from an
+existing loaded game row or existing route. Reuse the normalized game and
+`GameDetailModel` projection; render identity, both participants and scores,
+status/timing, venue, and the existing safe provider source action. Preserve
+explicit nulls as neutral placeholders and keep detail state local to the
+current panel/view. Add fixture/source-driven tests for the route, action
+reachability, sparse fields, and safe back/close behavior.
+
+Do not add a new provider request or endpoint, box score, play-by-play, alerts,
+bar mode, live rotation, provider fallback, new league, niche adapter,
+packaging, tagging, pushing, release, or Marketplace work. Stop if making the
+detail route reliable requires a provider contract beyond the current
+scoreboard payload; document that contract risk in `roadmap.md` and leave the
+pure model intact.
 
 Required checks and stop condition:
 
-- Read and inspect current upstream sources before changing any QML or
-  Quickshell boundary.
-- Run `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the
-  real-import-path `qmllint` command over every QML file, and `git diff --check`.
-- If QML changes, rescan the linked plugin on actual Omarchy, inspect the fresh
-  Quickshell log, and manually exercise the changed route. Do not report an
-  Omarchy check as passing unless it actually ran there.
-- Stop before game-detail drill-down UI if it would expand this slice, and
-  before bar modes, live rotation, provider chains, alerts, new leagues, niche
-  adapters, packaging, tagging, pushing, releases, or Marketplace actions.
+- Read and inspect current installed Omarchy/Quickshell sources before changing
+  any QML or Quickshell boundary.
+- Run `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the real
+  import-path `qmllint` command over every QML file, and `git diff --check`.
+- Because this unit changes QML, rescan the linked plugin on actual Omarchy,
+  inspect the fresh Quickshell log, and manually exercise the detail route.
+  Do not report an Omarchy check as passing unless it actually ran there.
 - At completion, update `roadmap.md` with status, evidence, decisions, risks,
   and a dated handoff; replace this file with the next single bounded prompt;
-  and create one atomic Conventional Commit-style commit only after every gate
-  passes. Use subagents only for independent read-only work that materially
-  improves confidence.
+  and create one atomic Conventional Commit-style commit only after every
+  gate passes. Use subagents only for independent read-only work that
+  materially improves confidence.
