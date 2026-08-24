@@ -1,0 +1,30 @@
+{
+  "bounds": {
+    "maxQueryLength": 48,
+    "maxResults": 60
+  },
+  "leagues": [
+    {"id": "nhl", "name": "NHL", "displayName": "NHL"},
+    {"id": "eng.1", "name": "Premier League", "displayName": "Premier League"},
+    {"id": "usa.1", "name": "MLS", "displayName": "MLS"},
+    {"id": "college-football", "name": "NCAA Football", "displayName": "NCAA Football"}
+  ],
+  "teams": [
+    {"id": "nhl:6", "league": "nhl", "name": "Boston Bruins", "shortName": "Bruins", "abbreviation": "BOS"},
+    {"id": "nhl:13", "league": "nhl", "name": "Florida Panthers", "shortName": "Panthers", "abbreviation": "FLA"},
+    {"id": "eng.1:357", "league": "eng.1", "name": "Leeds United", "shortName": "Leeds United", "abbreviation": "LEE"},
+    {"id": "eng.1:364", "league": "eng.1", "name": "Liverpool", "shortName": "Liverpool", "abbreviation": "LIV"},
+    {"id": "usa.1:9726", "league": "usa.1", "name": "Seattle Sounders FC", "shortName": "Seattle Sounders FC", "abbreviation": "SEA"},
+    {"id": "usa.1:186", "league": "usa.1", "name": "Sporting Kansas City", "shortName": "Sporting KC", "abbreviation": "SKC"},
+    {"id": "college-football:194", "league": "college-football", "name": "Ohio State Buckeyes", "shortName": "Ohio State", "abbreviation": "OSU"},
+    {"id": "college-football:150", "league": "college-football", "name": "Duke Blue Devils", "shortName": "Duke", "abbreviation": "DUKE"}
+  ],
+  "fillerTeam": {
+    "id": "mlb:{n}",
+    "league": "mlb",
+    "name": "Filler Club {n} FC",
+    "shortName": "Filler {n}",
+    "abbreviation": "F{n}"
+  },
+  "fillerCount": 70
+}

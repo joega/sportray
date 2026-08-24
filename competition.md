@@ -3,8 +3,7 @@
 Private product-planning reference. Reviewed 2026-08-24 against the live
 [Omarchy plugin catalog](https://omarchyplugins.com/catalog.json) and the
 linked public repositories. Backlog status last reconciled 2026-08-24 after
-the wired provider-fallback chain unit closed out the recorded minimum
-competitive baseline. Keep this file, the Marketplace review, and the
+the broader team discovery unit closed P1-5. Keep this file, the Marketplace review, and the
 roadmap out of the public product tree unless the owner explicitly chooses to
 publish planning material.
 
@@ -36,6 +35,9 @@ The current checkout now has meaningful parity with the generalists:
 
 - eight leagues, canonical team favorites, a Following home, and stable league
   destinations;
+- bounded cross-league team discovery in the favorite picker (league-name
+  queries, ranked matches, clamped query and capped results) over the static
+  catalogs;
 - bounded date navigation and empty-day next-game lookahead;
 - grouped standings on ESPN-backed and NHL destinations (verified
   `api-web.nhle.com/v1/standings/now` adapter) with favorite actions;
@@ -92,10 +94,12 @@ evidence.
    Live multi-provider fallback requires a second reviewed adapter (for
    example an MLB or NHL alternative source) and remains open until that
    provider's terms, reliability, and response shape are verified.
-5. **Broader team discovery — open.** Search across supported competitions
-   where the provider returns canonical identity, crest, and league metadata
-   safely. Keep catalogs bounded; never persist provider display data as
-   identity.
+5. **Broader team discovery — closed.** The favorite picker discovers teams
+   across all eight leagues from the bounded static catalogs: queries match
+   league display names (e.g. "premier", "college"), direct hits rank above
+   broader matches, the query is clamped at 48 characters, and non-empty
+   search results are capped at 60 while unfiltered browsing stays complete.
+   No new endpoint; canonical identities and schema-1 settings unchanged.
 6. **Calendar and schedule context — largely closed.** The bounded calendar
    day list with favorite-only filtering and the preserved five-day carousel
    are shipped and runtime-verified. Still open: direct date jumps, explicit
@@ -135,27 +139,26 @@ evidence.
 
 All three previously recommended slices (NHL standings adapter, first optional
 rich-detail sections, opt-in pregame reminder policy) plus the close-game
-alerts, calendar, and provider-fallback follow-ups have landed and passed the
-runtime/privacy gates. No next product slice is selected yet. Candidate slices
-for owner decision:
+alerts, calendar, provider-fallback, team-statistics, and broader team
+discovery follow-ups have landed and passed the runtime/privacy gates. The
+owner directed on 2026-08-24 that all candidate slices will be completed in
+sequence; the agreed order is calendar extensions, then broadcast/event links,
+then a second verified provider adapter (requires explicit terms/region/
+reliability review), then owner-controlled release/publication follow-ups.
+Remaining candidate slices:
 
-1. **Broader team discovery** (P1-5): cross-league search in the favorite
-   picker where providers return canonical identity safely. Scope: bounded
-   search request path or expanded static catalogs; settings/picker UI reuse;
-   no new persistence.
-2. **A second verified provider adapter for live multi-provider fallback**
+1. **Calendar extensions** (P1-6 remainder, next): direct date jumps and/or
+   local-time rendering choices within the existing cache-only boundary.
+2. **Broadcast/event links** (P2-8): safe attributable stream/VOD/event URLs
+   alongside the labeled source action.
+3. **A second verified provider adapter for live multi-provider fallback**
    (P1-4 remainder): requires an explicit provider review (terms, region,
    reliability, response shape) before `providerChain()` gains a second
    candidate for any league.
-3. **Richer detail sections** (P0-1 remainder / P2-7): scoring plays,
+4. **Richer detail sections** (P0-1 remainder / P2-7): scoring plays,
    leaders, or one sport-specific situation projection from already normalized
-   data only; stop before any second endpoint. The team-statistics rows slice
-   from this candidate landed 2026-08-24.
-4. **Calendar extensions** (P1-6 remainder): direct date jumps and/or local-
-   time rendering choices within the existing cache-only boundary.
-5. **Broadcast/event links** (P2-8): safe attributable stream/VOD/event URLs
-   alongside the labeled source action.
-6. **Release/publication follow-up**: owner-assigned release actions for the
+   data only; stop before any second endpoint.
+5. **Release/publication follow-up**: owner-assigned release actions for the
    unreleased `1.0.0-rc.8` candidate (tagging/release/Marketplace verification)
    remain separate, owner-controlled steps outside feature work.
 

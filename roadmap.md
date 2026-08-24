@@ -3270,3 +3270,76 @@ bounded static catalogs or a verified request path with canonical
 settings persistence without a schema change. Stop before any second-provider
 adapter, calendar extension, broadcast links, packaging, tagging, pushing,
 release, or Marketplace work.
+
+## Latest handoff — 2026-08-24 broader team discovery complete
+
+The P1-5 broader team discovery unit is complete in the current worktree and
+its atomic commit. Cross-league discovery in the existing favorite picker now
+matches league display names, ranks direct hits above broader matches, and
+stays explicitly bounded, all in the pure picker model with the existing
+bounded static catalogs. No new endpoint, provider adapter, settings schema,
+or persistence change was made.
+
+Evidence:
+
+- `model/TeamPickerModel.js` gains `MAX_QUERY_LENGTH` (48) with query clamping
+  in `normalizeQuery`, `MAX_RESULTS` (60) applied only to non-empty search
+  results so unfiltered catalog browsing remains complete, league-name
+  discovery through an optional `leagues` metadata argument (a query matching
+  a league's `displayName`, `name`, or `id` admits that league's bounded
+  catalog), and deterministic ranking tiers (exact abbreviation/id, then
+  name/shortName prefix, then substring or league match) beneath the existing
+  favorites-first ordering.
+- `components/TeamPicker.qml` is the only consumer changed: it passes the
+  already-propagated `leagues` metadata (`LeagueCatalog.listLeagues()` shape)
+  into `filterAndOrderTeams`. Panel `buildPickerTeams`, SettingsHub, settings
+  persistence, canonical `<league>:<providerTeamId>` identities, and schema-1
+  behavior are unchanged.
+- `fixtures/team-picker/discovery.json` plus two deterministic tests cover
+  league-name cross-league discovery ("premier", "ncaa football"), narrowing
+  under a specific league chip, no-discovery without metadata, ranked tier
+  ordering, query clamping equivalence, the uncapped empty-query browse, the
+  60-result search cap, and favorites surviving the cap at the top. The
+  complete suite passes with 213 deterministic tests.
+- `./tests/test-summon-helper.sh`, `git diff --check`, `omarchy plugin
+  validate "$PWD"`, and real-import-path `/usr/lib/qt6/bin/qmllint -I
+  /usr/share/omarchy/shell` over all 24 QML files pass; lint exits 0 with the
+  established standalone import/unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported
+  `omarchy-restart-shell` loaded the linked checkout into one instance
+  (PID 920442); shell ping returned `ok` and Sportray polling initialized
+  normally. Real keyboard exercise: `n` opened Settings, Right/Return selected
+  the `Favorite teams` tab, and typing `premier` in the search box rendered
+  the Premier League catalog (Aston Villa, AFC Bournemouth, Arsenal,
+  Brentford, Brighton) through league-name discovery; Escape closed the
+  settings route and the panel. The fresh log contains normal Sportray
+  provider/cache activity and no Sportray error, exception, or binding-loop
+  warning; only the pre-existing unrelated portal registration warning
+  remains.
+
+Decision log: keep discovery entirely on the reviewed static catalogs; the
+existing ESPN/NHL team-catalog endpoints remain refresh paths, not a new
+request boundary, and no request is issued from the picker. League-name
+matching is substring-based over the league's own bounded metadata, so a
+query like "college" discovers both NCAA destinations. Search results are
+capped at 60 only while a query is active so no static league catalog becomes
+unreachable by browsing. Ranking is presentation-only and never reorders
+persisted favorite identity.
+
+Known risks: ESPN remains an undocumented API (unchanged); the cap means a
+broad query can hide lower-ranked matches beyond 60 rows, which is the
+deliberate bounded-discovery trade. A second verified provider adapter
+(P1-4 remainder) still requires an explicit terms/region/reliability review.
+
+Boundary note: `docs/upstream-contract.md` remains intentionally absent; the
+installed Omarchy restart/summon/IPC and Quickshell import-path contracts
+were used as verified. No push, tag, release, or Marketplace action occurred.
+The unrelated absence of `MARKETPLACE_SUBMISSION.md` remains untouched and
+unstaged.
+
+Next bounded unit: calendar extensions (P1-6 remainder) as one bounded
+vertical slice — direct date jumps and/or explicit local-time rendering
+choices within the existing cache-only calendar boundary, with no new fetch
+ownership and no wider request window. Stop before broadcast/event links,
+any second provider adapter, packaging, tagging, pushing, release, or
+Marketplace work.

@@ -200,6 +200,11 @@ function readProviderWiringFixture() {
     path.join(root, "fixtures/provider-fallback/wiring.json"), "utf8"));
 }
 
+function readTeamPickerDiscoveryFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/team-picker/discovery.json"), "utf8"));
+}
+
 function normalizeFixtureGames(fixture) {
   return fixture.games.map((game) => games.normalizeGame(game));
 }
@@ -402,6 +407,101 @@ test("favorite team picker filters, chips, and selected-first ordering are deter
   );
   assert.equal(pickerModel.selectedCount(catalog, favorites), 2);
   assert.deepEqual(pickerModel.filterAndOrderTeams(catalog, "", "nba", favorites), []);
+});
+
+test("cross-league discovery matches league names and ranks direct hits first", () => {
+  const discovery = readTeamPickerDiscoveryFixture();
+  const leagues = discovery.leagues;
+
+  // League display-name discovery returns whole bounded catalogs for that
+  // league even when no team text contains the query.
+  assert.deepEqual(
+    pickerModel.filterAndOrderTeams(discovery.teams, "premier", "all", [], leagues)
+      .map((team) => team.id),
+    ["eng.1:357", "eng.1:364"]
+  );
+  assert.deepEqual(
+    pickerModel.filterAndOrderTeams(discovery.teams, "ncaa football", "all", [], leagues)
+      .map((team) => team.id),
+    ["college-football:150", "college-football:194"]
+  );
+  // Without league metadata the same query stays a plain text search.
+  assert.deepEqual(
+    pickerModel.filterAndOrderTeams(discovery.teams, "premier", "all", []).map((t) => t.id),
+    []
+  );
+  // A specific league chip still narrows discovery results.
+  assert.deepEqual(
+    pickerModel.filterAndOrderTeams(discovery.teams, "premier", "usa.1", [], leagues),
+    []
+  );
+
+  // Direct hits rank above league-name matches inside one result list.
+  const mixed = pickerModel.filterAndOrderTeams(
+    discovery.teams, "boston", "all", [], leagues).map((team) => team.id);
+  assert.deepEqual(mixed, ["nhl:6"]);
+
+  // Exact abbreviation/id hits outrank prefix hits, which outrank substrings.
+  const rankedCatalog = [
+    {id: "x:2", league: "x", name: "New Boston FC", abbreviation: "NBF"},
+    {id: "x:1", league: "x", name: "Boston Rockets", abbreviation: "BXR"},
+    {id: "nhl:6", league: "nhl", name: "Boston Bruins", abbreviation: "BOS"}
+  ];
+  assert.deepEqual(
+    pickerModel.filterAndOrderTeams(rankedCatalog, "bos", "all", []).map((t) => t.id),
+    ["nhl:6", "x:1", "x:2"]
+  );
+
+  // The QML picker supplies league metadata so discovery works in the panel.
+  assert.equal(readSource("components/TeamPicker.qml").includes(
+    "root.teams, root.query, root.leagueFilter, root.favoriteIds, root.leagues)"), true);
+});
+
+test("discovery search input and result list stay bounded", () => {
+  const discovery = readTeamPickerDiscoveryFixture();
+
+  // The query is clamped before matching.
+  const longQuery = "a".repeat(60) + "bruins";
+  assert.equal(pickerModel.normalizeQuery(longQuery).length,
+    discovery.bounds.maxQueryLength);
+  assert.equal(pickerModel.MAX_QUERY_LENGTH, discovery.bounds.maxQueryLength);
+  const clamped = longQuery.slice(0, discovery.bounds.maxQueryLength);
+  assert.deepEqual(
+    pickerModel.filterAndOrderTeams(discovery.teams, longQuery, "all", []),
+    pickerModel.filterAndOrderTeams(discovery.teams, clamped, "all", [])
+  );
+
+  // Filler catalog larger than the result cap, all matching the query "fc".
+  const filler = [];
+  for (let i = 1; i <= discovery.fillerCount; i++) {
+    filler.push({
+      id: discovery.fillerTeam.id.replace("{n}", String(i)),
+      league: discovery.fillerTeam.league,
+      name: discovery.fillerTeam.name.replace("{n}", String(i)),
+      shortName: discovery.fillerTeam.shortName.replace("{n}", String(i)),
+      abbreviation: discovery.fillerTeam.abbreviation.replace("{n}", String(i))
+    });
+  }
+  assert.equal(pickerModel.MAX_RESULTS, discovery.bounds.maxResults);
+
+  // Empty queries keep browsing uncapped so no static catalog is hidden.
+  assert.equal(pickerModel.filterAndOrderTeams(filler, "", "all", []).length,
+    discovery.fillerCount);
+
+  // Bounded search results are capped deterministically by the ranked order.
+  // All filler teams share one match tier, so name then id decides the order.
+  const capped = pickerModel.filterAndOrderTeams(filler, "fc", "all", []);
+  const expected = filler.slice()
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+    .slice(0, discovery.bounds.maxResults);
+  assert.equal(capped.length, discovery.bounds.maxResults);
+  assert.deepEqual(capped.map((team) => team.id), expected.map((team) => team.id));
+
+  // Favorites survive the cap and stay at the top of the bounded results.
+  const favoriteId = filler[discovery.fillerCount - 1].id;
+  const withFavorite = pickerModel.filterAndOrderTeams(filler, "fc", "all", [favoriteId]);
+  assert.equal(withFavorite.length, discovery.bounds.maxResults);
+  assert.equal(withFavorite[0].id, favoriteId);
 });
 
 test("team IDs are canonical and preserve provider identity", () => {

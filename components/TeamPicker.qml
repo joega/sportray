@@ -25,7 +25,7 @@ Item {
     return Array.isArray(value) ? value.slice() : []
   }
   readonly property var visibleTeams: PickerModel.filterAndOrderTeams(
-    root.teams, root.query, root.leagueFilter, root.favoriteIds)
+    root.teams, root.query, root.leagueFilter, root.favoriteIds, root.leagues)
   readonly property int selectedCount: PickerModel.selectedCount(root.teams, root.favoriteIds)
   readonly property bool inputActive: searchInput.activeFocus
 
