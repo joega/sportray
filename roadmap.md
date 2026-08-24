@@ -1522,3 +1522,92 @@ favorite-upcoming state and caller-owned time, while preserving live-favorite
 priority, compact/full mode selection, and current polling boundaries. Stop
 before adding a new timer, provider countdown data or endpoint, settings field,
 new league, or unrelated QML interaction work.
+
+## Ambient-bar countdown presentation slice — 2026-08-24
+
+Status: complete. The accepted pure countdown projection is wired into the
+existing ambient bar presentation path for one normalized today-scoped
+favorite-upcoming game. Live-favorite priority, compact/full mode selection,
+panel anchoring, and polling ownership remain unchanged.
+
+Evidence:
+
+- `BarWidget.qml` now passes the existing normalized `barState.game` to
+  `CountdownProjectionPolicy.project` only when the selected state is
+  `favorite-upcoming`. It supplies the panel's selected date, the shared
+  service's caller-owned `nowMs`, favorite IDs, normalized-data health, and
+  the existing fetch error state. No provider payload or provider parser is
+  imported into QML.
+- The shared `SportrayService` clock reuses its existing 60-second date-boundary
+  timer to publish the current timestamp and local today key. No countdown
+  timer, request, polling cadence, settings field, or upstream API was added.
+  `Panel.qml` exposes that caller-owned time/date context only to the existing
+  ambient-bar path.
+- `model/BarPresentation.js` preserves the selected state and mode, exposes the
+  bounded countdown projection, and overrides the existing full/tooltip text
+  only for valid `future` or `due` `favorite-upcoming` projections. Safe empty
+  and offline projections retain the existing matchup/fallback text.
+- `fixtures/bar-presentation/policy.json` and the deterministic suite cover
+  countdown precedence, future/due labels, compact/full behavior, safe
+  empty/offline fallbacks, live-favorite precedence, caller-time wiring, and
+  the no-new-timer ownership boundary. The complete suite passes with 182
+  deterministic tests.
+- Installed Omarchy 4.0.0-1 and Quickshell 0.3.0 revision `28771c7` were
+  inspected before the QML change. The existing `BarWidget`, `WidgetButton`,
+  `BarIconButton`, `ModuleSlot`, and shell service contracts were sufficient;
+  no upstream boundary deviation was needed. The intentionally absent
+  `docs/upstream-contract.md` remains absent.
+- `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the real
+  import-path `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command
+  over every QML file, and `git diff --check` pass. The linked checkout was
+  rescanned on actual Omarchy with one running shell; the existing bar IPC
+  toggle/hide route completed and the fresh log had normal Sportray polling
+  activity with no Sportray exception, QML load failure, binding-loop, or
+  countdown-related error.
+
+Decision log: use the already-running singleton service clock as the caller
+owned ambient timestamp. Its existing minute timer already maintains the local
+day boundary, so the consumer does not create a new timer or make a data
+request. Keep `favorite-upcoming` as the only countdown presentation state so
+the higher-priority live-favorite and starting-soon behavior remains intact;
+safe policy states remain observable in the presentation result but do not
+replace established bar text.
+
+Known risks: the ambient label updates at the existing service clock's
+minute-level cadence, and the normalized scheduled snapshot can change before
+the next provider refresh. The countdown still intentionally depends only on
+the normalized start time and local date boundary; no provider timing field or
+new endpoint is implied. A later rotation consumer must establish its own
+caller-owned reevaluation cadence without changing this unit's boundaries.
+
+## Latest handoff — 2026-08-24 ambient-bar countdown presentation complete
+
+The accepted countdown projection is now wired through `BarWidget.qml` into
+`BarPresentation.js` for the existing ambient path. A normalized game is
+eligible only when `FavoritePresentation` selected `favorite-upcoming` for the
+current local today; valid `future`/`due` projections replace the horizontal
+full label and tooltip with bounded countdown text, while compact mode remains
+icon-only and live-favorite priority remains unchanged. Empty, offline,
+invalid, and non-today projections fail closed to the existing presentation.
+
+The caller-owned timestamp comes from the already-running singleton service
+clock, whose existing minute timer now publishes `nowMs` alongside the local
+today key. No new timer, provider field/endpoint, polling cadence, settings
+field, or upstream API was introduced. Installed Omarchy 4.0.0-1 and
+Quickshell `28771c7` were inspected first; the existing bar and service
+contracts were sufficient. The checkout intentionally has no
+`docs/upstream-contract.md`.
+
+The fixture-driven JS suite passes with 182 tests. Plugin validation, full
+real-import-path QML lint, and diff check pass. Actual Omarchy has one running
+shell; the linked checkout rescanned, the bar IPC toggle/hide route completed,
+and the fresh log contains no Sportray exception, QML load failure,
+binding-loop, or countdown-related error. No push, tag, release, Marketplace,
+or remote action occurred.
+
+Next bounded unit: wire the accepted pure live-favorite rotation/cadence policy
+into one existing ambient-bar presentation path using already normalized
+today-scoped state and caller-owned reevaluation time. Preserve the current
+countdown precedence, live-favorite semantics, compact/full mode selection,
+panel anchor, and polling ownership; stop before adding a second timer,
+provider data, settings, or a new upstream API.

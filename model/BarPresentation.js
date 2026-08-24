@@ -62,6 +62,14 @@ function formatState(state, input) {
   return Formatters.formatBarText(state, config);
 }
 
+function countdownLabel(state, countdown) {
+  if (!isRecord(state) || state.kind !== "favorite-upcoming" || !isRecord(countdown))
+    return "";
+  if ((countdown.kind !== "future" && countdown.kind !== "due")
+      || countdown.reason !== "favorite-upcoming") return "";
+  return textOr(countdown.label, "");
+}
+
 function fallbackText(input) {
   if (input.loading === true && input.hasData !== true) return "Sportray …";
   if (typeof input.errorCode === "string" && input.errorCode !== "")
@@ -73,13 +81,15 @@ function build(input) {
   var source = isRecord(input) ? input : {};
   var state = selectState(source);
   var mode = source.mode !== undefined ? selectMode(source.mode) : selectMode(source.vertical);
-  var fullText = textOr(source.fullText, formatState(state, source));
+  var countdown = isRecord(source.countdown) ? source.countdown : null;
+  var countdownText = countdownLabel(state, countdown);
+  var fullText = textOr(countdownText, textOr(source.fullText, formatState(state, source)));
   fullText = capText(fullText || fallbackText(source), FULL_LABEL_MAX_LENGTH);
 
   var liveFavorite = typeof source.liveFavorite === "boolean"
     ? source.liveFavorite
     : FavoritePresentation && FavoritePresentation.isLiveFavoriteState(state);
-  var tooltip = textOr(source.tooltipText, fullText);
+  var tooltip = textOr(countdownText, textOr(source.tooltipText, fullText));
   if (liveFavorite && tooltip.indexOf("Live favorite · ") !== 0)
     tooltip = "Live favorite · " + tooltip;
   tooltip = capText(tooltip, TOOLTIP_MAX_LENGTH);
@@ -87,6 +97,7 @@ function build(input) {
   return {
     mode: mode,
     state: state,
+    countdown: countdown,
     fullText: fullText,
     label: mode === "full" ? fullText : "",
     tooltipText: tooltip,

@@ -84,5 +84,23 @@
     ],
     "expectedKind": "live-favorite",
     "expectedGameId": "nhl:101"
+  },
+  "countdownPresentation": {
+    "state": {
+      "kind": "favorite-upcoming",
+      "game": {
+        "id": "nhl:201",
+        "league": "nhl",
+        "status": "scheduled",
+        "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+        "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+      },
+      "count": 1
+    },
+    "sourceText": "BOS vs TOR · 5:30 PM",
+    "future": {"kind": "future", "reason": "favorite-upcoming", "label": "Starts in 3h 30m"},
+    "due": {"kind": "due", "reason": "favorite-upcoming", "label": "Starting now"},
+    "empty": {"kind": "empty", "reason": "no-upcoming-favorite", "label": "No upcoming favorite"},
+    "offline": {"kind": "offline", "reason": "unavailable", "label": "Scores offline"}
   }
 }

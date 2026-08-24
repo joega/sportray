@@ -3,6 +3,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 import "model/BarPresentation.js" as BarPresentation
+import "model/CountdownProjectionPolicy.js" as CountdownProjectionPolicy
 import "model/Iconography.js" as Iconography
 import "model/LifecyclePolicy.js" as LifecyclePolicy
 import "services" as Services
@@ -14,6 +15,7 @@ BarWidget {
   readonly property var barPresentation: BarPresentation.build({
     mode: BarPresentation.modeForBar(root.bar),
     state: panelLoader.item ? panelLoader.item.barState : null,
+    countdown: root.barCountdownProjection,
     games: panelLoader.item ? panelLoader.item.normalizedGames : [],
     favoriteTeamIds: panelLoader.item ? panelLoader.item.favoriteTeamIds : [],
     fullText: panelLoader.item ? panelLoader.item.barScoreText : "",
@@ -26,6 +28,19 @@ BarWidget {
     errorCode: panelLoader.item && panelLoader.item.fetchService
       ? panelLoader.item.fetchService.errorCode : ""
   })
+  readonly property var barCountdownProjection: panelLoader.item
+    ? CountdownProjectionPolicy.project({
+        todayDateKey: panelLoader.item.ambientTodayDateKey,
+        selectedDateKey: panelLoader.item.selectedDateKey,
+        nowMs: panelLoader.item.ambientNowMs,
+        favoriteTeamIds: panelLoader.item.favoriteTeamIds,
+        hasData: panelLoader.item.hasData,
+        errorCode: panelLoader.item.fetchService
+          ? panelLoader.item.fetchService.errorCode : "",
+        game: panelLoader.item.barState
+          && panelLoader.item.barState.kind === "favorite-upcoming"
+          ? panelLoader.item.barState.game : null
+      }) : null
   readonly property string barIconName: panelLoader.item && panelLoader.item.barIconName
     ? panelLoader.item.barIconName : "soccerField"
   readonly property string barTooltipText: root.barPresentation.tooltipText || "Sportray"

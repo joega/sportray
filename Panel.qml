@@ -50,6 +50,11 @@ Panel {
   // QML object first.
   readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
   readonly property var fetchService: root.service ? root.service.fetchService : null
+  readonly property double ambientNowMs: root.service && typeof root.service.nowMs === "number"
+    ? root.service.nowMs : root.nowMs
+  readonly property string ambientTodayDateKey: root.service
+    && typeof root.service.todayDateKey === "string" && root.service.todayDateKey !== ""
+    ? root.service.todayDateKey : DateModel.localDateKey(new Date(root.ambientNowMs))
   readonly property string selectedDateKey: root.service
     ? root.service.selectedDateKey : DateModel.localDateKey(new Date())
   property string observedTodayDateKey: DateModel.localDateKey(new Date())

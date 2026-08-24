@@ -3755,6 +3755,62 @@ test("ambient bar policy preserves live favorite priority and today input", () =
   assert.equal(result.hasLiveFavorite, true);
 });
 
+test("ambient bar policy exposes only valid favorite-upcoming countdown text", () => {
+  const fixture = readBarPresentationFixture().countdownPresentation;
+  const withCountdown = (countdown, mode = "full") => barPresentation.build({
+    mode,
+    state: fixture.state,
+    fullText: fixture.sourceText,
+    tooltipText: fixture.sourceText,
+    countdown
+  });
+
+  const future = withCountdown(fixture.future);
+  assert.equal(future.countdown.kind, "future");
+  assert.equal(future.fullText, fixture.future.label);
+  assert.equal(future.label, fixture.future.label);
+  assert.equal(future.tooltipText, fixture.future.label);
+
+  const due = withCountdown(fixture.due, "compact");
+  assert.equal(due.mode, "compact");
+  assert.equal(due.fullText, fixture.due.label);
+  assert.equal(due.label, "");
+  assert.equal(due.tooltipText, fixture.due.label);
+
+  [fixture.empty, fixture.offline].forEach((countdown) => {
+    const safe = withCountdown(countdown);
+    assert.equal(safe.fullText, fixture.sourceText);
+    assert.equal(safe.tooltipText, fixture.sourceText);
+  });
+
+  const live = barPresentation.build({
+    mode: "full",
+    state: readBarPresentationFixture().priority.games
+      ? presentation.selectBarState(readBarPresentationFixture().priority.games,
+        readBarPresentationFixture().priority.favoriteTeamIds,
+        Date.parse(readBarPresentationFixture().priority.now)) : null,
+    fullText: fixture.sourceText,
+    countdown: fixture.future
+  });
+  assert.equal(live.state.kind, "live-favorite");
+  assert.equal(live.fullText, fixture.sourceText);
+});
+
+test("ambient countdown wiring keeps caller time and existing ownership boundaries", () => {
+  const barWidget = readSource("BarWidget.qml");
+  const panel = readSource("Panel.qml");
+  const service = readSource("services/SportrayService.qml");
+  assert.equal(barWidget.includes('import "model/CountdownProjectionPolicy.js" as CountdownProjectionPolicy'), true);
+  assert.equal(barWidget.includes("CountdownProjectionPolicy.project({"), true);
+  assert.equal(barWidget.includes("nowMs: panelLoader.item.ambientNowMs"), true);
+  assert.equal(barWidget.includes('kind === "favorite-upcoming"'), true);
+  assert.equal(panel.includes("ambientNowMs"), true);
+  assert.equal(panel.includes("ambientTodayDateKey"), true);
+  assert.equal(service.includes("property double nowMs: Date.now()"), true);
+  assert.equal(service.includes("root.nowMs = Date.now()"), true);
+  assert.equal(barWidget.includes("new Timer"), false);
+});
+
 test("live favorite rotation orders normalized today games deterministically", () => {
   const fixture = readLiveFavoriteRotationFixture();
   const normalized = fixture.games.map((game) => games.normalizeGame(game));

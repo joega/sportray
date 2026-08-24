@@ -12,6 +12,7 @@ Item {
 
   property string selectedDateKey: DateModel.localDateKey(new Date())
   property string todayDateKey: DateModel.localDateKey(new Date())
+  property double nowMs: Date.now()
   property int nextPanelToken: 0
   property var panelContexts: MonitorOwnership.emptyContexts()
   readonly property bool panelOpen: MonitorOwnership.anyPanelOpen(root.panelContexts)
@@ -39,7 +40,10 @@ Item {
     interval: 60000
     repeat: true
     running: true
-    onTriggered: root.todayDateKey = DateModel.localDateKey(new Date())
+    onTriggered: {
+      root.nowMs = Date.now()
+      root.todayDateKey = DateModel.localDateKey(new Date(root.nowMs))
+    }
   }
 
   SettingsStore { id: settingsStore }
