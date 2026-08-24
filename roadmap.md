@@ -1611,3 +1611,84 @@ today-scoped state and caller-owned reevaluation time. Preserve the current
 countdown precedence, live-favorite semantics, compact/full mode selection,
 panel anchor, and polling ownership; stop before adding a second timer,
 provider data, settings, or a new upstream API.
+
+## Ambient-bar live-favorite rotation presentation slice — 2026-08-24
+
+Status: complete. The accepted pure live-favorite rotation/cadence policy is
+now wired into the existing ambient-bar state path for normalized today-scoped
+games. The caller uses the singleton service timestamp and its existing
+minute-level publication cadence; no new timer or polling owner was added.
+
+Evidence:
+
+- `Panel.qml` retains `unrotatedBarState` from the existing
+  `FavoritePresentation.selectBarState` boundary, passes normalized games,
+  canonical favorites, local today/selected date keys, normalized-data health,
+  the existing fetch error, caller-owned `ambientNowMs`, and a one-minute
+  presentation cadence to `LiveFavoriteRotationPolicy.select`, then applies
+  the result through `BarPresentation.applyLiveFavoriteRotation`.
+- Rotation applies only to the existing `live-favorite-count` state and
+  returns one bounded `live-favorite` game while preserving the original
+  count. `favorite-upcoming` remains available to the existing countdown
+  projection, starting-soon/neutral/final behavior remains unchanged, and the
+  existing compact/full buttons, panel anchor, and polling models remain
+  untouched.
+- `fixtures/bar-presentation/policy.json` and two fixture-driven tests cover
+  multi-live precedence, protection of countdown and single-live states, and
+  safe empty/offline/non-today policy fallbacks. The complete deterministic
+  JavaScript suite passes with 184 tests.
+- The installed Omarchy 4.0.0-1 / Quickshell 0.3.0 revision `28771c7` bar,
+  button, module-slot, service-clock, and shared polling contracts were
+  inspected before the edit. The linked checkout rescanned on actual Omarchy;
+  the existing bar toggle/hide route completed with one shell still running,
+  and the fresh log had no Sportray exception, QML load failure, binding loop,
+  or rotation-related error. The intentionally absent
+  `docs/upstream-contract.md` remains absent.
+- `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the real
+  import-path `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command
+  over every QML file, and `git diff --check` pass. Lint retains the
+  repository's established standalone import and unqualified-access warnings.
+
+Decision log: keep rotation as a presentation projection after the existing
+favorite-priority selection. Only the multi-live favorite count is replaced by
+the policy's selected normalized game; all other states are passed through so
+countdown precedence and current bar semantics remain explicit. Use the
+already-running singleton `nowMs` publication and a caller-supplied 60-second
+rotation cadence, which is sufficient for reliable bounded rotation without a
+second timer. The cadence is presentation-only and is not exposed as a setting
+or used to schedule provider work.
+
+Known risks: the visible rotation advances at the existing minute-level clock
+publication, so it intentionally does not promise sub-minute transitions. A
+future requirement for a faster or independently scheduled rotation must stop
+before adding a timer contract or borrowing a new polling cadence. Local date
+conversion must remain aligned with `DateModel`, and stale normalized data with
+an explicit healthy snapshot remains the caller's responsibility as defined by
+the pure policy.
+
+## Latest handoff — 2026-08-24 ambient-bar live-favorite rotation presentation complete
+
+The accepted live-favorite rotation policy is integrated in the existing
+ambient-bar path. `Panel.qml` keeps the prior favorite-first selection, invokes
+the pure policy only with normalized today-scoped state and caller-owned time/
+cadence inputs, and applies the selected game only when the prior state was
+`live-favorite-count`. Empty, offline, and non-today policy results fail closed
+to the prior state. The bar's countdown projection therefore still owns
+`favorite-upcoming`, while compact/full presentation, panel anchoring, and
+polling ownership remain unchanged.
+
+The one-minute cadence reuses the already-running singleton service clock; no
+second timer, provider field/endpoint, polling cadence, settings field, or
+upstream API was introduced. Installed Omarchy 4.0.0-1 and Quickshell
+`28771c7` were inspected first. The linked checkout rescanned, toggle/hide
+IPC completed, one shell remained running, and the fresh log was clean.
+
+The fixture-driven suite passes with 184 tests. Plugin validation, full
+real-import-path QML lint, and diff check pass. No push, tag, release,
+Marketplace, or remote action occurred.
+
+Next bounded unit: add one fixture-driven ambient priority transition matrix
+covering a minute-slot rotation, live-state removal, and reclamation of the
+existing favorite-upcoming countdown. Keep the implementation pure/model-level
+unless a test demonstrates a real presentation defect; do not add a timer,
+provider data, settings, polling cadence, or upstream API.

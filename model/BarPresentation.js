@@ -44,6 +44,19 @@ function selectState(input) {
     input.games, input.favoriteTeamIds, input.now);
 }
 
+function applyLiveFavoriteRotation(state, rotation) {
+  if (!isRecord(state) || state.kind !== "live-favorite-count"
+      || !isRecord(rotation)
+      || (rotation.kind !== "rotation" && rotation.kind !== "live-favorite")
+      || !isRecord(rotation.game)) return state;
+
+  return {
+    kind: "live-favorite",
+    game: rotation.game,
+    count: Number(state.count) > 0 ? Math.floor(state.count) : Number(rotation.count) || 1
+  };
+}
+
 function leagueLabel(state) {
   return state && state.game && typeof state.game.league === "string"
     && state.game.league.trim() ? state.game.league.trim().toUpperCase() : "SPORTRAY";
@@ -111,6 +124,7 @@ if (typeof module !== "undefined" && module.exports) {
     TOOLTIP_MAX_LENGTH: TOOLTIP_MAX_LENGTH,
     selectMode: selectMode,
     modeForBar: modeForBar,
+    applyLiveFavoriteRotation: applyLiveFavoriteRotation,
     build: build
   };
 }

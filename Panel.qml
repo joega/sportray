@@ -5,7 +5,9 @@ import qs.Commons
 import qs.Ui
 import "components"
 import "model/FavoritePresentation.js" as FavoritePresentation
+import "model/BarPresentation.js" as BarPresentation
 import "model/Formatters.js" as Formatters
+import "model/LiveFavoriteRotationPolicy.js" as LiveFavoriteRotationPolicy
 import "model/PanelPresentation.js" as PanelPresentation
 import "model/ResultRows.js" as ResultRows
 import "model/ScoreboardModel.js" as ScoreboardModel
@@ -115,8 +117,23 @@ Panel {
   readonly property var displayRows: root.standingsOpen
     ? root.standingsRows : root.resultRows
   readonly property var orderedGames: scoreboard.games
-  readonly property var barState: FavoritePresentation.selectBarState(
+  readonly property var unrotatedBarState: FavoritePresentation.selectBarState(
     normalizedGames, favoriteTeamIds, null, root.presentationRevision)
+  // Reuse the singleton's existing minute publication. This is a presentation
+  // cadence, not a polling setting or a second timer contract.
+  readonly property int ambientRotationCadenceMs: 60 * 1000
+  readonly property var barLiveFavoriteRotation: LiveFavoriteRotationPolicy.select({
+    todayDateKey: root.ambientTodayDateKey,
+    selectedDateKey: root.selectedDateKey,
+    nowMs: root.ambientNowMs,
+    cadenceMs: root.ambientRotationCadenceMs,
+    favoriteTeamIds: root.favoriteTeamIds,
+    hasData: root.hasData,
+    errorCode: root.fetchService ? root.fetchService.errorCode : "",
+    games: root.normalizedGames
+  })
+  readonly property var barState: BarPresentation.applyLiveFavoriteRotation(
+    root.unrotatedBarState, root.barLiveFavoriteRotation)
   readonly property bool hasGames: scoreboard.hasGames
   readonly property bool hasData: scoreboard.hasData
   readonly property var barGame: barState.game

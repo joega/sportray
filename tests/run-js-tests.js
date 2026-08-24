@@ -3755,6 +3755,60 @@ test("ambient bar policy preserves live favorite priority and today input", () =
   assert.equal(result.hasLiveFavorite, true);
 });
 
+test("ambient bar rotation replaces only the multi-live favorite presentation", () => {
+  const fixture = readLiveFavoriteRotationFixture();
+  const policy = readBarPresentationFixture().rotationPresentation;
+  const normalized = fixture.games.map((game) => games.normalizeGame(game));
+  const rotation = liveFavoriteRotation.select({
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    cadenceMs: fixture.cadenceMs,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true,
+    games: normalized
+  });
+
+  const rotated = barPresentation.applyLiveFavoriteRotation(policy.baseState, rotation);
+  assert.equal(rotated.kind, "live-favorite");
+  assert.equal(rotated.game.id, fixture.expectedBoundedIds[0]);
+  assert.equal(rotated.count, policy.baseState.count);
+  assert.deepEqual(
+    barPresentation.applyLiveFavoriteRotation(policy.countdownState, rotation),
+    policy.countdownState);
+  assert.deepEqual(
+    barPresentation.applyLiveFavoriteRotation(policy.singleState, rotation),
+    policy.singleState);
+
+  const panel = readSource("Panel.qml");
+  const barWidget = readSource("BarWidget.qml");
+  assert.equal(panel.includes('import "model/BarPresentation.js" as BarPresentation'), true);
+  assert.equal(panel.includes('import "model/LiveFavoriteRotationPolicy.js" as LiveFavoriteRotationPolicy'), true);
+  assert.equal(panel.includes("BarPresentation.applyLiveFavoriteRotation("), true);
+  assert.equal(panel.includes("ambientRotationCadenceMs: 60 * 1000"), true);
+  assert.equal(barWidget.includes("new Timer"), false);
+});
+
+test("ambient bar rotation keeps empty, offline, and non-today states safe", () => {
+  const fixture = readLiveFavoriteRotationFixture();
+  const policy = readBarPresentationFixture().rotationPresentation;
+  const base = {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    cadenceMs: fixture.cadenceMs,
+    favoriteTeamIds: fixture.favoriteTeamIds
+  };
+  [fixture.empty, fixture.offline, fixture.notToday].forEach((scenario) => {
+    const rotation = liveFavoriteRotation.select(Object.assign({}, base, scenario));
+    assert.notEqual(rotation.kind, "rotation");
+    assert.deepEqual(
+      barPresentation.applyLiveFavoriteRotation(policy.baseState, rotation),
+      policy.baseState,
+      rotation.kind);
+  });
+});
+
 test("ambient bar policy exposes only valid favorite-upcoming countdown text", () => {
   const fixture = readBarPresentationFixture().countdownPresentation;
   const withCountdown = (countdown, mode = "full") => barPresentation.build({

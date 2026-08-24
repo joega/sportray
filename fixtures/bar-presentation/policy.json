@@ -85,6 +85,19 @@
     "expectedKind": "live-favorite",
     "expectedGameId": "nhl:101"
   },
+  "rotationPresentation": {
+    "baseState": {"kind": "live-favorite-count", "game": null, "count": 3},
+    "countdownState": {
+      "kind": "favorite-upcoming",
+      "game": {"id": "nhl:201", "status": "scheduled"},
+      "count": 1
+    },
+    "singleState": {
+      "kind": "live-favorite",
+      "game": {"id": "nhl:single", "status": "live"},
+      "count": 1
+    }
+  },
   "countdownPresentation": {
     "state": {
       "kind": "favorite-upcoming",
