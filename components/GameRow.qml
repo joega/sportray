@@ -48,8 +48,7 @@ Item {
     && root.game.presentation.leagueLabel ? root.game.presentation.leagueLabel : ""
   readonly property string stateLabel: root.detailLabel
   readonly property string venueName: root.game.venue || ""
-  readonly property string detailWithVenueLabel: root.detailLabel
-    + (root.venueName ? "   ·   " + root.venueName : "")
+  readonly property string venueLabel: root.venueName ? "At " + root.venueName : ""
   readonly property bool hasHomeTint: Boolean(root.game.homeTeam
     && root.game.homeTeam.primaryColor)
   readonly property color homeTint: root.hasHomeTint
@@ -266,7 +265,7 @@ Item {
       Item {
         id: footer
         width: parent.width
-        implicitHeight: Math.max(detailText.implicitHeight, sourceLink.implicitHeight)
+        implicitHeight: Math.max(footerDetails.implicitHeight, sourceLink.implicitHeight)
         height: implicitHeight
 
         readonly property var footerGeometry: GameRowLayout.footerLayout(
@@ -282,48 +281,66 @@ Item {
           id: footerContent
           anchors.left: parent.left
           anchors.top: parent.top
-          anchors.bottom: parent.bottom
           anchors.right: sourceLink.visible ? sourceLink.left : parent.right
           anchors.rightMargin: sourceLink.visible ? Style.spacing.xs : 0
 
-          Row {
-            id: footerMeta
-            anchors.fill: parent
-            spacing: Style.spacing.xs
+          Column {
+            id: footerDetails
+            width: parent.width
+            spacing: Style.spacing.xxs
+
+            Row {
+              id: footerMeta
+              width: parent.width
+              spacing: Style.spacing.xs
+
+              Text {
+                id: leagueContextText
+                visible: root.showLeagueContext && root.leagueLabel !== ""
+                  && footer.footerGeometry.contextWidth > 0
+                width: footer.footerGeometry.contextWidth
+                text: root.showLeagueContext && root.leagueLabel !== ""
+                  ? root.leagueLabel + " ·" : ""
+                color: Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Style.font.bodySmall
+                elide: Text.ElideRight
+              }
+
+              SemanticIcon {
+                visible: root.favorite && footer.footerGeometry.favoriteWidth > 0
+                width: footer.footerGeometry.favoriteWidth
+                height: Style.space(14)
+                iconName: "star"
+                fontSize: Style.font.bodySmall
+                color: Color.accent
+                decorative: true
+              }
+
+              Text {
+                id: detailText
+                width: footer.footerGeometry.detailWidth
+                text: root.detailLabel
+                color: root.unavailable || root.stale || root.live
+                  || root.game.status === "postponed" || root.game.status === "canceled"
+                  ? Color.urgent : Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Style.font.bodySmall
+                font.bold: root.live || root.featured || root.stale
+                elide: Text.ElideRight
+              }
+            }
 
             Text {
-              id: leagueContextText
-              visible: root.showLeagueContext && root.leagueLabel !== ""
-                && footer.footerGeometry.contextWidth > 0
-              width: footer.footerGeometry.contextWidth
-              text: root.showLeagueContext && root.leagueLabel !== ""
-                ? root.leagueLabel + " ·" : ""
+              id: venueText
+              width: parent.width
+              text: root.venueLabel
+              visible: root.venueLabel !== ""
               color: Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
-              elide: Text.ElideRight
-            }
-
-            SemanticIcon {
-              visible: root.favorite && footer.footerGeometry.favoriteWidth > 0
-              width: footer.footerGeometry.favoriteWidth
-              height: Style.space(14)
-              iconName: "star"
-              fontSize: Style.font.bodySmall
-              color: Color.accent
-              decorative: true
-            }
-
-            Text {
-              id: detailText
-              width: footer.footerGeometry.detailWidth
-              text: root.detailWithVenueLabel
-              color: root.unavailable || root.stale || root.live
-                || root.game.status === "postponed" || root.game.status === "canceled"
-                ? Color.urgent : Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              font.bold: root.live || root.featured || root.stale
+              wrapMode: Text.Wrap
+              maximumLineCount: 2
               elide: Text.ElideRight
             }
           }

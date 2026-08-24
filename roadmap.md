@@ -2147,3 +2147,50 @@ concrete existing client caller is introduced or an installed Omarchy/Quickshell
 update changes the widget-registration/readiness contract. If neither
 prerequisite exists, recheck installed sources, record the unchanged blocker,
 and stop without speculative runtime changes.
+
+## Latest handoff — 2026-08-24 game-card venue readability
+
+Status: complete. The scoreboard game-card footer now gives venue text its own
+metadata line instead of appending it to the status/start-time line that shares
+space with the provider source action. `GameRow.qml` renders `At <venue>` with
+bounded two-line wrapping, measures the full footer column for card height, and
+keeps the ESPN/NHL.com source button in a separate trailing column centered
+against the footer. No provider, normalized model, polling, settings,
+notification, or host IPC behavior changed.
+
+Evidence:
+
+- The complete fixture-driven JavaScript suite passes with 185 tests.
+- `omarchy plugin validate "$PWD"`, real-import-path `qmllint` over every QML
+  file, `tests/test-summon-helper.sh`, and `git diff --check` pass. QML lint
+  exits 0 with the established standalone import and unqualified-access
+  warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0 revision
+  `28771c7c74b42e20afca0b1b63980cb46515537` restarted into one healthy
+  Quickshell instance (`c0240dfe8c8e8a421e1f8db23a03fc60`, PID 806461).
+  `shell ping` returned `ok`, the linked Sportray plugin loaded, and the live
+  panel visibly rendered `At LoanDepot Park` on its own line while `ESPN`
+  remained a distinct reachable action. The fresh log contains normal
+  provider/cache activity and no Sportray exception, QML load failure, or
+  binding-loop warning.
+- The checkout intentionally still has no `docs/upstream-contract.md`;
+  installed Omarchy sources remain the upstream boundary evidence. No push,
+  tag, release, Marketplace, or remote action occurred.
+
+Decision log: preserve the existing compact card and source attribution while
+using the available vertical space to make venue a readable detail. Keep the
+source action outside the metadata flow so long venue labels cannot be
+shortened merely because `ESPN` or `NHL.com` is present. Do not add provider
+fields, a new detail endpoint, or a separate settings/layout preference.
+
+Known risk: very long venue names can still wrap to the bounded two-line limit
+at narrow panel widths, but they no longer compete with the source action on
+the same line. The installed host may require a full shell restart to replace
+the active plugin component after QML source edits; rescan-only reload behavior
+is unchanged.
+
+Next bounded unit: revisit the external post-rescan summon helper only after a
+concrete existing client caller is introduced or an installed Omarchy/Quickshell
+update changes the widget-registration/readiness contract. If neither
+prerequisite exists, recheck installed sources, record the unchanged blocker,
+and stop without speculative runtime changes.

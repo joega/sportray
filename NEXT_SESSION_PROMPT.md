@@ -14,36 +14,37 @@ history.
 
 Verified current state:
 
-- The current tray presentation is complete: both horizontal and vertical
-  branches use `BarIconButton`; an accent dot marks an upcoming favorite and an
-  urgent dot marks a live favorite. Countdown labels are not rendered in the
-  tray; bounded score/start details remain in the tooltip and panel.
-- `BarPresentation.js` still returns the pure countdown projection for
-  compatibility but does not promote its changing label into tray text. The
-  full fixture-driven suite passes with 185 tests.
-- The checkout passes `omarchy plugin validate "$PWD"`, real-import-path
-  `qmllint`, and `git diff --check`. README and the latest roadmap handoff
-  document the icon/status-indicator behavior.
+- The scoreboard game-card footer now renders status/start metadata on one
+  line and `At <venue>` on a separate bounded two-line text item. Its card
+  height measures the complete footer column, while the ESPN/NHL.com source
+  action remains in a separate trailing column centered across the footer.
+  The change is limited to `components/GameRow.qml` and its source/layout
+  assertions; providers, normalized models, polling, settings, notifications,
+  and runtime IPC are unchanged.
+- The full fixture-driven suite passes with 185 tests. The checkout passes
+  `omarchy plugin validate "$PWD"`, real-import-path `qmllint`, helper tests,
+  and `git diff --check`.
 - Actual Omarchy remains `4.0.0-1` with Quickshell `0.3.0`, revision
-  `28771c7c74b42e20afca0b1b63980cb46515537c`. After the supported
-  `omarchy-restart-shell` boundary, one instance (`p66hhg1akt`, PID 801169)
-  loaded the linked plugin, `shell ping` returned `ok`, geometry showed a
-  visible 27x26 Sportray slot, and a screenshot showed no countdown text. A
-  rescan-only reload can retain the old active component until a shell restart;
-  no Sportray QML/load/binding-loop error was observed.
+  `28771c7c74b42e20afca0b1b63980cb46515537`. After the supported shell restart,
+  one instance (`c0240dfe8c8e8a421e1f8db23a03fc60`, PID 806461) loaded the
+  linked plugin, `shell ping` returned `ok`, and a screenshot showed
+  `At LoanDepot Park` fully visible with `ESPN` still separate. The fresh log
+  has normal provider/cache activity and no Sportray exception, QML/load, or
+  binding-loop warning. A rescan-only reload can retain the old active
+  component until a shell restart.
 - The external helper remains outside the plugin runtime path. It sends the
   exact summon IPC, accepts only `ok`, retries unsuccessful results at most
-  five times with 250 ms spacing, never calls `hide`, and has a deterministic
-  shell test. No repository or user-configured post-rescan summon caller is
-  currently known.
+  five times with 250 ms spacing, never calls `hide`, and has deterministic
+  shell coverage. No repository or user-configured post-rescan summon caller
+  is currently known.
 
 Bounded outcome:
 
 - If a real client caller now exists, integrate the existing helper at that
   caller without adding a host/plugin API or changing hide behavior.
-- If installed Omarchy/Quickshell changed, inspect the new source and reproduce
-  rescan, immediate summon, delayed summon, and hide before deciding whether
-  the helper remains necessary.
+- If installed Omarchy/Quickshell changed, inspect the new source and
+  reproduce rescan, immediate summon, delayed summon, and hide before deciding
+  whether the helper remains necessary.
 - If neither prerequisite exists, record the unchanged blocker in
   `roadmap.md` and stop without speculative runtime changes, repeated race
   testing, or a success commit.

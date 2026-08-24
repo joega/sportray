@@ -984,7 +984,13 @@ test("game cards use a bounded home-team tint and expose venue text", () => {
   const source = readSource("components/GameRow.qml");
   assert.match(source, /root\.game\.homeTeam\.primaryColor/);
   assert.match(source, /root\.hasHomeTint \? \(root\.featured \? 0\.07 : 0\.11\) : 0/);
-  assert.match(source, /root\.detailLabel\s*\n\s*\+ \(root\.venueName \? "   ·   " \+ root\.venueName : ""\)/);
+  assert.match(source, /readonly property string venueLabel: root\.venueName \? "At " \+ root\.venueName : ""/);
+  assert.match(source, /id: venueText/);
+  assert.match(source, /text: root\.venueLabel/);
+  assert.match(source, /wrapMode: Text\.Wrap/);
+  assert.match(source,
+    /implicitHeight: Math\.max\(footerDetails\.implicitHeight, sourceLink\.implicitHeight\)/);
+  assert.match(source, /anchors\.verticalCenter: parent\.verticalCenter/);
   assert.match(source, /root\.venueName \? "At " \+ root\.venueName/);
 });
 
