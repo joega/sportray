@@ -22,15 +22,17 @@ function sectionRow(id, label, favorite) {
 function gameRow(game, stale) {
   var identity = gameIdentity(game);
   if (!identity) return null;
+  var hasSourceLink = isRecord(game) && typeof game.link === "string"
+    && /^https:\/\//i.test(game.link.trim());
   return {
     kind: "game",
     rowId: "game:" + identity,
     game: game,
     stale: stale === true,
     action: {
-      type: "open-detail",
-      label: "View game details",
-      enabled: game.isValid === true
+      type: "open-source",
+      label: "Open external game page",
+      enabled: game.isValid === true && hasSourceLink
     }
   };
 }

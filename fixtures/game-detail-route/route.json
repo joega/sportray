@@ -1,12 +1,7 @@
 {
   "rowAction": {
-    "type": "open-detail",
-    "label": "View game details"
+    "type": "open-source",
+    "label": "Open external game page"
   },
-  "detailActions": {
-    "back": "close-detail",
-    "escapeWhileOpen": "close-detail",
-    "escapeFromScores": "close-panel"
-  },
-  "sparsePlaceholders": ["—", "Start ", "End ", "Venue   "]
+  "localDetailRoute": "removed"
 }

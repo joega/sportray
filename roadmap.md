@@ -2307,3 +2307,46 @@ push, or Marketplace action occurred. The local deletion of
 
 Next bounded unit: add one optional rich-detail section using an already
 normalized ESPN fixture, without a new endpoint or NHL standings changes.
+
+## Latest handoff — 2026-08-24 local game-detail route removal
+
+Status: complete. The local game-details page is no longer part of the user
+flow. It duplicated the scoreboard projection, exposed the canonical internal
+ID (for example `mlb:2039230240`), and offered no additional provider data.
+
+`ResultRows` now labels valid linked game rows as `open-source`; `GameRow`
+requires a non-empty string URL for whole-row activation and delegates to the
+existing guarded `SourceLinkButton`. `Panel.qml` no longer owns detail state,
+detail keyboard routing, detail height calculation, or a `GameDetailView`
+instance. The provider-neutral `GameDetailModel` and view source remain
+unwired as future groundwork, but no local detail route is reachable.
+
+README behavior text, the row-action fixture, and accessibility/source-routing
+coverage now describe and verify the provider game page as the only whole-row
+destination. No provider parser, endpoint, settings, polling, standings, or
+notification behavior changed.
+
+Evidence: the complete JavaScript suite passes with 185 tests; `omarchy plugin
+validate "$PWD"`, real-import-path `qmllint`, and `git diff --check` pass.
+Actual Omarchy 4.0.0-1 rescanned the linked checkout, the Sportray summon
+helper returned `ok`, shell ping returned `ok`, exactly one Quickshell process
+was present, and the current log showed normal fetch activity without a new
+Sportray exception, QML load failure, or binding-loop warning. Child-route
+IPC and a reliable desktop pointer injector remain unavailable, so no manual
+click-through result is claimed.
+
+Decision log: hide the shallow local detail route until a normalized payload
+can supply materially richer content. Keep the existing labeled ESPN/NHL.com
+source action and make whole-row activation use that same safe browser route;
+do not expose internal canonical IDs in a presentation surface.
+
+Known risks: a whole-row tap now opens the provider page when a safe link is
+available, so users should use the labeled source button when they want the
+destination to be explicit. Games without a valid provider link remain
+non-activatable at the row level. The retained detail model/view are not yet a
+product contract.
+
+Next bounded unit: add one fixture-driven optional rich-detail projection to
+the provider-neutral model from an already normalized ESPN game, without
+restoring the local detail route or adding a new endpoint. Stop before any
+provider-specific section, second fetch, or UI re-exposure.

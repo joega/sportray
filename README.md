@@ -28,8 +28,8 @@ At a glance:
 - A five-day date carousel with previous/next-day navigation and a Today reset
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
-- Loaded game rows open a bounded local detail view; the labeled source action
-  still opens the ESPN gamecast or NHL.com gamecenter page
+- Loaded game rows stay on the scoreboard; whole-row activation and the labeled
+  source action open the ESPN gamecast or NHL.com gamecenter page
 - Game cards show the event venue and use a restrained home-team color tint,
   with neutral fallbacks when either field is unavailable
 - Favorite-aware bar priority and pinned favorite games in league views
@@ -210,15 +210,13 @@ a provider change does not become a UI dependency. Standings rows use the same
 canonical `<league>:<providerTeamId>` team identity as favorites and preserve
 nulls for fields the provider omits.
 
-Each valid game exposes a bounded local detail view with both participants,
-scores, status/timing, venue, and a labeled **ESPN** or **NHL.com** source
-action. Activating that source action opens the provider's game page in the
-Omarchy browser, so the scoreboard is clearly an at-a-glance view of provider
-data rather than an independent source. The detail view is projected from the
-already loaded scoreboard game; it does not request a separate game endpoint
-or imply box-score or play-by-play data. ESPN event links are used when
-supplied; otherwise Sportray builds the provider's standard game URL from the
-normalized game ID.
+Each valid game keeps its score, participants, status/timing, and venue on the
+scoreboard card. Whole-row activation and the labeled **ESPN** or **NHL.com**
+source action open the provider's game page in the Omarchy browser. Sportray
+does not currently show a separate local game-details route, since the loaded
+scoreboard does not yet provide enough information for a useful richer view.
+ESPN event links are used when supplied; otherwise Sportray builds the
+provider's standard game URL from the normalized game ID.
 
 Requests go directly from your computer to the configured sports data
 providers. Sportray has no backend, account, analytics service, or telemetry.

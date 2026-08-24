@@ -59,16 +59,25 @@ Item {
     + (root.homeIsFavorite ? "Followed home team. " : "")
     + root.stateLabel + ". " + (root.venueName ? "At " + root.venueName + ". " : "")
     + (root.showLeagueContext ? root.leagueLabel + ". " : "")
-    + (root.game && root.game.isValid === true ? "View game details. " : "")
-    + (root.game.link ? "Open external game page." : "External game page unavailable.")
+    + (root.game && root.game.isValid === true
+      && typeof root.game.link === "string" && root.game.link !== ""
+      ? "Open external game page." : "External game page unavailable.")
 
   function activatePrimaryAction() {
-    if (root.game && root.game.isValid === true) root.primaryActionRequested()
+    if (root.game && root.game.isValid === true
+        && typeof root.game.link === "string" && root.game.link !== "")
+      root.primaryActionRequested()
+  }
+
+  function openSource() {
+    sourceLink.openSource()
   }
 
   Accessible.name: root.accessibleLabel
   Accessible.description: root.detailLabel
-  Accessible.role: root.game && root.game.isValid === true ? Accessible.Button : Accessible.StaticText
+  Accessible.role: root.game && root.game.isValid === true
+    && typeof root.game.link === "string" && root.game.link !== ""
+    ? Accessible.Button : Accessible.StaticText
   // The whole-row accessible action intentionally reuses the same guarded
   // external-source route as the existing TapHandler/keyboard path.
   Accessible.onPressAction: root.activatePrimaryAction()
