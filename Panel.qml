@@ -36,6 +36,8 @@ Panel {
   property string barRegion: ""
   property bool settingsOpen: false
   property bool standingsOpen: false
+  property bool detailOpen: false
+  property var detailGame: null
   property string utilityReturnDestination: "following"
   property string settingsDestination: "sports"
   property string activeDestination: "following"
@@ -173,6 +175,38 @@ Panel {
     }
   }
 
+  function openGameDetail(game) {
+    if (!game || game.isValid !== true) return
+    root.detailGame = game
+    root.detailOpen = true
+    root.standingsOpen = false
+    root.tabStripFocused = false
+    root.recalculatePanelHeight()
+    root.deferPanelCallback(function() {
+      gameDetailView.resetCursor()
+      keyCatcher.forceActiveFocus()
+    })
+  }
+
+  function closeDetail() {
+    if (!root.detailOpen) return
+    root.detailOpen = false
+    root.detailGame = null
+    root.tabStripFocused = false
+    root.recalculatePanelHeight()
+    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+  }
+
+  function moveDetailCursor(delta) {
+    if (!root.detailOpen) return
+    gameDetailView.moveCursor(delta)
+  }
+
+  function activateDetailCursor() {
+    if (!root.detailOpen) return
+    gameDetailView.activateCursor()
+  }
+
   function setSelectedDate(dateKey) {
     if (!root.service || !DateModel.isDateKey(dateKey)) return
     root.service.selectedDateKey = dateKey
@@ -186,6 +220,11 @@ Panel {
   }
 
   function recalculatePanelHeight() {
+    if (root.detailOpen) {
+      root.panelContentHeightRequest = Math.min(Style.space(600),
+        Math.max(Style.space(320), gameDetailView.implicitHeight))
+      return
+    }
     root.panelContentHeightRequest = PanelLayout.contentRequest(root.displayRows,
       root.settingsDestination, root.settingsOpen, {
         compactMinimum: Style.space(280),
@@ -364,6 +403,7 @@ Panel {
   }
 
   function activateRow(index) {
+    if (root.detailOpen) return
     if (!root.selectableRow(index)) return
     var row = root.displayRows[index]
     var delegate = resultList.itemAtIndex(index)
@@ -371,6 +411,8 @@ Panel {
       root.openUtility("teams")
     } else if (row.action.type === "browse-leagues") {
       root.selectDestination(root.firstLeagueDestination())
+    } else if (row.action.type === "open-detail") {
+      root.openGameDetail(row.game)
     } else if (row.action.type === "open-source") {
       if (delegate && typeof delegate.activatePrimaryAction === "function")
         delegate.activatePrimaryAction()
@@ -439,7 +481,11 @@ Panel {
 
   onOpenedChanged: {
     root.syncSharedContext()
-    if (!root.opened) return
+    if (!root.opened) {
+      root.detailOpen = false
+      root.detailGame = null
+      return
+    }
     root.nowMs = Date.now()
     root.standingsOpen = false
     root.panelHeightRecalculationPending = root.displayRows.some(function(row) {
@@ -525,6 +571,8 @@ Panel {
     // is a panel session, so closing returns the next ambient refresh to today.
     if (root.selectedDateKey !== root.todayDateKey)
       root.setSelectedDate(root.todayDateKey)
+    root.detailOpen = false
+    root.detailGame = null
     root.controller.hide()
   }
 
@@ -717,9 +765,11 @@ Panel {
       // editor own all keys, including Escape, while it has focus.
       blocked: KeyboardRoutingPolicy.catcherBlocked(
         settingsHub.inputActive, sportsPicker.popupOpen)
-      onCloseRequested: root.settingsOpen ? root.closeUtility() : root.close()
+      onCloseRequested: root.detailOpen ? root.closeDetail()
+        : root.settingsOpen ? root.closeUtility() : root.close()
       onMoveRequested: function(dx, dy) {
-        if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
+        if (root.detailOpen) root.moveDetailCursor(dy !== 0 ? dy : dx)
+        else if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
         else if (dx !== 0) {
           root.tabStripFocused = true
           root.moveTabCursor(dx)
@@ -727,13 +777,15 @@ Panel {
         else if (dy !== 0) { root.tabStripFocused = false; root.moveResultCursor(dy) }
       }
       onActivateRequested: {
-        if (root.settingsOpen) settingsHub.activateCursor()
+        if (root.detailOpen) root.activateDetailCursor()
+        else if (root.settingsOpen) settingsHub.activateCursor()
         else if (root.tabStripFocused) root.activateTabCursor()
           else root.activateRow(root.selectedRowIndex)
       }
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(text) {
         if (settingsHub.inputActive) return
+        if (root.detailOpen) return
         if (text === "r" || text === "R") root.refresh()
         if (text === "n" || text === "N") root.openSettings()
         if ((text === "s" || text === "S") && !root.settingsOpen)
@@ -780,9 +832,10 @@ Panel {
           Text {
             id: headerTitle
             text: (Iconography.displayText(
-              root.settingsOpen ? "settings" : "calendar",
+              root.settingsOpen ? "settings" : root.detailOpen ? "scores" : "calendar",
               Style.font.family) || "S")
               + (root.settingsOpen ? "  Settings"
+                : root.detailOpen ? "  Game details"
                 : root.standingsOpen ? "  Standings" : "  " + root.selectedDateLabel)
             font.family: Style.font.family
             font.pixelSize: Style.font.title
@@ -801,7 +854,8 @@ Panel {
 
           SemanticActionButton {
             id: todayButton
-            visible: !root.settingsOpen && root.selectedDateKey !== root.todayDateKey
+            visible: !root.settingsOpen && !root.detailOpen
+              && root.selectedDateKey !== root.todayDateKey
             iconName: ""
             text: "Show Today"
             textBold: true
@@ -817,7 +871,7 @@ Panel {
 
           SemanticActionButton {
             id: standingsButton
-            visible: !root.settingsOpen && root.activeLeagueSupportsStandings
+            visible: !root.settingsOpen && !root.detailOpen && root.activeLeagueSupportsStandings
             iconName: root.standingsOpen ? "scores" : "list"
             fallbackText: root.standingsOpen ? "S" : "T"
             tooltipText: root.standingsOpen ? "Show scores" : "Show standings"
@@ -835,7 +889,7 @@ Panel {
 
           SemanticActionButton {
             id: refreshButton
-            visible: !root.settingsOpen
+            visible: !root.settingsOpen && !root.detailOpen
             iconName: "refresh"
             fallbackText: fetchService.loading ? "..." : "R"
             tooltipText: fetchService.loading ? "Refreshing scores" : "Refresh scores"
@@ -848,7 +902,7 @@ Panel {
 
           SemanticActionButton {
             id: settingsButton
-            visible: true
+            visible: !root.detailOpen
             iconName: root.settingsOpen ? "close" : "settings"
             fallbackText: root.settingsOpen ? "X" : "[ ]"
             tooltipText: root.settingsOpen ? "Close settings" : "Sportray settings"
@@ -901,7 +955,7 @@ Panel {
           Item {
             id: scoreContent
             anchors.fill: parent
-            visible: !root.settingsOpen
+            visible: !root.settingsOpen && !root.detailOpen
 
             SportAtmosphere {
               id: sportAtmosphere
@@ -910,7 +964,7 @@ Panel {
               anchors.top: parent.top
               height: Math.min(parent.height, Style.space(136))
               leagueId: root.activeDestination
-              visible: !root.settingsOpen
+              visible: !root.settingsOpen && !root.detailOpen
               z: 0
             }
 
@@ -1060,7 +1114,7 @@ Panel {
                       featured: Boolean(gameValue.presentation
                         && gameValue.presentation.isFavorite
                         && gameValue.presentation.isLive)
-                      onPrimaryActionRequested: gameRow.openSource()
+                      onPrimaryActionRequested: root.openGameDetail(gameValue)
                     }
 
                     LeagueStatus {
@@ -1233,13 +1287,21 @@ Panel {
                   }
                 }
 
-                Accessible.name: "Refreshing scores"
-                Accessible.role: Accessible.StaticText
-              }
+              Accessible.name: "Refreshing scores"
+              Accessible.role: Accessible.StaticText
             }
 
           }
 
+        }
+
+          GameDetailView {
+            id: gameDetailView
+            anchors.fill: parent
+            visible: root.detailOpen
+            game: root.detailGame
+            onBackRequested: root.closeDetail()
+          }
         }
       }
     }

@@ -1027,7 +1027,7 @@ test("U2.4 keeps semantic icons local and maps every active league", () => {
   assert.equal(panel.includes("SemanticActionButton {"), true);
   assert.equal(panel.includes("SportAtmosphere {"), true);
   assert.equal(panel.includes(
-    'root.settingsOpen ? "settings" : "calendar"'), true);
+    'root.settingsOpen ? "settings" : root.detailOpen ? "scores" : "calendar"'), true);
   assert.equal(panel.includes('root.settingsOpen ? "  Settings"'), true);
   assert.equal(panel.includes('iconName: "refresh"'), true);
   assert.equal(panel.includes('iconName: fetchService.loading ? "overflow" : "refresh"'), false);
@@ -1086,7 +1086,7 @@ test("date navigation stays provider-neutral and refresh controls live in the he
   assert.equal(panel.includes('text === "]" || text === "}"'), true);
   assert.equal(carousel.includes('signal dateSelected(string dateKey)'), true);
   assert.equal(panel.includes('id: todayButton'), true);
-  assert.equal(panel.includes('visible: !root.settingsOpen && root.selectedDateKey !== root.todayDateKey'), true);
+  assert.equal(panel.includes('visible: !root.settingsOpen && !root.detailOpen'), true);
   assert.equal(panel.includes('text: "Show Today"'), true);
   assert.equal(panel.includes('iconName: ""'), true);
   assert.equal(panel.includes('textBold: true'), true);
@@ -1594,7 +1594,7 @@ test("optional game lines project bounded per-side period scores without provide
   assert.equal(JSON.stringify(details["lines-final"].lines).includes("displayValue"), false);
 });
 
-test("loaded game rows skip local detail and route whole-row activation to source", () => {
+test("loaded game rows route to local detail while keeping the safe source action", () => {
   const fixture = readGameDetailRouteFixture();
   const game = espn.parseScoreboardResponse(readEspnFixture("nfl-final"), "nfl").games[0];
   const row = resultRows.flatten({
@@ -1602,17 +1602,76 @@ test("loaded game rows skip local detail and route whole-row activation to sourc
     loading: false, stale: false, errorCode: "", availability: "ready"
   }, "nfl").find((value) => value.kind === "game");
   assert.deepEqual(row.action, Object.assign({}, fixture.rowAction, {enabled: true}));
+  assert.equal(resultRows.flatten({
+    kind: "league", leagueId: "nfl", displayName: "NFL",
+    pinnedGames: [Object.assign({}, game, {isValid: false})], otherGames: [],
+    loading: false, stale: false, errorCode: "", availability: "ready"
+  }, "nfl").find((value) => value.kind === "game").action.enabled, false);
 
   const panel = readSource("Panel.qml");
   const gameRow = readSource("components/GameRow.qml");
+  const detail = readSource("components/GameDetailView.qml");
   const source = readSource("components/SourceLinkButton.qml");
-  assert.equal(panel.includes("detailOpen"), false);
-  assert.equal(panel.includes("GameDetailView"), false);
-  assert.match(panel, /row\.action\.type === "open-source"/);
-  assert.match(panel, /onPrimaryActionRequested: gameRow\.openSource\(\)/);
-  assert.match(gameRow, /function openSource\(\)/);
-  assert.match(gameRow, /typeof root\.game\.link === "string" && root\.game\.link !== ""/);
+  assert.match(panel, /function openGameDetail\(game\)/);
+  assert.match(panel, /onPrimaryActionRequested: root\.openGameDetail\(gameValue\)/);
+  assert.match(gameRow, /if \(root\.game && root\.game\.isValid === true\) root\.primaryActionRequested\(\)/);
+  assert.match(detail, /GameDetailModel\.normalizeDetail\(root\.game, root\.sourceMetadata\)/);
+  assert.match(detail, /SourceLinkButton \{/);
   assert.match(source, /Quickshell\.execDetached\(\["omarchy-launch-browser", root\.sourceUrl\]\)/);
+});
+
+test("game detail presentation keeps sparse fields as neutral placeholders", () => {
+  const fixture = readGameDetailRouteFixture();
+  const detail = readSource("components/GameDetailView.qml");
+  fixture.sparsePlaceholders.forEach((placeholder) => assert.equal(detail.includes(placeholder), true));
+  assert.match(detail, /function valueOrDash\(value\)/);
+  assert.match(detail, /root\.scoreLabel\(root\.detail\.participants\[0\]\)/);
+  assert.match(detail, /root\.scoreLabel\(root\.detail\.participants\[1\]\)/);
+  assert.match(detail, /root\.detail\.status/);
+  assert.match(detail, /root\.detail\.timing\.startTime/);
+  assert.match(detail, /root\.detail\.venue/);
+});
+
+test("game detail renders optional outcome and bounded lines with null placeholders", () => {
+  const detail = readSource("components/GameDetailView.qml");
+  const gameDetail = readSource("model/GameDetailModel.js");
+  const panel = readSource("Panel.qml");
+
+  assert.equal(panel.includes("property bool detailOpen"), true);
+  assert.match(detail, /function outcomeLabel\(\)/);
+  assert.match(detail, /root\.valueOrDash\(root\.outcomeLabel\(\)\)/);
+  assert.match(detail, /readonly property var linesData: root\.detail\.lines/);
+  assert.match(detail, /visible: !root\.linesData/);
+  assert.match(detail, /text: "—"/);
+  assert.match(detail, /root\.linePeriods\(\)/);
+  assert.match(detail, /root\.lineValues\(linesSideRow\.modelData\)/);
+  assert.match(gameDetail, /MAX_LINE_PERIODS = 12/);
+
+  const final = espn.parseGameDetailResponse(readEspnFixture("game-detail-lines"), "nfl")
+    .details.find((value) => value.providerGameId === "lines-final");
+  assert.equal(final.outcome.winner, "home");
+  assert.equal(final.outcome.margin, 3);
+  assert.equal(final.lines.away.length, 4);
+  assert.equal(final.lines.home.length, 4);
+
+  const sparse = espn.parseGameDetailResponse(readEspnFixture("game-detail-lines"), "nfl")
+    .details.find((value) => value.providerGameId === "lines-missing");
+  assert.equal(sparse.lines, null);
+});
+
+test("game detail back and Escape close only the local detail route first", () => {
+  const fixture = readGameDetailRouteFixture();
+  const panel = readSource("Panel.qml");
+  const detail = readSource("components/GameDetailView.qml");
+  assert.equal(fixture.detailActions.back, "close-detail");
+  assert.equal(fixture.detailActions.escapeWhileOpen, "close-detail");
+  assert.equal(fixture.detailActions.escapeFromScores, "close-panel");
+  assert.match(panel, /onCloseRequested: root\.detailOpen \? root\.closeDetail\(\)/);
+  assert.match(panel, /function closeDetail\(\)/);
+  assert.match(panel, /root\.detailOpen = false/);
+  assert.match(panel, /onBackRequested: root\.closeDetail\(\)/);
+  assert.match(detail, /onClicked: root\.backRequested\(\)/);
+  assert.match(detail, /function activateCursor\(\)/);
 });
 
 test("NHL next-game lookup uses the schedule endpoint and keeps normalized games", () => {
@@ -2887,10 +2946,10 @@ test("U3.1 gives actionable rows typed primary actions and safe fallbacks", () =
     loading: false, errorCode: "", stale: false, pinnedGames: [game], otherGames: []
   };
   const rows = resultRows.flatten(view, "nhl");
-  assert.equal(rows[1].action.type, "open-source");
+  assert.equal(rows[1].action.type, "open-detail");
   assert.equal(rows[1].action.enabled, true);
   assert.equal(resultRows.flatten(Object.assign({}, view, {
-    pinnedGames: [Object.assign({}, game, {link: ""})]
+    pinnedGames: [Object.assign({}, game, {isValid: false})]
   }), "nhl")[1].action.enabled, false);
   assert.equal(resultRows.flatten(Object.assign({}, view, {
     pinnedGames: [], availability: "error", errorCode: "offline"
@@ -2914,7 +2973,7 @@ test("U3.1 gives actionable rows typed primary actions and safe fallbacks", () =
   assert.equal(panel.includes("readonly property var standingsRows: StandingsRows.flatten"), true);
   assert.equal(panel.includes("StandingsRow {"), true);
   assert.equal(gameRow.includes(
-    "root.game && root.game.isValid === true\n    && typeof root.game.link === \"string\" && root.game.link !== \"\""), true);
+    "Accessible.role: root.game && root.game.isValid === true ? Accessible.Button : Accessible.StaticText"), true);
   assert.equal(gameRow.includes("External game page unavailable."), true);
   assert.equal(status.includes("Accessible.role: root.status.loading ? Accessible.StaticText : Accessible.Button"), true);
   assert.equal(nextCard.includes("Accessible.name: \"Next game: \""), true);

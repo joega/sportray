@@ -28,8 +28,9 @@ At a glance:
 - A five-day date carousel with previous/next-day navigation and a Today reset
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
-- Loaded game rows stay on the scoreboard; whole-row activation and the labeled
-  source action open the ESPN gamecast or NHL.com gamecenter page
+- Loaded game rows open a local game-details drill-down from whole-row
+  activation, and the labeled source action opens the ESPN gamecast or
+  NHL.com gamecenter page
 - Game cards show the event venue and use a restrained home-team color tint,
   with neutral fallbacks when either field is unavailable
 - Favorite-aware bar priority and pinned favorite games in league views
@@ -227,13 +228,17 @@ canonical `<league>:<providerTeamId>` team identity as favorites and preserve
 nulls for fields the provider omits.
 
 Each valid game keeps its score, participants, status/timing, and venue on the
-scoreboard card. Whole-row activation and the labeled **ESPN** or **NHL.com**
-source action open the provider's game page in the Omarchy browser. Sportray
-does not currently show a separate local game-details route. The retained
-provider-neutral model has one optional bounded final-result projection from
-the loaded scoreboard, but it is not mounted as a user-facing view.
-ESPN event links are used when supplied; otherwise Sportray builds the
-provider's standard game URL from the normalized game ID.
+scoreboard card. Whole-row activation opens a local game-details drill-down for
+that already loaded game: participants, status/timing, venue, the guarded
+ESPN/NHL.com source action, and, when the provider snapshot supplies them, an
+optional final outcome and bounded per-period scoring lines. Fields the
+provider omits — including pre-event lines and most NHL detail — render as
+neutral placeholders rather than implying box-score depth. The labeled
+**ESPN** or **NHL.com** source action opens the provider's game page in the
+Omarchy browser. Sportray never fetches a second per-game endpoint; detail is
+a projection of the scoreboard snapshot. ESPN event links are used when
+supplied; otherwise Sportray builds the provider's standard game URL from the
+normalized game ID.
 
 Requests go directly from your computer to the configured sports data
 providers. Sportray has no backend, account, analytics service, or telemetry.

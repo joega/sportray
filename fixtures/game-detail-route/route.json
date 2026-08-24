@@ -1,7 +1,12 @@
 {
   "rowAction": {
-    "type": "open-source",
-    "label": "Open external game page"
+    "type": "open-detail",
+    "label": "View game details"
   },
-  "localDetailRoute": "removed"
+  "detailActions": {
+    "back": "close-detail",
+    "escapeWhileOpen": "close-detail",
+    "escapeFromScores": "close-panel"
+  },
+  "sparsePlaceholders": ["—", "Start ", "End ", "Venue   ", "Outcome   ", "SCORING BY PERIOD"]
 }

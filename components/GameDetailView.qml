@@ -67,6 +67,28 @@ Item {
     return Qt.formatDateTime(date, "MMM d, h:mm AP")
   }
 
+  function outcomeLabel() {
+    var outcome = root.detail.outcome
+    if (!outcome) return null
+    if (outcome.winner === "draw") return "Draw · winning margin " + outcome.margin
+    var winner = outcome.winner === "away"
+      ? root.detail.participants[0] : root.detail.participants[1]
+    return root.teamLabel(winner) + " won by " + outcome.margin
+  }
+
+  readonly property var linesData: root.detail.lines
+
+  function linePeriods() {
+    if (!root.linesData) return []
+    return root.linesData.away.map(function(entry) { return String(entry.period) })
+  }
+
+  function lineValues(side) {
+    if (!root.linesData) return []
+    var entries = side === "away" ? root.linesData.away : root.linesData.home
+    return entries.map(function(entry) { return String(entry.value) })
+  }
+
   function moveCursor(delta) {
     var max = root.sourceAvailable ? 1 : 0
     root.cursorIndex = Math.max(0, Math.min(max, root.cursorIndex + delta))
@@ -318,6 +340,102 @@ Item {
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             elide: Text.ElideRight
+          }
+
+          Text {
+            width: parent.width
+            text: "Outcome   " + root.valueOrDash(root.outcomeLabel())
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            elide: Text.ElideRight
+          }
+        }
+
+        Column {
+          width: parent.width
+          spacing: Style.spacing.xxs
+
+          Text {
+            width: parent.width
+            text: "SCORING BY PERIOD"
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+
+          Text {
+            width: parent.width
+            visible: !root.linesData
+            text: "—"
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+          }
+
+          Row {
+            width: parent.width
+            spacing: Style.spacing.sm
+
+            Text {
+              width: Style.space(44)
+              text: "#"
+              color: Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            Repeater {
+              model: root.linePeriods()
+
+              delegate: Text {
+                required property string modelData
+                width: Style.space(30)
+                text: modelData
+                color: Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+                font.bold: true
+                horizontalAlignment: Text.AlignRight
+              }
+            }
+          }
+
+          Repeater {
+            model: ["away", "home"]
+
+            delegate: Row {
+              id: linesSideRow
+              required property string modelData
+              width: parent.width
+              spacing: Style.spacing.sm
+
+              Text {
+                width: Style.space(44)
+                text: linesSideRow.modelData === "away" ? "AWAY" : "HOME"
+                color: Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+                font.bold: true
+              }
+
+              Repeater {
+                model: root.lineValues(linesSideRow.modelData)
+
+                delegate: Text {
+                  required property string modelData
+                  width: Style.space(30)
+                  text: modelData
+                  color: Color.popups.text
+                  font.family: Style.font.family
+                  font.pixelSize: Style.font.bodySmall
+                  font.bold: true
+                  horizontalAlignment: Text.AlignRight
+                }
+              }
+            }
           }
         }
 

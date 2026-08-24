@@ -2751,3 +2751,72 @@ lines) with neutral placeholders for nulls, preserving whole-row source
 routing when the detail route is unavailable. Stop before any second endpoint,
 box-score/play-by-play adapters, sport-specific sections, calendar views,
 provider fallback, packaging, tagging, pushing, release, or Marketplace work.
+
+## Latest handoff — 2026-08-24 game-detail drill-down remount
+
+Status: complete. The local game-detail drill-down is remounted as one small
+existing-route extension that renders the materially richer
+`GameDetailModel` projection. No second endpoint, provider parser, normalized
+shape, polling, settings, or notification behavior changed.
+
+Evidence:
+
+- `model/ResultRows.js` labels valid loaded game rows `open-detail`
+  ("View game details") again; invalid games stay non-activatable.
+  `components/GameRow.qml` routes whole-row pointer, keyboard, and assistive
+  activation of valid games to the local detail route, while the nested
+  guarded `SourceLinkButton` remains the only external-page route.
+- `components/GameDetailView.qml` renders provider-neutral identity, ordered
+  participants with `—` score placeholders, status/timing, venue, the nested
+  source action, an optional `Outcome` line from the bounded outcome
+  projection, and a bounded `SCORING BY PERIOD` away/home table from the
+  optional `lines` projection. Null outcome/lines (pre-event and most NHL
+  games) render neutral `—` placeholders and never imply box-score depth.
+- `Panel.qml` owns `detailOpen`/`detailGame` local state, Back-first cursor,
+  Escape/Back closing the detail route before panel close, detail-bounded
+  height (320–600), header chrome suppression while open, and detail state
+  cleared on panel close. Scores, standings, settings, and polling routes are
+  unchanged.
+- `fixtures/game-detail-route/route.json` records the restored row action,
+  detail back/escape actions, and extended sparse placeholders;
+  `fixtures/accessibility-actions/actions.json` restores the valid-game row
+  guard. Four deterministic tests cover row routing, sparse placeholders,
+  outcome/lines rendering bounds with fixture-backed projections, and
+  back/Escape ordering. The complete suite passes with 194 tests.
+- `omarchy plugin validate "$PWD"`, real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  (exit 0 with the established standalone import/unqualified-access
+  warnings), and `git diff --check` pass. README now documents the restored
+  drill-down and its no-second-fetch boundary.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the first runtime attempt hit
+  the documented stale-widget rescan condition (whole-row still opened the
+  ESPN page), so the supported `omarchy restart shell` loaded the linked
+  checkout into one Quickshell instance (`s4oihlcakt`, PID 871084); shell ping
+  returned `ok`. Keyboard Down/Return opened the rendered `Game details` view
+  for `mlb:401816655` (BOS @ MIA, scheduled): participants with `—` score
+  placeholders, scheduled status, start time, venue, `Outcome —`, and
+  `SCORING BY PERIOD —` placeholders with the nested ESPN action. Escape
+  returned safely to the scores route. The fresh log contains no Sportray
+  exception, QML load failure, or binding-loop warning; only the pre-existing
+  unrelated portal registration warning remains.
+- One integration defect was found and fixed during runtime verification: the
+  detail view was initially nested inside the score content item and was
+  hidden together with it; it was moved back to its verified sibling position.
+
+Decision log: the remount stays a presentation-only projection of the
+already loaded scoreboard snapshot. Keep the source action nested and
+provider-safe, do not fetch a second detail endpoint, and do not add
+box-score, play-by-play, or sport-specific sections. Null-heavy games are
+intentionally shallow and neutral.
+
+Not exercised: the nested source button was not activated from the detail
+view (its browser route is unchanged and separately verified), live per-period
+lines were not rendered at runtime because no live linescores game was
+available (covered by the fixture path), and the pointer click path was not
+exercised (keyboard was used).
+
+No push, tag, release, or Marketplace action occurred. Known risks: ESPN
+remains an undocumented API; lines presence varies by league and state; the
+detail status line can repeat the state word when the provider detail mirrors
+it (pre-existing view logic); pointer activation of the detail route remains
+manually unexercised.
