@@ -1,0 +1,49 @@
+{
+  "todayDateKey": "2026-10-08",
+  "selectedDateKey": "2026-10-08",
+  "now": "2026-10-08T14:00:00Z",
+  "favoriteTeamIds": ["nhl:6"],
+  "games": [
+    {
+      "league": "nhl",
+      "providerGameId": "201",
+      "startTime": "2026-10-08T17:30:00Z",
+      "status": "scheduled",
+      "awayTeam": {"league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "10", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "202",
+      "startTime": "2026-10-08T14:00:00Z",
+      "status": "scheduled",
+      "awayTeam": {"league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "10", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "203",
+      "startTime": "not-a-time",
+      "status": "scheduled",
+      "awayTeam": {"league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "10", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "204",
+      "startTime": "2026-10-08T18:00:00Z",
+      "status": "scheduled",
+      "awayTeam": {"league": "nhl", "providerTeamId": "11", "abbreviation": "MTL"},
+      "homeTeam": {"league": "nhl", "providerTeamId": "10", "abbreviation": "TOR"}
+    }
+  ],
+  "empty": {
+    "hasData": true,
+    "game": null
+  },
+  "offline": {
+    "hasData": false,
+    "errorCode": "unavailable",
+    "game": null
+  }
+}

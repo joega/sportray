@@ -1,6 +1,6 @@
 # Sportray private roadmap
 
-Last reviewed: 2026-08-23
+Last reviewed: 2026-08-24
 
 ## Competitive scan — 2026-08-23
 
@@ -1444,3 +1444,81 @@ timers, polling, provider countdown fields/endpoints, settings, and QML; use
 caller-supplied time and preserve the current bar/panel behavior until the
 projection contract is accepted. Stop if countdown semantics require provider
 data or an upstream shell API.
+
+## Countdown projection policy slice — 2026-08-24
+
+Status: complete. The bounded pure policy projects a caller-selected,
+already-normalized, today-scoped favorite scheduled game into a countdown
+state without taking ownership of game selection, time, refresh cadence,
+provider parsing, polling, timers, or QML.
+
+Evidence:
+
+- `model/CountdownProjectionPolicy.js` validates the local `todayDateKey` and
+  `selectedDateKey` identity, canonical favorite membership, scheduled state,
+  local start-date scope, and caller-supplied finite `nowMs`/`startTimeMs`
+  inputs. It returns `future`, `due`, `invalid`, `empty`, `offline`, or
+  `not-today` with preserved date identity, bounded `remainingMs`, and a
+  bounded label no longer than 24 characters.
+- `fixtures/bar-presentation/countdown.json` contains sanitized normalized-game
+  inputs for future, due, invalid-start, non-favorite, empty, and unavailable
+  states. Four deterministic tests cover the state projection, local today
+  identity, explicit time inputs, and caller-visible text bounds. The complete
+  JavaScript suite passes with 180 tests.
+- `omarchy plugin validate "$PWD"` passes. The real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command over every QML
+  file exits 0 with the established standalone import and unqualified-access
+  warnings. `git diff --check` passes.
+- Installed Omarchy 4.0.0-1 and Quickshell 0.3.0 revision `28771c7` were
+  inspected before implementation. The existing bar, panel, and polling
+  contracts expose no countdown API or provider timing requirement, so no
+  upstream boundary deviation was needed. No QML, service, provider,
+  endpoint, settings, polling, timer, or bar-consumer behavior changed.
+
+Decision log: keep countdown projection separate from the existing
+`FavoritePresentation.selectBarState` selection boundary. A future caller
+must pass the selected normalized favorite game and own any reevaluation
+schedule; this policy never calls `Date.now()`. Use local `Date` conversion for
+the existing today identity, treat a scheduled game whose start is at or before
+`nowMs` as `due`, and fail closed for invalid or non-today input. Static labels
+remain provider-neutral and are capped through the same whitespace-trimming
+ellipsis convention used by existing presentation policies.
+
+Known risks: a future consumer must reevaluate with a current caller-supplied
+time or its label will age between refreshes; this unit intentionally adds no
+timer or runtime consumer. The consumer must use the same local timezone
+boundary as `DateModel` when passing timestamps. The policy cannot distinguish a
+provider status correction from a due scheduled snapshot and must continue to
+trust the normalized caller state.
+
+## Latest handoff — 2026-08-24 countdown projection policy complete
+
+The pure countdown projection unit is complete and ready for its atomic commit.
+`CountdownProjectionPolicy.js` accepts one already normalized scheduled game,
+canonical favorite IDs, local today/selected date keys, and caller-supplied
+`nowMs` plus optional `startTimeMs`. It returns bounded `future` or `due`
+projection text, or safe `invalid`, `empty`, `offline`, and `not-today` states;
+all results preserve the supplied local date identity. It does not select among
+games, start a timer, poll, request provider data, add provider fields, or run
+inside QML.
+
+The sanitized fixture and four tests cover future, due, invalid-start,
+non-favorite/non-today, empty/offline, supplied timestamp, and bounded-text
+behavior. The complete JavaScript suite passes with 180 tests. Plugin
+validation, full real-import-path QML lint, and diff check pass. Installed
+Omarchy 4.0.0-1 and Quickshell revision `28771c7` were inspected first; the
+checkout intentionally has no `docs/upstream-contract.md`, and no upstream
+boundary change was needed. No QML or service changed, so no new shell rescan,
+runtime route exercise, or fresh Quickshell log claim was made.
+
+No push, tag, release, or Marketplace action occurred. Known risks are caller
+time freshness, local-timezone alignment with `DateModel`, sparse normalized
+start times, and the absence of a runtime consumer. Preserve the current
+bar/panel behavior until a later consumer unit owns reevaluation explicitly.
+
+Next bounded unit: wire the accepted countdown projection into one existing
+ambient-bar presentation path using the already normalized today-scoped
+favorite-upcoming state and caller-owned time, while preserving live-favorite
+priority, compact/full mode selection, and current polling boundaries. Stop
+before adding a new timer, provider countdown data or endpoint, settings field,
+new league, or unrelated QML interaction work.

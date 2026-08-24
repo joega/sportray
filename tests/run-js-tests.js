@@ -44,6 +44,7 @@ const lifecycle = require(path.join(root, "model/LifecyclePolicy.js"));
 const assetUrlPolicy = require(path.join(root, "model/AssetUrlPolicy.js"));
 const responsePolicy = require(path.join(root, "model/ResponsePolicy.js"));
 const liveFavoriteRotation = require(path.join(root, "model/LiveFavoriteRotationPolicy.js"));
+const countdownProjection = require(path.join(root, "model/CountdownProjectionPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -155,6 +156,11 @@ function readBarPresentationFixture() {
 function readLiveFavoriteRotationFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/bar-presentation/live-favorite-rotation.json"), "utf8"));
+}
+
+function readCountdownFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/bar-presentation/countdown.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -3847,6 +3853,122 @@ test("live favorite rotation clamps cadence and never leaks an unbounded index",
   assert.equal(result.index >= 0, true);
   assert.equal(result.index < result.rotationGames.length, true);
   assert.equal(result.count <= liveFavoriteRotation.MAX_ROTATION_ITEMS, true);
+});
+
+test("countdown projection returns future and due states for normalized favorite games", () => {
+  const fixture = readCountdownFixture();
+  const normalized = fixture.games.map((game) => games.normalizeGame(game));
+  const base = {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true
+  };
+  const future = countdownProjection.project(Object.assign({}, base, {
+    game: normalized[0]
+  }));
+  assert.equal(future.kind, "future");
+  assert.equal(future.reason, "favorite-upcoming");
+  assert.equal(future.game.id, "nhl:201");
+  assert.equal(future.todayDateKey, fixture.todayDateKey);
+  assert.equal(future.selectedDateKey, fixture.todayDateKey);
+  assert.equal(future.remainingMs, 3.5 * 60 * 60 * 1000);
+  assert.equal(future.label, "Starts in 3h 30m");
+
+  const due = countdownProjection.project(Object.assign({}, base, {
+    game: normalized[1],
+    startTimeMs: Date.parse("2026-10-08T14:00:00Z")
+  }));
+  assert.equal(due.kind, "due");
+  assert.equal(due.remainingMs, 0);
+  assert.equal(due.label, "Starting now");
+});
+
+test("countdown projection fails closed for invalid, non-favorite, and non-today inputs", () => {
+  const fixture = readCountdownFixture();
+  const normalized = fixture.games.map((game) => games.normalizeGame(game));
+  const base = {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true
+  };
+  const invalid = countdownProjection.project(Object.assign({}, base, {
+    game: normalized[2]
+  }));
+  assert.equal(invalid.kind, "invalid");
+  assert.equal(invalid.reason, "invalid-start-time");
+  assert.equal(invalid.game, null);
+
+  const nonFavorite = countdownProjection.project(Object.assign({}, base, {
+    game: normalized[3],
+    favoriteTeamIds: ["nhl:6"]
+  }));
+  assert.equal(nonFavorite.kind, "empty");
+  assert.equal(nonFavorite.reason, "no-upcoming-favorite");
+
+  const nonToday = countdownProjection.project(Object.assign({}, base, {
+    selectedDateKey: "2026-10-07",
+    game: normalized[0]
+  }));
+  assert.equal(nonToday.kind, "not-today");
+  assert.equal(nonToday.reason, "today-scope");
+  assert.equal(nonToday.todayDateKey, fixture.todayDateKey);
+  assert.equal(nonToday.selectedDateKey, "2026-10-07");
+});
+
+test("countdown projection preserves bounded empty and offline states", () => {
+  const fixture = readCountdownFixture();
+  const base = {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    favoriteTeamIds: fixture.favoriteTeamIds
+  };
+  const empty = countdownProjection.project(Object.assign({}, base, fixture.empty));
+  assert.equal(empty.kind, "empty");
+  assert.equal(empty.reason, "no-upcoming-favorite");
+  assert.equal(empty.todayDateKey, fixture.todayDateKey);
+  assert.equal(empty.label.length <= countdownProjection.MAX_LABEL_LENGTH, true);
+
+  const offline = countdownProjection.project(Object.assign({}, base, fixture.offline));
+  assert.equal(offline.kind, "offline");
+  assert.equal(offline.reason, "unavailable");
+  assert.equal(offline.todayDateKey, fixture.todayDateKey);
+  assert.equal(offline.label, "Scores offline");
+});
+
+test("countdown projection bounds caller-visible text and uses supplied timestamps", () => {
+  const fixture = readCountdownFixture();
+  const normalized = fixture.games.map((game) => games.normalizeGame(game));
+  const result = countdownProjection.project({
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    startTimeMs: Date.parse("2026-10-08T17:30:00Z"),
+    maxLabelLength: Number.MAX_SAFE_INTEGER,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true,
+    game: normalized[0]
+  });
+  assert.equal(result.startTimeMs, Date.parse("2026-10-08T17:30:00Z"));
+  assert.equal(result.nowMs, Date.parse(fixture.now));
+  assert.equal(result.label.length <= countdownProjection.MAX_LABEL_LENGTH, true);
+  assert.equal(result.label, "Starts in 3h 30m");
+
+  const shortened = countdownProjection.project({
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    maxLabelLength: 8,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true,
+    game: normalized[0]
+  });
+  assert.equal(shortened.label, "Starts…");
+  assert.equal(shortened.label.length <= 8, true);
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");
