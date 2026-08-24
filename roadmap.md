@@ -2995,3 +2995,67 @@ for the existing per-league fetch boundary — the last unimplemented capability
 of the recorded minimum competitive baseline — keeping it separate from QML
 and timers until its contract is accepted. Stop before wiring it into
 services, changing polling, adding endpoints, or publication work.
+
+## Latest handoff — 2026-08-24 provider-fallback chain policy complete
+
+The pure provider-fallback chain policy is complete and ready for its atomic
+commit. This was the last unimplemented capability of the recorded minimum
+competitive baseline; it remains an unwired pure model slice exactly like the
+earlier rotation and countdown policy units.
+
+Evidence:
+
+- `model/ProviderFallbackPolicy.js` takes one league id, an ordered candidate
+  list (first entry is primary; at most four unique valid provider ids), a
+  caller-supplied health map of consecutive failures capped at threshold 3,
+  caller-supplied `nowMs`, and an optional current provider id. It returns
+  deterministic `primary` (healthy-primary retention), `current`
+  (stay on the healthy current provider), `fallback` (next healthy candidate,
+  including a cooled-down primary becoming retryable after the 15-minute
+  cooldown), `exhausted` (every candidate cooling), or fail-closed `invalid`.
+  Pure `recordFailure`/`recordSuccess` helpers return new state objects so
+  callers own storage.
+- `fixtures/provider-fallback/chain.json` contains sanitized provider ids and
+  failure records only. Five deterministic tests cover healthy-primary
+  retention, fallback within the cooldown window, recovery via success
+  bookkeeping and cooldown expiry, malformed-input rejection (bad league,
+  empty/duplicate/over-bound/non-string candidates, unknown current id,
+  missing/NaN time), bounded exhaustion with attempted-provider accounting,
+  and source assertions that the module has no timer, request, clock read,
+  JSON parsing, require call, or provider import. The suite passes with 205
+  tests.
+- No QML file, service, provider, endpoint, polling cadence, or settings
+  schema changed. The policy owns no timer, request, settings value, or
+  provider parsing.
+- `tests/run-js-tests.sh`, `git diff --check`, `omarchy plugin validate
+  "$PWD"`, and real-import-path `/usr/lib/qt6/bin/qmllint -I
+  /usr/share/omarchy/shell` over every QML file pass; lint exits 0 with the
+  established standalone import/unqualified-access warnings. No QML changed,
+  so no shell restart, rescan, or fresh log claim is made for this unit.
+- The checkout intentionally has no `docs/upstream-contract.md`; no host
+  boundary was touched by this pure model unit, so no installed-source
+  inspection was required beyond confirming no Omarchy/Quickshell API is
+  involved.
+
+Decision log: keep the chain as ordered unique provider ids with the first
+entry primary; skip a provider only after three consecutive recorded failures;
+give skipped providers one retry opportunity when their last failure is at
+least 15 minutes old; treat all-cooling chains as an explicit bounded
+`exhausted` state rather than silently picking a failing provider. Fail closed
+on any malformed candidate, unknown current id, or non-finite time. A future
+consumer must own persistence of the health state and pass caller-owned time;
+this unit intentionally adds no storage, timer, or request path.
+
+Known risks: ESPN remains an undocumented API; the policy cannot distinguish
+provider outage classes and treats all failures uniformly until wired; the
+cooldown/threshold values are deliberate product constants, not settings; and
+runtime fallback behavior is intentionally unverified because the policy has
+no consumer yet.
+
+No push, tag, release, or Marketplace action occurred. The unrelated absence
+of `MARKETPLACE_SUBMISSION.md` remains untouched and unstaged.
+
+Next bounded unit: wire the accepted `ProviderFallbackPolicy` contract into the
+existing per-league fetch boundary (`services/LeagueFetch.qml` and the shared
+scheduler) without changing endpoints, request paths, polling cadence bounds,
+settings schema, or QML views.

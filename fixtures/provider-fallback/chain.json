@@ -1,0 +1,47 @@
+{
+  "leagueId": "nhl",
+  "now": "2026-08-24T18:00:00Z",
+  "candidates": ["espn", "nhl"],
+  "healthyPrimary": {
+    "health": {},
+    "currentProviderId": null
+  },
+  "failingPrimary": {
+    "health": {
+      "espn": {"consecutiveFailures": 3, "lastFailureAtMs": "2026-08-24T17:50:00Z"}
+    },
+    "currentProviderId": "espn"
+  },
+  "recoveredPrimary": {
+    "health": {},
+    "currentProviderId": "espn"
+  },
+  "coolingExpired": {
+    "health": {
+      "espn": {"consecutiveFailures": 3, "lastFailureAtMs": "2026-08-24T17:00:00Z"}
+    },
+    "currentProviderId": "nhl"
+  },
+  "exhausted": {
+    "health": {
+      "espn": {"consecutiveFailures": 3, "lastFailureAtMs": "2026-08-24T17:59:00Z"},
+      "nhl": {"consecutiveFailures": 7, "lastFailureAtMs": "2026-08-24T17:58:00Z"}
+    },
+    "currentProviderId": null
+  },
+  "malformed": {
+    "badLeague": {"leagueId": "", "candidates": ["espn", "nhl"]},
+    "emptyCandidates": {"leagueId": "nhl", "candidates": []},
+    "duplicateCandidates": {"leagueId": "nhl", "candidates": ["espn", "ESPN"]},
+    "overBoundCandidates": {
+      "leagueId": "nhl",
+      "candidates": ["espn", "nhl", "nfl", "mlb", "nba"]
+    },
+    "nonStringCandidate": {"leagueId": "nhl", "candidates": ["espn", 42]},
+    "unknownCurrent": {
+      "leagueId": "nhl",
+      "candidates": ["espn", "nhl"],
+      "currentProviderId": "mlb"
+    }
+  }
+}

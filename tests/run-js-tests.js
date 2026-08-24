@@ -48,6 +48,7 @@ const countdownProjection = require(path.join(root, "model/CountdownProjectionPo
 const pregameReminder = require(path.join(root, "model/PregameReminderPolicy.js"));
 const closeGame = require(path.join(root, "model/CloseGamePolicy.js"));
 const calendarModel = require(path.join(root, "model/CalendarModel.js"));
+const providerFallback = require(path.join(root, "model/ProviderFallbackPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -187,6 +188,11 @@ function readCloseGameFixture() {
 function readCalendarFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/calendar/calendar.json"), "utf8"));
+}
+
+function readProviderFallbackFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/provider-fallback/chain.json"), "utf8"));
 }
 
 function normalizeFixtureGames(fixture) {
@@ -4633,6 +4639,132 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.equal(panel.includes(": root.calendarOpen ? root.closeCalendar() : root.close()"), true);
   assert.equal(panel.includes('root.toggleCalendar()'), true);
   assert.equal(panel.includes('root.toggleCalendarFilter()'), true);
+});
+
+test("provider fallback retains a healthy primary for its league chain", () => {
+  const fixture = readProviderFallbackFixture();
+  const result = providerFallback.evaluate({
+    leagueId: fixture.leagueId,
+    candidates: fixture.candidates,
+    nowMs: Date.parse(fixture.now),
+    health: fixture.healthyPrimary.health,
+    currentProviderId: fixture.healthyPrimary.currentProviderId
+  });
+  assert.equal(result.kind, "primary");
+  assert.equal(result.reason, "next-healthy");
+  assert.equal(result.providerId, "espn");
+  assert.equal(result.index, 0);
+  assert.deepEqual(result.attempted, []);
+  assert.equal(result.leagueId, "nhl");
+  assert.deepEqual(providerFallback.evaluate(null).kind, "invalid");
+});
+
+test("provider fallback advances past a failed primary within its cooldown", () => {
+  const fixture = readProviderFallbackFixture();
+  const nowMs = Date.parse(fixture.now);
+  const result = providerFallback.evaluate({
+    leagueId: fixture.leagueId,
+    candidates: fixture.candidates,
+    nowMs: nowMs,
+    health: fixture.failingPrimary.health,
+    currentProviderId: fixture.failingPrimary.currentProviderId
+  });
+  assert.equal(result.kind, "fallback");
+  assert.equal(result.providerId, "nhl");
+  assert.equal(result.index, 1);
+  assert.deepEqual(result.attempted, ["espn"]);
+
+  const state = fixture.failingPrimary.health.espn;
+  assert.equal(providerFallback.isCoolingDown(state, nowMs), true);
+  assert.equal(
+    providerFallback.isCoolingDown(
+      {consecutiveFailures: providerFallback.FAILURE_THRESHOLD - 1,
+        lastFailureAtMs: Date.parse(state.lastFailureAtMs)}, nowMs),
+    false);
+});
+
+test("provider fallback recovers to the primary after success or cooldown expiry", () => {
+  const fixture = readProviderFallbackFixture();
+  const nowMs = Date.parse(fixture.now);
+
+  // Caller-supplied success bookkeeping clears the primary's failures.
+  let health = {};
+  for (let i = 0; i < providerFallback.FAILURE_THRESHOLD + 2; i++)
+    health = providerFallback.recordFailure(health, "espn", nowMs);
+  assert.equal(health.espn.consecutiveFailures, providerFallback.FAILURE_THRESHOLD);
+  health = providerFallback.recordSuccess(health, "espn");
+  assert.equal(health.espn, undefined);
+
+  const recovered = providerFallback.evaluate({
+    leagueId: fixture.leagueId,
+    candidates: fixture.candidates,
+    nowMs: nowMs,
+    health: fixture.recoveredPrimary.health,
+    currentProviderId: fixture.recoveredPrimary.currentProviderId
+  });
+  assert.equal(recovered.kind, "current");
+  assert.equal(recovered.reason, "current-healthy");
+  assert.equal(recovered.providerId, "espn");
+
+  // A cooled-down primary becomes retryable ahead of the fallback again.
+  const expired = providerFallback.evaluate({
+    leagueId: fixture.leagueId,
+    candidates: fixture.candidates,
+    nowMs: nowMs,
+    health: fixture.coolingExpired.health,
+    currentProviderId: fixture.coolingExpired.currentProviderId
+  });
+  assert.equal(expired.kind, "fallback");
+  assert.equal(expired.providerId, "espn");
+  assert.equal(expired.index, 0);
+});
+
+test("provider fallback fails closed on malformed chains and unknown callers", () => {
+  const fixture = readProviderFallbackFixture();
+  const cases = [
+    [fixture.malformed.badLeague, "league-id"],
+    [fixture.malformed.emptyCandidates, "candidates"],
+    [fixture.malformed.duplicateCandidates, "candidates"],
+    [fixture.malformed.overBoundCandidates, "candidates"],
+    [fixture.malformed.nonStringCandidate, "candidates"],
+    [Object.assign({nowMs: Date.parse(fixture.now)},
+      fixture.malformed.unknownCurrent), "current-provider-id"],
+    [{leagueId: fixture.leagueId, candidates: fixture.candidates}, "now-ms"],
+    [{leagueId: fixture.leagueId, candidates: fixture.candidates,
+      nowMs: Number.NaN}, "now-ms"]
+  ];
+  cases.forEach(([input, reason]) => {
+    const result = providerFallback.evaluate(input);
+    assert.equal(result.kind, "invalid");
+    assert.equal(result.reason, reason);
+    assert.equal(result.providerId, null);
+    assert.equal(result.index, -1);
+  });
+});
+
+test("provider fallback reports bounded exhaustion when every candidate cools", () => {
+  const fixture = readProviderFallbackFixture();
+  const result = providerFallback.evaluate({
+    leagueId: fixture.leagueId,
+    candidates: fixture.candidates,
+    nowMs: Date.parse(fixture.now),
+    health: fixture.exhausted.health,
+    currentProviderId: fixture.exhausted.currentProviderId
+  });
+  assert.equal(result.kind, "exhausted");
+  assert.equal(result.reason, "all-providers-cooling");
+  assert.equal(result.providerId, null);
+  assert.equal(result.index, -1);
+  assert.deepEqual(result.attempted, ["espn", "nhl"]);
+  assert.equal(result.cooldownMs, providerFallback.COOLDOWN_MS);
+
+  // The pure policy stays free of timers, requests, and provider parsing.
+  const source = readSource("model/ProviderFallbackPolicy.js");
+  assert.equal(source.includes("Timer"), false);
+  assert.equal(source.includes("curl"), false);
+  assert.equal(source.includes("Date.now"), false);
+  assert.equal(source.includes("JSON.parse"), false);
+  assert.equal(source.includes("require("), false);
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");
