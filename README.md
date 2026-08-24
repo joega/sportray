@@ -117,6 +117,20 @@ omarchy-shell shell toggle io.github.joega.sportray '{}'
 omarchy-shell shell hide io.github.joega.sportray
 ```
 
+After `rescanPlugins`, widget registration may settle asynchronously before a
+bar-widget can be summoned. This checkout has no automatic post-rescan caller;
+run the external bounded helper when that sequence is needed:
+
+```bash
+omarchy-shell shell rescanPlugins
+./scripts/summon-sportray-after-rescan.sh
+```
+
+The helper sends the summon IPC with `{}` and accepts only `ok` as success. It
+tries at most five times with 250 ms spacing after unsuccessful results, then
+exits nonzero with a concise error. It never calls `hide`, is not part of the
+plugin runtime path, and does not change normal hide behavior.
+
 ## Marketplace listing
 
 Proposed listing copy:

@@ -1778,3 +1778,298 @@ confirm one shell. Update this roadmap and the next-session prompt, then make
 one atomic Conventional Commit-style commit only if a bounded fix and every
 gate pass. Request subagents only for independent read-only upstream/runtime
 reconnaissance.
+
+## Latest handoff — 2026-08-24 post-rescan summon lifecycle diagnosis
+
+Status: blocked by the installed Omarchy shell's asynchronous widget
+registration window. No Sportray source or production behavior changed, and no
+success commit was created.
+
+The installed Omarchy 4.0.0-1 / Quickshell `28771c7` sources prove the warning
+is emitted by the host, not by a Sportray manifest or entry-point rejection:
+
+- `PluginRegistry.validateManifest()` accepts the linked manifest, and
+  `entryPointUrl(manifest, "barWidget")` resolves the relative
+  `BarWidget.qml` entry point. The installed `omarchy plugin validate "$PWD"`
+  also passes. The source and linked manifests are byte-for-byte identical.
+- `shell.reloadPlugins()` first unloads the widget registry. After the scan,
+  `syncPluginWidgets()` calls `Qt.createComponent(url, Component.Asynchronous)`
+  and only registers the component in `BarWidgetRegistry` from the component's
+  `statusChanged` callback once it reaches `Ready`.
+- The bar's `ModuleSlot` reads the registry component and exposes a live
+  `activeItem` only after that registration and Loader creation. The shell's
+  `summon()` path immediately calls `Bar.summonBarWidget()`, which searches
+  only those already-live `ModuleSlot.activeItem` objects and warns when none
+  exists. It has no registration-ready queue or retry boundary.
+
+Runtime reproduction on actual Omarchy used one shell (PID 761056, Quickshell
+instance `g8bgirc9kt`) and the linked checkout at
+`/home/joeg/.config/omarchy/plugins/io.github.joega.sportray`:
+
+- Immediately after `omarchy-shell shell rescanPlugins`,
+  `omarchy-shell shell summon io.github.joega.sportray '{}'` returned
+  `unknown` and logged `summon: no live bar widget for:
+  io.github.joega.sportray`.
+- After two seconds for asynchronous registration, `listPlugins` still showed
+  the enabled third-party `bar-widget`; `debugBarGeometry` showed a visible
+  Sportray slot in `right` at 133x26; the same summon returned `ok`.
+- A delayed hide completed successfully. The fresh log slice contained only
+  the transient host warning and no Sportray exception, QML load failure,
+  binding-loop warning, or provider/rotation error.
+
+All repository gates pass without source changes: `tests/run-js-tests.sh`
+passes with 185 tests, `omarchy plugin validate "$PWD"` passes, the real
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command over every QML
+file exits 0 with the established warnings, and `git diff --check` passes.
+
+Decision log: preserve the current bar-widget route. Adding a plugin-side
+delay, timer, second IPC route, or readiness workaround would mask a host
+lifecycle gap and violate this unit's stop condition; Sportray has no
+registration-ready API to consume. The safe resolution is for the installed
+shell/upstream IPC path to queue or retry bar-widget summons until asynchronous
+registration settles. Revisit only after an installed Omarchy/Quickshell change
+or an explicit upstream contract that exposes such readiness.
+
+Known risk: callers that summon immediately after a rescan can receive a
+transient `unknown` even though the widget becomes live moments later. Normal
+post-start and post-settlement toggle/hide behavior is healthy. The checkout
+intentionally still has no `docs/upstream-contract.md`; installed sources are
+the boundary evidence.
+
+Next bounded unit: recheck this host-registration blocker after an installed
+Omarchy/Quickshell update or an explicit upstream readiness/queue fix. Do not
+add a plugin-side timer, retry loop, new IPC route, provider field, setting, or
+polling contract. If the installed host is unchanged, stop after recording the
+same external blocker and leave production code untouched.
+
+## Latest handoff — 2026-08-24 post-rescan blocker recheck
+
+Status: blocked by the unchanged installed Omarchy shell contract. No Sportray
+source or production behavior changed, and no success commit was created.
+
+The installed environment remains Omarchy `4.0.0-1` with Quickshell `0.3.0`
+revision `28771c7c74b42e20afca0b1b63980cb46515537c`. The inspected
+`PluginRegistry.qml`, `shell.qml`, `BarWidgetRegistry.qml`, and bar
+`ModuleSlot`/summon sources are unchanged: rescan unloads widget registrations,
+`syncPluginWidgets()` creates entry-point components asynchronously, and the
+registry only receives a component after `Component.Ready`; `summonBarWidget()`
+still searches only live slot items and has no readiness queue or retry.
+
+Runtime recheck used the one running shell, Quickshell instance `g8bgirc9kt`
+(PID 761056), and the linked checkout at
+`/home/joeg/.config/omarchy/plugins/io.github.joega.sportray`:
+
+- `rescanPlugins` completed, and this run's immediate summon returned `ok`.
+- After a two-second settlement wait, `listPlugins` still showed the enabled
+  Sportray `bar-widget`; `debugBarGeometry` showed a visible right-section
+  Sportray slot at 133x26. A delayed summon returned `ok` and delayed hide
+  completed.
+- The retained fresh log slice still contains the earlier host warning
+  `summon: no live bar widget for: io.github.joega.sportray`, but no new warning
+  appeared for this recheck and there is no Sportray exception, QML load
+  failure, binding-loop warning, or rotation error. The successful immediate
+  summon is timing-sensitive evidence, not proof that the host lifecycle gap
+  is resolved; the installed source still has no readiness contract.
+
+All repository gates pass: `tests/run-js-tests.sh` passes with 185 tests,
+`omarchy plugin validate "$PWD"` passes, the real import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command over every QML
+file exits 0 with the established warnings, and `git diff --check` passes.
+The linked manifest remains valid and unchanged; the checkout still
+intentionally has no `docs/upstream-contract.md`.
+
+Decision log: preserve the current bar-widget route and do not add a
+plugin-side delay, timer, retry loop, second IPC route, provider field, setting,
+polling cadence, or new upstream API. Reliable immediate post-rescan summon
+requires an upstream queue/retry or readiness boundary, which this host does
+not expose. Revisit only after an installed Omarchy/Quickshell update or an
+explicit upstream readiness/queue fix.
+
+Known risk: immediate callers after a rescan may still receive a transient
+`unknown` even though the widget becomes live moments later. Normal
+post-start and post-settlement toggle/hide behavior is healthy. No production
+source change is justified by this recheck.
+
+Next bounded unit: recheck this host-registration blocker only after an
+installed Omarchy/Quickshell update or explicit upstream readiness/queue fix.
+If the host is unchanged, reproduce the sequence, record the evidence, and
+stop without changing Sportray or creating a success commit.
+
+## Latest handoff — 2026-08-24 post-rescan blocker recheck (reproduced)
+
+Status: blocked by the unchanged installed Omarchy shell contract. No Sportray
+source or production behavior changed, and no success commit was created.
+
+The installed environment remains Omarchy `4.0.0-1` with Quickshell `0.3.0`
+revision `28771c7c74b42e20afca0b1b63980cb46515537c`. The re-inspected
+`PluginRegistry.qml`, `shell.qml`, `BarWidgetRegistry.qml`, and bar
+`ModuleSlot`/summon sources are unchanged: rescan unloads widget registrations,
+`syncPluginWidgets()` creates entry-point components asynchronously, and the
+registry receives a component only after `Component.Ready`; `summonBarWidget()`
+still searches only live slot items and has no readiness queue or retry.
+
+The linked `manifest.json` remains byte-for-byte identical to the installed
+manifest, `BarWidget.qml` is unchanged, and `omarchy plugin validate "$PWD"`
+accepts the checkout. The intentionally absent `docs/upstream-contract.md`
+remains absent.
+
+Runtime recheck used one running shell, Quickshell instance `g8bgirc9kt` (PID
+761056), and the linked checkout at
+`/home/joeg/.config/omarchy/plugins/io.github.joega.sportray`:
+
+- `omarchy-shell shell rescanPlugins` followed immediately by
+  `omarchy-shell shell summon io.github.joega.sportray '{}'` returned
+  `unknown`.
+- After a two-second settlement wait, `listPlugins` still showed the enabled
+  third-party Sportray `bar-widget`; `debugBarGeometry` showed a visible
+  right-section slot at 133x26; delayed summon returned `ok`, and delayed hide
+  completed successfully.
+- The fresh Quickshell log contains the corresponding host warning
+  `summon: no live bar widget for: io.github.joega.sportray` and normal
+  Sportray polling/cache activity, but no Sportray exception, QML load
+  failure, binding-loop warning, or rotation error. The successful delayed
+  route confirms asynchronous registration, not reliable immediate summon.
+
+The complete deterministic suite passes with 185 tests. `omarchy plugin
+validate "$PWD"`, the real-import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command over every QML
+file, and `git diff --check` all pass with the established lint warnings.
+
+Decision log: preserve the current native `bar-widget` route. Reliable
+immediate post-rescan summon still requires an upstream queue/retry or
+readiness boundary; adding a plugin-side timer, retry loop, second IPC route,
+provider field, setting, polling cadence, or new API would violate the bounded
+unit and mask the host defect. Revisit only after an installed Omarchy/
+Quickshell update or an explicit upstream readiness/queue fix.
+
+Known risk: callers that summon immediately after a rescan may receive a
+transient `unknown` even though the widget becomes live moments later. Normal
+post-start and post-settlement toggle/hide behavior remains healthy. No
+production source change is justified by this recheck.
+
+Next bounded unit: recheck this host-registration blocker only after an
+installed Omarchy/Quickshell update or explicit upstream readiness/queue fix.
+If the installed host is unchanged, reproduce the immediate and delayed
+sequence, update this handoff and `NEXT_SESSION_PROMPT.md`, and stop without
+changing Sportray or creating a success commit.
+
+## Latest handoff — 2026-08-24 installed-host-gated blocker recheck
+
+Status: blocked by the unchanged installed Omarchy shell contract. No Sportray
+source or production behavior changed, and no success commit was created.
+
+The prerequisite for reopening this unit was not met. Installed packages remain
+Omarchy `4.0.0-1` (installed 2026-08-15) and Quickshell `0.3.0`, revision
+`28771c7c74b42e20afca0b1b63980cb46515537c` (installed 2026-08-23). The current
+host sources still show asynchronous `Qt.createComponent(...,
+Component.Asynchronous)` loading, registry insertion only after
+`Component.Ready`, and `summonBarWidget()` searching live bar-slot items
+without a readiness queue or retry. No explicit upstream readiness/queue fix
+is present. The checkout still intentionally has no `docs/upstream-contract.md`;
+installed sources remain the boundary evidence.
+
+The linked checkout remains
+`/home/joeg/.config/omarchy/plugins/io.github.joega.sportray`, with repository
+and installed `manifest.json` plus `BarWidget.qml` hashes matching. The host
+reported one running Quickshell shell, instance `g8bgirc9kt` (PID 761056), and
+`listPlugins` showed enabled Sportray as a native third-party `bar-widget`.
+
+Fresh actual-Omarchy reproduction:
+
+- `omarchy-shell shell rescanPlugins` completed successfully.
+- The immediate summon and hide both returned success in this run.
+- After a two-second asynchronous-registration wait, `debugBarGeometry` showed
+  Sportray visible in the right section at `133x26`; delayed summon and hide
+  both returned success.
+- The current log tail has no new summon warning from this run. It retains the
+  earlier `summon: no live bar widget for: io.github.joega.sportray` evidence,
+  with no Sportray exception, QML load failure, binding-loop warning, or
+  rotation error. Immediate success is timing-sensitive and does not prove a
+  host lifecycle fix; the source contract remains unchanged and the prior
+  immediate `unknown` reproduction remains valid blocker evidence.
+
+Decision log: keep the native `bar-widget` route unchanged. The successful
+sample does not justify a plugin-side delay, timer, retry loop, second IPC
+route, provider field, setting, polling cadence, or new API. Reliable
+post-rescan summon still requires an upstream queue/retry or readiness
+boundary. Revisit only after an installed Omarchy/Quickshell update or an
+explicit upstream readiness/queue fix.
+
+Known risk: an immediate caller after rescan may still receive a transient
+`unknown` before the asynchronous component and bar slot become live. Normal
+post-start and post-settlement summon/hide behavior is healthy. No production
+source change is justified by this recheck.
+
+Next bounded unit: recheck this host-registration blocker only after an
+installed Omarchy/Quickshell update or explicit upstream readiness/queue fix.
+If the installed host is unchanged, do not repeat this unit speculatively;
+wait for the prerequisite, then reproduce immediate and delayed summon/hide,
+update this handoff and `NEXT_SESSION_PROMPT.md`, and stop without changing
+Sportray or creating a success commit.
+
+## Latest handoff — 2026-08-24 client-side post-rescan summon mitigation
+
+Status: complete as a bounded client-side mitigation. No Sportray production
+QML, provider, polling, settings, or runtime IPC source changed.
+
+Repository reconnaissance found no existing post-rescan Sportray summon
+caller: the only repository and user-configured references were the README's
+normal `toggle`/`hide` commands and no keybinding or helper that invokes
+`summon`. The installed `omarchy-shell` returns IPC-level `unknown` results on
+stdout with exit status 0, so a caller cannot use process status alone.
+
+The external helper `scripts/summon-sportray-after-rescan.sh` is now the
+documented client-side workaround. It sends exactly
+`omarchy-shell shell summon io.github.joega.sportray '{}'`, accepts only stdout
+`ok`, retries only after an unsuccessful result, waits 250 ms between attempts,
+and stops after five total attempts with a concise nonzero error. It never
+calls `rescanPlugins` or `hide`, so normal hide behavior remains unchanged. A
+deterministic fake-IPC test covers success on the third attempt, exact summon
+arguments, the five-attempt bound, concise failure, and the absence of a hide
+call; `bash -n` passes. `shellcheck` is not installed on this environment.
+README now documents the exact `rescanPlugins` followed by helper usage and
+the helper's external, non-runtime boundary.
+
+Repository evidence:
+
+- `tests/test-summon-helper.sh` passes; `tests/run-js-tests.sh` passes with
+  185 deterministic tests.
+- `omarchy plugin validate "$PWD"` passes.
+- `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
+  exits 0 with the established standalone import/unqualified-access warnings.
+- `git diff --check` passes.
+- Only `README.md`, the external helper/test, `roadmap.md`, and
+  `NEXT_SESSION_PROMPT.md` changed; no production QML, provider, polling,
+  settings, or new IPC route was added.
+
+Actual Omarchy evidence used one shell, Quickshell instance `g8bgirc9kt`
+(PID 761056), and the linked checkout at
+`/home/joeg/.config/omarchy/plugins/io.github.joega.sportray`. The installed
+versions remain Omarchy `4.0.0-1` and Quickshell `0.3.0`, revision
+`28771c7c74b42e20afca0b1b63980cb46515537c`; the host source still loads
+widgets asynchronously and has no readiness queue or retry. Rescan returned
+success, the helper returned `ok`, normal hide returned success, and after a
+two-second settlement direct summon and hide both returned success. `listPlugins`
+showed enabled Sportray as a native third-party `bar-widget`, and
+`debugBarGeometry` showed a visible right-section slot at `133x26`. The fresh
+log tail showed normal Sportray polling/cache activity and no Sportray
+exception, QML load failure, binding-loop warning, or rotation error; the
+known host `summon: no live bar widget` warning remains in the retained log
+history as evidence of the race.
+
+Decision log: because no existing caller was available to integrate, expose
+the smallest repository-contained external helper and document its explicit
+use. Keep the helper outside the manifest/runtime path; do not add a plugin
+timer, new IPC route, host API, provider field, setting, or polling behavior.
+An upstream queue/readiness fix remains the correct long-term resolution.
+
+Remaining risk: a caller must opt into the helper after rescan, and five
+attempts over roughly one second may still be shorter than an unusually slow
+host registration. The installed host contract remains unchanged, so callers
+that continue to issue a single immediate summon can still receive transient
+`unknown`.
+
+Next bounded unit: revisit the helper only after a concrete existing client
+caller is introduced or an installed Omarchy/Quickshell update changes the
+registration/readiness contract. Do not broaden into plugin runtime changes,
+providers, polling, settings, or new IPC. No remote state was changed.

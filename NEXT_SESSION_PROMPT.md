@@ -1,65 +1,70 @@
-Work in `/home/joeg/Projects/sportray` on the next bounded roadmap unit:
-diagnose and reconcile the installed Omarchy post-rescan
-`summon: no live bar widget` warning for the linked Sportray bar-widget route.
+Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
+unit: revisit the post-rescan Sportray summon mitigation only after either a
+concrete existing client caller is introduced or an installed Omarchy/
+Quickshell update changes the widget-registration/readiness contract.
 
-Before any edit, read `AGENTS.md`, `README.md`,
-`docs/upstream-contract.md`, `roadmap.md`, and this latest handoff. This
-checkout intentionally has no `docs/upstream-contract.md`; verify every
-Omarchy/Quickshell boundary against installed Omarchy and Quickshell sources.
-Inspect git status, current branch, recent commits, the latest ambient-bar
-handoff, `manifest.json`, `BarWidget.qml`, `Panel.qml`, the installed widget
-registry/bar-slot/rescan/IPC sources, and the existing runtime commands.
-Preserve unrelated changes.
+Before any edit, read `AGENTS.md`, `README.md`, the intentionally absent
+`docs/upstream-contract.md`, `roadmap.md`, and the latest handoff. Inspect git
+status, branch, recent commits, the helper, its test, `manifest.json`,
+`BarWidget.qml`, and the installed widget registry, bar-slot, rescan, and IPC
+sources. Preserve unrelated changes and do not rely on prior chat history.
 
 Verified current state:
 
-- The live-favorite rotation path is production-wired and unchanged. `Panel.qml`
-  keeps the existing favorite-first state, passes normalized today-scoped games
-  and caller-owned `ambientNowMs` plus a 60-second presentation cadence to the
-  pure rotation policy, and applies rotation only to `live-favorite-count`.
-- The new sanitized transition matrix in
-  `fixtures/bar-presentation/live-favorite-rotation.json` and the pipeline test
-  in `tests/run-js-tests.js` prove cadence advancement, live removal to
-  favorite-upcoming/neutral, and countdown reclamation. The complete suite
-  passes with 185 deterministic tests.
-- `omarchy plugin validate "$PWD"`, full real-import-path QML lint, and
-  `git diff --check` pass. No QML or production file changed in the prior unit.
-- Actual Omarchy 4.0.0-1 / Quickshell `28771c7` has one running shell, and the
-  linked checkout is present at `/home/joeg/.config/omarchy/plugins/
-  io.github.joega.sportray`. After rescan and explicit enable, the existing
-  toggle/hide IPC commands returned successfully, but the fresh log recorded
-  `summon: no live bar widget for: io.github.joega.sportray`; no visual route
-  success was claimed. The same log had normal Sportray polling and no
-  Sportray exception, QML load failure, binding loop, or rotation error.
+- Omarchy is `4.0.0-1`; Quickshell is `0.3.0`, revision
+  `28771c7c74b42e20afca0b1b63980cb46515537c`.
+- The installed host still creates bar-widget entry-point components
+  asynchronously, exposes live `ModuleSlot.activeItem` only after loading,
+  and has no summon readiness queue or retry. The retained log contains the
+  host warning `summon: no live bar widget for:
+  io.github.joega.sportray`.
+- No existing repository or user-configured post-rescan summon caller was
+  found. Normal README usage remains explicit `toggle`/`hide` IPC.
+- `scripts/summon-sportray-after-rescan.sh` is an external helper. It sends
+  exactly `omarchy-shell shell summon io.github.joega.sportray '{}'`, accepts
+  only stdout `ok`, retries only unsuccessful results, uses five total
+  attempts with 250 ms spacing, and exits nonzero after the bound. It never
+  calls rescan or hide and is outside the plugin manifest/runtime path.
+- `tests/test-summon-helper.sh` covers exact arguments, success after retry,
+  the five-attempt bound, concise failure, and no hide call. The complete JS
+  suite remains at 185 tests. No Sportray production QML, providers,
+  polling, settings, or new IPC route changed.
+- Actual Omarchy instance `g8bgirc9kt` (PID 761056) passed rescan, helper
+  summon, normal hide, delayed summon, delayed hide, enabled-plugin listing,
+  and visible `133x26` right-section geometry. The fresh log had normal
+  Sportray activity without an exception, QML load failure, binding-loop
+  warning, or rotation error. This does not prove an upstream host fix.
 
 Bounded outcome:
 
-Determine whether the warning is an asynchronous host-registration timing
-condition, a stale bar-slot/registry state, or a concrete Sportray manifest or
-entry-point defect. Reproduce it on the installed shell, wait for asynchronous
-widget registration before IPC, inspect registry and slot evidence, and make
-the smallest repository change only if a concrete checkout defect is proven.
-Keep the existing runtime path intact when the issue is upstream or
-environmental.
+- If a concrete client caller now exists, integrate the existing helper at
+  that caller without adding a host/plugin API or changing hide behavior.
+- If the installed host changed, inspect the new source and reproduce rescan,
+  immediate summon, delayed summon, and hide before deciding whether the
+  helper remains necessary.
+- If neither prerequisite exists, record that fact in `roadmap.md` and stop
+  without speculative runtime changes or repeated race testing.
 
-Required checks and stop condition:
+Required checks if the unit reopens:
 
-- Inspect installed Omarchy/Quickshell sources before editing. Stop and record
-  the risk in `roadmap.md` if reliable registration requires a new upstream API,
-  plugin kind, timer, provider data, setting, or polling contract; do not alter
-  the runtime path to mask the warning.
-- Do not add a second timer, endpoint, provider field, setting, polling cadence,
-  unrelated UI work, or a new IPC route. Keep provider parsing outside QML.
-- If production files change, run `tests/run-js-tests.sh`,
-  `omarchy plugin validate "$PWD"`, the real
-  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command over every QML
-  file, and `git diff --check`. On actual Omarchy, rescan, wait for loader
-  settlement, exercise toggle/hide, confirm one shell, and inspect a fresh
-  Quickshell log. If no code change is justified, still record the diagnosis
-  and the same runtime evidence; do not create a success commit for a purely
-  external blocker unless the roadmap explicitly marks the unit blocked.
-- Update `roadmap.md` with status, evidence, decisions, risks, and a dated
-  handoff. Replace this file with the next self-contained single-unit prompt.
-  Create one atomic Conventional Commit-style commit only after a bounded fix
-  and every gate pass. Request subagents only for independent read-only
-  Omarchy/Quickshell reconnaissance.
+- Run `bash -n scripts/summon-sportray-after-rescan.sh
+  tests/test-summon-helper.sh` and `tests/test-summon-helper.sh`; use
+  `shellcheck` too if it is installed.
+- Run `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the real
+  import-path `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command
+  over every QML file, and `git diff --check`.
+- On actual Omarchy, confirm one running shell, rescan followed by the
+  bounded helper or the new caller, delayed summon/hide, live geometry, and a
+  fresh Quickshell log. Do not claim an upstream fix from one timing-sensitive
+  success.
+- Do not add a plugin-side timer/retry, new IPC route, provider field,
+  setting, polling cadence, or unverified upstream API. Keep the workaround
+  outside Sportray's runtime path unless a concrete caller integration is
+  proven necessary.
+
+Stop condition: stop when the prerequisite is absent and the blocker is
+recorded, or when one concrete caller/host change has been verified with all
+gates, roadmap evidence, this prompt, and one atomic Conventional Commit.
+Never push, tag, publish, or change remote state. Request subagents only for
+independent read-only upstream/runtime reconnaissance; do not delegate edits
+to shared source, roadmap, or handoff files.
