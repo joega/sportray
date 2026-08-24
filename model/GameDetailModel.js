@@ -6,6 +6,7 @@ var TeamModel = null;
 if (typeof require === "function") TeamModel = require("./TeamModel.js");
 
 var MAX_DETAILS = 256;
+var MAX_OUTCOME_SCORE = 9999;
 var VALID_STATES = {
   scheduled: true,
   live: true,
@@ -71,6 +72,20 @@ function normalizeSource(source, game) {
   };
 }
 
+function normalizeOutcome(game) {
+  if (!isRecord(game) || game.status !== "final") return null;
+
+  var awayScore = nonNegativeInteger(game.awayScore);
+  var homeScore = nonNegativeInteger(game.homeScore);
+  if (awayScore === null || homeScore === null
+      || awayScore > MAX_OUTCOME_SCORE || homeScore > MAX_OUTCOME_SCORE) return null;
+
+  return {
+    winner: awayScore === homeScore ? "draw" : awayScore > homeScore ? "away" : "home",
+    margin: Math.abs(awayScore - homeScore)
+  };
+}
+
 function emptyDetail(errorCode) {
   return {
     id: null,
@@ -93,6 +108,7 @@ function emptyDetail(errorCode) {
       lastUpdated: null
     },
     venue: null,
+    outcome: null,
     source: {
       provider: null,
       label: null,
@@ -141,6 +157,7 @@ function normalizeDetail(game, source) {
       lastUpdated: normalizeTimestamp(game.lastUpdated)
     },
     venue: cleanString(game.venue),
+    outcome: normalizeOutcome(game),
     source: normalizeSource(source, game),
     isValid: true,
     errors: []
@@ -191,8 +208,10 @@ function createDefaultDetail() {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     MAX_DETAILS: MAX_DETAILS,
+    MAX_OUTCOME_SCORE: MAX_OUTCOME_SCORE,
     compareDetails: compareDetails,
     createDefaultDetail: createDefaultDetail,
+    normalizeOutcome: normalizeOutcome,
     normalizeDetail: normalizeDetail,
     normalizeDetails: normalizeDetails
   };

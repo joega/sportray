@@ -1,0 +1,44 @@
+{
+  "events": [
+    {
+      "id": "outcome-home",
+      "competitions": [{
+        "competitors": [
+          {"id": "2", "homeAway": "home", "score": "17", "team": {"id": "2", "displayName": "Buffalo Bills", "abbreviation": "BUF"}},
+          {"id": "17", "homeAway": "away", "score": "14", "team": {"id": "17", "displayName": "New England Patriots", "abbreviation": "NE"}}
+        ],
+        "status": {"type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "detail": "Final"}}
+      }]
+    },
+    {
+      "id": "outcome-missing",
+      "competitions": [{
+        "competitors": [
+          {"id": "2", "homeAway": "home", "team": {"id": "2", "abbreviation": "BUF"}},
+          {"id": "17", "homeAway": "away", "team": {"id": "17", "abbreviation": "NE"}}
+        ],
+        "status": {"type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "detail": "Final"}}
+      }]
+    },
+    {
+      "id": "outcome-malformed",
+      "competitions": [{
+        "competitors": [
+          {"id": "2", "homeAway": "home", "score": "not-a-score", "team": {"id": "2", "abbreviation": "BUF"}},
+          {"id": "17", "homeAway": "away", "score": "-1", "team": {"id": "17", "abbreviation": "NE"}}
+        ],
+        "status": {"type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "detail": "Final"}}
+      }]
+    },
+    {
+      "id": "outcome-bounded",
+      "competitions": [{
+        "competitors": [
+          {"id": "2", "homeAway": "home", "score": "10000", "team": {"id": "2", "abbreviation": "BUF"}},
+          {"id": "17", "homeAway": "away", "score": "1", "team": {"id": "17", "abbreviation": "NE"}}
+        ],
+        "status": {"type": {"name": "STATUS_FINAL", "state": "post", "completed": true, "detail": "Final"}}
+      }]
+    }
+  ]
+}

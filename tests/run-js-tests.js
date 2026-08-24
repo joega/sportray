@@ -1439,6 +1439,19 @@ test("generic game-detail model bounds malformed input without raw payload field
   assert.equal(JSON.stringify(invalid).includes("raw"), false);
 });
 
+test("optional game outcomes project bounded final scores without provider fields", () => {
+  const result = espn.parseGameDetailResponse(readEspnFixture("game-detail-outcome"), "nfl");
+  assert.deepEqual(result.errors, []);
+
+  const details = Object.fromEntries(result.details.map((detail) => [detail.providerGameId, detail]));
+  assert.deepEqual(details["outcome-home"].outcome, {winner: "home", margin: 3});
+  assert.equal(details["outcome-missing"].outcome, null);
+  assert.equal(details["outcome-malformed"].outcome, null);
+  assert.equal(details["outcome-bounded"].outcome, null);
+  assert.equal(gameDetails.MAX_OUTCOME_SCORE, 9999);
+  assert.equal(JSON.stringify(details["outcome-home"].outcome).includes("providerGameId"), false);
+});
+
 test("loaded game rows skip local detail and route whole-row activation to source", () => {
   const fixture = readGameDetailRouteFixture();
   const game = espn.parseScoreboardResponse(readEspnFixture("nfl-final"), "nfl").games[0];

@@ -1,64 +1,64 @@
 Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
-unit: add one fixture-driven optional rich-detail projection to the
-provider-neutral model, without restoring the local game-details route or
-adding a new endpoint.
+unit: add one opt-in, favorite-only pregame reminder policy through the
+existing notification pipeline, without adding a new endpoint or daemon.
 
-Before editing, read `AGENTS.md`, `README.md`, `docs/upstream-contract.md`,
-`roadmap.md`, `competition.md`, and the latest handoff in this file.
-`docs/upstream-contract.md` is intentionally absent in this checkout; inspect
-the installed Omarchy/Quickshell sources directly and record any material
-boundary deviation. Inspect `git status`, the current branch, and recent
-commits. Preserve the unrelated deletion of `MARKETPLACE_SUBMISSION.md`; do
-not restore or stage it.
+Before editing, read `AGENTS.md`, `README.md`,
+`docs/upstream-contract.md`, `roadmap.md`, `competition.md`, and the latest
+handoff in this file. `docs/upstream-contract.md` is intentionally absent in
+this checkout; inspect installed Omarchy/Quickshell sources directly and
+record any material boundary deviation. Inspect `git status`, the current
+branch, and recent commits. Preserve the unrelated deletion of
+`MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
 
 Verified current state:
 
 - Sportray supports eight leagues, canonical favorites, Following and stable
   league destinations, bounded date/cache/polling behavior, settings,
   accessibility, source attribution, notifications, and NHL/ESPN standings.
-- The local game-details route was intentionally removed in the latest unit:
-  whole-row activation now uses the existing guarded ESPN/NHL.com source
-  page, and `Panel.qml` no longer mounts `GameDetailView` or owns detail state.
-  The retained `model/GameDetailModel.js` and `components/GameDetailView.qml`
-  are future groundwork, not a current product route.
-- The current model projects normalized games only and does not fetch a second
-  event endpoint. Existing ESPN fixtures contain normalized fields that may
-  support one bounded optional section. Do not expose canonical IDs as user
-  facing content.
-- Provider parsing stays in `providers/`; QML consumes bounded projections.
-  Preserve the no-account/no-backend/no-daemon, response-size, item-count,
-  safe-URL, and canonical favorite boundaries.
-- The latest unit passed 185 deterministic JavaScript tests, plugin
-  validation, real-import-path QML lint, diff check, and an actual Omarchy
-  rescan/summon/log check. Child-route IPC and a reliable desktop pointer
-  injector remain unavailable; do not claim a manual UI interaction without
-  direct evidence.
+- The local game-details route is removed. Whole-row activation uses the
+  existing guarded ESPN/NHL.com source page. `Panel.qml` does not mount
+  `GameDetailView` or own detail state; the retained detail model/view are
+  future groundwork.
+- `model/GameDetailModel.js` now has one optional provider-neutral `outcome`
+  projection from complete bounded final scores. It is not mounted in QML and
+  must remain unchanged in this unit.
+- The current notification path is favorite-only, first-fetch silent,
+  deduplicated, bounded, and routed through the existing
+  `/usr/bin/omarchy-notification-send` helper. Normalized games already carry
+  `startTime`; do not fetch per-game data.
+- The latest unit passed 186 deterministic JavaScript tests, plugin
+  validation, full real-import-path QML lint, diff check, and an actual
+  Omarchy rescan/summon/log health check. Child-route IPC and a reliable
+  desktop pointer injector remain unavailable; do not claim a manual UI
+  interaction without direct evidence.
 
 Bounded outcome:
 
-Inspect `model/GameDetailModel.js`, normalized ESPN game payloads,
-`fixtures/espn/raw/game-detail.json`, and the existing model tests. Add exactly
-one small optional provider-neutral detail section or projection field that is
-materially richer than the scoreboard card but already present in normalized
-data. Keep the local route removed and do not modify `Panel.qml` or re-expose
-`GameDetailView`. Add fixture-driven coverage for present, missing, malformed,
-and bounded values. Keep source actions and row routing unchanged.
+Implement one pure, fixture-driven pregame reminder admission/policy using
+existing normalized favorite games and `startTime`, then connect only the
+minimum existing notification call path required by that policy. The policy
+must be opt-in, favorite-only, date-scoped, bounded in lead time and text,
+silent for missing/malformed/stale timestamps, and deduplicated through the
+existing transition state. Preserve existing start, score-change, and final
+notification behavior. Do not expose canonical IDs in notification text.
 
-Required checks and stop condition:
+Required coverage and checks:
 
-- Run `./tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, real-
+- Add fixtures/tests for an eligible upcoming favorite, disabled preference,
+  non-favorite, missing/malformed timestamp, out-of-window timestamp, bounded
+  notification text, and duplicate suppression.
+- Run `./tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the real
   import-path `qmllint` over any changed QML, and `git diff --check`.
-- If QML changes despite the bounded outcome, rescan the linked plugin on
-  actual Omarchy, exercise behavior as far as the host allows, and inspect
-  Quickshell logs. Do not report actual-runtime success without evidence.
-- Stop before restoring the local detail route, adding a second endpoint,
-  provider-specific UI, provider fallback, NHL standings changes,
-  pregame/close alerts, broader discovery, calendar redesign, specialist
-  sports, packaging, tagging, pushing, releases, or Marketplace work.
+- If QML changes, rescan the linked plugin on actual Omarchy, exercise only
+  what the host allows, and inspect Quickshell logs. Do not report runtime UI
+  success without evidence.
 
-At completion, update `roadmap.md` with evidence, decisions, and a dated
-handoff; replace this file with the next self-contained single-unit prompt;
-and create one atomic Conventional Commit-style commit only after the gates
-pass. Use subagents only for independent read-only fixture or upstream
+Stop before close-game alerts, a second endpoint, provider-specific UI,
+provider fallback, broader discovery, calendar redesign, specialist sports,
+packaging, tagging, pushing, releases, or Marketplace work. At completion,
+update `roadmap.md` with evidence, decisions, and a dated handoff; replace
+this file with the next self-contained single-unit prompt; and create one
+atomic Conventional Commit-style commit only after all gates pass. Use
+subagents only for independent read-only notification or upstream
 reconnaissance that materially improves confidence; the main agent owns all
 edits, integration, validation, handoff, and commit.

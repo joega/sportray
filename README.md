@@ -213,8 +213,9 @@ nulls for fields the provider omits.
 Each valid game keeps its score, participants, status/timing, and venue on the
 scoreboard card. Whole-row activation and the labeled **ESPN** or **NHL.com**
 source action open the provider's game page in the Omarchy browser. Sportray
-does not currently show a separate local game-details route, since the loaded
-scoreboard does not yet provide enough information for a useful richer view.
+does not currently show a separate local game-details route. The retained
+provider-neutral model has one optional bounded final-result projection from
+the loaded scoreboard, but it is not mounted as a user-facing view.
 ESPN event links are used when supplied; otherwise Sportray builds the
 provider's standard game URL from the normalized game ID.
 

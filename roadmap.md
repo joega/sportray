@@ -2350,3 +2350,47 @@ Next bounded unit: add one fixture-driven optional rich-detail projection to
 the provider-neutral model from an already normalized ESPN game, without
 restoring the local detail route or adding a new endpoint. Stop before any
 provider-specific section, second fetch, or UI re-exposure.
+
+## Optional rich-detail projection — 2026-08-24
+
+Status: complete. `model/GameDetailModel.js` now projects one optional,
+provider-neutral `outcome` section from the already normalized final-game
+scores. It returns only `home`, `away`, or `draw` plus a bounded numeric margin;
+scheduled games, missing scores, malformed scores, and scores above the
+projection bound return `null`. No canonical identity is added to the
+projection, and the retained `GameDetailView.qml` remains unwired.
+
+Evidence:
+
+- `fixtures/espn/raw/game-detail-outcome.json` drives present, missing,
+  malformed, and over-bound score cases through the existing ESPN scoreboard
+  parser and provider-neutral detail model.
+- The complete fixture-driven JavaScript suite passes with 186 tests,
+  including the new outcome projection assertions. `omarchy plugin validate
+  "$PWD"` passes, full real-import-path QML lint exits 0 with the established
+  standalone import/unqualified-access warnings, and `git diff --check` passes.
+- No QML file, `Panel.qml`, `ResultRows`, `GameRow`, source action, provider
+  endpoint, polling path, standings adapter, or route state changed.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0 revision
+  `28771c7c74b42e20afca0b1b63980cb46515537` was inspected directly. The linked
+  plugin rescan completed, the summon helper returned `ok`, one shell instance
+  remained running, and the log tail showed normal Sportray fetch/cache
+  activity with no new exception, QML load failure, or binding-loop warning.
+  No UI interaction is claimed because the projection is not mounted and the
+  child-route IPC/pointer limitations remain.
+
+Decision log: use a final-result outcome rather than introducing sport-specific
+period/inning/leader data or a second endpoint. Keep the section absent in
+meaning by returning `null` unless normalized final scores are complete and
+within the conservative 9,999-point bound. Leave all presentation and routing
+unchanged until a future unit proves a richer view contract.
+
+Boundary note: `docs/upstream-contract.md` remains intentionally absent. The
+installed Omarchy/Quickshell bar-widget, rescan, summon, and import-path
+contracts were inspected directly; no material upstream boundary deviation
+was found. The unrelated deletion of `MARKETPLACE_SUBMISSION.md` remains
+untouched and unstaged.
+
+Next bounded unit: add one opt-in, favorite-only pregame reminder policy using
+the existing normalized `startTime` and notification pipeline. Keep close-game
+alerts, new endpoints, provider fallback, and UI discovery out of scope.
