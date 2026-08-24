@@ -1765,6 +1765,72 @@ test("optional team stats project bounded rows without provider fields", () => {
   assert.equal(JSON.stringify(details["stats-final"].stats).includes("displayValue"), false);
 });
 
+test("provider event links project bounded labeled pages beside the source action", () => {
+  const result = espn.parseScoreboardResponse(readEspnFixture("game-detail-links"), "nfl");
+  assert.deepEqual(result.errors, []);
+  const byId = Object.fromEntries(result.games.map((game) => [game.providerGameId, game]));
+
+  assert.deepEqual(byId["links-highlights"].links, [
+    {key: "highlights", label: "Highlights",
+      url: "https://www.espn.com/video/clip/_/id/49695313/game-highlights"}
+  ]);
+  assert.deepEqual(byId["links-preview"].links, [
+    {key: "preview", label: "Preview", url: "https://www.espn.com/nfl/preview/_/gameId/links-preview"}
+  ]);
+  assert.deepEqual(byId["links-both"].links, [
+    {key: "highlights", label: "Highlights",
+      url: "https://www.espn.com/video/clip/_/id/49708153/game-highlights"},
+    {key: "preview", label: "Preview", url: "https://www.espn.com/nfl/preview/_/gameId/links-both"}
+  ]);
+  ["links-rejected-http", "links-missing"].forEach((id) =>
+    assert.equal(Object.prototype.hasOwnProperty.call(byId[id], "links"), false, id));
+  assert.equal(byId["links-both"].link,
+    "https://www.espn.com/nfl/game/_/gameId/links-both");
+  assert.equal(espn.MAX_EVENT_LINKS, 2);
+
+  const detail = gameDetails.normalizeDetail(byId["links-both"], {
+    provider: "espn", label: "ESPN"
+  });
+  assert.deepEqual(detail.links, byId["links-both"].links);
+  const plain = gameDetails.normalizeDetail(
+    espn.parseScoreboardResponse(readEspnFixture("nfl-scheduled"), "nfl").games[0],
+    {provider: "espn", label: "ESPN"});
+  assert.deepEqual(plain.links, []);
+  assert.equal(JSON.stringify(detail.links).includes("rel"), false);
+
+  assert.equal(gameDetails.MAX_DETAIL_LINKS, 2);
+  assert.equal(gameDetails.MAX_LINK_URL_LENGTH, 2048);
+  assert.deepEqual(
+    gameDetails.normalizeDetailLinks({links: [
+      {key: "highlights", url: "https://www.espn.com/video/a"},
+      {key: "preview", url: "https://www.espn.com/nfl/preview/b"},
+      {key: "recap", url: "https://www.espn.com/nfl/recap/c"}
+    ]}).map((link) => link.key),
+    ["highlights", "preview"]);
+  assert.deepEqual(
+    gameDetails.normalizeDetailLinks({links: [
+      {key: "highlights", url: "https://www.espn.com/a"},
+      {key: "highlights", url: "https://www.espn.com/b"}
+    ]}),
+    [{key: "highlights", label: "Highlights", url: "https://www.espn.com/a"}]);
+  ["http://www.espn.com/a", "not-a-url", ""].forEach((url) =>
+    assert.deepEqual(gameDetails.normalizeDetailLinks({links: [{key: "preview", url}]}), [],
+      url));
+  assert.deepEqual(gameDetails.normalizeDetailLinks({links: [
+    {key: "preview", url: "https://www.espn.com/a b"}]}), []);
+  assert.deepEqual(gameDetails.normalizeDetailLinks({links: [
+    {key: "preview", url: "https://www.espn.com/" + "a".repeat(2100)}]}), []);
+  assert.deepEqual(gameDetails.normalizeDetailLinks({links: ["nope"]}), []);
+  assert.deepEqual(gameDetails.normalizeDetailLinks(null), []);
+
+  const view = readSource("components/GameDetailView.qml");
+  assert.match(view, /readonly property var extraLinks: root\.detail\.links \|\| \[\]/);
+  assert.match(view, /model: root\.extraLinks/);
+  assert.equal(
+    view.includes('Quickshell.execDetached(["omarchy-launch-browser", url])'), true);
+  assert.equal(view.includes('url.indexOf("https://") !== 0'), true);
+});
+
 test("loaded game rows route to local detail while keeping the safe source action", () => {
   const fixture = readGameDetailRouteFixture();
   const game = espn.parseScoreboardResponse(readEspnFixture("nfl-final"), "nfl").games[0];

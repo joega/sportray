@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import qs.Commons
 import qs.Ui
 import "../model/GameDetailModel.js" as GameDetailModel
@@ -78,6 +79,14 @@ Item {
 
   readonly property var linesData: root.detail.lines
   readonly property var statsData: root.detail.stats
+  readonly property var extraLinks: root.detail.links || []
+  readonly property int linkCursorOffset: 1 + (root.sourceAvailable ? 1 : 0)
+  readonly property int maxCursorIndex: root.linkCursorOffset + root.extraLinks.length - 1
+
+  function openExternalUrl(url) {
+    if (typeof url !== "string" || url.indexOf("https://") !== 0) return
+    Quickshell.execDetached(["omarchy-launch-browser", url])
+  }
 
   function statRows() {
     if (!root.statsData) return []
@@ -103,15 +112,18 @@ Item {
   }
 
   function moveCursor(delta) {
-    var max = root.sourceAvailable ? 1 : 0
-    root.cursorIndex = Math.max(0, Math.min(max, root.cursorIndex + delta))
+    root.cursorIndex = Math.max(0, Math.min(root.maxCursorIndex, root.cursorIndex + delta))
     root.focusCursor()
   }
 
   function focusCursor() {
     root.deferFocus(function() {
       if (root.cursorIndex === 0) backButton.forceActiveFocus()
-      else sourceLink.focusAction()
+      else if (root.sourceAvailable && root.cursorIndex === 1) sourceLink.focusAction()
+      else {
+        var button = extraLinkButtons.itemAt(root.cursorIndex - root.linkCursorOffset)
+        if (button) button.forceActiveFocus()
+      }
     })
   }
 
@@ -129,7 +141,11 @@ Item {
 
   function activateCursor() {
     if (root.cursorIndex === 0) root.backRequested()
-    else if (root.sourceAvailable) sourceLink.openSource()
+    else if (root.sourceAvailable && root.cursorIndex === 1) sourceLink.openSource()
+    else {
+      var link = root.extraLinks[root.cursorIndex - root.linkCursorOffset]
+      if (link) root.openExternalUrl(link.url)
+    }
   }
 
   Accessible.name: "Game details for " + root.teamLabel(root.detail.participants[0])
@@ -520,7 +536,7 @@ Item {
           spacing: Style.spacing.sm
 
           Text {
-            width: parent.width - sourceLink.implicitWidth - parent.spacing
+            width: parent.width - actionsRow.implicitWidth - parent.spacing
             text: root.valueOrDash(root.detail.source.label)
             color: Color.muted
             font.family: Style.font.family
@@ -528,10 +544,39 @@ Item {
             verticalAlignment: Text.AlignVCenter
           }
 
-          SourceLinkButton {
-            id: sourceLink
-            game: root.game
-            hasCursor: root.cursorIndex === 1
+          Row {
+            id: actionsRow
+            spacing: Style.spacing.xs
+
+            SourceLinkButton {
+              id: sourceLink
+              game: root.game
+              hasCursor: root.sourceAvailable && root.cursorIndex === 1
+            }
+
+            Repeater {
+              id: extraLinkButtons
+              model: root.extraLinks
+
+              delegate: SemanticActionButton {
+                id: extraLinkButton
+                required property var modelData
+                required property int index
+                text: modelData.label
+                tooltipText: "Open " + modelData.label + " page"
+                textBold: true
+                textFontSize: Style.font.bodySmall
+                textHorizontalPadding: Style.spacing.xs
+                textVerticalPadding: Style.spacing.xs
+                focusable: true
+                enabled: typeof modelData.url === "string"
+                  && modelData.url.indexOf("https://") === 0
+                hasCursor: root.cursorIndex === root.linkCursorOffset + extraLinkButton.index
+                onClicked: root.openExternalUrl(modelData.url)
+                Accessible.name: "Open " + modelData.label + " page"
+                Accessible.role: Accessible.Button
+              }
+            }
           }
         }
       }

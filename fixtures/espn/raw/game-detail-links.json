@@ -1,0 +1,217 @@
+{
+ "events": [
+  {
+   "id": "links-highlights",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "24",
+       "team": {
+        "id": "2",
+        "displayName": "Buffalo Bills",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "21",
+       "team": {
+        "id": "17",
+        "displayName": "New England Patriots",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "highlights": [
+      {
+       "links": {
+        "web": {"href": "https://untrusted.example/video/clip/_/id/1"}
+       }
+      },
+      {
+       "links": {
+        "mobile": {"href": "https://www.espn.com/video/clip/_/id/49695313"},
+        "web": {"href": "https://www.espn.com/video/clip/_/id/49695313/game-highlights"}
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "links-preview",
+   "links": [
+    {"rel": ["summary", "desktop", "event"], "text": "Gamecast",
+     "href": "https://www.espn.com/nfl/game/_/gameId/links-preview"},
+    {"rel": ["preview", "desktop", "event"], "text": "Preview",
+     "href": "https://www.espn.com/nfl/preview/_/gameId/links-preview"}
+   ],
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Scheduled"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "links-both",
+   "links": [
+    {"rel": ["summary", "desktop", "event"], "text": "Gamecast",
+     "href": "https://www.espn.com/nfl/game/_/gameId/links-both"},
+    {"rel": ["preview", "desktop", "event"], "text": "Preview",
+     "href": "https://www.espn.com/nfl/preview/_/gameId/links-both"}
+   ],
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "10",
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "7",
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "highlights": [
+      {
+       "headline": "Game Highlights",
+       "links": {
+        "web": {"href": "https://www.espn.com/video/clip/_/id/49708153/game-highlights"}
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "links-rejected-http",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "14",
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "7",
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "highlights": [
+      {
+       "links": {
+        "web": {"href": "http://www.espn.com/video/clip/_/id/49695313"}
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "links-missing",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Scheduled"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

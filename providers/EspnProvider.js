@@ -138,6 +138,40 @@ function errorFor(leagueId, code, index) {
   };
 }
 
+var MAX_EVENT_LINKS = 2;
+
+function eventLinks(event) {
+  var result = [];
+  if (!isRecord(event)) return result;
+
+  var competition = findCompetition(event);
+  var highlights = competition && Array.isArray(competition.highlights)
+    ? competition.highlights : null;
+  if (highlights) {
+    for (var i = 0; i < highlights.length; i++) {
+      var highlight = highlights[i];
+      var webHref = isRecord(highlight) && isRecord(highlight.links)
+        && isRecord(highlight.links.web) ? safeGameUrl(highlight.links.web.href) : null;
+      if (!webHref) continue;
+      result.push({key: "highlights", label: "Highlights", url: webHref});
+      break;
+    }
+  }
+
+  if (result.length < MAX_EVENT_LINKS && Array.isArray(event.links)) {
+    for (var j = 0; j < event.links.length; j++) {
+      var link = event.links[j];
+      if (!isRecord(link)) continue;
+      if (!Array.isArray(link.rel) || link.rel.indexOf("preview") === -1) continue;
+      var href = safeGameUrl(link.href);
+      if (!href) continue;
+      result.push({key: "preview", label: "Preview", url: href});
+      break;
+    }
+  }
+  return result;
+}
+
 function findLink(links) {
   if (!Array.isArray(links)) return null;
   var first = null;
@@ -301,6 +335,8 @@ function parseScoreboardResponse(payload, leagueId) {
       result.errors.push(errorFor(metadata.id, "invalid-event", i));
       continue;
     }
+    var links = eventLinks(payload.events[i]);
+    if (links.length > 0) game.links = links;
     result.games.push(game);
   }
   return result;
@@ -533,6 +569,8 @@ if (typeof module !== "undefined" && module.exports) {
     buildStandingsUrl: buildStandingsUrl,
     buildGameUrl: buildGameUrl,
     normalizeStatus: normalizeStatus,
+    eventLinks: eventLinks,
+    MAX_EVENT_LINKS: MAX_EVENT_LINKS,
     parseGame: parseGame,
     parseScoreboardResponse: parseScoreboardResponse,
     parseNextGamesResponse: parseNextGamesResponse,

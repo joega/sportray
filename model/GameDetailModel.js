@@ -12,6 +12,9 @@ var MAX_LINE_PERIOD_NUMBER = 99;
 var MAX_STAT_ROWS = 8;
 var MAX_STAT_KEY_LENGTH = 32;
 var MAX_STAT_LABEL_LENGTH = 24;
+var MAX_DETAIL_LINKS = 2;
+var MAX_LINK_URL_LENGTH = 2048;
+var LINK_LABELS = {highlights: "Highlights", preview: "Preview"};
 var VALID_STATES = {
   scheduled: true,
   live: true,
@@ -154,6 +157,24 @@ function normalizeStatSide(value) {
   return entries;
 }
 
+function normalizeDetailLinks(game) {
+  var input = isRecord(game) && Array.isArray(game.links) ? game.links : [];
+  var seenKeys = {};
+  var entries = [];
+  for (var i = 0; i < input.length && entries.length < MAX_DETAIL_LINKS; i++) {
+    var entry = input[i];
+    if (!isRecord(entry)) continue;
+    var label = LINK_LABELS[entry.key];
+    if (!label || seenKeys[entry.key]) continue;
+    var url = cleanString(entry.url);
+    if (!url || url.length > MAX_LINK_URL_LENGTH) continue;
+    if (!/^https:\/\//i.test(url) || /\s/.test(url)) continue;
+    seenKeys[entry.key] = true;
+    entries.push({key: entry.key, label: label, url: url});
+  }
+  return entries;
+}
+
 function emptyDetail(errorCode) {
   return {
     id: null,
@@ -179,6 +200,7 @@ function emptyDetail(errorCode) {
     outcome: null,
     lines: null,
     stats: null,
+    links: [],
     source: {
       provider: null,
       label: null,
@@ -230,6 +252,7 @@ function normalizeDetail(game, source) {
     outcome: normalizeOutcome(game),
     lines: normalizeLines(game),
     stats: normalizeStats(game),
+    links: normalizeDetailLinks(game),
     source: normalizeSource(source, game),
     isValid: true,
     errors: []
@@ -286,6 +309,9 @@ if (typeof module !== "undefined" && module.exports) {
     MAX_STAT_ROWS: MAX_STAT_ROWS,
     MAX_STAT_KEY_LENGTH: MAX_STAT_KEY_LENGTH,
     MAX_STAT_LABEL_LENGTH: MAX_STAT_LABEL_LENGTH,
+    MAX_DETAIL_LINKS: MAX_DETAIL_LINKS,
+    MAX_LINK_URL_LENGTH: MAX_LINK_URL_LENGTH,
+    normalizeDetailLinks: normalizeDetailLinks,
     compareDetails: compareDetails,
     createDefaultDetail: createDefaultDetail,
     normalizeOutcome: normalizeOutcome,

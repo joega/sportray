@@ -115,9 +115,14 @@ evidence.
    esports series state, and racing projections. Optional sections only when a
    provider supports them reliably; never fields every normalized game must
    carry.
-8. **Broadcast and event links — open.** Streams, VODs, standings pages, or
-   event pages where the provider supplies safe attributable URLs, keeping the
-   labeled provider source action for every game.
+8. **Broadcast and event links — closed for the current payload boundary.**
+   Completed 2026-08-24: the detail view renders at most two labeled links
+   (ESPN **Highlights** video page, ESPN **Preview** article) admitted from the
+   already-fetched scoreboard snapshot through the reviewed HTTPS/espn.com
+   host boundary, beside the unchanged labeled source action. Broadcast
+   streams stay closed because ESPN and NHL payloads carry station names only,
+   never stream URLs; any stream/VOD surface would require a verified new
+   source.
 9. **Venue and competition context — open.** Venue-local time, circuit
    weather/maps, and competition metadata after generic foundations remain
    stable. Venue text itself is already shown on cards and in detail.
@@ -153,8 +158,9 @@ Remaining candidate slices:
 1. **Calendar extensions** (P1-6 remainder): completed 2026-08-24 — direct
    `G` date jumps and explicit local-time labels within the cache-only
    boundary; a wider window stays open only behind a verified wider source.
-2. **Broadcast/event links** (P2-8, next): safe attributable stream/VOD/event URLs
-   alongside the labeled source action.
+2. **Broadcast/event links** (P2-8): completed 2026-08-24 — safe attributable
+   ESPN Highlights/Preview pages rendered beside the labeled source action;
+   streams remain out of scope without a verified new source.
 3. **A second verified provider adapter for live multi-provider fallback**
    (P1-4 remainder): requires an explicit provider review (terms, region,
    reliability, response shape) before `providerChain()` gains a second

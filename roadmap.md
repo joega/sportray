@@ -3433,3 +3433,84 @@ slice — safe attributable stream/VOD/event URLs where the provider already
 supplies them in the fetched payloads, rendered alongside the labeled
 source action. Stop before any second provider adapter, packaging, tagging,
 pushing, release, or Marketplace work.
+
+## Broadcast/event links slice (P2-8) — 2026-08-24
+
+Status: complete. Where the already-fetched provider snapshot itself supplies
+safe attributable pages, the game-details drill-down now renders at most two
+labeled event links beside the existing guarded source action. No new
+endpoint, request path, provider adapter, settings field, or upstream shell
+API was introduced.
+
+Evidence:
+
+- Provider field shapes were verified against live payloads before accepting
+  the parsing: the live NFL scoreboard carries
+  `events[].competitions[].highlights[].links.web.href` (www.espn.com
+  game-highlight video pages on completed games), and the live MLB scoreboard
+  carries `events[].links[]` entries whose `rel` array contains `preview`
+  (www.espn.com preview articles on scheduled games). NHL payloads carry
+  station names only, never stream URLs, so NHL games gain no links.
+- `providers/EspnProvider.js` adds a bounded `eventLinks` projection: at most
+  one Highlights link (first highlight whose `links.web.href` passes the
+  existing `safeGameUrl` HTTPS + espn.com host admission) and at most one
+  Preview link (first event link whose `rel` contains `preview` and whose
+  `href` passes the same admission). Links attach to the normalized game only
+  when non-empty; the canonical game link and labeled source action are
+  unchanged.
+- `model/GameDetailModel.js` re-admits the provider links through
+  `normalizeDetailLinks`: known labels only (`highlights`, `preview`), at
+  most 2 entries, deduplicated by key, HTTPS-only, whitespace-free, at most
+  2048 characters, malformed or unreviewed input fails closed to `[]`.
+- `components/GameDetailView.qml` renders the admitted links as labeled
+  `SemanticActionButton`s in the existing source row's trailing action group,
+  after the guarded `SourceLinkButton`. Activation reuses the reviewed
+  `omarchy-launch-browser` argument-array path with an explicit HTTPS guard;
+  the detail cursor now spans Back, the source action (when available), and
+  at most two extra links. Row geometry, panel height behavior, pointer
+  routing, and accessibility labels are preserved.
+- `fixtures/espn/raw/game-detail-links.json` and one new deterministic test
+  cover highlights-only, preview-only, both, HTTP-rejected, and
+  missing-link games, detail re-admission (dedupe, cap, length, scheme,
+  whitespace, malformed rejection), plain-game empty links, and
+  source-level QML assertions. The complete suite passes with 217
+  deterministic tests.
+- `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
+  `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass; lint exits 0 with the established standalone import and
+  unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: `omarchy restart shell`
+  loaded the linked checkout into one healthy instance; `shell ping` and the
+  summon/toggle/hide IPC returned `ok`. Real keyboard exercise: the MLB tab
+  was selected through arrow keys, the BOS@MIA detail (no provider links)
+  rendered only the ESPN source action, and the TB@DET detail rendered the
+  labeled Preview button beside it; arrow-key cursor movement focused the
+  Preview button, and Return opened
+  `https://www.espn.com/mlb/preview/_/gameId/401816657` through the guarded
+  launcher. The fresh log contains normal provider/cache activity and no
+  Sportray exception, QML load failure, or binding-loop warning; the
+  pre-existing unrelated portal registration warning is unchanged.
+
+Decision log: links are admitted only from the already-fetched scoreboard
+snapshot with the same reviewed `safeGameUrl` host boundary as the existing
+canonical game link, so no new request path or host is introduced. Two is
+the hard link cap; unknown link kinds, duplicate keys, non-HTTPS hosts, and
+oversized URLs fail closed. Broadcast streams remain out of scope because
+neither provider payload supplies stream URLs — only station names.
+
+Known risks: ESPN remains an undocumented API and link shapes may change;
+rejected shapes simply render no extra links. Pointer activation of the new
+buttons was not exercised (keyboard was used); the pointer path shares the
+same guarded callback.
+
+Boundary note: `docs/upstream-contract.md` remains intentionally absent;
+the installed Omarchy launcher/IPC and Quickshell `execDetached` contracts
+were rechecked and no material host-boundary deviation was found. The
+absence of `MARKETPLACE_SUBMISSION.md` remains untouched and unstaged. No
+push, tag, release, or Marketplace action occurred.
+
+Next bounded unit: a second verified provider adapter for live
+multi-provider fallback (P1-4 remainder) — gated on an explicit
+terms/region/reliability review before any implementation; stop if the
+review is absent.
