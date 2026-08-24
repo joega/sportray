@@ -59,8 +59,10 @@ returns to today. On an ESPN-backed league destination, `S` toggles the
 standings view. `C` toggles the calendar view: a bounded five-day day list
 around the selected date built only from the date caches already fetched, with
 an All games/Favorites filter and neutral "No games" days. `F` toggles that
-filter while the calendar is open. Calendar game rows
-open the same local detail drill-down, and Escape returns from detail,
+filter while the calendar is open. `G` jumps directly to the next cached day
+that has games without leaving the cache window. Calendar game rows show an
+explicit local-time label, open the same local detail drill-down, and Escape
+returns from detail,
 settings, and calendar before closing the panel.
 
 When an enabled league has no games on the selected day, Sportray searches the

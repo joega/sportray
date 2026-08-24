@@ -1,0 +1,14 @@
+{
+  "comment": "Pure text-key routing decisions for the calendar next-games date jump. Each case is one KeyboardRoutingPolicy.calendarJumpAction input and its expected result.",
+  "cases": [
+    { "text": "g", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "jump-to-next-games" },
+    { "text": "G", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "jump-to-next-games" },
+    { "text": "g", "calendarOpen": false, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "G", "calendarOpen": false, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "g", "calendarOpen": true, "settingsOpen": true, "detailOpen": false, "expected": "none" },
+    { "text": "g", "calendarOpen": true, "settingsOpen": false, "detailOpen": true, "expected": "none" },
+    { "text": "f", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "c", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "none" }
+  ]
+}

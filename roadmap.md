@@ -3343,3 +3343,93 @@ choices within the existing cache-only calendar boundary, with no new fetch
 ownership and no wider request window. Stop before broadcast/event links,
 any second provider adapter, packaging, tagging, pushing, release, or
 Marketplace work.
+
+## Latest handoff — 2026-08-24 calendar extensions complete
+
+The calendar-extensions unit (P1-6 remainder) is complete in the current
+worktree: direct date jumps and explicit local-time rendering inside the
+existing cache-only calendar boundary. No new fetch ownership, no wider
+request window, and no provider parsing in QML.
+
+Evidence:
+
+- `model/CalendarModel.js` adds two pure helpers. `nextGamesDateKey(calendar,
+  fromDateKey)` returns the first cached day strictly after the given date
+  with games, skipping empty days and failing closed to `""` for malformed
+  calendars, invalid dates, or no later cached games day. `localTimeLabel`
+  renders the normalized `startTime` in the viewer's local timezone as a
+  bounded `h:MM AM/PM local` label (max 24 characters) and fails closed to
+  `""` for missing or malformed times. `gameRow` now carries that label as
+  `timeLabel`; day-list row identity, ordering, bounds, and the row
+  vocabulary are unchanged.
+- `model/KeyboardRoutingPolicy.js` adds the pure `calendarJumpAction`:
+  only `g`/`G` with the calendar open and settings/detail closed returns
+  `jump-to-next-games`; every other state fails closed to `none`.
+- `Panel.qml` routes the catcher's text-key path through that policy into
+  `jumpCalendarToNextGames()`, which jumps through the existing
+  `selectDate` path only when the target is a valid cached calendar day.
+  The game-row delegate passes `modelData.timeLabel` into the new
+  `startTimeTextOverride` property; scoreboard rows without the field keep
+  the existing computed local start text.
+- `components/GameRow.qml` adds the optional bounded
+  `startTimeTextOverride` property used by `detailLabel`; row geometry,
+  routing, source action, and accessibility labels are unchanged apart
+  from the label text.
+- `fixtures/calendar/calendar.json` gains `nextGamesDateKeys` expectations
+  and `fixtures/keyboard-routing/calendar-jump.json` covers accepted
+  `g`/`G` cases plus closed-calendar, open-settings, open-detail,
+  non-matching-key, and empty-key rejections. Three new deterministic
+  tests cover the jump target (later-days-only, empty-day skipping,
+  malformed-input rejection), bounded local-time labels with fail-closed
+  empty results, and the fixture-driven keyboard route with source
+  assertions. The complete suite passes with 216 deterministic tests.
+- `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
+  `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass; lint exits 0 with the established standalone import and
+  unqualified-access warnings. README documents `G` and the explicit
+  local-time labels.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported
+  `omarchy restart shell` loaded the linked checkout into one instance
+  (PID 926785); `shell ping` returned `ok` and the summon helper returned
+  `ok`. Real keyboard exercise: `C` opened the calendar rendering explicit
+  local-time labels (`6:40 PM local`, `7:05 PM local`) on scheduled MLB
+  rows; `]` moved one day (real `date-changed` fetches logged); `T`
+  returned to today; and `G` jumped from today directly to the next cached
+  day with games, logged as `cache-hit date-changed 2026-08-25` on every
+  enabled league — no new requests. A second `G` attempt before the target
+  day was cached correctly failed closed as a no-op. Escape closed the
+  calendar and the panel. The fresh log contains normal Sportray
+  provider/cache activity and no Sportray exception, QML load failure, or
+  binding-loop warning; only the pre-existing unrelated portal
+  registration warning remains.
+
+Decision log: the jump target comes only from the already-composed
+calendar state, so it can never select a date outside the five-date caches
+or start a request; uncached later days read as "No games" and are skipped
+until the user browses them, which is the deliberate cache-only trade. The
+explicit "local" suffix removes ambiguity against the UTC default used by
+provider timestamps while keeping one shared row component. The route
+reuses the existing text-key policy pattern and the existing `selectDate`
+path; no new cursor targets, settings fields, or interaction surfaces.
+
+Known risks: the jump only reaches days already present in the bounded
+caches, so a freshly opened panel cannot jump past un-browsed empty days;
+the local-time label uses the viewer's timezone via local Date getters,
+aligned with the existing `DateModel` boundary; pointer clicks remain
+unexercised (keyboard was used). The remaining P1-6 item (any window wider
+than the five-date caches) stays closed until a verified wider source
+exists.
+
+Boundary note: `docs/upstream-contract.md` remains intentionally absent;
+the installed Omarchy restart/summon/IPC, `PanelKeyCatcher` text-key, and
+Quickshell import-path contracts were inspected directly and no material
+host-boundary deviation was found. The unrelated absence of
+`MARKETPLACE_SUBMISSION.md` remains untouched and unstaged. No push, tag,
+release, or Marketplace action occurred.
+
+Next bounded unit: broadcast/event links (P2-8) as one bounded vertical
+slice — safe attributable stream/VOD/event URLs where the provider already
+supplies them in the fetched payloads, rendered alongside the labeled
+source action. Stop before any second provider adapter, packaging, tagging,
+pushing, release, or Marketplace work.

@@ -20,10 +20,18 @@ function calendarFilterAction(text, calendarOpen, settingsOpen, detailOpen) {
   return "toggle-calendar-filter";
 }
 
+function calendarJumpAction(text, calendarOpen, settingsOpen, detailOpen) {
+  if (text !== "g" && text !== "G") return "none";
+  if (calendarOpen !== true || settingsOpen === true || detailOpen === true)
+    return "none";
+  return "jump-to-next-games";
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     catcherBlocked: catcherBlocked,
     targetForKey: targetForKey,
-    calendarFilterAction: calendarFilterAction
+    calendarFilterAction: calendarFilterAction,
+    calendarJumpAction: calendarJumpAction
   };
 }

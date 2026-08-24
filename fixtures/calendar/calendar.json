@@ -233,6 +233,13 @@
       ["nhl:cal-scheduled"]
     ],
     "orderedDay24Ids": ["nhl:cal-live-favorite", "nhl:cal-live-other", "mlb:cal-scheduled"],
-    "chronologicalDay24Ids": ["mlb:cal-scheduled", "nhl:cal-live-other", "nhl:cal-live-favorite"]
+    "chronologicalDay24Ids": ["mlb:cal-scheduled", "nhl:cal-live-other", "nhl:cal-live-favorite"],
+    "nextGamesDateKeys": {
+      "2026-08-22": "2026-08-24",
+      "2026-08-23": "2026-08-24",
+      "2026-08-24": "2026-08-26",
+      "2026-08-25": "2026-08-26",
+      "2026-08-26": ""
+    }
   }
 }

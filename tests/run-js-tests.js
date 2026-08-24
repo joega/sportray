@@ -1275,7 +1275,9 @@ test("game cards show local start dates for every known game state", () => {
   const source = readSource("components/GameRow.qml");
   assert.match(source, /Qt\.formatDateTime\(date, "MMM d, h:mm AP"\)/);
   assert.match(source, /includeStartTime: true/);
-  assert.match(source, /startTimeText: root\.localStartDateTime\(root\.game\.startTime\)/);
+  assert.match(source,
+    /startTimeText: root\.resolvedStartTimeText\(root\.game\.startTime\)/);
+  assert.match(source, /property string startTimeTextOverride: ""/);
 });
 
 test("game cards expose normalized provider source links", () => {
@@ -3271,6 +3273,36 @@ test("calendar filter is reachable through the panel text-key routing policy", (
     && filterRouteIndex < extraKeysIndex, "filter route stays in onTextKey");
 });
 
+test("calendar next-games jump is reachable through the panel text-key routing policy", () => {
+  const fixture = JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/keyboard-routing/calendar-jump.json"), "utf8"));
+  fixture.cases.forEach((testCase) => {
+    assert.equal(
+      keyboardRouting.calendarJumpAction(testCase.text, testCase.calendarOpen,
+        testCase.settingsOpen, testCase.detailOpen),
+      testCase.expected,
+      `${testCase.text} with calendar=${testCase.calendarOpen} settings=${testCase.settingsOpen} detail=${testCase.detailOpen}`);
+  });
+
+  const model = readSource("model/CalendarModel.js");
+  const panel = readSource("Panel.qml");
+  const gameRow = readSource("components/GameRow.qml");
+  assert.match(panel,
+    /KeyboardRoutingPolicy\.calendarJumpAction\(text, root\.calendarOpen,\s*\n\s*root\.settingsOpen, root\.detailOpen\)/);
+  assert.match(panel,
+    /=== "jump-to-next-games"\)\s*\n\s*root\.jumpCalendarToNextGames\(\)/);
+  // The jump reuses the existing selected-date path and never fetches outside
+  // the composed cache window.
+  assert.match(panel,
+    /var target = CalendarModel\.nextGamesDateKey\(root\.calendarState,\s*\n\s*root\.selectedDateKey\)/);
+  assert.match(panel, /if \(!DateModel\.isDateKey\(target\)\) return\s*\n\s*root\.selectDate\(target\)/);
+  assert.match(panel,
+    /startTimeTextOverride: modelData\s*\n\s*\&& typeof modelData\.timeLabel === "string"/);
+  assert.equal(model.includes("curl"), false);
+  assert.equal(model.includes("Process"), false);
+  assert.equal(gameRow.includes("startTimeTextOverride"), true);
+});
+
 test("deferred callbacks run for live owners and reject destroyed owners", () => {
   const owner = lifecycle.createOwnerState();
   const generation = lifecycle.captureGeneration(owner);
@@ -4773,6 +4805,63 @@ test("calendar flatten reuses scoreboard row vocabulary for the panel list", () 
 
   assert.deepEqual(calendarModel.flatten(null), []);
   assert.deepEqual(calendarModel.flatten({}), []);
+});
+
+test("calendar direct date jump finds the first later cached day with games", () => {
+  const fixture = readCalendarFixture();
+  const calendar = calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth
+  });
+
+  Object.keys(fixture.expected.nextGamesDateKeys).forEach((fromDateKey) => {
+    assert.equal(calendarModel.nextGamesDateKey(calendar, fromDateKey),
+      fixture.expected.nextGamesDateKeys[fromDateKey],
+      `jump target from ${fromDateKey}`);
+  });
+
+  // Empty days are skipped and never widen the window; malformed inputs fail
+  // closed to an empty target.
+  const allEmpty = calendarModel.compose([{
+    leagueId: "nhl", displayName: "NHL",
+    days: [{dateKey: "2026-08-25", games: []}, {dateKey: "2026-08-26", games: []}]
+  }], {enabledLeagues: ["nhl"], favoriteTeamIds: [], centerDateKey: "2026-08-24"});
+  assert.equal(calendarModel.nextGamesDateKey(allEmpty, "2026-08-24"), "");
+  assert.equal(calendarModel.nextGamesDateKey(null, "2026-08-24"), "");
+  assert.equal(calendarModel.nextGamesDateKey("calendar", "2026-08-24"), "");
+  assert.equal(calendarModel.nextGamesDateKey(calendar, "not-a-date"), "");
+  assert.equal(calendarModel.nextGamesDateKey(calendar, undefined), "");
+});
+
+test("calendar rows carry bounded explicit local-time labels", () => {
+  const fixture = readCalendarFixture();
+  const rows = calendarModel.flatten(calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: [],
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth
+  }));
+  const gameRows = rows.filter((row) => row.kind === "game");
+  assert.equal(gameRows.length, 5);
+  assert.equal(gameRows.every((row) => typeof row.timeLabel === "string"
+    && /^\d{1,2}:\d{2} (AM|PM) local$/.test(row.timeLabel)
+    && row.timeLabel.length <= calendarModel.MAX_TIME_LABEL_LENGTH), true);
+
+  // The label matches the viewer's local rendering of the normalized start.
+  const sample = new Date("2026-08-24T23:30:00.000Z");
+  const expectedLabel = (sample.getHours() % 12 === 0 ? 12 : sample.getHours() % 12)
+    + ":" + String(sample.getMinutes()).padStart(2, "0")
+    + " " + (sample.getHours() < 12 ? "AM" : "PM") + " local";
+  const labeled = gameRows.find((row) => row.game.id === "nhl:cal-live-favorite");
+  assert.equal(labeled.timeLabel, expectedLabel);
+
+  // Missing or malformed start times fail closed to an empty label.
+  assert.equal(calendarModel.localTimeLabel(null), "");
+  assert.equal(calendarModel.localTimeLabel(undefined), "");
+  assert.equal(calendarModel.localTimeLabel(42), "");
+  assert.equal(calendarModel.localTimeLabel("not-a-time"), "");
 });
 
 test("calendar projection adds no new fetch ownership or provider parsing", () => {

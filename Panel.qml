@@ -227,6 +227,14 @@ Panel {
     root.recalculatePanelHeight()
   }
 
+  function jumpCalendarToNextGames() {
+    if (!root.calendarOpen) return
+    var target = CalendarModel.nextGamesDateKey(root.calendarState,
+      root.selectedDateKey)
+    if (!DateModel.isDateKey(target)) return
+    root.selectDate(target)
+  }
+
   function openGameDetail(game) {
     if (!game || game.isValid !== true) return
     root.detailGame = game
@@ -851,6 +859,9 @@ Panel {
         if (KeyboardRoutingPolicy.calendarFilterAction(text, root.calendarOpen,
             root.settingsOpen, root.detailOpen) === "toggle-calendar-filter")
           root.toggleCalendarFilter()
+        if (KeyboardRoutingPolicy.calendarJumpAction(text, root.calendarOpen,
+            root.settingsOpen, root.detailOpen) === "jump-to-next-games")
+          root.jumpCalendarToNextGames()
         if ((text === "s" || text === "S") && !root.settingsOpen)
           root.toggleStandings()
         if (text === "[" || text === "{") root.selectRelativeDate(-1)
@@ -1213,6 +1224,9 @@ Panel {
                       visible: modelData && modelData.kind === "game"
                       game: gameValue
                       stale: modelData && modelData.stale === true
+                      startTimeTextOverride: modelData
+                        && typeof modelData.timeLabel === "string"
+                        ? modelData.timeLabel : ""
                       selected: root.selectedRowId === (modelData ? modelData.rowId : "")
                       featured: Boolean(gameValue.presentation
                         && gameValue.presentation.isFavorite

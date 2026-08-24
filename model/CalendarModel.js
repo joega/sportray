@@ -55,6 +55,7 @@ function shortDateLabel(value) {
 var DEFAULT_HALF_WIDTH_DAYS = 2;
 var MAX_HALF_WIDTH_DAYS = 7;
 var MAX_GAMES_PER_DAY = 64;
+var MAX_TIME_LABEL_LENGTH = 24;
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -128,6 +129,23 @@ function defaultOrder(games) {
     return left.index - right.index;
   });
   return entries.map(function(entry) { return entry.game; });
+}
+
+// Explicit local-time rendering choice for calendar game rows. The label is
+// derived from the normalized startTime in the viewer's local timezone and is
+// bounded; missing or malformed times fail closed to an empty label so the
+// row keeps its existing neutral presentation.
+function localTimeLabel(value) {
+  if (typeof value !== "string") return "";
+  var date = new Date(value);
+  if (isNaN(date.getTime())) return "";
+  var hours = date.getHours();
+  var minutes = date.getMinutes();
+  var meridiem = hours < 12 ? "AM" : "PM";
+  var twelveHour = hours % 12 === 0 ? 12 : hours % 12;
+  var label = twelveHour + ":" + pad(minutes) + " " + meridiem + " local";
+  if (label.length > MAX_TIME_LABEL_LENGTH) return "";
+  return label;
 }
 
 function windowKeys(centerDateKey, halfWidth) {
@@ -227,6 +245,23 @@ function compose(leagueWindows, options) {
   return calendar;
 }
 
+// Direct date jump target: the first cached calendar day strictly after the
+// given date that has games. Empty days are skipped, and every malformed or
+// non-later input fails closed to an empty result so the caller never jumps
+// outside the already-fetched cache window.
+function nextGamesDateKey(calendar, fromDateKey) {
+  if (!isRecord(calendar) || !Array.isArray(calendar.days)) return "";
+  if (!isDateKey(fromDateKey)) return "";
+  var best = "";
+  for (var i = 0; i < calendar.days.length; i++) {
+    var day = calendar.days[i];
+    if (!isRecord(day) || !isDateKey(day.dateKey)) continue;
+    if (day.hasGames !== true || day.dateKey <= fromDateKey) continue;
+    if (best === "" || day.dateKey < best) best = day.dateKey;
+  }
+  return best;
+}
+
 // Day-list row projection reusing the existing scoreboard row vocabulary
 // (same shapes as model/ResultRows.js) so the panel list, keyboard routing,
 // and detail drill-down stay unchanged. Kept self-contained because QML
@@ -247,6 +282,7 @@ function gameRow(game) {
     kind: "game",
     rowId: "game:" + identity,
     game: game,
+    timeLabel: localTimeLabel(game.startTime),
     stale: false,
     action: {
       type: "open-detail",
@@ -290,8 +326,11 @@ if (typeof module !== "undefined" && module.exports) {
     DEFAULT_HALF_WIDTH_DAYS: DEFAULT_HALF_WIDTH_DAYS,
     MAX_HALF_WIDTH_DAYS: MAX_HALF_WIDTH_DAYS,
     MAX_GAMES_PER_DAY: MAX_GAMES_PER_DAY,
+    MAX_TIME_LABEL_LENGTH: MAX_TIME_LABEL_LENGTH,
     compose: compose,
     flatten: flatten,
+    nextGamesDateKey: nextGamesDateKey,
+    localTimeLabel: localTimeLabel,
     gameDateKey: gameDateKey,
     gameIdentity: gameIdentity
   };

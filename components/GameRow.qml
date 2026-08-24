@@ -11,6 +11,9 @@ Item {
   property bool stale: false
   property bool featured: false
   property bool selected: false
+  // Calendar rows pass an explicit bounded local-time label; the scoreboard
+  // route keeps its own computed local start text.
+  property string startTimeTextOverride: ""
   readonly property bool childActionPressed: sourceLink.pointerPressed
 
   signal primaryActionRequested()
@@ -26,13 +29,18 @@ Item {
     return Qt.formatDateTime(date, "MMM d, h:mm AP")
   }
 
+  function resolvedStartTimeText(value) {
+    var override = root.startTimeTextOverride.trim()
+    return override !== "" ? override : root.localStartDateTime(value)
+  }
+
   readonly property string awayLabel: Formatters.teamLabel(root.game.awayTeam)
   readonly property string homeLabel: Formatters.teamLabel(root.game.homeTeam)
   readonly property string awayScoreLabel: Formatters.formatScoreboardTeamScore(root.game, "away")
   readonly property string homeScoreLabel: Formatters.formatScoreboardTeamScore(root.game, "home")
   readonly property string detailLabel: Formatters.formatGameStateLabel(root.game, {
     includeStartTime: true,
-    startTimeText: root.localStartDateTime(root.game.startTime),
+    startTimeText: root.resolvedStartTimeText(root.game.startTime),
     stale: root.stale
   })
   readonly property bool awayIsFavorite: Boolean(root.game.presentation

@@ -44,9 +44,10 @@ The current checkout now has meaningful parity with the generalists:
 - a local keyboard-accessible game-detail drill-down projected from normalized
   data, with optional final-outcome and bounded per-period lines sections and
   no second endpoint;
-- a bounded calendar day list projecting the already-fetched five-date caches,
-  with favorite-only filtering and an `F` keyboard shortcut; it never starts
-  new requests;
+- a bounded calendar day list projecting the already-fetched five-date
+  caches, with favorite-only filtering, an `F` filter shortcut, a `G`
+  direct jump to the next cached day with games, and explicit local-time
+  row labels; it never starts new requests;
 - automatic ambient bar presentation: icon-only tray with accent/urgent status
   dots on horizontal and vertical bars, live-favorite rotation, and countdown
   projection feeding the indicator state;
@@ -100,11 +101,13 @@ evidence.
    broader matches, the query is clamped at 48 characters, and non-empty
    search results are capped at 60 while unfiltered browsing stays complete.
    No new endpoint; canonical identities and schema-1 settings unchanged.
-6. **Calendar and schedule context — largely closed.** The bounded calendar
-   day list with favorite-only filtering and the preserved five-day carousel
-   are shipped and runtime-verified. Still open: direct date jumps, explicit
-   local-time rendering choices, and any window wider than the five-date
-   caches without new fetch ownership.
+6. **Calendar and schedule context — closed for the current cache
+   boundary.** The bounded calendar day list with favorite-only filtering,
+   the preserved five-day carousel, direct `G` date jumps to the next
+   cached day with games, and explicit local-time row labels are shipped
+   and runtime-verified. Still open only: any window wider than the
+   five-date caches, which requires a verified wider source before any
+   new fetch ownership.
 
 ### P2 — specialist depth
 
@@ -147,9 +150,10 @@ then a second verified provider adapter (requires explicit terms/region/
 reliability review), then owner-controlled release/publication follow-ups.
 Remaining candidate slices:
 
-1. **Calendar extensions** (P1-6 remainder, next): direct date jumps and/or
-   local-time rendering choices within the existing cache-only boundary.
-2. **Broadcast/event links** (P2-8): safe attributable stream/VOD/event URLs
+1. **Calendar extensions** (P1-6 remainder): completed 2026-08-24 — direct
+   `G` date jumps and explicit local-time labels within the cache-only
+   boundary; a wider window stays open only behind a verified wider source.
+2. **Broadcast/event links** (P2-8, next): safe attributable stream/VOD/event URLs
    alongside the labeled source action.
 3. **A second verified provider adapter for live multi-provider fallback**
    (P1-4 remainder): requires an explicit provider review (terms, region,
