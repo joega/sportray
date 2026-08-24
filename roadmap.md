@@ -1088,3 +1088,63 @@ Marketplace action, release, tag, or public README change was performed.
 The next bounded unit is standings and league-view design/implementation;
 stop before game-detail, bar-mode, provider-fallback, niche-adapter, or
 publication work.
+
+## Standings/league-view slice — 2026-08-23
+
+Status: complete. The first generic standings slice is implemented as one
+bounded vertical unit. The existing scores route remains the default, and an
+ESPN-backed league destination can switch to an on-demand standings view with
+the `S` shortcut or its header action.
+
+Evidence:
+
+- `model/StandingsModel.js` defines the provider-neutral grouped standings
+  boundary, canonical team identity, nullable metrics, deterministic rank/name
+  ordering, and bounded malformed-input errors.
+- `providers/EspnProvider.js` parses one ESPN standings payload shape, backed by
+  `fixtures/espn/raw/standings-nfl.json`; the parser isolates malformed entries
+  and preserves valid sibling groups.
+- `services/StandingsFetch.qml` is the single shared, on-demand fetch boundary;
+  `model/StandingsRows.js` keeps loading, empty, error, group, and row display
+  shaping out of QML. NHL is explicitly scores-only until a verified standings
+  adapter exists.
+- The smallest QML route adds a virtualized grouped list and reuses the
+  existing favorite action for teams. Missing values render as neutral dashes.
+- The JavaScript fixture suite covers ordering, missing fields, empty and
+  malformed standings, and favorite routing. `tests/run-js-tests.sh` passes.
+- `omarchy plugin validate "$PWD"`, real-import-path `qmllint`, and
+  `git diff --check` pass. The linked plugin was rescanned on actual Omarchy
+  4.0.0-1 with Quickshell 0.3.0.r20; the view was manually opened in the live
+  shell and the fresh instance log had no standings-specific QML errors or
+  polish-loop warnings. The current live ESPN offseason response exercised the
+  safe empty state; populated rows are covered by the fixture path.
+
+Decision log: keep the first adapter ESPN-only and on demand. Preserve the
+existing normalized game/favorite/settings boundaries, use canonical team IDs
+for favorite routing, and treat provider omissions as nulls rather than
+fabricating values. Do not add game detail, bar modes, provider fallback,
+alerts, leagues, niche adapters, packaging, or publication work in this unit.
+The intentionally absent `docs/upstream-contract.md` was checked against the
+installed Omarchy/Quickshell sources; no obsolete upstream API pattern was
+introduced.
+
+Known risks: ESPN's live standings response is sparse or empty for some
+offseason destinations, and no NHL standings contract has been verified.
+Those cases remain safe empty/unsupported states rather than inferred data.
+
+## Latest handoff — 2026-08-23 standings slice complete
+
+The standings/league-view slice is complete in the working tree and ready for
+its atomic commit. It adds a provider-neutral standings model and row flattener,
+one fixture-backed ESPN parser path, a shared on-demand QML fetch service, and
+a grouped standings route on existing ESPN-backed league destinations. The
+scores route, existing favorite/settings/accessibility contracts, and NHL
+scores-only behavior remain intact. No game-detail, bar-mode, provider-chain,
+alert, new-league, niche-adapter, packaging, release, tag, push, or Marketplace
+work was performed.
+
+The next bounded unit is a generic game-detail data/model slice: first inspect
+the current provider payloads and installed upstream boundaries, then implement
+only a provider-neutral detail shape plus one fixture-backed provider parser if
+the contract is reliable. Do not add the detail QML drill-down in that unit
+unless its acceptance can remain one small existing-route extension.

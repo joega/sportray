@@ -1,0 +1,52 @@
+{
+  "standings": [
+    {
+      "id": "afc-east",
+      "displayName": "AFC East",
+      "entries": [
+        {
+          "rank": "2",
+          "team": {
+            "id": "2",
+            "displayName": "Buffalo Bills",
+            "shortDisplayName": "Bills",
+            "abbreviation": "BUF",
+            "logos": [{"href": "https://a.espncdn.com/i/teamlogos/nfl/500/buf.png"}]
+          },
+          "stats": [
+            {"name": "wins", "value": 11},
+            {"name": "losses", "value": 6},
+            {"name": "gamesPlayed", "value": 17},
+            {"name": "points", "value": 0},
+            {"name": "record", "displayValue": "11-6"}
+          ]
+        },
+        {
+          "rank": 1,
+          "team": {"id": "17", "displayName": "New England Patriots", "abbreviation": "NE"},
+          "stats": [
+            {"name": "wins", "value": "13"},
+            {"name": "losses", "value": "4"},
+            {"name": "gamesPlayed", "value": "17"},
+            {"name": "points", "value": 0}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "afc-north",
+      "name": "AFC North",
+      "entries": [
+        {
+          "team": {"id": "33", "abbreviation": "CLE"},
+          "stats": [{"name": "wins", "value": 5}, {"name": "losses", "value": 12}]
+        },
+        {
+          "rank": 1,
+          "team": {"id": "8", "displayName": "Cincinnati Bengals", "shortDisplayName": "Bengals", "abbreviation": "CIN"},
+          "stats": [{"name": "wins", "value": 10}, {"name": "losses", "value": 7}, {"name": "gamesPlayed", "value": 17}]
+        }
+      ]
+    }
+  ]
+}

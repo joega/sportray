@@ -23,6 +23,8 @@ At a glance:
 - Scheduled, live, intermediate, final, stale, empty, and unavailable states
 - Favorite-team selection with canonical league/team identities
 - A Following home for favorite-team games plus one stable destination per league
+- Grouped standings on ESPN-backed league destinations, with missing provider
+  fields shown as neutral blanks and one-click favorite-team toggles
 - A five-day date carousel with previous/next-day navigation and a Today reset
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
@@ -45,7 +47,8 @@ The score panel opens on the local current date. Use the date carousel to move
 back to completed slates or forward to upcoming games; each fetch and result
 model is scoped to the selected local date. Closing the panel returns the
 ambient bar indicator to the current date. `[` and `]` move one day while `T`
-returns to today.
+returns to today. On an ESPN-backed league destination, `S` toggles the
+standings view.
 
 When an enabled league has no games on the selected day, Sportray searches the
 next bounded schedule window and shows the first upcoming game below the empty
@@ -176,11 +179,15 @@ Football, NCAA Men's Basketball, English Premier League, and MLS scores and
 team catalogs come from
 ESPN's site JSON endpoints. ESPN's site API is an undocumented website interface
 rather than a supported public developer contract; its response shape or
-availability may change. The EPL catalog is a bounded provider-owned snapshot
+availability may change. ESPN-backed league destinations also use its standings
+route when the standings view is opened; NHL remains scores-only until its
+standings adapter is verified. The EPL catalog is a bounded provider-owned snapshot
 because the current team endpoint is season-shaped; it is not a persistence
 boundary.
 Provider-specific parsing is isolated behind the normalized Sportray model so
-a provider change does not become a UI dependency.
+a provider change does not become a UI dependency. Standings rows use the same
+canonical `<league>:<providerTeamId>` team identity as favorites and preserve
+nulls for fields the provider omits.
 
 Each valid game exposes a labeled **ESPN** or **NHL.com** source action in the
 panel. Activating it opens the provider's game page in the Omarchy browser, so

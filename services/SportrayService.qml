@@ -18,6 +18,7 @@ Item {
   readonly property string lookaheadLeagueId: MonitorOwnership.lookaheadLeagueId(root.panelContexts)
   readonly property var settingsStore: settingsStore
   readonly property var fetchService: fetchService
+  readonly property var standingsService: standingsService
 
   function registerPanel() {
     root.nextPanelToken += 1
@@ -50,6 +51,10 @@ Item {
     selectedDateKey: root.selectedDateKey
     lookaheadLeagueId: root.lookaheadLeagueId
     panelOpen: root.panelOpen
+  }
+
+  StandingsFetch {
+    id: standingsService
   }
 
   NotificationService {

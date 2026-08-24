@@ -9,7 +9,9 @@ function clamp(value, minimum, maximum) {
 function rowHeight(row, tokens) {
   var kind = row && row.kind ? row.kind : "empty";
   if (kind === "section-header") return tokens.section;
+  if (kind === "standings-section") return tokens.section;
   if (kind === "game") return tokens.game;
+  if (kind === "standings") return tokens.standings || tokens.game;
   if (kind === "status") return tokens.status;
   if (kind === "loading") return tokens.loading;
   if (kind === "next-game") return tokens.nextGame;

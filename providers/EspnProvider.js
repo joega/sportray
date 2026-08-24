@@ -1,10 +1,12 @@
 var GameModel = null;
 var AssetUrlPolicy = null;
 var ResponsePolicy = null;
+var StandingsModel = null;
 if (typeof require === "function") {
   GameModel = require("../model/GameModel.js");
   AssetUrlPolicy = require("../model/AssetUrlPolicy.js");
   ResponsePolicy = require("../model/ResponsePolicy.js");
+  StandingsModel = require("../model/StandingsModel.js");
 }
 
 var ESPN_BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
@@ -108,6 +110,12 @@ function buildNextGamesUrl(leagueId, startDate, endDate) {
   if (!metadata) return null;
   return ESPN_BASE_URL + "/" + metadata.sport + "/" + metadata.slug
     + "/scoreboard?dates=" + start + "-" + end;
+}
+
+function buildStandingsUrl(leagueId) {
+  var metadata = metadataFor(leagueId);
+  if (!metadata) return null;
+  return ESPN_BASE_URL + "/" + metadata.sport + "/" + metadata.slug + "/standings";
 }
 
 function buildGameUrl(leagueId, providerGameId) {
@@ -300,6 +308,112 @@ function parseNextGamesResponse(payload, leagueId) {
   return parseScoreboardResponse(payload, leagueId);
 }
 
+function standingsStat(stats, names) {
+  if (!Array.isArray(stats) || !Array.isArray(names)) return null;
+  for (var i = 0; i < stats.length; i++) {
+    if (!isRecord(stats[i]) || names.indexOf(stats[i].name) === -1) continue;
+    return stats[i];
+  }
+  return null;
+}
+
+function standingsNumber(stats, names) {
+  var stat = standingsStat(stats, names);
+  if (!stat) return null;
+  var value = stat.value;
+  if (typeof value === "string" && value.trim() !== "") value = Number(value.trim());
+  if (typeof value !== "number" || !isFinite(value) || Math.floor(value) !== value) return null;
+  return value;
+}
+
+function standingsTeam(rawTeam, leagueId) {
+  if (!isRecord(rawTeam)) return null;
+  var logo = rawTeam.logo;
+  if (!logo && Array.isArray(rawTeam.logos) && isRecord(rawTeam.logos[0]))
+    logo = rawTeam.logos[0].href;
+  return normalizeTeam({id: rawTeam.id, team: {
+    id: rawTeam.id,
+    displayName: rawTeam.displayName || rawTeam.name,
+    shortDisplayName: rawTeam.shortDisplayName || rawTeam.abbreviation,
+    abbreviation: rawTeam.abbreviation,
+    logo: logo,
+    links: rawTeam.links
+  }}, leagueId);
+}
+
+function normalizeStandingsEntry(entry, leagueId) {
+  if (!isRecord(entry) || !isRecord(entry.team)) return null;
+  var stats = Array.isArray(entry.stats) ? entry.stats : [];
+  var wins = standingsNumber(stats, ["wins"]);
+  var losses = standingsNumber(stats, ["losses"]);
+  var draws = standingsNumber(stats, ["draws"]);
+  var ties = standingsNumber(stats, ["ties"]);
+  var points = standingsNumber(stats, ["points", "leaguePoints"]);
+  var differential = standingsNumber(stats, ["pointDifferential", "goalDifference", "differential"]);
+  var played = standingsNumber(stats, ["gamesPlayed", "eventsPlayed", "played"]);
+  var rank = integerOrNull(entry.rank);
+  if (rank === null) rank = standingsNumber(stats, ["rank", "order"]);
+  var record = standingsStat(stats, ["record"]);
+  var recordLabel = record ? cleanString(record.displayValue) : null;
+
+  return {
+    team: standingsTeam(entry.team, leagueId),
+    rank: rank,
+    played: played,
+    wins: wins,
+    losses: losses,
+    draws: draws,
+    ties: ties,
+    points: points,
+    differential: differential,
+    recordLabel: recordLabel
+  };
+}
+
+function parseStandingsResponse(payload, leagueId) {
+  var result = {leagueId: leagueId || "", groups: [], rows: [], errors: []};
+  var metadata = metadataFor(leagueId);
+  if (!metadata) {
+    result.errors.push(errorFor(leagueId, "unsupported-league", null));
+    return result;
+  }
+  if (!isRecord(payload) || !Array.isArray(payload.standings)) {
+    result.errors.push({provider: ESPN_PROVIDER, league: metadata.id,
+      endpoint: buildStandingsUrl(metadata.id), index: null,
+      code: "invalid-standings-response"});
+    return result;
+  }
+
+  var groups = [];
+  payload.standings.forEach(function(standing, index) {
+    if (!isRecord(standing) || !Array.isArray(standing.entries)) {
+      result.errors.push({provider: ESPN_PROVIDER, league: metadata.id,
+        endpoint: buildStandingsUrl(metadata.id), index: index,
+        code: "invalid-standings-group"});
+      return;
+    }
+    var groupId = providerId(standing.id || standing.uid || standing.name) || "group-" + index;
+    var groupLabel = cleanString(standing.displayName) || cleanString(standing.name)
+      || "Standings";
+    var entries = [];
+    standing.entries.forEach(function(entry, entryIndex) {
+      var normalized = normalizeStandingsEntry(entry, metadata.id);
+      if (!normalized || !normalized.team) {
+        result.errors.push({provider: ESPN_PROVIDER, league: metadata.id,
+          endpoint: buildStandingsUrl(metadata.id), index: entryIndex, group: groupId,
+          code: "invalid-standing-entry"});
+        return;
+      }
+      entries.push(normalized);
+    });
+    groups.push({id: groupId, label: groupLabel, entries: entries});
+  });
+
+  return StandingsModel
+    ? StandingsModel.normalizeGroups(groups, metadata.id, result.errors)
+    : result;
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     ESPN_BASE_URL: ESPN_BASE_URL,
@@ -308,10 +422,13 @@ if (typeof module !== "undefined" && module.exports) {
     metadataFor: metadataFor,
     buildScoreUrl: buildScoreUrl,
     buildNextGamesUrl: buildNextGamesUrl,
+    buildStandingsUrl: buildStandingsUrl,
     buildGameUrl: buildGameUrl,
     normalizeStatus: normalizeStatus,
     parseGame: parseGame,
     parseScoreboardResponse: parseScoreboardResponse,
-    parseNextGamesResponse: parseNextGamesResponse
+    parseNextGamesResponse: parseNextGamesResponse,
+    parseStandingsResponse: parseStandingsResponse,
+    normalizeStandingsEntry: normalizeStandingsEntry
   };
 }

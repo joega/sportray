@@ -3,27 +3,28 @@ var NHL = {
   name: "NHL",
   displayName: "NHL",
   enabledByDefault: true,
-  provider: "nhl"
+  provider: "nhl",
+  standingsSupported: false
 };
 
 var ESPN_LEAGUE_METADATA = {
   nfl: {id: "nfl", name: "NFL", displayName: "NFL", enabledByDefault: false,
-    provider: "espn", sport: "football", slug: "nfl"},
+    provider: "espn", sport: "football", slug: "nfl", standingsSupported: true},
   mlb: {id: "mlb", name: "MLB", displayName: "MLB", enabledByDefault: false,
-    provider: "espn", sport: "baseball", slug: "mlb"},
+    provider: "espn", sport: "baseball", slug: "mlb", standingsSupported: true},
   nba: {id: "nba", name: "NBA", displayName: "NBA", enabledByDefault: false,
-    provider: "espn", sport: "basketball", slug: "nba"},
+    provider: "espn", sport: "basketball", slug: "nba", standingsSupported: true},
   "college-football": {id: "college-football", name: "NCAA Football",
     displayName: "NCAA Football", enabledByDefault: false,
-    provider: "espn", sport: "football", slug: "college-football"},
+    provider: "espn", sport: "football", slug: "college-football", standingsSupported: true},
   "eng.1": {id: "eng.1", name: "Premier League",
     displayName: "Premier League", enabledByDefault: false,
-    provider: "espn", sport: "soccer", slug: "eng.1"},
+    provider: "espn", sport: "soccer", slug: "eng.1", standingsSupported: true},
   "usa.1": {id: "usa.1", name: "MLS", displayName: "MLS", enabledByDefault: false,
-    provider: "espn", sport: "soccer", slug: "usa.1"},
+    provider: "espn", sport: "soccer", slug: "usa.1", standingsSupported: true},
   "mens-college-basketball": {id: "mens-college-basketball", name: "NCAA Men's Basketball",
     displayName: "NCAA Men's Basketball", enabledByDefault: false,
-    provider: "espn", sport: "basketball", slug: "mens-college-basketball"}
+    provider: "espn", sport: "basketball", slug: "mens-college-basketball", standingsSupported: true}
 };
 
 var NFL = ESPN_LEAGUE_METADATA.nfl;

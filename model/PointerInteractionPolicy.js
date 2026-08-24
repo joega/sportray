@@ -1,6 +1,7 @@
-function childActionPressed(sourcePressed, retryPressed, nextGamePressed, emptyActionPressed) {
+function childActionPressed(sourcePressed, retryPressed, nextGamePressed, emptyActionPressed,
+  standingsPressed) {
   return sourcePressed === true || retryPressed === true || nextGamePressed === true
-    || emptyActionPressed === true;
+    || emptyActionPressed === true || standingsPressed === true;
 }
 
 function allowsRowActivation(hasChildActionPress) {

@@ -20,6 +20,8 @@ const settingsPermissionPolicy = require(path.join(root, "model/SettingsPermissi
 const scoreboard = require(path.join(root, "model/ScoreboardModel.js"));
 const panelPresentation = require(path.join(root, "model/PanelPresentation.js"));
 const resultRows = require(path.join(root, "model/ResultRows.js"));
+const standingsModel = require(path.join(root, "model/StandingsModel.js"));
+const standingsRows = require(path.join(root, "model/StandingsRows.js"));
 const pollPolicy = require(path.join(root, "model/PollPolicy.js"));
 const freshness = require(path.join(root, "model/FreshnessPolicy.js"));
 const transitions = require(path.join(root, "model/TransitionDetector.js"));
@@ -58,6 +60,11 @@ function readLookaheadFixture(name) {
 function readEspnFixture(name) {
   const fixturePath = path.join(root, "fixtures/espn/raw", `${name}.json`);
   return JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+}
+
+function readStandingsFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/espn/raw/standings-nfl.json"), "utf8"));
 }
 
 function readEspnTeamFixture(league) {
@@ -153,13 +160,13 @@ test("catalog exposes NHL enabled by default", () => {
     ["nhl", "nfl", "mlb", "nba", "college-football", "eng.1", "usa.1",
       "mens-college-basketball"]);
   assert.deepEqual(catalog.ESPN_LEAGUE_METADATA, {
-    nfl: {id: "nfl", name: "NFL", displayName: "NFL", enabledByDefault: false, provider: "espn", sport: "football", slug: "nfl"},
-    mlb: {id: "mlb", name: "MLB", displayName: "MLB", enabledByDefault: false, provider: "espn", sport: "baseball", slug: "mlb"},
-    nba: {id: "nba", name: "NBA", displayName: "NBA", enabledByDefault: false, provider: "espn", sport: "basketball", slug: "nba"},
-    "college-football": {id: "college-football", name: "NCAA Football", displayName: "NCAA Football", enabledByDefault: false, provider: "espn", sport: "football", slug: "college-football"},
-    "eng.1": {id: "eng.1", name: "Premier League", displayName: "Premier League", enabledByDefault: false, provider: "espn", sport: "soccer", slug: "eng.1"},
-    "usa.1": {id: "usa.1", name: "MLS", displayName: "MLS", enabledByDefault: false, provider: "espn", sport: "soccer", slug: "usa.1"},
-    "mens-college-basketball": {id: "mens-college-basketball", name: "NCAA Men's Basketball", displayName: "NCAA Men's Basketball", enabledByDefault: false, provider: "espn", sport: "basketball", slug: "mens-college-basketball"}
+    nfl: {id: "nfl", name: "NFL", displayName: "NFL", enabledByDefault: false, provider: "espn", sport: "football", slug: "nfl", standingsSupported: true},
+    mlb: {id: "mlb", name: "MLB", displayName: "MLB", enabledByDefault: false, provider: "espn", sport: "baseball", slug: "mlb", standingsSupported: true},
+    nba: {id: "nba", name: "NBA", displayName: "NBA", enabledByDefault: false, provider: "espn", sport: "basketball", slug: "nba", standingsSupported: true},
+    "college-football": {id: "college-football", name: "NCAA Football", displayName: "NCAA Football", enabledByDefault: false, provider: "espn", sport: "football", slug: "college-football", standingsSupported: true},
+    "eng.1": {id: "eng.1", name: "Premier League", displayName: "Premier League", enabledByDefault: false, provider: "espn", sport: "soccer", slug: "eng.1", standingsSupported: true},
+    "usa.1": {id: "usa.1", name: "MLS", displayName: "MLS", enabledByDefault: false, provider: "espn", sport: "soccer", slug: "usa.1", standingsSupported: true},
+    "mens-college-basketball": {id: "mens-college-basketball", name: "NCAA Men's Basketball", displayName: "NCAA Men's Basketball", enabledByDefault: false, provider: "espn", sport: "basketball", slug: "mens-college-basketball", standingsSupported: true}
   });
 });
 
@@ -831,7 +838,7 @@ test("U2.4 keeps semantic icons local and maps every active league", () => {
   assert.equal(panel.includes("SemanticActionButton {"), true);
   assert.equal(panel.includes("SportAtmosphere {"), true);
   assert.equal(panel.includes('root.settingsOpen ? "settings" : "calendar"'), true);
-  assert.equal(panel.includes('root.settingsOpen ? "  Settings" : "  " + root.selectedDateLabel'), true);
+  assert.equal(panel.includes('root.settingsOpen ? "  Settings"'), true);
   assert.equal(panel.includes('iconName: "refresh"'), true);
   assert.equal(panel.includes('iconName: fetchService.loading ? "overflow" : "refresh"'), false);
   assert.equal(panel.includes('iconName: root.settingsOpen ? "close" : "settings"'), true);
@@ -1177,6 +1184,80 @@ test("ESPN provider exposes controlled no-key scoreboard URLs and metadata", () 
   assert.equal(espn.buildGameUrl("mlb", "401816587"),
     "https://www.espn.com/mlb/game/_/gameId/401816587");
   assert.equal(espn.buildGameUrl("nhl", "401816587"), null);
+});
+
+test("ESPN standings fixture normalizes grouped rows, ordering, and missing fields", () => {
+  assert.equal(espn.buildStandingsUrl("nfl"),
+    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/standings");
+  assert.equal(espn.buildStandingsUrl("nhl"), null);
+  const result = espn.parseStandingsResponse(readStandingsFixture(), "nfl");
+  assert.equal(result.errors.length, 0);
+  assert.deepEqual(result.groups.map((group) => group.label), ["AFC East", "AFC North"]);
+  assert.deepEqual(result.rows.map((row) => row.team.id), ["nfl:17", "nfl:2", "nfl:8", "nfl:33"]);
+  assert.equal(result.rows[0].rank, 1);
+  assert.equal(result.rows[0].wins, 13);
+  assert.equal(result.rows[0].team.logoUrl, null);
+  assert.equal(result.rows[3].rank, null);
+  assert.equal(result.rows[3].team.name, null);
+  assert.equal(result.rows[3].team.abbreviation, "CLE");
+  assert.equal(JSON.stringify(result).includes("stats"), false);
+  assert.equal(JSON.stringify(result).includes('"logos"'), false);
+});
+
+test("standings model preserves null fields, deterministic rank ordering, and safe empties", () => {
+  const normalized = standingsModel.normalizeGroups([{
+    id: "division-a",
+    label: "Division A",
+    entries: [
+      {rank: 2, team: {id: "2", name: "Beta"}, wins: 3},
+      {rank: 1, team: {id: "1", name: "Alpha"}, losses: 1},
+      {team: {id: "3", abbreviation: "GAM"}}
+    ]
+  }], "test-league");
+  assert.deepEqual(normalized.rows.map((row) => row.team.id), [
+    "test-league:1", "test-league:2", "test-league:3"
+  ]);
+  assert.equal(normalized.rows[0].wins, null);
+  assert.equal(normalized.rows[0].losses, 1);
+  assert.equal(normalized.rows[2].rank, null);
+  assert.deepEqual(standingsModel.normalizeGroups([], "test-league"), {
+    leagueId: "test-league", groups: [], rows: [], errors: []
+  });
+});
+
+test("standings provider rejects malformed input while keeping valid sibling groups", () => {
+  const malformed = espn.parseStandingsResponse({standings: [{id: "broken"}]}, "nfl");
+  assert.equal(malformed.rows.length, 0);
+  assert.equal(malformed.errors[0].code, "invalid-standings-group");
+  const mixed = espn.parseStandingsResponse({standings: [
+    {id: "bad", entries: [{team: null}]},
+    {id: "good", displayName: "Good", entries: [
+      {rank: 1, team: {id: "99", displayName: "Valid", abbreviation: "VAL"}, stats: []}
+    ]}
+  ]}, "nfl");
+  assert.equal(mixed.rows.length, 1);
+  assert.equal(mixed.rows[0].team.id, "nfl:99");
+  assert.ok(mixed.errors.length >= 1);
+  assert.deepEqual(espn.parseStandingsResponse({standings: []}, "nfl"), {
+    leagueId: "nfl", groups: [], rows: [], errors: []
+  });
+  assert.equal(espn.parseStandingsResponse({}, "nfl").errors[0].code,
+    "invalid-standings-response");
+});
+
+test("standings rows keep existing favorite routing and expose bounded actions", () => {
+  const result = espn.parseStandingsResponse(readStandingsFixture(), "nfl");
+  const rows = standingsRows.flatten(result, ["nfl:17"]);
+  assert.deepEqual(rows.map((row) => row.kind), [
+    "standings-section", "standings", "standings", "standings-section", "standings", "standings"
+  ]);
+  assert.equal(rows[1].favorite, true);
+  assert.deepEqual(rows[1].action,
+    {type: "toggle-favorite-team", label: "Remove favorite", enabled: true});
+  assert.deepEqual(rows[2].action,
+    {type: "toggle-favorite-team", label: "Add favorite", enabled: true});
+  const source = readSource("components/StandingsRow.qml");
+  assert.equal(source.includes("root.settings.toggleFavoriteTeam(root.standing.team.id)"), true);
 });
 
 test("NHL next-game lookup uses the schedule endpoint and keeps normalized games", () => {
@@ -2448,6 +2529,10 @@ test("U3.1 gives actionable rows typed primary actions and safe fallbacks", () =
   assert.equal(panel.includes("function activateRow(index)"), true);
   assert.equal(panel.includes("else root.activateRow(root.selectedRowIndex)"), true);
   assert.equal(panel.includes("root.activateRow(index)"), true);
+  assert.equal(panel.includes("root.toggleStandings()"), true);
+  assert.equal(panel.includes('text === "s" || text === "S"'), true);
+  assert.equal(panel.includes("readonly property var standingsRows: StandingsRows.flatten"), true);
+  assert.equal(panel.includes("StandingsRow {"), true);
   assert.equal(gameRow.includes("sourceLink.visible ? Accessible.Button : Accessible.StaticText"), true);
   assert.equal(gameRow.includes("External game page unavailable."), true);
   assert.equal(status.includes("Accessible.role: root.status.loading ? Accessible.StaticText : Accessible.Button"), true);

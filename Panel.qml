@@ -15,6 +15,7 @@ import "model/PanelLayout.js" as PanelLayout
 import "model/PointerInteractionPolicy.js" as PointerInteractionPolicy
 import "model/KeyboardRoutingPolicy.js" as KeyboardRoutingPolicy
 import "model/LifecyclePolicy.js" as LifecyclePolicy
+import "model/StandingsRows.js" as StandingsRows
 import "providers/LeagueCatalog.js" as LeagueCatalog
 import "providers/NhlTeamCatalog.js" as NhlTeamCatalog
 import "providers/EspnTeamCatalog.js" as EspnTeamCatalog
@@ -32,6 +33,7 @@ Panel {
   property var settingsStore: null
   property string barRegion: ""
   property bool settingsOpen: false
+  property bool standingsOpen: false
   property string utilityReturnDestination: "following"
   property string settingsDestination: "sports"
   property string activeDestination: "following"
@@ -63,6 +65,7 @@ Panel {
   // SettingsStore object. Keep the presentation boundary explicit so a
   // picker write and a watched state-file load both rebuild Following.
   property int presentationRevision: 0
+  property int standingsRevision: 0
   readonly property var barIdentity: hostWidget || root
 
   function copyStringList(value, fallback) {
@@ -91,6 +94,19 @@ Panel {
   readonly property var activeView: viewForDestination(root.activeDestination)
   readonly property var resultRows: ResultRows.flatten(
     root.activeView, root.activeDestination, root.selectedDateLabel)
+  readonly property var standingsService: root.service ? root.service.standingsService : null
+  readonly property var standingsState: root.standingsService
+    && typeof root.standingsService.snapshot === "function"
+    ? root.standingsService.snapshot() : ({leagueId: "", groups: [], rows: [], hasData: false,
+      loading: false, errorCode: "", errorSummary: ""})
+  readonly property bool activeLeagueSupportsStandings: {
+    var league = LeagueCatalog.getLeague(root.activeDestination)
+    return Boolean(league && league.standingsSupported === true)
+  }
+  readonly property var standingsRows: StandingsRows.flatten(
+    root.standingsState, root.favoriteTeamIds, root.standingsRevision)
+  readonly property var displayRows: root.standingsOpen
+    ? root.standingsRows : root.resultRows
   readonly property var orderedGames: scoreboard.games
   readonly property var barState: FavoritePresentation.selectBarState(
     normalizedGames, favoriteTeamIds, null, root.presentationRevision)
@@ -115,6 +131,25 @@ Panel {
     fetchService.requestRefresh("manual")
   }
 
+  function openStandings() {
+    if (!root.activeLeagueSupportsStandings || !root.standingsService) return
+    root.standingsOpen = true
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    root.standingsService.load(root.activeDestination, false)
+    root.recalculatePanelHeight()
+    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+  }
+
+  function toggleStandings() {
+    if (root.standingsOpen) {
+      root.standingsOpen = false
+      root.recalculatePanelHeight()
+    } else {
+      root.openStandings()
+    }
+  }
+
   function setSelectedDate(dateKey) {
     if (!root.service || !DateModel.isDateKey(dateKey)) return
     root.service.selectedDateKey = dateKey
@@ -128,13 +163,14 @@ Panel {
   }
 
   function recalculatePanelHeight() {
-    root.panelContentHeightRequest = PanelLayout.contentRequest(root.resultRows,
+    root.panelContentHeightRequest = PanelLayout.contentRequest(root.displayRows,
       root.settingsDestination, root.settingsOpen, {
         compactMinimum: Style.space(280),
         maximum: Style.space(640),
         scoreChrome: Style.space(112),
         section: Style.space(22),
         game: Style.space(88),
+        standings: Style.space(64),
         status: Style.space(42),
         loading: Style.space(170),
         nextGame: Style.space(250),
@@ -239,6 +275,7 @@ Panel {
     var index = root.destinationIndex(destination)
     root.queuePanelHeightRecalculation()
     root.saveResultPosition(root.activeDestination)
+    root.standingsOpen = false
     root.tabCursor = index
     root.activeDestination = root.tabItems[index].id
     root.tabStripFocused = true
@@ -268,22 +305,22 @@ Panel {
 
   function rowIndexForId(rowId) {
     if (!rowId) return -1
-    for (var i = 0; i < root.resultRows.length; i++) {
-      if (root.resultRows[i].rowId === rowId) return i
+    for (var i = 0; i < root.displayRows.length; i++) {
+      if (root.displayRows[i].rowId === rowId) return i
     }
     return -1
   }
 
   function selectableRow(index) {
-    return index >= 0 && index < root.resultRows.length
-      && root.resultRows[index].action
-      && root.resultRows[index].action.enabled === true
+    return index >= 0 && index < root.displayRows.length
+      && root.displayRows[index].action
+      && root.displayRows[index].action.enabled === true
   }
 
   function nearestSelectableRow(index, direction) {
     var step = direction < 0 ? -1 : 1
-    var cursor = Math.max(0, Math.min(root.resultRows.length - 1, index))
-    while (cursor >= 0 && cursor < root.resultRows.length) {
+    var cursor = Math.max(0, Math.min(root.displayRows.length - 1, index))
+    while (cursor >= 0 && cursor < root.displayRows.length) {
       if (root.selectableRow(cursor)) return cursor
       cursor += step
     }
@@ -293,7 +330,7 @@ Panel {
   function setSelectedRow(index) {
     if (!root.selectableRow(index)) return
     root.selectedRowIndex = index
-    root.selectedRowId = root.resultRows[index].rowId
+    root.selectedRowId = root.displayRows[index].rowId
     var selected = Object.assign({}, root.selectedRowIds || {})
     selected[root.activeDestination] = root.selectedRowId
     root.selectedRowIds = selected
@@ -305,7 +342,7 @@ Panel {
 
   function activateRow(index) {
     if (!root.selectableRow(index)) return
-    var row = root.resultRows[index]
+    var row = root.displayRows[index]
     var delegate = resultList.itemAtIndex(index)
     if (row.action.type === "choose-teams") {
       root.openUtility("teams")
@@ -320,25 +357,25 @@ Panel {
 
   function moveResultCursor(delta) {
     var next = root.selectedRowIndex
-    if (next < 0) next = delta < 0 ? root.resultRows.length - 1 : 0
+    if (next < 0) next = delta < 0 ? root.displayRows.length - 1 : 0
     else next += delta < 0 ? -1 : 1
     next = root.nearestSelectableRow(next, delta)
     if (next >= 0) root.setSelectedRow(next)
   }
 
   function moveResultCursorByPage(direction) {
-    if (root.resultRows.length === 0) return
+    if (root.displayRows.length === 0) return
     var page = Math.max(1, Math.floor(resultList.height / Style.space(56)))
     var next = root.selectedRowIndex < 0
-      ? (direction < 0 ? root.resultRows.length - 1 : 0)
+      ? (direction < 0 ? root.displayRows.length - 1 : 0)
       : root.selectedRowIndex + direction * page
-    next = Math.max(0, Math.min(root.resultRows.length - 1, next))
+    next = Math.max(0, Math.min(root.displayRows.length - 1, next))
     next = root.nearestSelectableRow(next, direction)
     if (next >= 0) root.setSelectedRow(next)
   }
 
   function moveResultCursorToEdge(direction) {
-    var next = direction < 0 ? 0 : root.resultRows.length - 1
+    var next = direction < 0 ? 0 : root.displayRows.length - 1
     next = root.nearestSelectableRow(next, direction)
     if (next >= 0) root.setSelectedRow(next)
   }
@@ -378,7 +415,8 @@ Panel {
     root.syncSharedContext()
     if (!root.opened) return
     root.nowMs = Date.now()
-    root.panelHeightRecalculationPending = root.resultRows.some(function(row) {
+    root.standingsOpen = false
+    root.panelHeightRecalculationPending = root.displayRows.some(function(row) {
       return row.kind === "loading"
     })
     root.recalculatePanelHeight()
@@ -406,6 +444,7 @@ Panel {
   }
 
   onActiveDestinationChanged: {
+    root.standingsOpen = false
     root.tabCursor = root.destinationIndex(root.activeDestination)
     if (sportsPicker) sportsPicker.value = root.activeDestination
     root.recalculatePanelHeight()
@@ -415,6 +454,18 @@ Panel {
   onResultRowsChanged: {
     root.deferPanelCallback(root.restoreResultPosition)
     if (root.panelHeightRecalculationPending) panelHeightSettleTimer.restart()
+  }
+
+  onDisplayRowsChanged: {
+    root.deferPanelCallback(root.restoreResultPosition)
+    if (root.panelHeightRecalculationPending) panelHeightSettleTimer.restart()
+  }
+
+  onStandingsOpenChanged: {
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    root.recalculatePanelHeight()
+    root.syncSharedContext()
   }
 
   Timer {
@@ -573,7 +624,18 @@ Panel {
     target: root.settingsStore
     function onSettingsChanged() {
       root.presentationRevision++
+      root.standingsRevision++
     }
+  }
+
+  Connections {
+    target: root.standingsService
+    function onGroupsChanged() { root.standingsRevision++ }
+    function onRowsChanged() { root.standingsRevision++ }
+    function onLoadingChanged() { root.standingsRevision++ }
+    function onHasDataChanged() { root.standingsRevision++ }
+    function onErrorCodeChanged() { root.standingsRevision++ }
+    function onErrorSummaryChanged() { root.standingsRevision++ }
   }
 
   Component.onCompleted: {
@@ -648,6 +710,8 @@ Panel {
         if (settingsHub.inputActive) return
         if (text === "r" || text === "R") root.refresh()
         if (text === "n" || text === "N") root.openSettings()
+        if ((text === "s" || text === "S") && !root.settingsOpen)
+          root.toggleStandings()
         if (text === "[" || text === "{") root.selectRelativeDate(-1)
         if (text === "]" || text === "}") root.selectRelativeDate(1)
         if (text === "t" || text === "T") root.selectDate(root.todayDateKey)
@@ -692,7 +756,8 @@ Panel {
             text: (Iconography.displayText(
               root.settingsOpen ? "settings" : "calendar",
               Style.font.family) || "S")
-              + (root.settingsOpen ? "  Settings" : "  " + root.selectedDateLabel)
+              + (root.settingsOpen ? "  Settings"
+                : root.standingsOpen ? "  Standings" : "  " + root.selectedDateLabel)
             font.family: Style.font.family
             font.pixelSize: Style.font.title
             color: Color.accent
@@ -702,8 +767,9 @@ Panel {
           Item {
             width: Math.max(0, header.width - headerTitle.implicitWidth
               - (todayButton.visible ? todayButton.implicitWidth : 0)
+              - (standingsButton.visible ? standingsButton.implicitWidth : 0)
               - (refreshButton.visible ? refreshButton.implicitWidth : 0)
-              - settingsButton.implicitWidth - header.spacing * 4)
+              - settingsButton.implicitWidth - header.spacing * 5)
             height: 1
           }
 
@@ -720,6 +786,24 @@ Panel {
             height: refreshButton.implicitHeight
             onClicked: root.selectDate(root.todayDateKey)
             Accessible.name: "Show today"
+            Accessible.role: Accessible.Button
+          }
+
+          SemanticActionButton {
+            id: standingsButton
+            visible: !root.settingsOpen && root.activeLeagueSupportsStandings
+            iconName: root.standingsOpen ? "scores" : "list"
+            fallbackText: root.standingsOpen ? "S" : "T"
+            tooltipText: root.standingsOpen ? "Show scores" : "Show standings"
+            text: root.standingsOpen ? "Scores" : "Table"
+            textFontSize: Style.font.caption
+            textBold: true
+            textVerticalPadding: Style.spacing.controlPaddingY / 2
+            width: root.standingsOpen ? Style.space(62) : Style.space(54)
+            height: refreshButton.implicitHeight
+            focusable: true
+            onClicked: root.toggleStandings()
+            Accessible.name: root.standingsOpen ? "Show scores" : "Show standings"
             Accessible.role: Accessible.Button
           }
 
@@ -870,7 +954,7 @@ Panel {
                 id: resultList
                 readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
                 anchors.fill: parent
-                model: root.resultRows
+                model: root.displayRows
                 currentIndex: root.selectedRowIndex
                 spacing: Style.spacing.md
                 clip: true
@@ -905,7 +989,8 @@ Panel {
                     gameRow.childActionPressed,
                     leagueStatus.pointerPressed,
                     nextGameCard.childActionPressed,
-                    emptyAction.pointerPressed)
+                    emptyAction.pointerPressed,
+                    standingsRow.childActionPressed)
 
                   Column {
                     id: rowColumn
@@ -920,6 +1005,17 @@ Panel {
                       height: visible ? font.pixelSize : 0
                       visible: modelData && modelData.kind === "section-header"
                       text: modelData.label || "Scores"
+                      color: Color.accent
+                      font.family: Style.font.family
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                    }
+
+                    Text {
+                      width: parent.width
+                      height: visible ? font.pixelSize : 0
+                      visible: modelData && modelData.kind === "standings-section"
+                      text: modelData.label || "Standings"
                       color: Color.accent
                       font.family: Style.font.family
                       font.pixelSize: Style.font.caption
@@ -1023,6 +1119,17 @@ Panel {
                       dateKey: modelData.dateKey || ""
                       onJumpRequested: root.selectDate(modelData.dateKey)
                     }
+
+                    StandingsRow {
+                      id: standingsRow
+                      width: parent.width
+                      height: visible ? implicitHeight : 0
+                      visible: modelData && modelData.kind === "standings"
+                      standing: modelData && modelData.standing ? modelData.standing : ({team: {}})
+                      favorite: modelData && modelData.favorite === true
+                      selected: root.selectedRowId === (modelData ? modelData.rowId : "")
+                      settings: root.settingsStore
+                    }
                   }
 
                   TapHandler {
@@ -1041,6 +1148,7 @@ Panel {
                     if (modelData.kind === "game") gameRow.activatePrimaryAction()
                     else if (modelData.kind === "next-game") nextGameCard.activatePrimaryAction()
                     else if (modelData.kind === "status") leagueStatus.activatePrimaryAction()
+                    else if (modelData.kind === "standings") standingsRow.activatePrimaryAction()
                     else if (modelData.action && modelData.action.type === "choose-teams")
                       root.openUtility("teams")
                     else if (modelData.action && modelData.action.type === "browse-leagues")
