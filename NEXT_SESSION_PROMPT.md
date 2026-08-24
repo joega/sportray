@@ -1,73 +1,64 @@
-Work in `/home/joeg/Projects/sportray` on the next bounded Marketplace
-publication-handoff unit: perform a later read-only public-listing recheck of
-the already published Sportray listing and existing Marketplace issue #873.
-Do not create a duplicate issue, edit labels, or apply Marketplace approval
-labels.
+Work in `/home/joeg/Projects/sportray` on the next bounded product unit:
+design and implement the first generic standings/league-view slice identified
+by the private competitive baseline.
 
-Before any edit or remote action, read `AGENTS.md`, `README.md`,
-`docs/upstream-contract.md`, `roadmap.md`, and the latest roadmap/review
-handoff. This checkout intentionally has no `docs/upstream-contract.md`;
-verify any Omarchy/Quickshell boundary against installed Omarchy 4.0.0-1 and
-Quickshell 0.3.0.r20 sources. Inspect `git status`, branch, recent commits,
-`manifest.json`, `CHANGELOG.md`, local tags, the existing tag relation,
-`MARKETPLACE_SUBMISSION.md`, issue #873, all comments, and the published
-listing. Preserve unrelated changes.
+Before any edit, read `AGENTS.md`, `README.md`,
+`docs/upstream-contract.md`, `roadmap.md`, and this latest handoff. This
+checkout intentionally has no `docs/upstream-contract.md`; verify any
+Omarchy/Quickshell boundary against installed Omarchy 4.0.0-1 and Quickshell
+0.3.0 sources. Inspect `git status`, branch, recent commits, the current
+league/presentation models, provider adapters, fixtures, and tests. Preserve
+unrelated changes.
 
 Verified current state:
 
-- Issue #873 is the single Sportray submission. It is closed with exactly
-  `submission`, `validated`, `listed`, and `approved-and-verified` labels.
-  The latter listing state was observed from Marketplace automation; do not
-  apply or edit those labels.
-- Its exact title is `[Plugin]: Sportray`, and its body matches
-  `MARKETPLACE_SUBMISSION.md` exactly. Metadata is repository URL
-  `https://github.com/joega/sportray`, category `Widgets`, tags
-  `bar, quickshell`, and suggested tag `sports`.
-- Its three comments report Quattro compatibility and manifest version
-  `1.0.0-rc.8` at `0b0f6ca`, an automated security-baseline pass at exact
-  commit `0b0f6ca898c481fe93437a8f765edfd450fe700d` with no findings or
-  capabilities, and publication/verification of Sportray at
-  `https://omarchyplugins.com/plugin.html?id=io.github.joega.sportray`.
-- Local `HEAD` and public `origin/main` are
-  `0b0f6ca898c481fe93437a8f765edfd450fe700d`. `manifest.json` carries the
-  owner-assigned local version `1.0.0-rc.8`; the tree remains unreleased and
-  untagged. The annotated `v1.0.0-rc.7` tag still peels to
-  `de450941b5846914e1f8200f1a74ccf0a301428c`.
-- The owner authorized only the personally captured root `preview.png` as
-  shown, including its visible provider and team marks. Claim no rights for
-  other assets.
-- Installed Omarchy owns `/usr/bin/omarchy-launch-browser`; installed
-  Quickshell exposes the existing QString-list `Quickshell.execDetached`
-  method. ESPN remains an undocumented provider interface.
+- Sportray is an Omarchy Quattro bar widget with eight enabled/available
+  leagues, favorites-first navigation, one stable destination per league, a
+  five-day date carousel, bounded caches/polling, source links, settings,
+  accessibility actions, and favorite-only start/score/final notifications.
+- The live catalog now contains close generalist peers, especially
+  `meirdick.scores`, plus `sportsbar`, `omatchday`, `omasoccer`, and focused
+  MLB/F1/esports/VCT widgets. Their differentiating baseline is standings,
+  useful league pages on empty game days, rich game detail, live bar rotation,
+  provider fallback, and deeper opt-in alerts.
+- The current roadmap explicitly prioritizes standings and league views before
+  game detail, bar modes, provider chains, or niche sport adapters.
+- Provider parsing must remain outside QML. The current normalized game model,
+  date/cache boundaries, future-schema handling, settings permissions, and
+  no-account/no-daemon privacy contract must remain intact.
+- The public `origin/main` tree does not contain the private planning or
+  Marketplace review files. Do not add them to public product files or push
+  anything during this unit. Marketplace issue #873 and publication remain
+  owner-controlled and out of scope.
 
 Bounded outcome:
 
-Read the current public listing and issue #873 again, confirm that the
-published listing still corresponds to the exact issue metadata/body and
-verified commit, record any change in `roadmap.md` and
-`PUBLIC_CONSUMPTION_REVIEW.md`, and refresh this prompt with the next single
-bounded unit. Do not rerun publication workflows merely to recheck state.
+Implement one generic standings/league-view vertical slice. Prefer a pure
+provider-neutral standings model plus one provider fixture path and the
+smallest QML route needed to show a bounded standings list on an existing
+league destination. Selecting a standings team may expose the existing
+favorite action if that is already structurally safe; do not redesign the
+entire panel. If the current provider payloads cannot support a reliable
+generic shape, document the smallest adapter contract and stop after the pure
+model/fixture work rather than inventing data.
 
 Required checks and stop condition:
 
-- Confirm the exact listing URL, issue title/body, labels, metadata, all
-  comments, listed version, source/commit identity, and any maintainer request.
-- Run `git diff --check` if local documentation is edited.
-- Do not create or duplicate issues, edit labels, apply `approved-and-verified`,
-  package, tag, move `v1.0.0-rc.7`, push, or create a GitHub Release.
-- Stop and ask the owner if Marketplace requests repository changes, new
-  rights claims, a different target commit, or any action beyond a read-only
-  check. If a newer listed version is explicitly requested, do not act unless
-  owner direction authorizes the Marketplace verification form’s “Verify and
-  publish a newer upstream commit” action with the full 40-character target
-  SHA.
-- Use no subagents unless an independent read-only Marketplace audit materially
-  improves confidence.
+- Add fixture-driven coverage for ordering, missing fields, empty standings,
+  malformed provider input, and the selected-team/favorite route if changed.
+- Run `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, real-import-
+  path `qmllint` over changed QML, and `git diff --check`.
+- On actual Omarchy, rescan the linked plugin, inspect the Quickshell log, and
+  manually exercise the changed league view if QML behavior changed. Do not
+  report an Omarchy check as passing unless it actually ran there.
+- Stop before game-detail drill-down, compact/full bar modes, live rotation,
+  provider fallback chains, pregame/close alerts, new leagues, niche adapters,
+  packaging, tagging, pushing, releases, or Marketplace actions.
+- Do not weaken existing acceptance gates or change the public README unless
+  the supported product contract actually changes.
 
-Known risks: the candidate is published from an unreleased, untagged `rc.8`
-tree; the existing `v1.0.0-rc.7` tag remains older; the preview contains
-provider/team marks under the owner-authorized decision; ESPN is undocumented;
-and publication remains Marketplace-owner controlled. When the gate passes,
-update the roadmap and review handoff again, refresh this prompt, and create
-one atomic Conventional Commit-style commit only for those local
-documentation changes.
+At completion, update `roadmap.md` with milestone status, evidence, decisions,
+and a dated handoff; replace this file with the next single bounded prompt;
+and create one atomic Conventional Commit-style commit only after the gate
+passes. Use no subagents unless an independent read-only investigation would
+materially improve confidence.

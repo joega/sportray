@@ -2,6 +2,62 @@
 
 Last reviewed: 2026-08-23
 
+## Competitive scan — 2026-08-23
+
+The live Omarchy plugin catalog now contains a substantial sports cluster,
+including generalists (`sportsbar`, `meirdick.scores`, `io.github.brm-src.omatchday`,
+and `io.github.popidge.omasoccer`) plus focused MLB, F1, football, esports,
+racing, and VCT widgets. This private roadmap section records the relevant
+findings so no competitive or Marketplace review document needs to enter the
+public product tree.
+
+Observed patterns:
+
+- `meirdick.scores` is the closest generalist peer: separate team and league
+  follows, standings, per-game detail, live rotation, provider fallbacks,
+  ETag/gzip requests, watchdogs, and pure fixture-tested models.
+- `sportsbar` emphasizes simple favorite cards, theme-matched team colors, and
+  a lightweight add/remove flow.
+- `io.github.brm-src.omatchday` and `io.github.popidge.omasoccer` emphasize
+  football calendar/results views, in-panel settings, cross-competition club
+  discovery, adaptive polling, and configurable bar modes.
+- `io.github.jeremylongshore.mlb-booth` and
+  `io.github.jeremylongshore.pit-wall` show the value of sport-specific depth:
+  baseball inning/count/outs/last-play context and F1 live timing,
+  leaderboards, gaps, race control, schedules, and standings.
+- `matteodevenuto.f1-sessions` and `salmun-nister.next-race` add timezone-aware
+  weekend schedules, alerts, season rollover, track maps, and circuit context.
+- `contra.esports` makes spoiler-free behavior a data-layer property through a
+  companion daemon; `cassian.vct-scoreline` narrows the model to live map,
+  series, round, and side state.
+
+Source links: [live catalog feed](https://omarchyplugins.com/catalog.json),
+[marketplace](https://omarchyplugins.com/), and the linked repositories named
+above. The marketplace page's text-rendered view currently says there are no
+community plugins, so the catalog feed was used for the current inventory.
+
+The scan changes product prioritization but not the current public contract:
+Sportray should compete first on scoreboard depth and reliability rather than
+adding leagues indiscriminately. The five minimum baseline capabilities are:
+
+1. league views with sport-aware standings;
+2. bounded rich game detail;
+3. compact/full bar modes with stable today focus, live rotation, and
+   countdowns;
+4. per-league provider fallback chains where permitted; and
+5. opt-in pregame and close-game alerts alongside the existing notifications.
+
+Existing Sportray strengths remain the eight-league breadth, favorites-first
+navigation, bounded date/cache/polling behavior, settings and accessibility
+work, source attribution, notification safety, and no-account/no-daemon
+privacy boundary. The roadmap must preserve provider parsing outside QML and
+must not force non-game sports into the current two-team model.
+
+Decision: the next product milestone should design and fixture-test standings
+and league views, followed by generic game-detail data. Specialist adapters
+for F1 timing, baseball situations, esports series, and additional racing
+should wait until the generic baseline is accepted.
+
 ## Current milestone — Marketplace publication readiness
 
 Status: the single Marketplace submission issue #873 is closed and published.
@@ -1001,3 +1057,34 @@ verified boundaries; this checkout intentionally has no
 package, tag, release, or issue content changed. The next bounded unit is a
 later read-only recheck of #873 for maintainer listing activity; stop for any
 repository-change, rights, or target-commit request.
+
+## Latest handoff — 2026-08-23 competitive baseline review
+
+The read-only Omarchy catalog scan found a crowded sports cluster. The closest
+generalist peer is `meirdick.scores`, which combines team and league follows,
+standings, per-game detail, live bar rotation, provider fallbacks, bounded
+polling, watchdogs, and fixture-tested pure models. `sportsbar`, `omatchday`,
+and `omasoccer` reinforce expectations around simple favorite cards, football
+calendar/results views, cross-competition discovery, in-panel settings,
+adaptive polling, and configurable bar modes. MLB Booth, Pit Wall, F1 Sessions,
+Next Race, Esports, and VCT Scoreline demonstrate the value of optional
+sport-specific depth. Source links and the complete private summary are above;
+no standalone competitive document was added.
+
+The minimum competitive baseline is now recorded as five capabilities:
+sport-aware standings and useful league views; bounded rich game detail;
+compact/full bar modes with stable today focus, live rotation, and countdowns;
+per-league provider fallback chains where permitted; and opt-in pregame and
+close-game alerts. Existing Sportray breadth, favorites-first UX, bounded
+reliability/privacy work, settings, accessibility, and source attribution are
+retained as strengths. Do not force F1, racing, golf, tennis, MMA, or esports
+into the current two-team model before a concrete adapter requires an optional
+event/participant shape.
+
+This review remains private. `origin/main` was checked and does not contain
+`AGENTS.md`, `roadmap.md`, `NEXT_SESSION_PROMPT.md`,
+`PUBLIC_CONSUMPTION_REVIEW.md`, or `MARKETPLACE_SUBMISSION.md`; no push,
+Marketplace action, release, tag, or public README change was performed.
+The next bounded unit is standings and league-view design/implementation;
+stop before game-detail, bar-mode, provider-fallback, niche-adapter, or
+publication work.
