@@ -10,6 +10,7 @@ Item {
   property string lookaheadLeagueId: ""
   property bool panelOpen: false
   property var leagueStates: []
+  property var calendarStates: []
   property var games: []
   property bool hasData: false
   property bool loading: false
@@ -49,9 +50,18 @@ Item {
       ncaafFetch.snapshot(), eplFetch.snapshot(), mlsFetch.snapshot(), ncaabFetch.snapshot()]
   }
 
+  function buildCalendarStates() {
+    if (!nhlFetch || !nflFetch || !mlbFetch || !nbaFetch || !ncaafFetch || !eplFetch || !mlsFetch || !ncaabFetch
+        || typeof nhlFetch.calendarSnapshot !== "function") return []
+    return [nhlFetch.calendarSnapshot(), nflFetch.calendarSnapshot(), mlbFetch.calendarSnapshot(),
+      nbaFetch.calendarSnapshot(), ncaafFetch.calendarSnapshot(), eplFetch.calendarSnapshot(),
+      mlsFetch.calendarSnapshot(), ncaabFetch.calendarSnapshot()]
+  }
+
   function updateAggregateState() {
     var states = root.buildLeagueStates()
     root.leagueStates = states
+    root.calendarStates = root.buildCalendarStates()
     var composed = ScoreboardModel.compose(states, root.enabledLeagues, [], null, root.selectedDateKey)
     root.games = composed.games
     root.hasData = composed.hasData

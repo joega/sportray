@@ -562,6 +562,20 @@ Item {
     }
   }
 
+  // Calendar projection source. Reads the already-fetched bounded date cache
+  // only; it never starts a request, and admission/filtering stays in
+  // model/CalendarModel.js.
+  function calendarSnapshot() {
+    var days = []
+    for (var i = 0; i < root.dateCacheOrder.length; i++) {
+      var dateKey = root.dateCacheOrder[i]
+      var entry = root.dateCache[dateKey]
+      if (!entry || !Array.isArray(entry.games)) continue
+      days.push({dateKey: dateKey, games: entry.games.slice()})
+    }
+    return {leagueId: root.leagueId, displayName: root.displayName, days: days}
+  }
+
   onLeagueEnabledChanged: root.handleEnabledChanged()
 
   onDateKeyChanged: root.handleDateChanged()

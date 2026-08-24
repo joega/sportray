@@ -47,6 +47,7 @@ const liveFavoriteRotation = require(path.join(root, "model/LiveFavoriteRotation
 const countdownProjection = require(path.join(root, "model/CountdownProjectionPolicy.js"));
 const pregameReminder = require(path.join(root, "model/PregameReminderPolicy.js"));
 const closeGame = require(path.join(root, "model/CloseGamePolicy.js"));
+const calendarModel = require(path.join(root, "model/CalendarModel.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -181,6 +182,11 @@ function readPregameReminderFixture() {
 function readCloseGameFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/transitions/m6-6.json"), "utf8"));
+}
+
+function readCalendarFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/calendar/calendar.json"), "utf8"));
 }
 
 function normalizeFixtureGames(fixture) {
@@ -4439,6 +4445,169 @@ test("countdown projection bounds caller-visible text and uses supplied timestam
   });
   assert.equal(shortened.label, "Starts…");
   assert.equal(shortened.label.length <= 8, true);
+});
+
+test("calendar composes the bounded date window and filters enabled leagues", () => {
+  const fixture = readCalendarFixture();
+  const calendar = calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth,
+    orderer: presentation.orderGames,
+    matcher: presentation.isFavoriteGame
+  });
+
+  assert.equal(calendar.kind, "calendar");
+  assert.deepEqual(calendar.days.map((day) => day.dateKey), fixture.expected.dayKeys);
+  assert.equal(calendar.days.every((day) => typeof day.label === "string" && day.label !== ""), true);
+  assert.equal(calendar.gameCount, 5);
+  assert.equal(calendar.hasGames, true);
+
+  const day24 = calendar.days.find((day) => day.dateKey === "2026-08-24");
+  assert.deepEqual(day24.games.map((game) => game.id), fixture.expected.orderedDay24Ids);
+
+  // The disabled NFL window, outside-window dates, malformed day keys, and
+  // invalid records never widen the projection.
+  const allIds = calendar.days.flatMap((day) => day.games.map((game) => game.id));
+  assert.equal(allIds.includes("nfl:cal-disabled-league"), false);
+  assert.equal(allIds.includes("nhl:cal-outside-window"), false);
+  assert.equal(allIds.includes("nhl:cal-malformed-day"), false);
+  assert.equal(allIds.includes("mlb:cal-empty-league-id"), false);
+});
+
+test("calendar followed-team filter keeps only favorite games", () => {
+  const fixture = readCalendarFixture();
+  const base = {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth,
+    favoritesOnly: true,
+    orderer: presentation.orderGames,
+    matcher: presentation.isFavoriteGame
+  };
+  const filtered = calendarModel.compose(fixture.windows, base);
+  assert.equal(filtered.favoritesOnly, true);
+  assert.deepEqual(
+    ["2026-08-22", "2026-08-24", "2026-08-26"].map((dateKey) => {
+      return filtered.days.find((day) => day.dateKey === dateKey).games.map((game) => game.id);
+    }),
+    fixture.expected.favoritesOnlyDay22And24And26Ids
+  );
+  assert.equal(filtered.gameCount, 3);
+  assert.equal(filtered.hasGames, true);
+});
+
+test("calendar chronological fallback, clamps, and malformed input fail closed", () => {
+  const fixture = readCalendarFixture();
+  const chronological = calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: [],
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth
+  });
+  const day24 = chronological.days.find((day) => day.dateKey === "2026-08-24");
+  assert.deepEqual(day24.games.map((game) => game.id), fixture.expected.chronologicalDay24Ids);
+
+  const clamped = calendarModel.compose([{
+    leagueId: "nhl",
+    displayName: "NHL",
+    days: [{dateKey: "2026-08-17", games: []}, {dateKey: "2026-08-31", games: []}]
+  }], {
+    enabledLeagues: ["nhl"],
+    favoriteTeamIds: [],
+    centerDateKey: "2026-08-24",
+    halfWidth: 30
+  });
+  assert.equal(clamped.halfWidth, calendarModel.MAX_HALF_WIDTH_DAYS);
+  assert.deepEqual(clamped.days[0].dateKey, "2026-08-17");
+  assert.deepEqual(clamped.days[clamped.days.length - 1].dateKey, "2026-08-31");
+
+  const invalidCenter = calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: [],
+    centerDateKey: "not-a-date"
+  });
+  assert.deepEqual(invalidCenter.days, []);
+  assert.equal(invalidCenter.hasGames, false);
+
+  [null, undefined, "calendar", 42].forEach((input) => {
+    const safe = calendarModel.compose(input, {centerDateKey: "2026-08-24"});
+    assert.equal(safe.hasGames, false);
+  });
+
+  const oversized = Array.from({length: calendarModel.MAX_GAMES_PER_DAY + 8}, (_, index) => ({
+    id: "nhl:bulk-" + index,
+    league: "nhl",
+    isValid: true,
+    status: "scheduled",
+    startTime: "2026-08-24T18:" + String(index % 60).padStart(2, "0")
+      + ":" + String(index % 60).padStart(2, "0") + ".000Z",
+    awayTeam: {id: "nhl:6"},
+    homeTeam: {id: "nhl:10"}
+  }));
+  const bounded = calendarModel.compose([{
+    leagueId: "nhl",
+    days: [{dateKey: "2026-08-24", games: oversized}]
+  }], {enabledLeagues: ["nhl"], favoriteTeamIds: [], centerDateKey: "2026-08-24"});
+  assert.equal(bounded.days.find((day) => day.dateKey === "2026-08-24").games.length,
+    calendarModel.MAX_GAMES_PER_DAY);
+});
+
+test("calendar flatten reuses scoreboard row vocabulary for the panel list", () => {
+  const fixture = readCalendarFixture();
+  const rows = calendarModel.flatten(calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth,
+    orderer: presentation.orderGames,
+    matcher: presentation.isFavoriteGame
+  }));
+
+  const headerRows = rows.filter((row) => row.kind === "section-header");
+  assert.equal(headerRows.length, 5);
+  assert.equal(headerRows.every((row) => row.rowId.startsWith("section:calendar:")), true);
+  const emptyRows = rows.filter((row) => row.kind === "empty" && row.text === "No games");
+  assert.equal(emptyRows.length, 2);
+  const gameRows = rows.filter((row) => row.kind === "game");
+  assert.equal(gameRows.length, 5);
+  assert.equal(gameRows.every((row) => row.action.type === "open-detail"
+    && row.action.enabled === true), true);
+  assert.equal(new Set(rows.map((row) => row.rowId)).size, rows.length);
+  assert.equal(gameRows.every((row) => row.game.presentation
+    && typeof row.game.presentation.leagueLabel === "string"), false);
+
+  assert.deepEqual(calendarModel.flatten(null), []);
+  assert.deepEqual(calendarModel.flatten({}), []);
+});
+
+test("calendar projection adds no new fetch ownership or provider parsing", () => {
+  const fetchService = readSource("services/FetchService.qml");
+  const leagueFetch = readSource("services/LeagueFetch.qml");
+  const panel = readSource("Panel.qml");
+  const model = readSource("model/CalendarModel.js");
+
+  // The calendar path reads existing caches only: no new curl invocations,
+  // no new Process objects, and no new polling owner.
+  assert.equal(fetchService.includes("function buildCalendarStates()"), true);
+  assert.equal(fetchService.includes("calendarSnapshot()"), true);
+  assert.equal((leagueFetch.match(/Process \{/g) || []).length, 2);
+  assert.equal((fetchService.match(/curl/g) || []).length, 0);
+  assert.equal(model.includes("curl"), false);
+  assert.equal(model.includes("Process"), false);
+  assert.equal(model.includes("Timer"), false);
+  assert.equal(model.includes("JSON.parse"), false);
+
+  // Panel mounts it behind a minimal entry point without touching the
+  // ambient bar state or notification graph.
+  assert.equal(panel.includes("readonly property var calendarRows: CalendarModel.flatten(root.calendarState)"), true);
+  assert.equal(panel.includes("root.calendarOpen ? root.calendarRows : root.resultRows"), true);
+  assert.equal(panel.includes("root.fetchService ? root.fetchService.calendarStates : []"), true);
+  assert.equal(panel.includes(": root.calendarOpen ? root.closeCalendar() : root.close()"), true);
+  assert.equal(panel.includes('root.toggleCalendar()'), true);
+  assert.equal(panel.includes('root.toggleCalendarFilter()'), true);
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

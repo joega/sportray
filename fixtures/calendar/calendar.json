@@ -1,0 +1,238 @@
+{
+  "centerDateKey": "2026-08-24",
+  "halfWidth": 2,
+  "enabledLeagues": ["nhl", "mlb"],
+  "favoriteTeamIds": ["nhl:6"],
+  "windows": [
+    {
+      "leagueId": "nhl",
+      "displayName": "NHL",
+      "days": [
+        {
+          "dateKey": "2026-08-22",
+          "games": [
+            {
+              "id": "nhl:cal-final",
+              "league": "nhl",
+              "providerGameId": "cal-final",
+              "isValid": true,
+              "status": "final",
+              "startTime": "2026-08-22T23:00:00.000Z",
+              "awayScore": 4,
+              "homeScore": 3,
+              "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+              "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+            }
+          ]
+        },
+        {
+          "dateKey": "2026-08-24",
+          "games": [
+            {
+              "id": "nhl:cal-live-favorite",
+              "league": "nhl",
+              "providerGameId": "cal-live-favorite",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-08-24T23:30:00.000Z",
+              "awayScore": 1,
+              "homeScore": 1,
+              "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+              "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+            },
+            {
+              "id": "nhl:cal-live-other",
+              "league": "nhl",
+              "providerGameId": "cal-live-other",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-08-24T23:00:00.000Z",
+              "awayScore": 0,
+              "homeScore": 2,
+              "awayTeam": {"id": "nhl:24", "abbreviation": "ANA"},
+              "homeTeam": {"id": "nhl:21", "abbreviation": "VGK"}
+            }
+          ]
+        },
+        {
+          "dateKey": "2026-08-26",
+          "games": [
+            {
+              "id": "nhl:cal-scheduled",
+              "league": "nhl",
+              "providerGameId": "cal-scheduled",
+              "isValid": true,
+              "status": "scheduled",
+              "startTime": "2026-08-27T00:00:00.000Z",
+              "awayScore": null,
+              "homeScore": null,
+              "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+              "homeTeam": {"id": "nhl:25", "abbreviation": "DAL"}
+            }
+          ]
+        },
+        {
+          "dateKey": "2026-08-20",
+          "games": [
+            {
+              "id": "nhl:cal-outside-window",
+              "league": "nhl",
+              "providerGameId": "cal-outside-window",
+              "isValid": true,
+              "status": "scheduled",
+              "startTime": "2026-08-20T23:00:00.000Z",
+              "awayScore": null,
+              "homeScore": null,
+              "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+              "homeTeam": {"id": "nhl:13", "abbreviation": "FLA"}
+            }
+          ]
+        },
+        {
+          "dateKey": "not-a-date",
+          "games": [
+            {
+              "id": "nhl:cal-malformed-day",
+              "league": "nhl",
+              "providerGameId": "cal-malformed-day",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-08-24T23:00:00.000Z",
+              "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+              "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "leagueId": "mlb",
+      "displayName": "MLB",
+      "days": [
+        {
+          "dateKey": "2026-08-24",
+          "games": [
+            {
+              "id": "mlb:cal-scheduled",
+              "league": "mlb",
+              "providerGameId": "cal-scheduled",
+              "isValid": true,
+              "status": "scheduled",
+              "startTime": "2026-08-24T22:10:00.000Z",
+              "awayScore": null,
+              "homeScore": null,
+              "awayTeam": {"id": "mlb:2", "abbreviation": "BOS"},
+              "homeTeam": {"id": "mlb:28", "abbreviation": "MIA"}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "leagueId": "nfl",
+      "displayName": "NFL",
+      "days": [
+        {
+          "dateKey": "2026-08-24",
+          "games": [
+            {
+              "id": "nfl:cal-disabled-league",
+              "league": "nfl",
+              "providerGameId": "cal-disabled-league",
+              "isValid": true,
+              "status": "scheduled",
+              "startTime": "2026-08-24T23:15:00.000Z",
+              "awayScore": null,
+              "homeScore": null,
+              "awayTeam": {"id": "nfl:17", "abbreviation": "NE"},
+              "homeTeam": {"id": "nfl:2", "abbreviation": "BUF"}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "leagueId": "nhl",
+      "displayName": "NHL",
+      "days": [
+        {"dateKey": "2026-08-23", "games": []}
+      ]
+    },
+    "malformed-window-record",
+    {
+      "leagueId": "mlb",
+      "days": "not-an-array"
+    },
+    {
+      "leagueId": "",
+      "days": [
+        {
+          "dateKey": "2026-08-24",
+          "games": [
+            {
+              "id": "mlb:cal-empty-league-id",
+              "league": "mlb",
+              "isValid": true,
+              "status": "scheduled",
+              "startTime": "2026-08-24T23:00:00.000Z",
+              "awayTeam": {"id": "mlb:2", "abbreviation": "BOS"},
+              "homeTeam": {"id": "mlb:28", "abbreviation": "MIA"}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "invalidGames": {
+    "dateKey": "2026-08-24",
+    "leagueId": "nhl",
+    "games": [
+      {
+        "id": "nhl:cal-not-valid",
+        "league": "nhl",
+        "isValid": false,
+        "status": "live",
+        "startTime": "2026-08-24T23:00:00.000Z",
+        "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+        "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+      },
+      {
+        "id": "nhl:cal-wrong-date",
+        "league": "nhl",
+        "isValid": true,
+        "status": "scheduled",
+        "startTime": "2026-08-30T23:00:00.000Z",
+        "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+        "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+      },
+      {
+        "id": "nhl:cal-wrong-league",
+        "league": "nba",
+        "isValid": true,
+        "status": "live",
+        "startTime": "2026-08-24T23:00:00.000Z",
+        "awayTeam": {"id": "nba:2", "abbreviation": "BOS"},
+        "homeTeam": {"id": "nba:13", "abbreviation": "LAL"}
+      },
+      {
+        "league": "nhl",
+        "isValid": true,
+        "status": "live",
+        "startTime": "2026-08-24T23:00:00.000Z",
+        "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+        "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+      }
+    ]
+  },
+  "expected": {
+    "dayKeys": ["2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25", "2026-08-26"],
+    "allDay24Ids": ["nhl:cal-live-favorite", "nhl:cal-live-other", "mlb:cal-scheduled"],
+    "favoritesOnlyDay22And24And26Ids": [
+      ["nhl:cal-final"],
+      ["nhl:cal-live-favorite"],
+      ["nhl:cal-scheduled"]
+    ],
+    "orderedDay24Ids": ["nhl:cal-live-favorite", "nhl:cal-live-other", "mlb:cal-scheduled"],
+    "chronologicalDay24Ids": ["mlb:cal-scheduled", "nhl:cal-live-other", "nhl:cal-live-favorite"]
+  }
+}

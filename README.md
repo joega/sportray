@@ -26,6 +26,9 @@ At a glance:
 - Grouped standings on ESPN-backed and NHL league destinations, with missing
   provider fields shown as neutral blanks and one-click favorite-team toggles
 - A five-day date carousel with previous/next-day navigation and a Today reset
+- A bounded calendar view behind the panel header that projects the
+  already-fetched five-date caches into a day list with favorite-only and
+  enabled-league filters; it never starts new requests
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
 - Loaded game rows open a local game-details drill-down from whole-row
@@ -53,7 +56,11 @@ back to completed slates or forward to upcoming games; each fetch and result
 model is scoped to the selected local date. Closing the panel returns the
 ambient bar indicator to the current date. `[` and `]` move one day while `T`
 returns to today. On an ESPN-backed league destination, `S` toggles the
-standings view.
+standings view. `C` toggles the calendar view: a bounded five-day day list
+around the selected date built only from the date caches already fetched, with
+an All games/Favorites filter and neutral "No games" days. Calendar game rows
+open the same local detail drill-down, and Escape returns from detail,
+settings, and calendar before closing the panel.
 
 When an enabled league has no games on the selected day, Sportray searches the
 next bounded schedule window and shows the first upcoming game below the empty

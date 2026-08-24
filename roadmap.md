@@ -2820,3 +2820,81 @@ remains an undocumented API; lines presence varies by league and state; the
 detail status line can repeat the state word when the provider detail mirrors
 it (pre-existing view logic); pointer activation of the detail route remains
 manually unexercised.
+
+## Full-calendar day-list slice — 2026-08-24
+
+Status: complete. The owner-requested calendar is implemented as one bounded
+vertical slice: a pure provider-neutral calendar model projecting the
+already-fetched bounded date caches into a day list with followed-team and
+enabled-league filters, mounted in the existing panel behind a minimal header
+action and `C` shortcut. No new polling owner, fetch graph, provider endpoint,
+or per-game request was added.
+
+Evidence:
+
+- `model/CalendarModel.js` composes `{leagueId, displayName, days:[{dateKey,
+  games}]}` windows into a bounded day list: clamped half-width (default 2,
+  max 7) around the selected date, enabled-league admission, valid/identity/
+  date-matching game admission, per-day dedupe, deterministic ordering
+  (caller orderer or chronological fallback), a 64-game per-day bound, and
+  fail-closed handling for malformed windows, days, and games. `flatten`
+  reuses the existing scoreboard row vocabulary (section header, game row
+  with the guarded `open-detail` action, neutral empty row) so the panel list,
+  keyboard routing, and detail drill-down stay unchanged. QML-imported
+  fallbacks mirror the `DateModel` boundary because QML cannot `require`.
+- `services/LeagueFetch.qml` exposes `calendarSnapshot()`, which reads only
+  the existing five-entry `dateCache`; `services/FetchService.qml` publishes
+  `calendarStates` from the existing `updateAggregateState` cycle. The
+  deterministic suite asserts the boundary: still exactly two `Process`
+  objects and zero new `curl` uses, no timers or JSON parsing in the model,
+  and the panel binding reads `fetchService.calendarStates` only.
+- `Panel.qml` adds `calendarOpen`/`calendarFavoritesOnly`, a header
+  Calendar/Scores toggle plus an All games/Favorites filter button (visible
+  only while the calendar is open), the `C` text-key shortcut, Escape order
+  detail → settings → calendar → panel close, calendar reset on
+  open/close/destination change, and height recalculation through the
+  existing `PanelLayout` tokens. Scores, standings, detail, settings,
+  notification, and ambient-bar behavior are unchanged.
+- `fixtures/calendar/calendar.json` and five deterministic tests cover
+  window bounds and outside-window exclusion, disabled-league and malformed
+  window rejection, favorite-only filtering, chronological versus
+  favorite-first ordering, empty days, per-day bounds, invalid centers and
+  non-array inputs, flatten row vocabulary and unique row IDs, and the
+  no-new-fetch ownership boundary. The suite passes with 199 tests.
+- `tests/run-js-tests.sh`, `git diff --check`, `omarchy plugin validate
+  "$PWD"`, and real-import-path `/usr/lib/qt6/bin/qmllint -I
+  /usr/share/omarchy/shell` over all QML files pass with the established
+  standalone import/unqualified-access and host-type warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported
+  `omarchy restart shell` loaded the linked checkout into one instance
+  (`5ywiedeakt`, PID 882509); shell ping returned `ok`, the plugin is enabled,
+  and the summon helper returned `ok`. Keyboard exercise: `C` opened the
+  calendar showing Sat Aug 22–Wed Aug 26 with neutral "No games" days and
+  Mon Aug 24 listing multi-league games (MLB, Premier League) with league
+  context; Down/Return opened the `Game details` drill-down for
+  `mlb:401816655` (BOS @ MIA) with neutral placeholders and the ESPN action;
+  Escape returned to the calendar, and a second Escape closed the panel. The
+  fresh log has normal provider/cache activity and no Sportray exception,
+  QML load failure, or binding-loop warning. One integration defect was found
+  and fixed during runtime verification: the QML import path has no
+  `require`, so the first runtime pass rendered an empty calendar until the
+  model's date helpers gained QML-safe fallbacks.
+
+Not exercised: pointer clicks (no reliable injector; keyboard was used), the
+All games/Favorites filter button at runtime (header buttons are outside the
+panel's keyboard cursor model; the filter is fixture-covered at the model
+boundary), and days beyond the five-date cache (the calendar intentionally
+fails closed to cached snapshots rather than fetching more).
+
+Decision log: the calendar is a projection of the existing bounded date
+caches only — no second fetch graph, lookahead reuse, or new endpoint. Day
+rows reuse the scoreboard row vocabulary so detail routing and accessibility
+stay shared. Filters live in the pure model; the UI exposes one favorites
+toggle and relies on `enabledLeagues` for league admission. Stop before new
+provider endpoints, per-game fetches, box scores, month-grid rendering,
+provider fallback, packaging, tagging, pushing, release, or Marketplace work.
+
+Known risks: the calendar can only show dates present in the five-entry
+per-league caches, so freshly opened panels show one populated day until the
+user browses more dates; ESPN remains an undocumented API; the filter toggle
+and pointer paths remain manually unexercised.

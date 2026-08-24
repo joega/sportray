@@ -6,6 +6,7 @@ import qs.Ui
 import "components"
 import "model/FavoritePresentation.js" as FavoritePresentation
 import "model/BarPresentation.js" as BarPresentation
+import "model/CalendarModel.js" as CalendarModel
 import "model/Formatters.js" as Formatters
 import "model/LiveFavoriteRotationPolicy.js" as LiveFavoriteRotationPolicy
 import "model/PanelPresentation.js" as PanelPresentation
@@ -36,6 +37,8 @@ Panel {
   property string barRegion: ""
   property bool settingsOpen: false
   property bool standingsOpen: false
+  property bool calendarOpen: false
+  property bool calendarFavoritesOnly: false
   property bool detailOpen: false
   property var detailGame: null
   property string utilityReturnDestination: "following"
@@ -115,8 +118,26 @@ Panel {
   }
   readonly property var standingsRows: StandingsRows.flatten(
     root.standingsState, root.favoriteTeamIds, root.standingsRevision)
+  // Calendar projects the already-fetched bounded date caches only; it never
+  // requests new data and owns no polling.
+  readonly property var calendarState: CalendarModel.compose(
+    root.fetchService ? root.fetchService.calendarStates : [], {
+      enabledLeagues: root.enabledLeagues,
+      favoriteTeamIds: root.favoriteTeamIds,
+      centerDateKey: root.selectedDateKey,
+      halfWidth: CalendarModel.DEFAULT_HALF_WIDTH_DAYS,
+      favoritesOnly: root.calendarFavoritesOnly,
+      orderer: FavoritePresentation.orderGames,
+      matcher: FavoritePresentation.isFavoriteGame,
+      annotate: function(game, leagueMeta) {
+        return PanelPresentation.annotate(game, root.favoriteTeamIds, false,
+          FavoritePresentation.isFavoriteGame, leagueMeta, true)
+      },
+      revision: root.presentationRevision
+    })
+  readonly property var calendarRows: CalendarModel.flatten(root.calendarState)
   readonly property var displayRows: root.standingsOpen
-    ? root.standingsRows : root.resultRows
+    ? root.standingsRows : root.calendarOpen ? root.calendarRows : root.resultRows
   readonly property var orderedGames: scoreboard.games
   readonly property var unrotatedBarState: FavoritePresentation.selectBarState(
     normalizedGames, favoriteTeamIds, null, root.presentationRevision)
@@ -159,6 +180,7 @@ Panel {
   function openStandings() {
     if (!root.activeLeagueSupportsStandings || !root.standingsService) return
     root.standingsOpen = true
+    root.calendarOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""
     root.standingsService.load(root.activeDestination, false)
@@ -173,6 +195,36 @@ Panel {
     } else {
       root.openStandings()
     }
+  }
+
+  function openCalendar() {
+    root.calendarOpen = true
+    root.standingsOpen = false
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    root.recalculatePanelHeight()
+    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+  }
+
+  function closeCalendar() {
+    if (!root.calendarOpen) return
+    root.calendarOpen = false
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    root.recalculatePanelHeight()
+    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+  }
+
+  function toggleCalendar() {
+    root.calendarOpen ? root.closeCalendar() : root.openCalendar()
+  }
+
+  function toggleCalendarFilter() {
+    if (!root.calendarOpen) return
+    root.calendarFavoritesOnly = !root.calendarFavoritesOnly
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    root.recalculatePanelHeight()
   }
 
   function openGameDetail(game) {
@@ -338,6 +390,7 @@ Panel {
     root.queuePanelHeightRecalculation()
     root.saveResultPosition(root.activeDestination)
     root.standingsOpen = false
+    root.calendarOpen = false
     root.tabCursor = index
     root.activeDestination = root.tabItems[index].id
     root.tabStripFocused = true
@@ -488,6 +541,8 @@ Panel {
     }
     root.nowMs = Date.now()
     root.standingsOpen = false
+    root.calendarOpen = false
+    root.calendarFavoritesOnly = false
     root.panelHeightRecalculationPending = root.displayRows.some(function(row) {
       return row.kind === "loading"
     })
@@ -517,6 +572,7 @@ Panel {
 
   onActiveDestinationChanged: {
     root.standingsOpen = false
+    root.calendarOpen = false
     root.tabCursor = root.destinationIndex(root.activeDestination)
     if (sportsPicker) sportsPicker.value = root.activeDestination
     root.recalculatePanelHeight()
@@ -573,6 +629,7 @@ Panel {
       root.setSelectedDate(root.todayDateKey)
     root.detailOpen = false
     root.detailGame = null
+    root.calendarOpen = false
     root.controller.hide()
   }
 
@@ -766,7 +823,8 @@ Panel {
       blocked: KeyboardRoutingPolicy.catcherBlocked(
         settingsHub.inputActive, sportsPicker.popupOpen)
       onCloseRequested: root.detailOpen ? root.closeDetail()
-        : root.settingsOpen ? root.closeUtility() : root.close()
+        : root.settingsOpen ? root.closeUtility()
+        : root.calendarOpen ? root.closeCalendar() : root.close()
       onMoveRequested: function(dx, dy) {
         if (root.detailOpen) root.moveDetailCursor(dy !== 0 ? dy : dx)
         else if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
@@ -788,6 +846,8 @@ Panel {
         if (root.detailOpen) return
         if (text === "r" || text === "R") root.refresh()
         if (text === "n" || text === "N") root.openSettings()
+        if ((text === "c" || text === "C") && !root.settingsOpen && !root.detailOpen)
+          root.toggleCalendar()
         if ((text === "s" || text === "S") && !root.settingsOpen)
           root.toggleStandings()
         if (text === "[" || text === "{") root.selectRelativeDate(-1)
@@ -834,9 +894,10 @@ Panel {
             text: (Iconography.displayText(
               root.settingsOpen ? "settings" : root.detailOpen ? "scores" : "calendar",
               Style.font.family) || "S")
-              + (root.settingsOpen ? "  Settings"
-                : root.detailOpen ? "  Game details"
-                : root.standingsOpen ? "  Standings" : "  " + root.selectedDateLabel)
+            + (root.settingsOpen ? "  Settings"
+              : root.detailOpen ? "  Game details"
+              : root.calendarOpen ? "  Calendar"
+              : root.standingsOpen ? "  Standings" : "  " + root.selectedDateLabel)
             font.family: Style.font.family
             font.pixelSize: Style.font.title
             color: Color.accent
@@ -847,8 +908,10 @@ Panel {
             width: Math.max(0, header.width - headerTitle.implicitWidth
               - (todayButton.visible ? todayButton.implicitWidth : 0)
               - (standingsButton.visible ? standingsButton.implicitWidth : 0)
+              - (calendarButton.visible ? calendarButton.implicitWidth : 0)
+              - (calendarFilterButton.visible ? calendarFilterButton.implicitWidth : 0)
               - (refreshButton.visible ? refreshButton.implicitWidth : 0)
-              - settingsButton.implicitWidth - header.spacing * 5)
+              - settingsButton.implicitWidth - header.spacing * 6)
             height: 1
           }
 
@@ -884,6 +947,43 @@ Panel {
             focusable: true
             onClicked: root.toggleStandings()
             Accessible.name: root.standingsOpen ? "Show scores" : "Show standings"
+            Accessible.role: Accessible.Button
+          }
+
+          SemanticActionButton {
+            id: calendarButton
+            visible: !root.settingsOpen && !root.detailOpen
+            iconName: root.calendarOpen ? "scores" : "calendar"
+            fallbackText: root.calendarOpen ? "S" : "C"
+            tooltipText: root.calendarOpen ? "Show scores" : "Show calendar"
+            text: root.calendarOpen ? "Scores" : "Calendar"
+            textFontSize: Style.font.caption
+            textBold: true
+            textVerticalPadding: Style.spacing.controlPaddingY / 2
+            width: root.calendarOpen ? Style.space(62) : Style.space(76)
+            height: refreshButton.implicitHeight
+            focusable: true
+            onClicked: root.toggleCalendar()
+            Accessible.name: root.calendarOpen ? "Show scores" : "Show calendar"
+            Accessible.role: Accessible.Button
+          }
+
+          SemanticActionButton {
+            id: calendarFilterButton
+            visible: root.calendarOpen && !root.settingsOpen && !root.detailOpen
+            iconName: ""
+            fallbackText: ""
+            tooltipText: root.calendarFavoritesOnly
+              ? "Show every enabled league" : "Show only favorite games"
+            text: root.calendarFavoritesOnly ? "Favorites" : "All games"
+            textFontSize: Style.font.caption
+            textBold: true
+            textVerticalPadding: Style.spacing.controlPaddingY / 2
+            height: refreshButton.implicitHeight
+            focusable: true
+            onClicked: root.toggleCalendarFilter()
+            Accessible.name: root.calendarFavoritesOnly
+              ? "Show every enabled league" : "Show only favorite games"
             Accessible.role: Accessible.Button
           }
 
