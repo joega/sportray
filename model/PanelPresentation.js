@@ -173,6 +173,7 @@ function build(composed, favoriteTeamIds, orderer, matcher) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
+    annotate: annotate,
     build: build,
     deduplicateGames: deduplicateGames,
     gameIdentity: gameIdentity,

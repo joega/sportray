@@ -4930,6 +4930,104 @@ test("calendar rows carry bounded explicit local-time labels", () => {
   assert.equal(calendarModel.localTimeLabel("not-a-time"), "");
 });
 
+test("calendar week-strip summaries project bounded per-day overviews", () => {
+  const fixture = readCalendarFixture();
+  const annotate = (game, leagueMeta) => panelPresentation.annotate(game,
+    fixture.favoriteTeamIds, false, presentation.isFavoriteGame, leagueMeta, true);
+  const composed = calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth,
+    orderer: presentation.orderGames,
+    matcher: presentation.isFavoriteGame,
+    annotate
+  });
+  const expected = fixture.expected.weekStrip;
+  const summaries = calendarModel.daySummaries(composed, {
+    todayDateKey: expected.todayDateKey
+  });
+
+  assert.deepEqual(summaries.map((summary) => summary.dateKey),
+    fixture.expected.dayKeys);
+  summaries.forEach((summary, index) => {
+    const want = expected.summaries[index];
+    assert.equal(summary.weekday, want.weekday, `weekday ${want.dateKey}`);
+    assert.equal(summary.month, want.month, `month ${want.dateKey}`);
+    assert.equal(summary.dayOfMonth, want.dayOfMonth, `day ${want.dateKey}`);
+    assert.equal(summary.gameCount, want.gameCount, `count ${want.dateKey}`);
+    assert.equal(summary.hasGames, want.gameCount > 0, `hasGames ${want.dateKey}`);
+    assert.deepEqual(summary.leagueIds, want.leagueIds, `leagues ${want.dateKey}`);
+    assert.equal(summary.hasFavoriteGames, want.hasFavoriteGames,
+      `favorites ${want.dateKey}`);
+    assert.equal(summary.isToday, want.isToday, `today ${want.dateKey}`);
+    assert.equal(summary.isCenter, want.isCenter, `center ${want.dateKey}`);
+    assert.equal(typeof summary.label === "string" && summary.label !== "", true);
+  });
+
+  // Favorite highlights come only from explicit annotated presentation flags;
+  // an unannotated composition projects no favorite marks.
+  const unannotated = calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth
+  });
+  assert.equal(calendarModel.daySummaries(unannotated, {
+    todayDateKey: expected.todayDateKey
+  }).every((summary) => summary.hasFavoriteGames
+    === expected.unannotatedHasFavoriteGames), true);
+
+  // League dots stay capped regardless of how many leagues share a day.
+  const crowded = calendarModel.compose(
+    ["nhl", "mlb", "nba", "nfl", "eng.1", "usa.1"].map((leagueId) => ({
+      leagueId,
+      days: [{dateKey: "2026-08-24", games: [{
+        id: leagueId + ":strip-cap", league: leagueId, isValid: true,
+        status: "scheduled", startTime: "2026-08-24T20:00:00.000Z",
+        awayTeam: {id: leagueId + ":1"}, homeTeam: {id: leagueId + ":2"}
+      }]}]
+    })), {enabledLeagues: ["nhl", "mlb", "nba", "nfl", "eng.1", "usa.1"],
+      favoriteTeamIds: [], centerDateKey: "2026-08-24"});
+  const crowdedSummary = calendarModel.daySummaries(crowded, {})
+    .find((summary) => summary.dateKey === "2026-08-24");
+  assert.equal(crowdedSummary.leagueIds.length,
+    calendarModel.MAX_LEAGUES_PER_DAY_SUMMARY);
+
+  // Malformed input fails closed.
+  assert.deepEqual(calendarModel.daySummaries(null, {}), []);
+  assert.deepEqual(calendarModel.daySummaries("calendar"), []);
+  assert.deepEqual(calendarModel.daySummaries({days: "not-an-array"}), []);
+});
+
+test("calendar selected-day rows reuse scoreboard vocabulary for one day", () => {
+  const fixture = readCalendarFixture();
+  const composed = calendarModel.compose(fixture.windows, {
+    enabledLeagues: fixture.enabledLeagues,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    centerDateKey: fixture.centerDateKey,
+    halfWidth: fixture.halfWidth,
+    orderer: presentation.orderGames,
+    matcher: presentation.isFavoriteGame
+  });
+  const expected = fixture.expected.selectedDayRows;
+
+  const rows = calendarModel.flattenDay(composed, expected.dateKey);
+  assert.deepEqual(rows.map((row) => row.kind), expected.rowKinds);
+  assert.deepEqual(rows.filter((row) => row.kind === "game")
+    .map((row) => row.rowId), expected.gameRowIds);
+  assert.equal(rows[0].label, "Mon, Aug 24");
+  assert.equal(new Set(rows.map((row) => row.rowId)).size, rows.length);
+
+  // Empty and outside-window days fail closed without inventing rows.
+  const emptyRows = calendarModel.flattenDay(composed, expected.emptyDateKey);
+  assert.deepEqual(emptyRows.map((row) => row.kind), expected.emptyRowKinds);
+  assert.deepEqual(calendarModel.flattenDay(composed, expected.outsideDateKey), []);
+  assert.deepEqual(calendarModel.flattenDay(composed, "not-a-date"), []);
+  assert.deepEqual(calendarModel.flattenDay(null, expected.dateKey), []);
+  assert.deepEqual(calendarModel.flattenDay("calendar", expected.dateKey), []);
+});
+
 test("calendar projection adds no new fetch ownership or provider parsing", () => {
   const fetchService = readSource("services/FetchService.qml");
   const leagueFetch = readSource("services/LeagueFetch.qml");
@@ -4949,12 +5047,18 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
 
   // Panel mounts it behind a minimal entry point without touching the
   // ambient bar state or notification graph.
-  assert.equal(panel.includes("readonly property var calendarRows: CalendarModel.flatten(root.calendarState)"), true);
-  assert.equal(panel.includes("root.calendarOpen ? root.calendarRows : root.resultRows"), true);
+  assert.equal(panel.includes("readonly property var calendarDaySummaries: CalendarModel.daySummaries("), true);
+  assert.equal(panel.includes("readonly property var calendarDayRows: CalendarModel.flattenDay("), true);
+  assert.equal(panel.includes("root.calendarOpen ? root.calendarDayRows : root.resultRows"), true);
   assert.equal(panel.includes("root.fetchService ? root.fetchService.calendarStates : []"), true);
   assert.equal(panel.includes(": root.calendarOpen ? root.closeCalendar() : root.close()"), true);
   assert.equal(panel.includes('root.toggleCalendar()'), true);
   assert.equal(panel.includes('root.toggleCalendarFilter()'), true);
+
+  // The week strip replaces the shared date chrome while the calendar route
+  // is open, and arrow-left/right moves the selected cached day.
+  assert.equal(panel.includes("CalendarWeekStrip {"), true);
+  assert.equal(panel.includes("root.calendarOpen && dx !== 0) root.selectRelativeDate(dx)"), true);
 });
 
 test("provider fallback retains a healthy primary for its league chain", () => {

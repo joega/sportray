@@ -56,6 +56,20 @@ var DEFAULT_HALF_WIDTH_DAYS = 2;
 var MAX_HALF_WIDTH_DAYS = 7;
 var MAX_GAMES_PER_DAY = 64;
 var MAX_TIME_LABEL_LENGTH = 24;
+var MAX_LEAGUES_PER_DAY_SUMMARY = 4;
+
+// Weekday and month names for the week-strip cells. QML imports cannot
+// require other model files, so these mirror the DateModel label boundary.
+function weekdayLabel(value) {
+  if (!isDateKey(value)) return "";
+  var parts = value.split("-").map(Number);
+  return WEEKDAYS[new Date(parts[0], parts[1] - 1, parts[2]).getDay()] || "";
+}
+
+function dayOfMonthLabel(value) {
+  if (!isDateKey(value)) return "";
+  return String(Number(value.split("-")[2]));
+}
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -303,22 +317,84 @@ function emptyDayRow(dateKey) {
   };
 }
 
+// Shared per-day flattening used by both the full day list and the selected
+// single-day list so the row vocabulary and identity stay identical.
+function appendDayRows(rows, day) {
+  if (!isRecord(day) || !isDateKey(day.dateKey)) return;
+  rows.push(sectionRow("calendar:" + day.dateKey, day.label || day.dateKey));
+  if (day.hasGames !== true) {
+    rows.push(emptyDayRow(day.dateKey));
+    return;
+  }
+  (Array.isArray(day.games) ? day.games : []).forEach(function(game) {
+    var row = gameRow(game);
+    if (row) rows.push(row);
+  });
+}
+
 function flatten(calendar) {
   var rows = [];
   if (!isRecord(calendar) || !Array.isArray(calendar.days)) return rows;
   calendar.days.forEach(function(day) {
-    if (!isRecord(day)) return;
-    rows.push(sectionRow("calendar:" + day.dateKey, day.label || day.dateKey));
-    if (day.hasGames !== true) {
-      rows.push(emptyDayRow(day.dateKey));
-      return;
-    }
-    (Array.isArray(day.games) ? day.games : []).forEach(function(game) {
-      var row = gameRow(game);
-      if (row) rows.push(row);
-    });
+    appendDayRows(rows, day);
   });
   return rows;
+}
+
+// Selected-day drill-down: the same row vocabulary as flatten but bounded to
+// one cached date. Unknown or malformed dates fail closed to no rows so the
+// panel never renders a day outside the composed window.
+function flattenDay(calendar, dateKey) {
+  var rows = [];
+  if (!isRecord(calendar) || !Array.isArray(calendar.days) || !isDateKey(dateKey))
+    return rows;
+  for (var i = 0; i < calendar.days.length; i++) {
+    var day = calendar.days[i];
+    if (!isRecord(day) || day.dateKey !== dateKey) continue;
+    appendDayRows(rows, day);
+    break;
+  }
+  return rows;
+}
+
+// Bounded per-day overview for the calendar week strip. Summaries project the
+// already-composed state only: counts come from the admitted games, league
+// dots from first-seen normalized game leagues (capped), favorite highlights
+// from explicit annotated presentation flags, and today/center marks from the
+// caller-supplied keys. Malformed input fails closed to an empty list.
+function daySummaries(calendar, options) {
+  var result = [];
+  if (!isRecord(calendar) || !Array.isArray(calendar.days)) return result;
+  var config = isRecord(options) ? options : {};
+  var today = typeof config.todayDateKey === "string" ? config.todayDateKey : "";
+  calendar.days.forEach(function(day) {
+    if (!isRecord(day) || !isDateKey(day.dateKey)) return;
+    var games = Array.isArray(day.games) ? day.games : [];
+    var leagueIds = [];
+    var favoriteCount = 0;
+    games.forEach(function(game) {
+      if (!isRecord(game)) return;
+      var leagueId = normalizeLeagueId(game.league);
+      if (leagueId && leagueIds.indexOf(leagueId) === -1
+          && leagueIds.length < MAX_LEAGUES_PER_DAY_SUMMARY) leagueIds.push(leagueId);
+      if (isRecord(game.presentation) && game.presentation.isFavorite === true)
+        favoriteCount++;
+    });
+    result.push({
+      dateKey: day.dateKey,
+      label: typeof day.label === "string" && day.label ? day.label : shortDateLabel(day.dateKey),
+      weekday: weekdayLabel(day.dateKey),
+      month: MONTHS[Number(day.dateKey.split("-")[1]) - 1] || "",
+      dayOfMonth: dayOfMonthLabel(day.dateKey),
+      gameCount: games.length,
+      hasGames: games.length > 0,
+      leagueIds: leagueIds,
+      hasFavoriteGames: favoriteCount > 0,
+      isToday: today !== "" && day.dateKey === today,
+      isCenter: day.dateKey === calendar.centerDateKey
+    });
+  });
+  return result;
 }
 
 if (typeof module !== "undefined" && module.exports) {
@@ -327,8 +403,11 @@ if (typeof module !== "undefined" && module.exports) {
     MAX_HALF_WIDTH_DAYS: MAX_HALF_WIDTH_DAYS,
     MAX_GAMES_PER_DAY: MAX_GAMES_PER_DAY,
     MAX_TIME_LABEL_LENGTH: MAX_TIME_LABEL_LENGTH,
+    MAX_LEAGUES_PER_DAY_SUMMARY: MAX_LEAGUES_PER_DAY_SUMMARY,
     compose: compose,
     flatten: flatten,
+    flattenDay: flattenDay,
+    daySummaries: daySummaries,
     nextGamesDateKey: nextGamesDateKey,
     localTimeLabel: localTimeLabel,
     gameDateKey: gameDateKey,

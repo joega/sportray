@@ -1,11 +1,7 @@
 Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
-unit: a second verified provider adapter for live multi-provider fallback
-(P1-4 remainder). This unit is GATED: it may begin only after the owner
-provides an explicit provider review covering terms, region availability,
-reliability, and response shape for the candidate provider (for example an
-MLB or NHL alternative source). If that review is absent at session start,
-do not implement; instead record the blocker in `roadmap.md`, refresh this
-file with the smallest resolving prompt, and stop without a success commit.
+unit. The calendar week-strip overview unit is complete; no unit is currently
+prepared, so the next unit requires explicit owner direction before any
+implementation.
 
 Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`, the
 latest handoff, and `competition.md`. `docs/upstream-contract.md` is
@@ -17,39 +13,42 @@ commits. Preserve unrelated user changes, including the absence of
 
 Verified current state (2026-08-24):
 
-- The checkout is on `main`, clean, with the five minimum competitive
-  baseline capabilities, P1-5 broader team discovery, P1-6 calendar
-  extensions, and P2-8 broadcast/event links all closed: the game-details
-  drill-down renders at most two labeled event links (ESPN Highlights video
-  page, ESPN Preview article) admitted from the already-fetched snapshot
-  through the reviewed HTTPS/espn.com host boundary, beside the unchanged
-  labeled source action; 217 deterministic tests pass.
-- Per-league provider fallback chains are wired with cooldown, last-good
-  retention, isolation, and exhaustion handling, but every production chain
-  is single-candidate because each league has exactly one verified adapter.
-- Baseline gates at handoff time: `tests/run-js-tests.sh` (217 tests),
-  `tests/test-summon-helper.sh`, `git diff --check`, `omarchy plugin
+- The checkout is on `main`, clean, with all five minimum competitive
+  baseline capabilities closed plus the follow-up slices: standings
+  (ESPN-backed and NHL), bounded rich game detail (outcome, per-period
+  lines, team stats, labeled event links), icon-only ambient bar with
+  status dots, pregame reminders, close-game alerts, wired per-league
+  provider fallback chains (single verified candidate per league today),
+  broader team discovery, calendar extensions, and the calendar week-strip
+  overview. 219 deterministic tests pass.
+- The calendar route now shows a week-strip overview of the five cached
+  days (per-day counts, favorite dots, today/selected marks) with only the
+  selected day's games listed below; Left/Right moves the selected day and
+  `C`/`F`/`G`/`[`/`]`/`T` shortcuts, the favorites filter, and the Escape
+  chain are unchanged and runtime-verified on actual Omarchy.
+- Baseline gates at handoff time: `tests/run-js-tests.sh` (219 tests),
+  `./tests/test-summon-helper.sh`, `git diff --check`, `omarchy plugin
   validate "$PWD"`, and real-import-path `/usr/lib/qt6/bin/qmllint -I
   /usr/share/omarchy/shell` over all QML files (exit 0 with established
   warnings) all pass. Actual Omarchy restarted into one healthy shell; the
-  Preview link was exercised through real keyboard input and opened
-  `https://www.espn.com/mlb/preview/_/gameId/401816657` via the guarded
-  launcher; the fresh log had normal provider/cache activity and no Sportray
-  error, exception, or binding-loop warning.
+  calendar strip, arrow-day navigation, favorites filter, and Escape chain
+  were exercised through real keyboard input with screenshots, and the
+  fresh log had normal provider/cache activity with no Sportray error,
+  exception, or binding-loop warning.
 
-Bounded outcome (only when the owner review is supplied):
+Bounded outcome (only after explicit owner direction):
 
-One verified second provider adapter as one vertical slice: record the
-owner's terms/region/reliability findings, verify the candidate provider's
-actual response shape from live payloads or recorded fixtures before
-parsing, add the adapter inside `providers/`, extend exactly one league's
-`providerChain()` with the new candidate, and prove live fallback behavior
-with fixture-driven tests (primary failure → second candidate → last-good
-retention → cooldown exhaustion beside a healthy sibling). Keep provider
-parsing in `providers/`, keep new logic in pure fixture-tested models, and
-preserve normalized game identity, favorites, settings schema-1, polling
-ownership, and the response/event bounds. If the candidate provider cannot
-be verified against the review, stop and record the blocker.
+Implement exactly one owner-selected bounded vertical slice. The recorded
+candidate decisions live in `competition.md`; the remaining gated item is a
+second verified provider adapter for live multi-provider fallback (P1-4
+remainder), which may begin only after the owner provides an explicit
+terms/region/reliability review for the candidate provider — if that review
+is absent, do not implement it. Keep provider parsing in `providers/`, keep
+new logic in pure fixture-tested models, and preserve normalized game
+identity, favorites, settings schema-1, polling ownership, and the existing
+response/event bounds. If the owner supplies no direction, record the
+still-pending decision in `roadmap.md`, refresh this file, and stop without
+a success commit.
 
 Required checks (rerun all after implementation):
 
@@ -57,25 +56,21 @@ Required checks (rerun all after implementation):
   `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
   `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file.
 - On actual Omarchy: restart/rescan as required by the changed boundary,
-  confirm one healthy shell, exercise the changed fallback behavior through
-  the real input path available (or, if failure injection is not possible
-  live, say so explicitly rather than claiming it), and inspect the fresh
-  Quickshell log for Sportray errors, exceptions, or binding loops before
-  claiming runtime success.
+  confirm one healthy shell, exercise the changed behavior through the real
+  input path available, and inspect the fresh Quickshell log for Sportray
+  errors, exceptions, or binding loops before claiming runtime success.
 
 Known risks and stop conditions: ESPN remains an undocumented API; any new
-request path or provider requires explicit terms/region/reliability review
-before implementation; release metadata/tagging/pushing/Marketplace remain
-owner-controlled and out of feature scope. Stop before richer detail
-sections, packaging, tagging, pushing, releasing, or Marketplace work; stop
-if the slice would require a new upstream shell API, an unverified endpoint,
-or scope beyond one vertical slice. Do not weaken acceptance gates to
-finish.
+request path or provider requires explicit review before implementation;
+the calendar shows only dates present in the five-entry per-league caches
+and any wider window requires a verified wider source; pointer clicks on
+calendar strip cells remain unexercised (no reliable injector). Stop before
+packaging, tagging, pushing, releasing, or Marketplace work. Do not weaken
+acceptance gates to finish.
 
 At the end, update `roadmap.md` with the dated handoff and evidence, update
-`competition.md` backlog status, replace this file with the next
-self-contained single-unit prompt (owner-controlled release/publication
-follow-ups or the next agreed slice), and create one atomic Conventional
-Commit-style commit only when all applicable gates pass. Request subagents
-only for independent read-only reconnaissance; the main agent owns edits,
-validation, handoff, and commit.
+`competition.md` backlog status when the slice maps to a backlog line,
+replace this file with the next self-contained single-unit prompt, and
+create one atomic Conventional Commit-style commit only when all applicable
+gates pass. Request subagents only for independent read-only reconnaissance;
+the main agent owns edits, validation, handoff, and commit.

@@ -3514,3 +3514,98 @@ Next bounded unit: a second verified provider adapter for live
 multi-provider fallback (P1-4 remainder) — gated on an explicit
 terms/region/reliability review before any implementation; stop if the
 review is absent.
+
+## Latest handoff — 2026-08-24 calendar week-strip overview
+
+Status: complete. The owner-selected calendar redesign is implemented as one
+bounded vertical slice. Calendar mode is now visually distinct from the home
+scoreboard: a week-strip overview of the cached window with per-day game
+counts and favorite highlights replaces the shared date carousel and sport
+picker while the calendar is open, and only the selected day's games are
+listed below it for drill-down.
+
+Evidence:
+
+- `model/CalendarModel.js` adds two pure helpers. `daySummaries(calendar,
+  options)` projects bounded per-day overview records (`dateKey`, `label`,
+  `weekday`, `month`, `dayOfMonth`, `gameCount`, `hasGames`,
+  `leagueIds` capped at the new `MAX_LEAGUES_PER_DAY_SUMMARY` = 4,
+  `hasFavoriteGames` read only from explicit annotated presentation flags,
+  `isToday`, `isCenter`) and fails closed to `[]` for malformed input.
+  `flattenDay(calendar, dateKey)` reuses the shared per-day row vocabulary
+  (`appendDayRows`, refactored out of `flatten`) for one cached date and
+  fails closed to no rows for unknown, outside-window, or malformed dates.
+  `PanelPresentation` now exports its pure `annotate` for fixture use.
+- `components/CalendarWeekStrip.qml` renders the summaries as one bounded
+  cell per cached day (weekday/day, `N games`/`No games` count line, accent
+  favorite dot, accent foreground for today, selected-state fill) with
+  pointer, assistive, and keyboard-activatable buttons; the view performs no
+  filtering, parsing, or date math.
+- `Panel.qml` binds the strip to `calendarDaySummaries`, switches
+  `displayRows` to `calendarDayRows` (`flattenDay`) while the calendar is
+  open, hides the date carousel and tab strip in calendar mode, routes
+  Left/Right arrows to `selectRelativeDate` while the calendar is open, and
+  moves tab-strip focus out on calendar open (restored on close). The `C`,
+  `F`, `G`, `[`/`]`, `T` shortcuts, favorites filter, Escape chain, detail
+  drill-down, standings, settings, notification, ambient-bar, and polling
+  behavior are unchanged.
+- `fixtures/calendar/calendar.json` gains `weekStrip` and `selectedDayRows`
+  expectations; two new deterministic tests cover the summaries (weekday/
+  month/day parts, counts, league-dot cap, favorite flags from annotation
+  only, unannotated compositions projecting no favorite marks, malformed
+  rejection) and selected-day rows (vocabulary, identity, empty-day and
+  outside-window fail-closed). The ownership test now asserts the new
+  bindings, the mounted strip, and the arrow routing. The complete suite
+  passes with 219 tests.
+- `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
+  `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass; lint exits 0 with the established standalone import and
+  unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported
+  `omarchy restart shell` loaded the linked checkout into exactly one
+  instance (PID 955389); `shell ping` returned `ok`, the plugin is enabled,
+  and `debugBarGeometry` showed a live right-section Sportray slot. Real
+  keyboard exercise with screenshots: summon opened the Today scores view;
+  `C` opened the calendar rendering the Sat 22–Wed 26 strip (per-day counts,
+  accent favorite dot on Mon 24, "Mon, Aug 24" selected-day list with live
+  and scheduled rows, date carousel and sport picker hidden); Right re-
+  centered the strip on Tue 25 with real date-changed fetches (15 games,
+  favorite dot, "Show Today" appeared); Left returned to Mon 24; `f` flipped
+  the header to "Favorites" and re-projected strip counts (Mon 24: 1 game,
+  Tue 25: 1 game) and the favorite-only day list; Escape closed the calendar
+  and a second Escape closed the panel. The fresh log for the current
+  instance contains normal Sportray fetch/cache/polling activity (115 debug
+  lines) and no Sportray error, exception, or binding-loop warning; the only
+  warnings are the unrelated Hyprland xkbcomp keyboard noise. A pre-restart
+  binding-loop warning in the retained journal history belongs to the older
+  shell instance and predates this unit.
+
+Not exercised: pointer clicks on strip cells (no reliable injector; the
+keyboard and assistive route shares the same guarded `dateSelected` signal)
+and `G` at runtime (today is the only cached day with games in this session,
+so the jump correctly had no later target; the pure path is fixture-covered).
+
+Decision log: the calendar's identity is density plus drill-down, so the
+strip owns the window overview and the list owns only the selected day.
+All aggregation stays in the pure model; the QML view renders pre-computed
+summaries only. Replacing the shared date chrome in calendar mode makes the
+route visually distinct without adding a second interaction surface, and
+Left/Right day navigation preserves keyboard reachability now that the tab
+strip is hidden. Favorite highlights come only from the existing annotation
+boundary, so the strip can never disagree with the favorites filter. Stop
+before wider windows, month grids, new fetch ownership, provider work,
+packaging, tagging, pushing, release, or Marketplace work.
+
+Known risks: the strip can only show dates present in the five-entry
+per-league caches, so unbrowsed days read "No games" until visited; pointer
+activation of strip cells remains unexercised; the panel-height chrome token
+is a bounded estimate shared across modes. The unrelated absence of
+`MARKETPLACE_SUBMISSION.md` remains untouched and unstaged. No push, tag,
+release, or Marketplace action occurred.
+
+Next bounded unit: with explicit owner direction, either revisit the
+gated second verified provider adapter (P1-4 remainder, still requires an
+owner-provided terms/region/reliability review) or select another slice
+from the `competition.md` decision list. If no direction is given, do not
+infer one and stop after recording the still-pending decision.

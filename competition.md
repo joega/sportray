@@ -101,13 +101,15 @@ evidence.
    broader matches, the query is clamped at 48 characters, and non-empty
    search results are capped at 60 while unfiltered browsing stays complete.
    No new endpoint; canonical identities and schema-1 settings unchanged.
-6. **Calendar and schedule context — closed for the current cache
-   boundary.** The bounded calendar day list with favorite-only filtering,
-   the preserved five-day carousel, direct `G` date jumps to the next
-   cached day with games, and explicit local-time row labels are shipped
-   and runtime-verified. Still open only: any window wider than the
-   five-date caches, which requires a verified wider source before any
-   new fetch ownership.
+ 6. **Calendar and schedule context — closed for the current cache
+    boundary.** The bounded calendar day list with favorite-only filtering,
+    the preserved five-day carousel, direct `G` date jumps to the next
+    cached day with games, explicit local-time row labels, and the
+    week-strip overview (per-day counts, favorite dots, selected-day
+    drill-down replacing the shared date chrome while the calendar is
+    open) are shipped and runtime-verified. Still open only: any window
+    wider than the five-date caches, which requires a verified wider
+    source before any new fetch ownership.
 
 ### P2 — specialist depth
 

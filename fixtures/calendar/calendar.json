@@ -240,6 +240,37 @@
       "2026-08-24": "2026-08-26",
       "2026-08-25": "2026-08-26",
       "2026-08-26": ""
+    },
+    "weekStrip": {
+      "todayDateKey": "2026-08-24",
+      "selectedDateKey": "2026-08-24",
+      "summaries": [
+        {"dateKey": "2026-08-22", "weekday": "Sat", "month": "Aug", "dayOfMonth": "22",
+         "gameCount": 1, "leagueIds": ["nhl"], "hasFavoriteGames": true,
+         "isToday": false, "isCenter": false},
+        {"dateKey": "2026-08-23", "weekday": "Sun", "month": "Aug", "dayOfMonth": "23",
+         "gameCount": 0, "leagueIds": [], "hasFavoriteGames": false,
+         "isToday": false, "isCenter": false},
+        {"dateKey": "2026-08-24", "weekday": "Mon", "month": "Aug", "dayOfMonth": "24",
+         "gameCount": 3, "leagueIds": ["nhl", "mlb"], "hasFavoriteGames": true,
+         "isToday": true, "isCenter": true},
+        {"dateKey": "2026-08-25", "weekday": "Tue", "month": "Aug", "dayOfMonth": "25",
+         "gameCount": 0, "leagueIds": [], "hasFavoriteGames": false,
+         "isToday": false, "isCenter": false},
+        {"dateKey": "2026-08-26", "weekday": "Wed", "month": "Aug", "dayOfMonth": "26",
+         "gameCount": 1, "leagueIds": ["nhl"], "hasFavoriteGames": true,
+         "isToday": false, "isCenter": false}
+      ],
+      "unannotatedHasFavoriteGames": false
+    },
+    "selectedDayRows": {
+      "dateKey": "2026-08-24",
+      "rowKinds": ["section-header", "game", "game", "game"],
+      "gameRowIds": ["game:nhl:cal-live-favorite", "game:nhl:cal-live-other",
+        "game:mlb:cal-scheduled"],
+      "emptyDateKey": "2026-08-23",
+      "emptyRowKinds": ["section-header", "empty"],
+      "outsideDateKey": "2026-09-01"
     }
   }
 }

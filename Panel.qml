@@ -135,9 +135,12 @@ Panel {
       },
       revision: root.presentationRevision
     })
-  readonly property var calendarRows: CalendarModel.flatten(root.calendarState)
+  readonly property var calendarDaySummaries: CalendarModel.daySummaries(
+    root.calendarState, {todayDateKey: root.todayDateKey})
+  readonly property var calendarDayRows: CalendarModel.flattenDay(
+    root.calendarState, root.selectedDateKey)
   readonly property var displayRows: root.standingsOpen
-    ? root.standingsRows : root.calendarOpen ? root.calendarRows : root.resultRows
+    ? root.standingsRows : root.calendarOpen ? root.calendarDayRows : root.resultRows
   readonly property var orderedGames: scoreboard.games
   readonly property var unrotatedBarState: FavoritePresentation.selectBarState(
     normalizedGames, favoriteTeamIds, null, root.presentationRevision)
@@ -202,6 +205,7 @@ Panel {
     root.standingsOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""
+    root.tabStripFocused = false
     root.recalculatePanelHeight()
     root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
   }
@@ -211,6 +215,7 @@ Panel {
     root.calendarOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""
+    root.tabStripFocused = true
     root.recalculatePanelHeight()
     root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
   }
@@ -836,6 +841,7 @@ Panel {
       onMoveRequested: function(dx, dy) {
         if (root.detailOpen) root.moveDetailCursor(dy !== 0 ? dy : dx)
         else if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
+        else if (root.calendarOpen && dx !== 0) root.selectRelativeDate(dx)
         else if (dx !== 0) {
           root.tabStripFocused = true
           root.moveTabCursor(dx)
@@ -1091,8 +1097,18 @@ Panel {
               DateCarousel {
                 id: dateCarousel
                 width: parent.width
+                visible: !root.calendarOpen
                 selectedDateKey: root.selectedDateKey
                 compact: parent.width < Style.space(360)
+                onDateSelected: function(dateKey) { root.selectDate(dateKey) }
+              }
+
+              CalendarWeekStrip {
+                id: calendarWeekStrip
+                width: parent.width
+                visible: root.calendarOpen
+                summaries: root.calendarDaySummaries
+                selectedDateKey: root.selectedDateKey
                 onDateSelected: function(dateKey) { root.selectDate(dateKey) }
               }
 
@@ -1100,6 +1116,7 @@ Panel {
                 id: tabStrip
                 width: parent.width
                 height: sportsPicker.implicitHeight
+                visible: !root.calendarOpen
 
                 Item {
                   id: sportChooser
