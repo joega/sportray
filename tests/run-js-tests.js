@@ -43,6 +43,7 @@ const keyboardRouting = require(path.join(root, "model/KeyboardRoutingPolicy.js"
 const lifecycle = require(path.join(root, "model/LifecyclePolicy.js"));
 const assetUrlPolicy = require(path.join(root, "model/AssetUrlPolicy.js"));
 const responsePolicy = require(path.join(root, "model/ResponsePolicy.js"));
+const liveFavoriteRotation = require(path.join(root, "model/LiveFavoriteRotationPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -149,6 +150,11 @@ function readSettingsBoundaryFixture() {
 function readBarPresentationFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/bar-presentation/policy.json"), "utf8"));
+}
+
+function readLiveFavoriteRotationFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/bar-presentation/live-favorite-rotation.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -3741,6 +3747,106 @@ test("ambient bar policy preserves live favorite priority and today input", () =
   assert.equal(result.state.kind, fixture.priority.expectedKind);
   assert.equal(result.state.game.id, fixture.priority.expectedGameId);
   assert.equal(result.hasLiveFavorite, true);
+});
+
+test("live favorite rotation orders normalized today games deterministically", () => {
+  const fixture = readLiveFavoriteRotationFixture();
+  const normalized = fixture.games.map((game) => games.normalizeGame(game));
+  const input = {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    cadenceMs: fixture.cadenceMs,
+    maxItems: 3,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true,
+    games: normalized
+  };
+  const result = liveFavoriteRotation.select(input);
+  assert.equal(result.kind, "rotation");
+  assert.deepEqual(result.rotationGames.map((game) => game.id), fixture.expectedBoundedIds);
+  assert.equal(result.game.id, "nhl:104");
+  assert.equal(result.index, 0);
+  assert.equal(result.nextAtMs, input.nowMs + fixture.cadenceMs);
+});
+
+test("live favorite rotation keeps today's identity and cadence index stable", () => {
+  const fixture = readLiveFavoriteRotationFixture();
+  const normalized = fixture.games.map((game) => games.normalizeGame(game));
+  const input = {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now) + fixture.cadenceMs,
+    cadenceMs: fixture.cadenceMs,
+    maxItems: 99,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true,
+    games: normalized
+  };
+  const first = liveFavoriteRotation.select(input);
+  const reordered = liveFavoriteRotation.select(Object.assign({}, input, {
+    games: normalized.slice().reverse()
+  }));
+  assert.equal(first.todayDateKey, fixture.todayDateKey);
+  assert.equal(first.selectedDateKey, fixture.todayDateKey);
+  assert.deepEqual(reordered.rotationGames.map((game) => game.id), first.rotationGames.map((game) => game.id));
+  assert.equal(reordered.index, first.index);
+  assert.equal(reordered.game.id, first.game.id);
+  assert.equal(first.rotationGames.length, liveFavoriteRotation.MAX_ROTATION_ITEMS);
+  assert.equal(first.index < first.rotationGames.length, true);
+});
+
+test("live favorite rotation returns bounded empty, offline, and non-today states", () => {
+  const fixture = readLiveFavoriteRotationFixture();
+  const base = {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    cadenceMs: fixture.cadenceMs,
+    favoriteTeamIds: fixture.favoriteTeamIds
+  };
+  const empty = liveFavoriteRotation.select(Object.assign({}, base, fixture.empty));
+  assert.deepEqual(empty, {
+    kind: "empty",
+    reason: "no-live-favorite",
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    rotationGames: [],
+    index: 0,
+    game: null,
+    count: 0,
+    cadenceMs: null,
+    nextAtMs: null
+  });
+  const offline = liveFavoriteRotation.select(Object.assign({}, base, fixture.offline));
+  assert.equal(offline.kind, "offline");
+  assert.equal(offline.rotationGames.length, 0);
+  assert.equal(offline.index, 0);
+  const notToday = liveFavoriteRotation.select(Object.assign({}, base, fixture.notToday));
+  assert.equal(notToday.kind, "not-today");
+  assert.equal(notToday.reason, "today-scope");
+  assert.equal(notToday.index, 0);
+  assert.equal(notToday.rotationGames.length, 0);
+});
+
+test("live favorite rotation clamps cadence and never leaks an unbounded index", () => {
+  const fixture = readLiveFavoriteRotationFixture();
+  const normalized = fixture.games.map((game) => games.normalizeGame(game));
+  const result = liveFavoriteRotation.select({
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    cadenceMs: Number.MAX_SAFE_INTEGER,
+    maxItems: Number.MAX_SAFE_INTEGER,
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true,
+    games: normalized
+  });
+  assert.equal(result.cadenceMs, liveFavoriteRotation.MAX_CADENCE_MS);
+  assert.equal(result.rotationGames.length, liveFavoriteRotation.MAX_ROTATION_ITEMS);
+  assert.equal(result.index >= 0, true);
+  assert.equal(result.index < result.rotationGames.length, true);
+  assert.equal(result.count <= liveFavoriteRotation.MAX_ROTATION_ITEMS, true);
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

@@ -1374,3 +1374,73 @@ selection/cadence contract is accepted. Start by rereading `AGENTS.md`,
 handoff update, refreshed next-session prompt, all repository gates, and one
 atomic Conventional Commit-style commit when the pure unit passes; stop if
 rotation would require an upstream shell contract or new provider data.
+
+## Live-favorite rotation/cadence policy slice — 2026-08-24
+
+Status: complete. The bounded pure policy describes caller-controlled rotation
+among already normalized, today-scoped live favorite games without taking
+ownership of time, polling, provider parsing, settings, or QML.
+
+Evidence:
+
+- `model/LiveFavoriteRotationPolicy.js` validates the selected/today date
+  identity, accepts only normalized live or intermission favorite games whose
+  local date is today, orders them by start time and canonical game identity,
+  caps the rotation list at four items, clamps caller cadence to 5 seconds–5
+  minutes, and returns a bounded index plus the next transition timestamp.
+- `fixtures/bar-presentation/live-favorite-rotation.json` and four deterministic
+  tests cover chronological/tie ordering, stable results when input order
+  changes, today-scope rejection, empty and offline states, cadence clamping,
+  and the rotation-list/index bounds. The suite passes with 176 tests.
+- No QML, service, provider, endpoint, settings, polling, timer, countdown, or
+  bar consumer changed. The policy is available for a later caller only after
+  this selection/cadence contract is accepted.
+- Installed Omarchy 4.0.0-1 and Quickshell 0.3.0 revision `28771c7` were
+  inspected first. The existing `BarWidget`, `WidgetButton`, `BarIconButton`,
+  and panel contracts provide no required rotation API; no upstream boundary
+  deviation was needed. The intentionally absent `docs/upstream-contract.md`
+  remains absent.
+- `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file,
+  and `git diff --check` pass. Lint retains the repository's established
+  standalone import and unqualified-access warnings.
+
+Decision log: use the normalized game's canonical ID and local `todayDateKey`
+as the stable selection boundary. The policy uses a deterministic day-start
+cadence slot supplied with `nowMs`; it never starts a timer or derives a fetch
+cadence from a provider. Four items is the hard product-neutral rotation cap,
+and invalid or non-today input fails closed to a bounded result. Offline state
+is explicit when the caller reports it or has an unavailable error without
+data; stale data with an explicit healthy snapshot remains the caller's
+responsibility.
+
+Known risks: local date conversion must stay aligned with the existing
+`DateModel` boundary when a future QML consumer passes timestamps. A later
+consumer must preserve today scope, pass the existing normalized games, and
+own timer scheduling separately; this unit does not verify live runtime
+rotation because it intentionally has no consumer.
+
+## Latest handoff — 2026-08-24 live-favorite rotation/cadence policy complete
+
+The pure live-favorite rotation/cadence unit is complete. The new policy and
+sanitized fixture select at most four normalized today-scoped live favorite
+games in deterministic order, derive a bounded cadence index from caller
+`nowMs` and cadence inputs, and fail closed for non-today, empty, or offline
+state. Four tests cover ordering, stable today identity, empty/offline
+behavior, cadence clamping, and list/index bounds.
+
+The fixture-driven suite passes with 176 tests. Plugin validation, full
+real-import-path QML lint, and diff check pass. Installed Omarchy 4.0.0-1 and
+Quickshell revision `28771c7` were inspected before implementation; no
+upstream API, provider field, endpoint, polling boundary, timer, countdown,
+settings schema, QML consumer, package, tag, push, release, or Marketplace
+action changed. Actual Omarchy runtime rotation remains intentionally
+unexercised because this unit has no consumer; the existing bar behavior is
+unchanged.
+
+Next bounded unit: add one pure fixture-driven countdown projection policy for
+already normalized today-scoped favorite upcoming games. Keep it separate from
+timers, polling, provider countdown fields/endpoints, settings, and QML; use
+caller-supplied time and preserve the current bar/panel behavior until the
+projection contract is accepted. Stop if countdown semantics require provider
+data or an upstream shell API.
