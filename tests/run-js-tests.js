@@ -3809,6 +3809,67 @@ test("ambient bar rotation keeps empty, offline, and non-today states safe", () 
   });
 });
 
+test("ambient priority transitions preserve rotation cadence and countdown fallback", () => {
+  const fixture = readLiveFavoriteRotationFixture();
+  const transitions = fixture.transitionMatrix;
+  const normalized = (values) => values.map((game) => games.normalizeGame(game));
+  const selectAmbient = (values, now) => {
+    const normalizedGames = normalized(values);
+    const baseState = presentation.selectBarState(
+      normalizedGames, fixture.favoriteTeamIds, now);
+    const rotation = liveFavoriteRotation.select({
+      todayDateKey: fixture.todayDateKey,
+      selectedDateKey: fixture.selectedDateKey,
+      nowMs: now,
+      cadenceMs: fixture.cadenceMs,
+      favoriteTeamIds: fixture.favoriteTeamIds,
+      hasData: true,
+      games: normalizedGames
+    });
+    return {
+      baseState,
+      rotation,
+      state: barPresentation.applyLiveFavoriteRotation(baseState, rotation)
+    };
+  };
+
+  const before = selectAmbient(fixture.games, Date.parse(transitions.cadenceBoundary.before));
+  const after = selectAmbient(fixture.games, Date.parse(transitions.cadenceBoundary.after));
+  assert.equal(before.baseState.kind, "live-favorite-count");
+  assert.equal(after.baseState.kind, "live-favorite-count");
+  assert.equal(before.state.game.id, transitions.cadenceBoundary.expectedBeforeId);
+  assert.equal(after.state.game.id, transitions.cadenceBoundary.expectedAfterId);
+  assert.equal(after.rotation.index, before.rotation.index + 1);
+
+  const scheduled = selectAmbient(
+    transitions.liveRemoved.games, Date.parse(fixture.now));
+  assert.equal(scheduled.rotation.kind, "empty");
+  assert.equal(scheduled.state.kind, transitions.liveRemoved.expectedKind);
+  assert.equal(scheduled.state.game.id, transitions.liveRemoved.expectedGameId);
+  const countdown = countdownProjection.project({
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    nowMs: Date.parse(fixture.now),
+    favoriteTeamIds: fixture.favoriteTeamIds,
+    hasData: true,
+    game: scheduled.state.game
+  });
+  assert.deepEqual(countdown, Object.assign({}, transitions.liveRemoved.expectedCountdown, {
+    todayDateKey: fixture.todayDateKey,
+    selectedDateKey: fixture.selectedDateKey,
+    game: scheduled.state.game,
+    startTimeMs: Date.parse("2026-10-08T17:30:00Z"),
+    nowMs: Date.parse(fixture.now),
+    remainingMs: 3.5 * 60 * 60 * 1000
+  }));
+
+  const neutral = selectAmbient(
+    transitions.neutralAfterRemoval.games, Date.parse(fixture.now));
+  assert.equal(neutral.rotation.kind, "empty");
+  assert.equal(neutral.state.kind, transitions.neutralAfterRemoval.expectedKind);
+  assert.equal(neutral.state.game.id, transitions.neutralAfterRemoval.expectedGameId);
+});
+
 test("ambient bar policy exposes only valid favorite-upcoming countdown text", () => {
   const fixture = readBarPresentationFixture().countdownPresentation;
   const withCountdown = (countdown, mode = "full") => barPresentation.build({

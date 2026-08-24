@@ -1692,3 +1692,89 @@ covering a minute-slot rotation, live-state removal, and reclamation of the
 existing favorite-upcoming countdown. Keep the implementation pure/model-level
 unless a test demonstrates a real presentation defect; do not add a timer,
 provider data, settings, polling cadence, or upstream API.
+
+## Ambient-bar priority transition coverage — 2026-08-24
+
+Status: complete. The already wired live-favorite rotation path now has a
+fixture-driven transition matrix covering caller-cadence advancement, removal
+of all live favorites, and countdown/neutral precedence recovery. Production
+behavior remains unchanged.
+
+Evidence:
+
+- `fixtures/bar-presentation/live-favorite-rotation.json` adds sanitized
+  normalized-boundary inputs for the 60-second slot transition, a scheduled
+  favorite after live-state removal, and a non-favorite scheduled neutral
+  fallback.
+- `tests/run-js-tests.js` recomputes the existing
+  `FavoritePresentation.selectBarState` → `LiveFavoriteRotationPolicy.select`
+  → `BarPresentation.applyLiveFavoriteRotation` path for each state. The
+  caller `nowMs` boundary advances the selected game from `nhl:104` to
+  `nhl:103`; an empty rotation result preserves `favorite-upcoming` or
+  `neutral`; and `CountdownProjectionPolicy.project` returns the expected
+  `favorite-upcoming` future projection after the normalized live-to-scheduled
+  change.
+- The complete deterministic suite passes with 185 tests. `git diff --check`,
+  `omarchy plugin validate "$PWD"`, and the real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command over every QML
+  file pass with the established standalone import and unqualified-access
+  warnings.
+- Installed Omarchy 4.0.0-1 and Quickshell 0.3.0 revision `28771c7` were
+  rechecked; the current checkout is linked into the plugin path. A rescan,
+  explicit enable, and the existing toggle/hide IPC exercise completed with
+  one running shell. The fresh log contains normal Sportray polling and no
+  Sportray exception, QML load failure, binding loop, or rotation error.
+  After the asynchronous rescan, the host also logged the existing
+  `summon: no live bar widget for: io.github.joega.sportray` warning, so no
+  visual bar-route claim is made for this run. The warning is outside the
+  changed pure-model/test path and did not expose a new timer, provider,
+  settings, polling, or upstream API requirement.
+- The intentionally absent `docs/upstream-contract.md` remains absent; no
+  upstream boundary deviation was introduced.
+
+Decision log: keep transition assertions at the normalized model boundary.
+The test must reselect the bar state for every fixture snapshot so it proves
+that rotation is only a projection of `live-favorite-count`, while removal
+returns control to the existing favorite-upcoming/neutral selector and
+countdown policy. Do not add a runtime timer or make test fixtures resemble
+raw provider payloads.
+
+Known risks: the installed host's post-rescan `summon: no live bar widget`
+warning remains to be reconciled in a future runtime-focused unit; the fresh
+log otherwise stayed clean. Rotation intentionally remains minute-cadenced,
+and local date conversion plus stale healthy snapshots remain caller-owned.
+
+## Latest handoff — 2026-08-24 ambient-bar priority transition coverage
+
+The ambient priority transition unit is complete in `/home/joeg/Projects/sportray`.
+The new sanitized fixture matrix and one deterministic pipeline test cover the
+caller cadence boundary (`nhl:104` → `nhl:103`), live-favorite removal back to
+the existing scheduled-favorite or neutral selection, and countdown projection
+reclamation after the normalized state becomes scheduled. No production,
+QML, provider, timer, setting, polling, or upstream API code changed.
+
+The complete suite passes with 185 tests. Plugin validation, full real-import-
+path QML lint, and `git diff --check` pass. Installed Omarchy 4.0.0-1 with
+Quickshell `28771c7` was rechecked; one shell remained running, the linked
+checkout rescanned, and toggle/hide IPC was exercised. The fresh log has no
+Sportray exception, QML load failure, binding loop, or rotation error, but it
+does contain the host warning `summon: no live bar widget for:
+io.github.joega.sportray` after rescan, so no visual route success is claimed.
+No push, tag, release, Marketplace, or remote action occurred.
+
+Next bounded unit: diagnose and reconcile the installed Omarchy post-rescan
+`summon: no live bar widget` warning for the linked Sportray bar-widget route.
+Read `AGENTS.md`, `README.md`, the intentionally absent
+`docs/upstream-contract.md`, `roadmap.md`, and this handoff first; inspect the
+installed Omarchy/Quickshell widget registry, bar-slot, rescan, and IPC source
+before any edit. Keep Sportray production behavior unchanged unless the
+diagnosis proves a concrete checkout defect. Stop if reliable registration
+requires a new upstream API, plugin kind, timer, provider data, setting, or
+polling contract; document the risk and leave the runtime path intact. On
+success, rerun the complete JS suite, plugin validation, real-import-path QML
+lint over every QML file, and diff check; on actual Omarchy rescan, wait for
+asynchronous registration, exercise toggle/hide, inspect a fresh log, and
+confirm one shell. Update this roadmap and the next-session prompt, then make
+one atomic Conventional Commit-style commit only if a bounded fix and every
+gate pass. Request subagents only for independent read-only upstream/runtime
+reconnaissance.

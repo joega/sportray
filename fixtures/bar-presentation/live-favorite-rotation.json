@@ -71,6 +71,47 @@
     }
   ],
   "expectedBoundedIds": ["nhl:104", "nhl:103", "nhl:101"],
+  "transitionMatrix": {
+    "cadenceBoundary": {
+      "before": "2026-10-08T14:00:00Z",
+      "after": "2026-10-08T14:01:00Z",
+      "expectedBeforeId": "nhl:104",
+      "expectedAfterId": "nhl:103"
+    },
+    "liveRemoved": {
+      "games": [
+        {
+          "league": "nhl",
+          "providerGameId": "201",
+          "startTime": "2026-10-08T17:30:00Z",
+          "status": "scheduled",
+          "awayTeam": {"league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+          "homeTeam": {"league": "nhl", "providerTeamId": "10", "abbreviation": "TOR"}
+        }
+      ],
+      "expectedKind": "favorite-upcoming",
+      "expectedGameId": "nhl:201",
+      "expectedCountdown": {
+        "kind": "future",
+        "reason": "favorite-upcoming",
+        "label": "Starts in 3h 30m"
+      }
+    },
+    "neutralAfterRemoval": {
+      "games": [
+        {
+          "league": "nhl",
+          "providerGameId": "202",
+          "startTime": "2026-10-08T18:00:00Z",
+          "status": "scheduled",
+          "awayTeam": {"league": "nhl", "providerTeamId": "11", "abbreviation": "MTL"},
+          "homeTeam": {"league": "nhl", "providerTeamId": "68", "abbreviation": "UTA"}
+        }
+      ],
+      "expectedKind": "neutral",
+      "expectedGameId": "nhl:202"
+    }
+  },
   "empty": {
     "hasData": true,
     "games": []
