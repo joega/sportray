@@ -7,6 +7,8 @@ if (typeof require === "function") TeamModel = require("./TeamModel.js");
 
 var MAX_DETAILS = 256;
 var MAX_OUTCOME_SCORE = 9999;
+var MAX_LINE_PERIODS = 12;
+var MAX_LINE_PERIOD_NUMBER = 99;
 var VALID_STATES = {
   scheduled: true,
   live: true,
@@ -86,6 +88,36 @@ function normalizeOutcome(game) {
   };
 }
 
+function normalizeLineSide(value) {
+  if (!Array.isArray(value)) return null;
+  if (value.length < 1 || value.length > MAX_LINE_PERIODS) return null;
+
+  var entries = [];
+  for (var i = 0; i < value.length; i++) {
+    var entry = value[i];
+    if (!isRecord(entry)) return null;
+    var period = nonNegativeInteger(entry.period);
+    if (period === null || period < 1 || period > MAX_LINE_PERIOD_NUMBER) return null;
+    var score = nonNegativeInteger(entry.value);
+    if (score === null || score > MAX_OUTCOME_SCORE) return null;
+    for (var j = 0; j < entries.length; j++) {
+      if (entries[j].period === period) return null;
+    }
+    entries.push({period: period, value: score});
+  }
+
+  entries.sort(function(left, right) { return left.period - right.period; });
+  return entries;
+}
+
+function normalizeLines(game) {
+  if (!isRecord(game) || !isRecord(game.lines)) return null;
+  var away = normalizeLineSide(game.lines.away);
+  var home = normalizeLineSide(game.lines.home);
+  if (!away || !home || away.length !== home.length) return null;
+  return {away: away, home: home};
+}
+
 function emptyDetail(errorCode) {
   return {
     id: null,
@@ -109,6 +141,7 @@ function emptyDetail(errorCode) {
     },
     venue: null,
     outcome: null,
+    lines: null,
     source: {
       provider: null,
       label: null,
@@ -158,6 +191,7 @@ function normalizeDetail(game, source) {
     },
     venue: cleanString(game.venue),
     outcome: normalizeOutcome(game),
+    lines: normalizeLines(game),
     source: normalizeSource(source, game),
     isValid: true,
     errors: []
@@ -209,9 +243,13 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     MAX_DETAILS: MAX_DETAILS,
     MAX_OUTCOME_SCORE: MAX_OUTCOME_SCORE,
+    MAX_LINE_PERIODS: MAX_LINE_PERIODS,
+    MAX_LINE_PERIOD_NUMBER: MAX_LINE_PERIOD_NUMBER,
     compareDetails: compareDetails,
     createDefaultDetail: createDefaultDetail,
     normalizeOutcome: normalizeOutcome,
+    normalizeLineSide: normalizeLineSide,
+    normalizeLines: normalizeLines,
     normalizeDetail: normalizeDetail,
     normalizeDetails: normalizeDetails
   };

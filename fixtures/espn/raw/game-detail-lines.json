@@ -1,0 +1,300 @@
+{
+ "events": [
+  {
+   "id": "lines-final",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "24",
+       "linescores": [
+        {"value": 7, "displayValue": "7", "period": 1},
+        {"value": 3, "displayValue": "3", "period": 2},
+        {"value": 7, "displayValue": "7", "period": 3},
+        {"value": 7, "displayValue": "7", "period": 4}
+       ],
+       "team": {
+        "id": "2",
+        "displayName": "Buffalo Bills",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "21",
+       "linescores": [
+        {"value": 0, "displayValue": "0", "period": 1},
+        {"value": 7, "displayValue": "7", "period": 2},
+        {"value": 7, "displayValue": "7", "period": 3},
+        {"value": 7, "displayValue": "7", "period": 4}
+       ],
+       "team": {
+        "id": "17",
+        "homeAway": "away",
+        "displayName": "New England Patriots",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "lines-out-of-order",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "10",
+       "linescores": [
+        {"value": 10, "displayValue": "10", "period": 2},
+        {"value": 0, "displayValue": "0", "period": 1}
+       ],
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "7",
+       "linescores": [
+        {"value": 0, "displayValue": "0", "period": 1},
+        {"value": 7, "displayValue": "7", "period": 2}
+       ],
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "lines-malformed-entry",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "14",
+       "linescores": [
+        {"value": 7, "displayValue": "7", "period": 1},
+        {"value": "many", "displayValue": "many", "period": 2}
+       ],
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "7",
+       "linescores": [
+        {"value": 3, "displayValue": "3", "period": 1},
+        {"value": 4, "displayValue": "4", "period": 2}
+       ],
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "lines-side-mismatch",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "17",
+       "linescores": [
+        {"value": 7, "displayValue": "7", "period": 1},
+        {"value": 10, "displayValue": "10", "period": 2}
+       ],
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "7",
+       "linescores": [
+        {"value": 7, "displayValue": "7", "period": 1}
+       ],
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "lines-over-bound",
+   "competitions": [
+    {
+     "id": "lines-over-bound",
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "10000",
+       "linescores": [
+        {"value": 10000, "displayValue": "10000", "period": 1}
+       ],
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "1",
+       "linescores": [
+        {"value": 1, "displayValue": "1", "period": 1}
+       ],
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "lines-duplicate-period",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "14",
+       "linescores": [
+        {"value": 7, "displayValue": "7", "period": 1},
+        {"value": 7, "displayValue": "7", "period": 1}
+       ],
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "score": "14",
+       "linescores": [
+        {"value": 7, "displayValue": "7", "period": 1},
+        {"value": 7, "displayValue": "7", "period": 2}
+       ],
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "lines-missing",
+   "competitions": [
+    {
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "team": {
+        "id": "2",
+        "abbreviation": "BUF"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "away",
+       "team": {
+        "id": "17",
+        "abbreviation": "NE"
+       }
+      }
+     ],
+     "status": {
+      "type": {
+       "name": "STATUS_NOT_STARTED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Scheduled"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

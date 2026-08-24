@@ -1559,6 +1559,41 @@ test("optional game outcomes project bounded final scores without provider field
   assert.equal(JSON.stringify(details["outcome-home"].outcome).includes("providerGameId"), false);
 });
 
+test("optional game lines project bounded per-side period scores without provider fields", () => {
+  const result = espn.parseGameDetailResponse(readEspnFixture("game-detail-lines"), "nfl");
+  assert.deepEqual(result.errors, []);
+
+  const details = Object.fromEntries(result.details.map((detail) => [detail.providerGameId, detail]));
+  assert.deepEqual(details["lines-final"].lines, {
+    away: [
+      {period: 1, value: 0}, {period: 2, value: 7},
+      {period: 3, value: 7}, {period: 4, value: 7}
+    ],
+    home: [
+      {period: 1, value: 7}, {period: 2, value: 3},
+      {period: 3, value: 7}, {period: 4, value: 7}
+    ]
+  });
+  assert.deepEqual(details["lines-out-of-order"].lines, {
+    away: [{period: 1, value: 0}, {period: 2, value: 7}],
+    home: [{period: 1, value: 0}, {period: 2, value: 10}]
+  });
+  assert.equal(details["lines-missing"].lines, null);
+
+  const rejected = ["lines-malformed-entry", "lines-side-mismatch",
+    "lines-over-bound", "lines-duplicate-period"];
+  rejected.forEach((id) => assert.equal(details[id].lines, null, id));
+
+  assert.equal(gameDetails.MAX_LINE_PERIODS, 12);
+  assert.equal(gameDetails.MAX_LINE_PERIOD_NUMBER, 99);
+  assert.equal(
+    gameDetails.normalizeLineSide(
+      Array.from({length: gameDetails.MAX_LINE_PERIODS + 1},
+        (_, index) => ({value: 0, period: index + 1}))),
+    null);
+  assert.equal(JSON.stringify(details["lines-final"].lines).includes("displayValue"), false);
+});
+
 test("loaded game rows skip local detail and route whole-row activation to source", () => {
   const fixture = readGameDetailRouteFixture();
   const game = espn.parseScoreboardResponse(readEspnFixture("nfl-final"), "nfl").games[0];

@@ -2694,3 +2694,60 @@ ref against `manifest.json`, `README.md`, `CHANGELOG.md`, and the local tags.
 If no authorization or target ref is supplied, report that release state is
 unchanged and stop. Do not tag, push, publish, submit, edit Marketplace state,
 or make provider, notification, settings, QML, or packaging changes.
+
+## Latest handoff — 2026-08-24 optional lines rich-detail projection
+
+Status: complete. The second optional rich-detail section is implemented as a
+bounded provider-neutral projection. `model/GameDetailModel.js` now exposes an
+optional `lines` record — `{away: [{period, value}...], home: [...]}` or
+`null` — projected from already normalized game data without a new endpoint,
+without touching `GameModel`'s normalized shape, and without remounting the
+retired local detail route.
+
+Evidence:
+
+- On 2026-08-24 the live ESPN NFL scoreboard response was inspected directly
+  and confirmed to carry per-competitor `linescores` entries with `value`,
+  `displayValue`, and `period`; MLB competitors additionally carry `records`,
+  `hits`, and `errors`. No second fetch is required for period lines.
+- `GameDetailModel` bounds each side at `MAX_LINE_PERIODS = 12` entries,
+  periods at 1–99 (`MAX_LINE_PERIOD_NUMBER`), and values at the existing
+  9,999-point outcome bound. Any malformed, duplicate-period, over-bound, or
+  length-mismatched side fails closed to `lines: null`. Entries are sorted by
+  period ascending. `emptyDetail` carries `lines: null`.
+- `providers/EspnProvider.js` extracts linescores from the same payload inside
+  `parseGameDetailResponse` only, keyed by provider game ID and merged into the
+  detail candidate before normalization. `parseScoreboardResponse`, the
+  normalized game shape, polling, and all other consumers are unchanged.
+- `fixtures/espn/raw/game-detail-lines.json` covers valid lines, out-of-order
+  sorting, malformed entry rejection, side-length mismatch, over-bound values,
+  duplicate periods, and missing linescores. One new deterministic test asserts
+  the accepted projections, every rejected case as `null`, both new bounds, and
+  the absence of raw payload fields. The complete suite passes with 191 tests.
+- `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass with the established standalone import/unqualified-access warnings. No
+  QML file changed, so no plugin rescan or fresh runtime log claim is needed;
+  this mirrors the prior pure model/provider units.
+
+Decision log: keep period lines strictly a detail-section concept fed from the
+already fetched scoreboard snapshot; do not add fields to every normalized
+game. Fail closed per side and require equal-length sides so a partially valid
+table never renders invented rows. Provider labels such as `displayValue` are
+not retained; any human-readable period label is later presentation work. The
+detail view remains unmounted until it can present materially richer content
+than the score row.
+
+Known risks: ESPN is an undocumented site API; linescores presence varies by
+league and state (pre-event slates carry none, which projects `null`). NHL's
+own score route does not expose equivalent per-period lines, so NHL detail
+remains sparse. The owner has also requested a follow-up full-calendar view
+with followed-team/league filtering; that remains a separate future unit.
+
+Next bounded unit: remount the local game-detail drill-down as one small
+existing-route extension that renders the now materially richer projection
+(participants, status/timing, venue, source action, optional outcome, optional
+lines) with neutral placeholders for nulls, preserving whole-row source
+routing when the detail route is unavailable. Stop before any second endpoint,
+box-score/play-by-play adapters, sport-specific sections, calendar views,
+provider fallback, packaging, tagging, pushing, release, or Marketplace work.

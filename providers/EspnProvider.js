@@ -313,7 +313,13 @@ function parseNextGamesResponse(payload, leagueId) {
 function parseGameDetailResponse(payload, leagueId) {
   var scoreboard = parseScoreboardResponse(payload, leagueId);
   if (!GameDetailModel) return {details: [], errors: scoreboard.errors};
-  var details = GameDetailModel.normalizeDetails(scoreboard.games, {
+  var lines = detailLinesByGameId(payload);
+  var candidates = scoreboard.games.map(function(game) {
+    var eventLines = lines[game.providerGameId];
+    if (!eventLines) return game;
+    return Object.assign({}, game, {lines: eventLines});
+  });
+  var details = GameDetailModel.normalizeDetails(candidates, {
     provider: ESPN_PROVIDER,
     label: "ESPN"
   });
@@ -321,6 +327,48 @@ function parseGameDetailResponse(payload, leagueId) {
     details: details.details,
     errors: scoreboard.errors.concat(details.errors)
   };
+}
+
+function competitionLineSide(competitor) {
+  if (!isRecord(competitor) || !Array.isArray(competitor.linescores)) return null;
+  var entries = [];
+  for (var i = 0; i < competitor.linescores.length; i++) {
+    var raw = competitor.linescores[i];
+    if (!isRecord(raw)) return null;
+    var period = integerOrNull(raw.period);
+    var value = integerOrNull(raw.value);
+    if (period === null || value === null) return null;
+    entries.push({period: period, value: value});
+  }
+  return entries.length > 0 ? entries : null;
+}
+
+function detailLinesByGameId(payload) {
+  var result = {};
+  if (!isRecord(payload) || !Array.isArray(payload.events)) return result;
+
+  for (var i = 0; i < payload.events.length; i++) {
+    var event = payload.events[i];
+    var competition = findCompetition(event);
+    if (!competition || !Array.isArray(competition.competitors)) continue;
+
+    var away = null;
+    var home = null;
+    for (var j = 0; j < competition.competitors.length; j++) {
+      var competitor = competition.competitors[j];
+      if (!isRecord(competitor)) continue;
+      if (competitor.homeAway === "away" && !away)
+        away = competitionLineSide(competitor);
+      if (competitor.homeAway === "home" && !home)
+        home = competitionLineSide(competitor);
+    }
+    if (!away || !home) continue;
+
+    var providerGameId = providerId(event.id || competition.id);
+    if (!providerGameId) continue;
+    result[providerGameId] = {away: away, home: home};
+  }
+  return result;
 }
 
 function standingsStat(stats, names) {
