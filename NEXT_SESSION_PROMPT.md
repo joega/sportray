@@ -1,74 +1,63 @@
-Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
-unit: revisit the external post-rescan Sportray summon helper only after a
-concrete existing client caller is introduced or an installed Omarchy/
-Quickshell update changes the widget-registration/readiness contract.
+Work in `/home/joeg/Projects/sportray` on the next bounded product unit:
+implement a verified NHL standings adapter and standings presentation
+projection, based on the private feature-parity backlog in `competition.md`.
 
 Before any edit, read `AGENTS.md`, `README.md`,
-`docs/upstream-contract.md`, `roadmap.md`, and the latest handoff. The
-`docs/upstream-contract.md` path is intentionally absent from this checkout;
-verify current Omarchy/Quickshell boundaries against installed sources instead.
-Inspect `git status`, the current branch, recent commits, the latest handoff,
-`scripts/summon-sportray-after-rescan.sh`, its test, `manifest.json`, and
-`BarWidget.qml`. Preserve unrelated changes and do not rely on prior chat
-history.
+`docs/upstream-contract.md`, `roadmap.md`, `competition.md`, and this latest
+handoff. The upstream-contract file is intentionally absent; verify current
+Omarchy/Quickshell boundaries against installed sources. Inspect `git status`,
+the current branch, recent commits, the latest roadmap handoff, NHL provider
+code, existing ESPN standings model/presentation, fixtures, and tests.
+Preserve unrelated changes, especially the existing deletion of
+`MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
 
 Verified current state:
 
-- The scoreboard game-card footer now renders status/start metadata on one
-  line and `At <venue>` on a separate bounded two-line text item. Its card
-  height measures the complete footer column, while the ESPN/NHL.com source
-  action remains in a separate trailing column centered across the footer.
-  The change is limited to `components/GameRow.qml` and its source/layout
-  assertions; providers, normalized models, polling, settings, notifications,
-  and runtime IPC are unchanged.
-- The full fixture-driven suite passes with 185 tests. The checkout passes
-  `omarchy plugin validate "$PWD"`, real-import-path `qmllint`, helper tests,
-  and `git diff --check`.
-- Actual Omarchy remains `4.0.0-1` with Quickshell `0.3.0`, revision
-  `28771c7c74b42e20afca0b1b63980cb46515537`. After the supported shell restart,
-  one instance (`c0240dfe8c8e8a421e1f8db23a03fc60`, PID 806461) loaded the
-  linked plugin, `shell ping` returned `ok`, and a screenshot showed
-  `At LoanDepot Park` fully visible with `ESPN` still separate. The fresh log
-  has normal provider/cache activity and no Sportray exception, QML/load, or
-  binding-loop warning. A rescan-only reload can retain the old active
-  component until a shell restart.
-- The external helper remains outside the plugin runtime path. It sends the
-  exact summon IPC, accepts only `ok`, retries unsuccessful results at most
-  five times with 250 ms spacing, never calls `hide`, and has deterministic
-  shell coverage. No repository or user-configured post-rescan summon caller
-  is currently known.
+- Sportray has eight leagues, canonical favorites, Following and league views,
+  date navigation, ESPN-backed standings, a local keyboard-accessible game
+  detail view, compact/full ambient modes, live-favorite rotation, adaptive
+  polling, bounded caches/responses, source links, settings, accessibility,
+  and favorite-only start/score/final notifications.
+- NHL is intentionally scores-only because no verified NHL standings contract
+  has been accepted yet. ESPN standings are already provider-neutralized and
+  should remain the model/presentation reference.
+- `competition.md` records the current catalog peers and the remaining parity
+  backlog. After NHL standings, the recommended slices are one optional rich
+  detail section and one pregame reminder policy.
+- Provider parsing stays in `providers/`; QML consumes normalized projections.
+  Preserve the no-account/no-backend/no-daemon default and all response,
+  settings, notification, and privacy bounds.
+- No public or Marketplace action is in scope. `origin/main` still contains
+  historical private planning/Marketplace files; do not push or attempt remote
+  cleanup in this unit.
 
 Bounded outcome:
 
-- If a real client caller now exists, integrate the existing helper at that
-  caller without adding a host/plugin API or changing hide behavior.
-- If installed Omarchy/Quickshell changed, inspect the new source and
-  reproduce rescan, immediate summon, delayed summon, and hide before deciding
-  whether the helper remains necessary.
-- If neither prerequisite exists, record the unchanged blocker in
-  `roadmap.md` and stop without speculative runtime changes, repeated race
-  testing, or a success commit.
+Inspect installed/current NHL source and identify one reliable standings
+payload shape. Add a pure NHL standings parser/projection, a bounded fixture,
+and the smallest existing league-view integration needed to show standings
+with sport-appropriate ordering and safe missing-field behavior. Keep team
+identity canonical and preserve existing favorite actions if the route already
+supports them. If no reliable standings payload can be verified, implement
+only the pure contract/fixture rejection path, document the blocker, and stop.
 
-Required checks if the unit reopens:
+Required checks and stop condition:
 
-- Run `bash -n scripts/summon-sportray-after-rescan.sh`,
-  `tests/test-summon-helper.sh`, and `shellcheck` if installed.
-- Run `NODE_BIN=/home/joeg/.local/share/mise/installs/node/26.7.0/bin/node
-  tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, the real
-  import-path `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command
-  over every QML file, and `git diff --check`.
-- On actual Omarchy, confirm one running shell, rescan plus the bounded helper
-  or the new caller, delayed summon/hide, live geometry, and a fresh Quickshell
-  log. Do not claim an upstream fix from one timing-sensitive success.
-- Do not add a plugin-side timer/retry, new IPC route, provider field,
-  settings field, polling cadence, or unverified upstream API. Keep the helper
-  outside Sportray’s runtime path unless a concrete caller integration is
-  proven necessary.
+- Add fixture-driven coverage for valid ordering, ties or missing values,
+  malformed entries, empty standings, canonical team identity, and favorite
+  routing if changed.
+- Run `tests/run-js-tests.sh`, `omarchy plugin validate "$PWD"`, real-import-
+  path `qmllint` over changed QML, and `git diff --check`.
+- On actual Omarchy, rescan/restart the linked plugin as required by the
+  installed host, inspect the Quickshell log, and manually exercise an NHL
+  league view if QML behavior changes. Do not claim runtime success without an
+  actual Omarchy check.
+- Stop before rich game detail, pregame/close alerts, provider fallback
+  chains, broader team discovery, calendar redesign, specialist sports,
+  packaging, tagging, pushing, releases, or Marketplace work.
 
-Stop when the prerequisite is absent and the blocker is recorded, or when one
-concrete caller/host change is verified with all gates. Before finishing,
-update `roadmap.md`, replace this prompt with the next self-contained prompt,
-and create one atomic Conventional Commit-style commit only when the gate
-passes. Never push, tag, publish, or change remote state. Request subagents
-only for independent read-only upstream/runtime reconnaissance; do not
-delegate edits to shared source, roadmap, or handoff files.
+At completion, update `roadmap.md` with evidence, decisions, and a dated
+handoff; replace this file with the next single bounded prompt; and create one
+atomic Conventional Commit-style commit only after all gates pass. Use no
+subagents unless an independent read-only NHL contract investigation would
+materially improve confidence.

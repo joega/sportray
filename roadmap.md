@@ -58,6 +58,13 @@ and league views, followed by generic game-detail data. Specialist adapters
 for F1 timing, baseball situations, esports series, and additional racing
 should wait until the generic baseline is accepted.
 
+Current status update: the standings slice, generic local game-detail data and
+drill-down, compact/full ambient modes, and live-favorite rotation have since
+landed in the checkout. `competition.md` is now the private reference for the
+catalog inventory, parity ideas, current coverage, and prioritized backlog.
+The next useful parity slice is verified NHL standings; the earlier generic
+standings/design recommendation is retained as historical rationale only.
+
 ## Current milestone — Marketplace publication readiness
 
 Status: the single Marketplace submission issue #873 is closed and published.
@@ -2194,3 +2201,30 @@ concrete existing client caller is introduced or an installed Omarchy/Quickshell
 update changes the widget-registration/readiness contract. If neither
 prerequisite exists, recheck installed sources, record the unchanged blocker,
 and stop without speculative runtime changes.
+
+## Latest handoff — 2026-08-24 private competition reference
+
+The private `competition.md` reference is complete. It records the current
+generalist peers (`Scores`, `Sportsbar`, `Omatchday`, and `OmaSoccer`), focused
+MLB/F1/esports/VCT peers, the ideas worth borrowing, Sportray's already-landed
+parity work, and a prioritized backlog. The catalog was refreshed on 2026-08-24
+from its live `catalog.json` feed. No public README, runtime code, provider,
+Marketplace, release, tag, or remote state changed.
+
+The reference deliberately distinguishes existing parity from remaining gaps:
+rich sport-specific detail, NHL standings, pregame/close alerts, provider
+fallback chains, broader team discovery, calendar context, and specialist
+adapters. The recommended next slices are NHL standings, one optional rich
+detail section, and one pregame reminder policy, in that order.
+
+This unit preserves the user's unrelated deletion of local
+`MARKETPLACE_SUBMISSION.md`; it was not staged or restored. A read-only check
+also shows that `origin/main` still contains historical private planning and
+Marketplace files, so no push or remote cleanup was attempted. Removing those
+files from the public branch requires a separate owner-authorized remote
+cleanup unit.
+
+Next bounded unit: implement a verified NHL standings adapter and standings
+presentation projection. Stop before rich detail, pregame/close alerts,
+provider fallback, broader discovery, specialist sports, packaging, tagging,
+pushing, release, or Marketplace work.
