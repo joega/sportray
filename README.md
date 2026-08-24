@@ -110,8 +110,9 @@ checkout. It intentionally leaves the preferences file documented below in
 place so a reinstall can retain the user's settings; users may remove that
 state file separately if they want a complete preference reset.
 
-The installed shell currently requires an explicit empty argument object for
-bar-widget toggle IPC:
+The underlying shell bar-widget summon/toggle functions take an argument
+object. The installed `omarchy-shell` wrapper supplies an empty `{}` when the
+argument is omitted; Sportray keeps it explicit in its commands and helper:
 
 ```bash
 omarchy-shell shell toggle io.github.joega.sportray '{}'

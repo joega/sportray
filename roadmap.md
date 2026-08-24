@@ -2597,3 +2597,56 @@ of the current notification behavior and its README/roadmap evidence after
 the verified shell-restart recovery. Reconcile only directly observed stale
 documentation or acceptance claims; do not change provider, notification,
 settings, QML, packaging, or Marketplace behavior without a new owner request.
+
+## Latest handoff — 2026-08-24 notification/lifecycle consistency audit
+
+Status: complete. The public README, private roadmap, current notification
+source, and installed Omarchy/Quickshell lifecycle boundary were audited after
+the verified shell-restart recovery. One stale wording issue was found and
+corrected: the underlying shell `summon`/`toggle` functions take a payload
+argument, but the installed `/usr/share/omarchy/bin/omarchy-shell` wrapper
+automatically supplies `{}` when that argument is omitted. The README now
+documents that distinction while keeping Sportray's explicit `{}` examples and
+post-rescan helper behavior.
+
+The remaining notification claims agree with the checked-out source and prior
+runtime evidence: all six schema-1 notification preferences are exposed,
+pregame and close-game alerts are independently opt-in and favorite-only, the
+test preview bypasses event preferences and transition dedupe, and the helper
+argv remains `/usr/bin/omarchy-notification-send`. The README's shell-restart
+recovery guidance also remains supported. Installed `shell.qml` routes
+bar-widget summon/hide/toggle through the live bar instance, limits `call` to
+panel loaders, and leaves an already-loaded matching widget component in place
+during plugin rescan; a shell restart is therefore the supported recovery when
+current QML is not visible.
+
+Evidence:
+
+- Direct source inspection covered `/usr/share/omarchy/bin/omarchy-shell`,
+  `/usr/share/omarchy/shell/shell.qml`,
+  `/usr/share/omarchy/shell/services/PluginRegistry.qml`, the installed
+  Omarchy plugin guidance, `/usr/bin/omarchy-notification-send`,
+  `services/NotificationService.qml`, `services/SportrayService.qml`,
+  `Panel.qml`, and `components/SettingsView.qml`.
+- No new shell/widget runtime pass was claimed in this read-only audit. The
+  actual Omarchy settings interaction, notification-history entries, and
+  clean post-restart log are the preceding 2026-08-24 handoff's evidence.
+- The unrelated deletion of `MARKETPLACE_SUBMISSION.md` remains untouched and
+  unstaged. No provider, notification policy, settings schema, QML behavior,
+  packaging, remote state, tag, release, or Marketplace state changed.
+
+Decision log: describe the wrapper and underlying IPC separately so the public
+command contract is accurate without weakening the explicit-argument helper
+or implying that a rescan reconstructs a live bar-widget instance. Keep the
+prior runtime evidence historical and do not report it as a new verification
+for this audit.
+
+Known risks: an active bar-widget can still require `omarchy restart shell`
+after source changes; pointer injection and repeated-key behavior remain
+unverified as broader contracts; ESPN remains an undocumented provider API.
+
+Next bounded unit: perform one read-only release-candidate metadata consistency
+check for the owner-assigned `1.0.0-rc.8` across `manifest.json`, `README.md`,
+`CHANGELOG.md`, and local git tags/refs. Do not push, tag, publish, submit to
+Marketplace, or alter release metadata unless the owner separately authorizes
+that action.
