@@ -27,7 +27,8 @@ function createDefaults() {
       enabled: false,
       gameStart: false,
       scoreChange: false,
-      gameFinal: false
+      gameFinal: false,
+      pregameReminder: false
     }
   };
 }
@@ -66,7 +67,7 @@ function normalizeNotifications(value) {
   if (!isPlainObject(value)) return null;
   var defaults = createDefaults().notifications;
   var out = {};
-  var keys = ["enabled", "gameStart", "scoreChange", "gameFinal"];
+  var keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder"];
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
     out[key] = typeof value[key] === "boolean" ? value[key] : defaults[key];
@@ -111,7 +112,7 @@ function normalizeSettings(value) {
     else invalidFields.push("notifications");
   } else {
     out.notifications = notifications;
-    var notificationKeys = ["enabled", "gameStart", "scoreChange", "gameFinal"];
+    var notificationKeys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder"];
     for (var i = 0; i < notificationKeys.length; i++) {
       var notificationKey = notificationKeys[i];
       if (value.notifications[notificationKey] === undefined)
@@ -178,7 +179,7 @@ function toggleLeague(value, leagueId) {
 
 function toggleNotification(value, key) {
   var normalized = normalizeSettings(value).settings;
-  var keys = ["enabled", "gameStart", "scoreChange", "gameFinal"];
+  var keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder"];
   if (typeof key !== "string" || keys.indexOf(key) === -1) return normalized;
 
   var notifications = {};

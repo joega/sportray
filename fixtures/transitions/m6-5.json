@@ -1,0 +1,84 @@
+{
+  "now": "2026-10-08T14:00:00Z",
+  "todayDateKey": "2026-10-08",
+  "settings": {
+    "favoriteTeamIds": ["nhl:6"],
+    "notifications": {
+      "enabled": true,
+      "pregameReminder": true
+    }
+  },
+  "games": [
+    {
+      "league": "nhl",
+      "providerGameId": "m6-5-eligible",
+      "startTime": "2026-10-08T14:15:00Z",
+      "status": "scheduled",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-5-out-of-window",
+      "startTime": "2026-10-08T14:31:00Z",
+      "status": "scheduled",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:10", "league": "nhl", "providerTeamId": "10", "abbreviation": "FLA"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-5-other-team",
+      "startTime": "2026-10-08T14:10:00Z",
+      "status": "scheduled",
+      "awayTeam": {"id": "nhl:10", "league": "nhl", "providerTeamId": "10", "abbreviation": "FLA"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-5-malformed-time",
+      "startTime": "not-a-time",
+      "status": "scheduled",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-5-stale",
+      "startTime": "2026-10-08T13:59:00Z",
+      "status": "scheduled",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-5-next-day",
+      "startTime": "2026-10-09T14:15:00Z",
+      "status": "scheduled",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"}
+    },
+    {
+      "league": "nhl",
+      "providerGameId": "m6-5-live",
+      "startTime": "2026-10-08T14:15:00Z",
+      "status": "live",
+      "awayTeam": {"id": "nhl:6", "league": "nhl", "providerTeamId": "6", "abbreviation": "BOS"},
+      "homeTeam": {"id": "nhl:13", "league": "nhl", "providerTeamId": "13", "abbreviation": "TOR"}
+    }
+  ],
+  "expectedEvent": {
+    "type": "pregame-reminder",
+    "gameId": "nhl:m6-5-eligible",
+    "league": "nhl",
+    "currentStatus": "scheduled",
+    "startTimeMs": 1791468900000,
+    "remainingMs": 900000
+  },
+  "expectedArgv": [
+    "/usr/bin/omarchy-notification-send",
+    "--app-name", "Sportray",
+    "-u", "normal",
+    "Sportray · Upcoming game",
+    "BOS vs TOR · Starts in 15 min"
+  ]
+}

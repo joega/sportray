@@ -37,7 +37,8 @@ At a glance:
   vertical bars, with a color status indicator and score details on hover
 - Provider-friendly adaptive polling, bounded date caches, and one in-flight
   request per league
-- Desktop notifications for favorite game starts, score changes, and finals
+- Desktop notifications for favorite game starts, score changes, finals, and
+  optional 30-minute-window pregame reminders
 - First-fetch suppression and bounded, restart-safe notification deduplication
 - Persistent league, favorite, and notification preferences
 - Theme-aware layout for top, bottom, left, and right bars
@@ -153,11 +154,14 @@ Marketplace submission are separate publication steps.
 Open the panel's **Settings** action to choose **Sports & leagues**, **Favorite
 teams**, or **Notifications**. Favorite teams supports search, league filters,
 selected-first ordering, resilient logo fallbacks, and keyboard navigation.
-Notification preferences control game starts, score changes, and game finals
-independently. Use **Send test notification** in that destination to preview
-the Omarchy notification channel; the preview works even when alerts are
-disabled and does not change deduplication state. Escape or Back returns from
-a utility to the prior score view before closing the panel.
+Notification preferences control game starts, score changes, game finals, and
+favorite-only pregame reminders independently. Pregame reminders are opt-in,
+consider only scheduled games on the current local date within 30 minutes of
+start, and remain silent for malformed or stale timestamps. Use **Send test
+notification** in that destination to preview the Omarchy notification
+channel; the preview works even when alerts are disabled and does not change
+deduplication state. Escape or Back returns from a utility to the prior score
+view before closing the panel.
 
 Sportray stores bounded schema-1 JSON outside the plugin checkout at:
 

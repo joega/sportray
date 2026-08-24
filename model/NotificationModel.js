@@ -1,7 +1,8 @@
 var EVENT_TYPES = {
   GAME_START: "game-start",
   SCORE_CHANGE: "score-change",
-  GAME_FINAL: "game-final"
+  GAME_FINAL: "game-final",
+  PREGAME_REMINDER: "pregame-reminder"
 };
 
 var MAX_DISPLAY_TEXT_LENGTH = 160;
@@ -73,6 +74,7 @@ function eventKey(event) {
   if (!gameId) return null;
   if (event.type === EVENT_TYPES.GAME_START) return gameId + ":start";
   if (event.type === EVENT_TYPES.GAME_FINAL) return gameId + ":final";
+  if (event.type === EVENT_TYPES.PREGAME_REMINDER) return gameId + ":pregame";
   if (event.type === EVENT_TYPES.SCORE_CHANGE
       && typeof event.awayScore === "number" && typeof event.homeScore === "number"
       && isFinite(event.awayScore) && isFinite(event.homeScore)
@@ -91,7 +93,8 @@ function notificationsFor(settings) {
     enabled: value.enabled === true,
     gameStart: value.gameStart === true,
     scoreChange: value.scoreChange === true,
-    gameFinal: value.gameFinal === true
+    gameFinal: value.gameFinal === true,
+    pregameReminder: value.pregameReminder === true
   };
 }
 
@@ -101,6 +104,7 @@ function eventEnabled(event, settings) {
   if (event.type === EVENT_TYPES.GAME_START) return notifications.gameStart;
   if (event.type === EVENT_TYPES.SCORE_CHANGE) return notifications.scoreChange;
   if (event.type === EVENT_TYPES.GAME_FINAL) return notifications.gameFinal;
+  if (event.type === EVENT_TYPES.PREGAME_REMINDER) return notifications.pregameReminder;
   return false;
 }
 
@@ -131,6 +135,7 @@ function headlineFor(type) {
   if (type === EVENT_TYPES.GAME_START) return "Sportray · Game started";
   if (type === EVENT_TYPES.SCORE_CHANGE) return "Sportray · Score change";
   if (type === EVENT_TYPES.GAME_FINAL) return "Sportray · Final";
+  if (type === EVENT_TYPES.PREGAME_REMINDER) return "Sportray · Upcoming game";
   return "Sportray";
 }
 
@@ -139,7 +144,14 @@ function buildDelivery(event, game) {
   if (!fingerprint || !isRecord(game) || game.isValid !== true || !game.id) return null;
 
   var summary = hasScores(game) ? scoreLine(game) : matchup(game);
-  var description = (summary + " · " + statusDetail(game)).slice(0, MAX_DESCRIPTION_LENGTH);
+  var description = summary + " · " + statusDetail(game);
+  if (event.type === EVENT_TYPES.PREGAME_REMINDER) {
+    var remainingMs = typeof event.remainingMs === "number" && isFinite(event.remainingMs)
+      && event.remainingMs > 0 ? event.remainingMs : 60000;
+    var minutes = Math.max(1, Math.ceil(remainingMs / 60000));
+    description = summary + " · Starts in " + minutes + " min";
+  }
+  description = description.slice(0, MAX_DESCRIPTION_LENGTH);
   var headline = headlineFor(event.type);
   return {
     event: event,

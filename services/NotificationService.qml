@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell.Io
+import "../model/DateModel.js" as DateModel
 import "../model/NotificationModel.js" as NotificationModel
+import "../model/PregameReminderPolicy.js" as PregameReminderPolicy
 import "../model/TransitionDedupe.js" as TransitionDedupe
 import "../model/TransitionDetector.js" as TransitionDetector
 
@@ -13,6 +15,7 @@ Item {
   property var settingsStore: null
   property var previousGames: []
   property bool hasBaseline: false
+  property bool hasReadyBaseline: false
   property var pendingDeliveries: []
 
   function currentGames() {
@@ -34,9 +37,23 @@ Item {
       return
     }
 
+    // Reminders follow the same first-fetch suppression as transition alerts.
+    // A startup snapshot must not become a notification merely because settings
+    // finished loading after the scores arrived.
+    if (!root.hasReadyBaseline) {
+      root.previousGames = current
+      root.hasReadyBaseline = true
+      return
+    }
+
     var previous = root.previousGames
     root.previousGames = current
-    var events = TransitionDetector.detectGames(previous, current)
+    var nowMs = Date.now()
+    var events = TransitionDetector.detectGames(previous, current).concat(
+      PregameReminderPolicy.eligibleEvents(
+        current, root.settingsStore.settings, nowMs,
+        DateModel.localDateKey(new Date(nowMs)))
+    )
     if (events.length === 0 || typeof root.settingsStore.acceptTransitionEvents !== "function") return
 
     var deliveries = NotificationModel.buildDeliveries(

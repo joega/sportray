@@ -6,7 +6,8 @@ var DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 var EVENT_TYPES = {
   GAME_START: "game-start",
   SCORE_CHANGE: "score-change",
-  GAME_FINAL: "game-final"
+  GAME_FINAL: "game-final",
+  PREGAME_REMINDER: "pregame-reminder"
 };
 
 function isRecord(value) {
@@ -129,6 +130,7 @@ function fingerprintForEvent(event) {
 
   if (event.type === EVENT_TYPES.GAME_START) return gameId + ":start";
   if (event.type === EVENT_TYPES.GAME_FINAL) return gameId + ":final";
+  if (event.type === EVENT_TYPES.PREGAME_REMINDER) return gameId + ":pregame";
   if (event.type === EVENT_TYPES.SCORE_CHANGE) {
     var awayScore = score(event.awayScore);
     var homeScore = score(event.homeScore);

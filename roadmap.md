@@ -2394,3 +2394,69 @@ untouched and unstaged.
 Next bounded unit: add one opt-in, favorite-only pregame reminder policy using
 the existing normalized `startTime` and notification pipeline. Keep close-game
 alerts, new endpoints, provider fallback, and UI discovery out of scope.
+
+## Latest handoff — 2026-08-24 opt-in pregame reminder policy
+
+Status: complete. Sportray now supports one independently configurable,
+favorite-only pregame reminder through the existing notification pipeline.
+`model/PregameReminderPolicy.js` admits only normalized, valid, scheduled
+favorite games whose `startTime` is a valid future timestamp on the current
+local date and no more than 30 minutes away. Missing, malformed, stale,
+out-of-window, non-favorite, live, and next-day games fail closed. The policy
+does not request a second provider endpoint or expose canonical IDs in the
+notification text.
+
+The schema-1 notification settings now include `pregameReminder`, defaulting
+to `false`; the existing Notifications destination exposes the single opt-in
+toggle. `NotificationService` evaluates the pure policy on the existing
+today-game snapshot after the established first-fetch baseline, builds the
+existing helper argv, and sends the new event through the existing persisted
+transition-dedupe state. A `gameId:pregame` fingerprint suppresses repeats
+across polling and state reloads. Existing game-start, score-change, final,
+test-notification, favorite-only, and first-fetch behavior remains unchanged.
+
+Evidence:
+
+- `fixtures/transitions/m6-5.json` and the deterministic suite cover an
+  eligible upcoming favorite, disabled preference, non-favorite, malformed
+  and stale timestamps, a 30-minute out-of-window timestamp, a next-day
+  timestamp, non-scheduled status, bounded helper text, canonical-ID text
+  exclusion, and persisted duplicate suppression. The complete suite passes
+  with 188 tests.
+- `omarchy plugin validate "$PWD"` passes. Full
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  exits 0 with the established standalone import and unqualified-access
+  warnings. `./tests/test-summon-helper.sh` and `git diff --check` pass.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0 revision
+  `28771c7c74b42e20afca0b1b63980cb46515537` remains healthy with one shell
+  instance. The linked checkout was rescanned, the helper summoned Sportray
+  with `ok`, hide returned successfully, and the fresh log tail contained
+  normal provider/cache activity with no Sportray exception, QML load
+  failure, binding-loop warning, or notification-helper failure. No manual
+  settings click-through is claimed because child-route IPC and a reliable
+  desktop pointer injector remain unavailable.
+
+Decision log: keep the reminder as a pure normalized-game projection and
+reuse the existing notification helper, queue, settings persistence, and
+transition fingerprint store. Use a conservative fixed 30-minute maximum,
+local-date matching, and first-fetch silence so enabling the feature cannot
+replay startup schedules. Keep pregame text to sanitized team labels plus a
+bounded relative lead; do not add calendar, provider, or per-game fetch work.
+The private `docs/upstream-contract.md` remains intentionally absent; the
+installed Omarchy sources were inspected directly and no material host-boundary
+deviation was found. No push, tag, release, Marketplace, or remote action was
+performed, and unrelated repository state was preserved.
+
+Known risks: reminders depend on the existing scoreboard refresh cadence, so a
+provider snapshot that first arrives after its 30-minute window will not alert;
+settings changes take effect on the next existing game snapshot; and regional
+provider availability remains unchanged. Close-game alerts, provider fallback,
+new endpoints, specialist sports, packaging, and publication remain out of
+scope.
+
+Next bounded unit: add one independently configurable, favorite-only close-game
+alert using only existing normalized live-game scores/status and the existing
+notification/dedupe pipeline. Preserve the new pregame reminder and all
+start/score/final behavior; stop before adding a second endpoint, provider UI,
+fallback, broader discovery, specialist sports, packaging, tagging, pushing,
+releases, or Marketplace work.
