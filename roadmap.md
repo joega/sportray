@@ -3059,3 +3059,72 @@ Next bounded unit: wire the accepted `ProviderFallbackPolicy` contract into the
 existing per-league fetch boundary (`services/LeagueFetch.qml` and the shared
 scheduler) without changing endpoints, request paths, polling cadence bounds,
 settings schema, or QML views.
+
+## Latest handoff — 2026-08-24 wired provider-fallback chain admission
+
+The provider-fallback wiring unit is complete in the current worktree. Each
+per-league score request is now admitted through its caller-owned fallback
+chain, closing out the last unimplemented capability of the recorded minimum
+competitive baseline.
+
+Evidence:
+
+- `providers/LeagueCatalog.js` adds `providerChain(leagueId)`: every catalog
+  league resolves to one verified candidate (`nhl` → `["nhl"]`, all ESPN-backed
+  leagues → `["espn"]`), and unknown leagues return `null`. Provider identity
+  stays inside `providers/`.
+- `services/LeagueFetch.qml` owns `providerHealth`, `activeProviderId`, and
+  `requestProviderId`. `admitProviderRequest(nowMs)` evaluates
+  `ProviderFallbackPolicy.evaluate` before every score request; an empty active
+  id omits `currentProviderId` entirely because the policy fails closed on an
+  explicit empty string. `buildScoreUrl(providerId)`/`parseBody` branch on the
+  admitted provider id, so provider parsing stays in the adapters.
+- Failed responses (`fail()`, partial-data) record through the pure
+  `recordFailure`; full successes clear entries through `recordSuccess`.
+  `exhausted` results keep the last-good snapshot visible, mark the existing
+  unavailable/stale presentation, and schedule one cooldown-bounded retry via
+  `blockForProviderCooldown`/`cooldownRetryDelayMs` (clamped to the existing
+  `PollPolicy.RETRY_MAX_INTERVAL_MS`) instead of issuing another failing
+  request. Invalid chains fail closed to the existing configuration path.
+  The lookahead route is intentionally unchanged; it uses the same verified
+  provider and has its own bounded cache/retry behavior.
+- `fixtures/provider-fallback/wiring.json` and five deterministic tests cover
+  the production chain catalog, healthy primary/current retention, the exact
+  wired call order for fallback after three recorded failures on a sanitized
+  two-candidate chain, exhausted isolation beside a healthy sibling with
+  cooldown-expiry recovery, and source assertions proving no new Process,
+  timer, curl use, or JSON parsing entered `LeagueFetch`. The suite passes
+  with 210 tests.
+- `tests/run-js-tests.sh`, `git diff --check`, `omarchy plugin validate
+  "$PWD"`, and real-import-path `/usr/lib/qt6/bin/qmllint -I
+  /usr/share/omarchy/shell` over all QML files pass; lint exits 0 with the
+  established standalone import/unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported
+  `omarchy restart shell` loaded the linked checkout into one instance
+  (`rtdjemiakt`, PID 904383); `shell ping` returned `ok`; toggle/hide IPC
+  exited 0; and the fresh log shows normal multi-league initialization, fetch,
+  and cache activity with no Sportray exception, QML load failure,
+  binding-loop warning, or provider-cooldown noise. Only the pre-existing
+  unrelated portal registration warning remains.
+
+Decision log: keep health state as caller-owned in-memory state — it is not a
+settings field and does not survive restarts, matching the policy's pure
+contract. Production chains are single-candidate today because each league has
+exactly one verified adapter; exhaustion therefore means the league's one
+provider is cooling down, which preserves the documented last-good/isolation
+behavior while making multi-provider chains available without further wiring.
+Cooldown retries reuse the existing scheduler retry signal rather than adding
+a timer or changing documented polling cadence bounds.
+
+Known risks: live multi-provider fallback is intentionally unexercised because
+no league currently ships a second verified adapter; ESPN remains an
+undocumented API; and a manual refresh during an active cooldown stays blocked
+until the cooldown expires. No push, tag, release, Marketplace, or remote
+action occurred. The unrelated absence of `MARKETPLACE_SUBMISSION.md` remains
+untouched.
+
+Next bounded unit: with all five recorded baseline capabilities now
+implemented, perform one read-only consistency audit across `README.md`,
+`roadmap.md` acceptance evidence, and the private competition backlog;
+record which recorded gaps are closed and present the remaining candidate
+product slices for owner direction before implementing any new feature work.

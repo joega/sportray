@@ -276,6 +276,16 @@ also accumulated through a bounded stream admission guard. Responses with more
 than 256 provider events are rejected before normalization. A rejected response
 is isolated to its league and retains the last-good snapshot when one exists.
 
+Each league fetch admits its request through an ordered per-league provider
+fallback chain: NHL uses the NHL adapter and every other league uses the ESPN
+adapter today, so each chain has exactly one verified candidate. Three
+consecutive failed responses put that provider into a 15-minute cooldown during
+which the league stops issuing requests, keeps its last-good snapshot, and
+shows the existing unavailable or stale state; healthy leagues are unaffected.
+When the cooldown expires the provider receives another opportunity, and any
+successful response clears its recorded failures. The chain is not a settings
+field, and provider parsing stays inside the provider adapters.
+
 Only the league whose data is due is fetched when the shared scheduler wakes.
 Visible live slates update about every 20 seconds, hidden live favorites every
 30 seconds, and other background live slates every two minutes. Repeated

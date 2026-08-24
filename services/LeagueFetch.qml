@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Io
 import "../providers/NhlProvider.js" as NhlProvider
 import "../providers/EspnProvider.js" as EspnProvider
+import "../providers/LeagueCatalog.js" as LeagueCatalog
 import "../model/FreshnessPolicy.js" as FreshnessPolicy
 import "../model/DateModel.js" as DateModel
 import "../model/DateCachePolicy.js" as DateCachePolicy
@@ -9,6 +10,7 @@ import "../model/NextEventModel.js" as NextEventModel
 import "../model/LookaheadPolicy.js" as LookaheadPolicy
 import "../model/PollPolicy.js" as PollPolicy
 import "../model/ResponsePolicy.js" as ResponsePolicy
+import "../model/ProviderFallbackPolicy.js" as ProviderFallbackPolicy
 
 Item {
   id: root
@@ -61,6 +63,9 @@ Item {
   property string lookaheadRequestDateKey: ""
   property string requestDateKey: ""
   property string snapshotDateKey: ""
+  property string activeProviderId: ""
+  property string requestProviderId: ""
+  property var providerHealth: ({})
   property double lastSuccessMs: 0
   property double nextEligibleAtMs: 0
   property int consecutiveFailures: 0
@@ -71,9 +76,75 @@ Item {
   property var lookaheadCacheOrder: []
   readonly property int dateCacheLimit: 5
 
-  function buildUrl() {
-    if (root.leagueId === "nhl") return NhlProvider.buildScoreUrl(root.dateKey)
-    return EspnProvider.buildScoreUrl(root.leagueId, root.dateKey.replace(/-/g, ""))
+  function buildScoreUrl(providerId) {
+    if (providerId === "nhl") return NhlProvider.buildScoreUrl(root.dateKey)
+    if (providerId === "espn")
+      return EspnProvider.buildScoreUrl(root.leagueId, root.dateKey.replace(/-/g, ""))
+    return ""
+  }
+
+  // Caller-owned fallback-chain admission. The chain comes from the provider
+  // catalog; health state and time are owned here and passed into the pure
+  // policy before every per-league score request.
+  function admitProviderRequest(nowMs) {
+    var input = {
+      leagueId: root.leagueId,
+      candidates: LeagueCatalog.providerChain(root.leagueId),
+      health: root.providerHealth,
+      nowMs: nowMs
+    }
+    if (root.activeProviderId !== "") input.currentProviderId = root.activeProviderId
+    var decision = ProviderFallbackPolicy.evaluate(input)
+    if (decision.kind === "primary" || decision.kind === "current"
+        || decision.kind === "fallback") {
+      return {allowed: true, providerId: decision.providerId}
+    }
+    return {allowed: false, kind: decision.kind, attempted: decision.attempted || []}
+  }
+
+  // Every chain candidate is cooling down. Keep the last-good snapshot,
+  // surface the existing unavailable/stale presentation, and wait out the
+  // bounded cooldown instead of issuing another failing request.
+  function blockForProviderCooldown(admission, nowMs) {
+    root.loading = false
+    root.stale = root.hasData
+    root.errorCode = "unavailable"
+    root.errorSummary = FreshnessPolicy.userSafeError(root.errorCode)
+    root.partialErrorCount = 0
+    var delayMs = root.cooldownRetryDelayMs(admission.attempted, nowMs)
+    root.retryNotBeforeMs = Math.max(root.retryNotBeforeMs, nowMs + delayMs)
+    if (root.consecutiveFailures < ProviderFallbackPolicy.FAILURE_THRESHOLD)
+      root.consecutiveFailures = ProviderFallbackPolicy.FAILURE_THRESHOLD
+    console.debug("Sportray league fetch", root.leagueId,
+      "provider-cooldown", delayMs)
+    root.retryRequested(delayMs)
+  }
+
+  function cooldownRetryDelayMs(attemptedIds, nowMs) {
+    var earliest = Number.POSITIVE_INFINITY
+    var ids = Array.isArray(attemptedIds) ? attemptedIds : []
+    for (var i = 0; i < ids.length; i++) {
+      var state = root.providerHealth ? root.providerHealth[ids[i]] : null
+      if (!state) continue
+      var retryAt = Number(state.lastFailureAtMs) + ProviderFallbackPolicy.COOLDOWN_MS
+      if (isFinite(retryAt)) earliest = Math.min(earliest, retryAt)
+    }
+    if (!isFinite(earliest)) earliest = nowMs + ProviderFallbackPolicy.COOLDOWN_MS
+    var delay = Math.max(1, earliest - nowMs)
+    return PollPolicy.spreadIntervalMs(
+      Math.min(delay, PollPolicy.RETRY_MAX_INTERVAL_MS), root.jitterUnit)
+  }
+
+  function recordProviderFailure() {
+    if (!root.requestProviderId) return
+    root.providerHealth = ProviderFallbackPolicy.recordFailure(
+      root.providerHealth, root.requestProviderId, Date.now())
+  }
+
+  function recordProviderSuccess() {
+    if (!root.requestProviderId) return
+    root.providerHealth = ProviderFallbackPolicy.recordSuccess(
+      root.providerHealth, root.requestProviderId)
   }
 
   function currentCadence(nowMs) {
@@ -164,6 +235,7 @@ Item {
     root.nextEligibleAtMs = 0
     root.consecutiveFailures = 0
     root.retryNotBeforeMs = 0
+    root.requestProviderId = ""
   }
 
   function resetLookahead() {
@@ -334,7 +406,7 @@ Item {
     if (!raw || !ResponsePolicy.bodyWithinLimit(raw)) return null
     try {
       var payload = JSON.parse(raw)
-      if (root.leagueId === "nhl") return NhlProvider.parseScoreResponse(payload)
+      if (root.requestProviderId === "nhl") return NhlProvider.parseScoreResponse(payload)
       return EspnProvider.parseScoreboardResponse(payload, root.leagueId)
     } catch (error) {
       return null
@@ -371,16 +443,29 @@ Item {
       return false
     }
 
+    var admissionNow = Date.now()
+    var admission = root.admitProviderRequest(admissionNow)
+    if (!admission.allowed) {
+      if (admission.kind === "exhausted") {
+        root.blockForProviderCooldown(admission, admissionNow)
+        return false
+      }
+      root.fail("configuration")
+      return false
+    }
+    root.activeProviderId = admission.providerId
+
     root.lastAttemptAt = new Date().toISOString()
     root.requestGeneration++
     root.activeRequestGeneration = root.requestGeneration
     root.requestDateKey = root.dateKey
 
-    var url = root.buildUrl()
+    var url = root.buildScoreUrl(root.activeProviderId)
     if (!url) {
       root.fail("configuration")
       return false
     }
+    root.requestProviderId = root.activeProviderId
 
     root.loading = true
     root.errorCode = ""
@@ -404,6 +489,8 @@ Item {
   }
 
   function fail(code) {
+    root.recordProviderFailure()
+    root.requestProviderId = ""
     root.loading = false
     root.errorCode = code || "unavailable"
     root.errorSummary = FreshnessPolicy.userSafeError(root.errorCode)
@@ -446,6 +533,8 @@ Item {
       root.errorSummary = FreshnessPolicy.userSafeError(root.errorCode)
       root.partialErrorCount = result.errors.length
       root.loading = false
+      root.recordProviderFailure()
+      root.requestProviderId = ""
       root.scheduleFailureRetry()
       console.warn("Sportray league fetch", root.leagueId,
         "partial-data", result.errors.length)
@@ -463,6 +552,8 @@ Item {
     root.lastSuccessMs = Date.parse(root.lastSuccessAt)
     root.consecutiveFailures = 0
     root.retryNotBeforeMs = 0
+    root.recordProviderSuccess()
+    root.requestProviderId = ""
     root.scheduleNextEligible(root.lastSuccessMs)
     root.storeDateCache(root.requestDateKey || root.dateKey)
     root.loading = false
@@ -524,6 +615,7 @@ Item {
     root.responseTooLarge = false
     root.streamFinished = false
     root.bodyReceived = false
+    root.requestProviderId = ""
     root.games = []
     root.hasData = false
     root.loading = false
@@ -596,6 +688,7 @@ Item {
     root.refreshQueued = false
     root.queuedRefreshReason = ""
     root.activeRequestGeneration++
+    root.requestProviderId = ""
     root.resetLookahead()
     if (requestProcess.running) requestProcess.running = false
     if (lookaheadProcess.running) lookaheadProcess.running = false
@@ -637,6 +730,7 @@ Item {
         root.bodyReceived = false
         root.pendingResponseBody = ""
         root.responseTooLarge = false
+        root.requestProviderId = ""
         root.finishQueuedRefresh()
         return
       }

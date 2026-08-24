@@ -1,0 +1,36 @@
+{
+  "productionChains": {
+    "nhl": ["nhl"],
+    "espnLeagueIds": ["nfl", "mlb", "nba", "college-football", "eng.1",
+      "usa.1", "mens-college-basketball"],
+    "espnChain": ["espn"]
+  },
+  "unknownLeagueId": "not-a-league",
+  "wiredHealthyPrimary": {
+    "leagueId": "mlb",
+    "now": "2026-08-24T18:00:00.000Z"
+  },
+  "wiredFallbackSequence": {
+    "leagueId": "mlb",
+    "chain": ["espn", "nhl"],
+    "now": "2026-08-24T18:00:00.000Z",
+    "primaryFailureTimes": [
+      "2026-08-24T17:58:00.000Z",
+      "2026-08-24T17:59:00.000Z",
+      "2026-08-24T18:00:00.000Z"
+    ]
+  },
+  "exhaustedIsolation": {
+    "failingLeagueId": "mlb",
+    "failingChain": ["espn"],
+    "healthyLeagueId": "nhl",
+    "healthyChain": ["nhl"],
+    "now": "2026-08-24T18:00:00.000Z",
+    "failureTimes": [
+      "2026-08-24T17:58:00.000Z",
+      "2026-08-24T17:59:00.000Z",
+      "2026-08-24T18:00:00.000Z"
+    ],
+    "cooldownRetryAt": "2026-08-24T18:15:00.000Z"
+  }
+}

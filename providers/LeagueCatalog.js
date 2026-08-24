@@ -64,6 +64,14 @@ function normalizeLeagueId(leagueId) {
   return value || null;
 }
 
+// Ordered per-league provider candidates for the fallback chain policy. The
+// first entry is the league's primary provider. Every id must be a verified
+// adapter in this repository; unknown leagues have no chain.
+function providerChain(leagueId) {
+  var league = getLeague(leagueId);
+  return league && league.provider ? [league.provider] : null;
+}
+
 function defaultLeagueIds() {
   return listLeagues().filter(function(league) {
     return league.enabledByDefault;
@@ -88,6 +96,7 @@ if (typeof module !== "undefined" && module.exports) {
     listLeagues: listLeagues,
     getLeague: getLeague,
     normalizeLeagueId: normalizeLeagueId,
+    providerChain: providerChain,
     defaultLeagueIds: defaultLeagueIds
   };
 }

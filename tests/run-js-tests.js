@@ -195,6 +195,11 @@ function readProviderFallbackFixture() {
     path.join(root, "fixtures/provider-fallback/chain.json"), "utf8"));
 }
 
+function readProviderWiringFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/provider-fallback/wiring.json"), "utf8"));
+}
+
 function normalizeFixtureGames(fixture) {
   return fixture.games.map((game) => games.normalizeGame(game));
 }
@@ -4765,6 +4770,151 @@ test("provider fallback reports bounded exhaustion when every candidate cools", 
   assert.equal(source.includes("Date.now"), false);
   assert.equal(source.includes("JSON.parse"), false);
   assert.equal(source.includes("require("), false);
+});
+
+test("every catalog league exposes one verified provider chain candidate", () => {
+  const fixture = readProviderWiringFixture();
+  const expectedChains = {nhl: fixture.productionChains.nhl};
+  fixture.productionChains.espnLeagueIds.forEach((leagueId) => {
+    expectedChains[leagueId] = fixture.productionChains.espnChain;
+  });
+
+  for (const league of catalog.listLeagues()) {
+    assert.deepEqual(catalog.providerChain(league.id), expectedChains[league.id],
+      league.id);
+    assert.deepEqual(providerFallback.normalizeCandidates(expectedChains[league.id]),
+      expectedChains[league.id], league.id);
+  }
+  assert.equal(catalog.providerChain(fixture.unknownLeagueId), null);
+  assert.equal(catalog.providerChain(null), null);
+  assert.equal(catalog.providerChain(42), null);
+});
+
+test("wired admission keeps the healthy verified primary for its league", () => {
+  const fixture = readProviderWiringFixture();
+  // Mirrors LeagueFetch.admitProviderRequest: the current provider id is
+  // omitted entirely until a first admission selects one.
+  const admission = (leagueId, chain, currentProviderId, health, nowMs) => {
+    const input = {leagueId, candidates: chain, health, nowMs};
+    if (currentProviderId !== "") input.currentProviderId = currentProviderId;
+    return providerFallback.evaluate(input);
+  };
+
+  const first = admission("mlb", fixture.productionChains.espnChain, "", {},
+    Date.parse(fixture.wiredHealthyPrimary.now));
+  assert.equal(first.kind, "primary");
+  assert.equal(first.providerId, "espn");
+  assert.equal(first.index, 0);
+
+  const retained = admission("mlb", fixture.productionChains.espnChain, "espn", {},
+    Date.parse(fixture.wiredHealthyPrimary.now) + 1000);
+  assert.equal(retained.kind, "current");
+  assert.equal(retained.reason, "current-healthy");
+  assert.equal(retained.providerId, "espn");
+
+  const unknown = admission(fixture.unknownLeagueId,
+    catalog.providerChain(fixture.unknownLeagueId), "", {},
+    Date.parse(fixture.wiredHealthyPrimary.now));
+  assert.equal(unknown.kind, "invalid");
+  assert.equal(unknown.reason, "candidates");
+});
+
+test("wired fallback records failures then advances to the next healthy candidate", () => {
+  const fixture = readProviderWiringFixture();
+  const sequence = fixture.wiredFallbackSequence;
+  const nowMs = Date.parse(sequence.now);
+
+  // The exact LeagueFetch call order: admit, record each failed response,
+  // then re-admit before the next request.
+  let health = {};
+  let decision = providerFallback.evaluate({
+    leagueId: sequence.leagueId, candidates: sequence.chain, health, nowMs
+  });
+  assert.equal(decision.kind, "primary");
+  assert.equal(decision.providerId, "espn");
+
+  for (const failureAt of sequence.primaryFailureTimes)
+    health = providerFallback.recordFailure(health, decision.providerId,
+      Date.parse(failureAt));
+  assert.equal(health.espn.consecutiveFailures, providerFallback.FAILURE_THRESHOLD);
+
+  decision = providerFallback.evaluate({
+    leagueId: sequence.leagueId, candidates: sequence.chain,
+    currentProviderId: decision.providerId, health, nowMs
+  });
+  assert.equal(decision.kind, "fallback");
+  assert.equal(decision.reason, "next-healthy");
+  assert.equal(decision.providerId, "nhl");
+  assert.equal(decision.index, 1);
+  assert.deepEqual(decision.attempted, ["espn"]);
+
+  health = providerFallback.recordSuccess(health, decision.providerId);
+  const stayedCurrent = providerFallback.evaluate({
+    leagueId: sequence.leagueId, candidates: sequence.chain,
+    currentProviderId: decision.providerId, health, nowMs: nowMs + 1
+  });
+  assert.equal(stayedCurrent.kind, "current");
+  assert.equal(stayedCurrent.providerId, "nhl");
+});
+
+test("wired exhaustion isolates the cooling league beside a healthy sibling", () => {
+  const fixture = readProviderWiringFixture();
+  const isolation = fixture.exhaustedIsolation;
+  const nowMs = Date.parse(isolation.now);
+
+  let failingHealth = {};
+  for (const failureAt of isolation.failureTimes)
+    failingHealth = providerFallback.recordFailure(failingHealth, "espn",
+      Date.parse(failureAt));
+
+  const exhausted = providerFallback.evaluate({
+    leagueId: isolation.failingLeagueId, candidates: isolation.failingChain,
+    currentProviderId: "espn", health: failingHealth, nowMs
+  });
+  assert.equal(exhausted.kind, "exhausted");
+  assert.equal(exhausted.providerId, null);
+  assert.deepEqual(exhausted.attempted, ["espn"]);
+
+  const sibling = providerFallback.evaluate({
+    leagueId: isolation.healthyLeagueId, candidates: isolation.healthyChain,
+    health: {}, nowMs
+  });
+  assert.equal(sibling.kind, "primary");
+  assert.equal(sibling.providerId, "nhl");
+
+  // Cooldown expiry restores the bounded retry opportunity on the primary.
+  const retried = providerFallback.evaluate({
+    leagueId: isolation.failingLeagueId, candidates: isolation.failingChain,
+    currentProviderId: "espn", health: failingHealth,
+    nowMs: Date.parse(isolation.cooldownRetryAt)
+  });
+  assert.equal(retried.kind, "current");
+  assert.equal(retried.reason, "current-healthy");
+  assert.equal(retried.providerId, "espn");
+});
+
+test("LeagueFetch admits through the fallback chain without new fetch ownership", () => {
+  const leagueFetch = readSource("services/LeagueFetch.qml");
+  assert.match(leagueFetch,
+    /import "\.\.\/model\/ProviderFallbackPolicy\.js" as ProviderFallbackPolicy/);
+  assert.match(leagueFetch,
+    /import "\.\.\/providers\/LeagueCatalog\.js" as LeagueCatalog/);
+  assert.match(leagueFetch, /LeagueCatalog\.providerChain\(root\.leagueId\)/);
+  assert.match(leagueFetch, /ProviderFallbackPolicy\.evaluate\(/);
+  assert.match(leagueFetch, /ProviderFallbackPolicy\.recordFailure\(/);
+  assert.match(leagueFetch, /ProviderFallbackPolicy\.recordSuccess\(/);
+  assert.match(leagueFetch, /function blockForProviderCooldown\(/);
+  assert.match(leagueFetch, /function cooldownRetryDelayMs\(/);
+  assert.match(leagueFetch, /PollPolicy\.RETRY_MAX_INTERVAL_MS/);
+  assert.match(leagueFetch, /property var providerHealth: \(\{\}\)/);
+  assert.match(leagueFetch, /property string activeProviderId: ""/);
+
+  // The wiring adds no process, timer, transport, or provider parsing: still
+  // exactly two Process objects and two curl command arrays.
+  assert.equal((leagueFetch.match(/\bProcess\s*\{/g) || []).length, 2);
+  assert.equal((leagueFetch.match(/\bTimer\s*\{/g) || []).length, 0);
+  assert.equal((leagueFetch.match(/curl/g) || []).length, 2);
+  assert.equal((leagueFetch.match(/JSON\.parse/g) || []).length, 2);
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");
