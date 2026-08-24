@@ -2650,3 +2650,47 @@ check for the owner-assigned `1.0.0-rc.8` across `manifest.json`, `README.md`,
 `CHANGELOG.md`, and local git tags/refs. Do not push, tag, publish, submit to
 Marketplace, or alter release metadata unless the owner separately authorizes
 that action.
+
+## Latest handoff — 2026-08-24 release-candidate metadata consistency
+
+Status: complete. The owner-assigned `1.0.0-rc.8` metadata is consistent across
+`manifest.json`, the README's Marketplace listing section, and the changelog's
+`Unreleased` section. The local candidate remains unreleased and untagged; no
+release date was added or inferred.
+
+The read-only ref audit found `main`, `origin/main`, and `origin/HEAD` all at
+`9942e0f4b6d4ca2cdb5b8652182f31ce26f4c1a4`. The only local version tag is the
+unchanged annotated `v1.0.0-rc.7`, which peels to
+`de450941b5846914e1f8200f1a74ccf0a301428c`; `HEAD` is 47 commits beyond that
+tag. No `rc.8` tag exists. The closing changelog summary had one stale,
+ambiguous sentence that said `v1.0.0-rc.7` identified “this release
+candidate”; it now explicitly identifies the historical `1.0.0-rc.7` snapshot
+and states that `1.0.0-rc.8` is still unreleased and untagged. No other
+metadata, historical `rc.7` evidence, or release wording required change.
+
+Evidence: `tests/run-js-tests.sh` passes with 190 deterministic tests;
+`omarchy plugin validate "$PWD"` passes on actual Omarchy; real-import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files exits
+0 with the established standalone import and unqualified-access warnings;
+`./tests/test-summon-helper.sh` passes; and `git diff --check` passes. This
+documentation-only unit performed no new shell/widget runtime check and makes
+no new Omarchy runtime claim. The checkout still intentionally lacks
+`docs/upstream-contract.md`; no host-boundary inspection was needed. The
+unrelated absence/deletion of `MARKETPLACE_SUBMISSION.md` remains untouched.
+
+No tag, push, release, Marketplace submission, issue change, or remote state
+change occurred. Known risks remain owner-controlled release authorization,
+remote target parity for any future publication, Marketplace verification, and
+preview rights.
+
+Decision log: keep the current candidate in `Unreleased`, preserve the
+historical `rc.7` tag and evidence, and make only directly contradictory local
+release wording precise. Do not infer a release date or promote `rc.8` to a tag
+without explicit owner authorization.
+
+Next bounded unit: after explicit owner authorization for a release-related
+follow-up, perform one read-only audit of the owner-specified target commit or
+ref against `manifest.json`, `README.md`, `CHANGELOG.md`, and the local tags.
+If no authorization or target ref is supplied, report that release state is
+unchanged and stop. Do not tag, push, publish, submit, edit Marketplace state,
+or make provider, notification, settings, QML, or packaging changes.

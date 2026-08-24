@@ -123,5 +123,6 @@ All notable changes to Sportray are documented here.
 - Added keyboard navigation, theme-aware layouts, bounded dense panels, and
   fixture-driven verification.
 
-The `v1.0.0-rc.7` Git tag identifies this release candidate. A GitHub Release
-and Marketplace submission are separate publication steps.
+The `v1.0.0-rc.7` Git tag identifies the `1.0.0-rc.7` release-candidate
+snapshot. The current `1.0.0-rc.8` remains unreleased and untagged. A GitHub
+Release and Marketplace submission are separate publication steps.
