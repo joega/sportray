@@ -115,5 +115,20 @@
     "due": {"kind": "due", "reason": "favorite-upcoming", "label": "Starting now"},
     "empty": {"kind": "empty", "reason": "no-upcoming-favorite", "label": "No upcoming favorite"},
     "offline": {"kind": "offline", "reason": "unavailable", "label": "Scores offline"}
+  },
+  "indicatorPresentation": {
+    "upcomingState": {
+      "kind": "favorite-upcoming",
+      "game": {
+        "id": "nhl:201",
+        "league": "nhl",
+        "status": "scheduled",
+        "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+        "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"}
+      },
+      "count": 1
+    },
+    "expectedUpcoming": true,
+    "expectedLive": false
   }
 }

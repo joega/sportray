@@ -47,6 +47,7 @@ BarWidget {
   readonly property string barLabelText: root.barPresentation.label || ""
   readonly property bool fullMode: root.barPresentation.mode === "full"
   readonly property bool barHasLiveFavorite: root.barPresentation.hasLiveFavorite === true
+  readonly property bool barHasUpcomingFavorite: root.barPresentation.hasUpcomingFavorite === true
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true : false
@@ -176,8 +177,8 @@ BarWidget {
       width: Style.space(5)
       height: width
       radius: width / 2
-      color: Color.accent
-      visible: root.barHasLiveFavorite
+      color: root.barHasLiveFavorite ? Color.urgent : Color.accent
+      visible: root.barHasLiveFavorite || root.barHasUpcomingFavorite
       Accessible.ignored: true
     }
 
@@ -187,19 +188,28 @@ BarWidget {
 
   }
 
-  WidgetButton {
+  BarIconButton {
     id: fullButton
     anchors.fill: parent
     bar: root.bar
-    text: root.barLabelText
+    text: Iconography.displayText(root.barIconName, fullButton.fontFamily)
     tooltipText: root.barTooltipText
     Accessible.name: root.barTooltipText
     Accessible.role: Accessible.Button
     visible: root.fullMode
-    hasVisualContent: text !== ""
-    labelVisible: true
-    horizontalMargin: 8.75
-    verticalPadding: 8.75
+
+    Rectangle {
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.topMargin: Style.space(3)
+      anchors.rightMargin: Style.space(3)
+      width: Style.space(5)
+      height: width
+      radius: width / 2
+      color: root.barHasLiveFavorite ? Color.urgent : Color.accent
+      visible: root.barHasLiveFavorite || root.barHasUpcomingFavorite
+      Accessible.ignored: true
+    }
 
     onPressed: function(buttonId) {
       if (buttonId === Qt.LeftButton) root.togglePanel()

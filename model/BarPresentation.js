@@ -75,12 +75,9 @@ function formatState(state, input) {
   return Formatters.formatBarText(state, config);
 }
 
-function countdownLabel(state, countdown) {
-  if (!isRecord(state) || state.kind !== "favorite-upcoming" || !isRecord(countdown))
-    return "";
-  if ((countdown.kind !== "future" && countdown.kind !== "due")
-      || countdown.reason !== "favorite-upcoming") return "";
-  return textOr(countdown.label, "");
+function isUpcomingFavoriteState(state) {
+  return isRecord(state)
+    && (state.kind === "favorite-upcoming" || state.kind === "favorite-starting-soon");
 }
 
 function fallbackText(input) {
@@ -95,14 +92,16 @@ function build(input) {
   var state = selectState(source);
   var mode = source.mode !== undefined ? selectMode(source.mode) : selectMode(source.vertical);
   var countdown = isRecord(source.countdown) ? source.countdown : null;
-  var countdownText = countdownLabel(state, countdown);
-  var fullText = textOr(countdownText, textOr(source.fullText, formatState(state, source)));
+  // Keep the countdown projection available to callers, but do not promote it
+  // into the tray label. The tray is a glanceable icon; score/start details
+  // remain available through the tooltip and panel.
+  var fullText = textOr(source.fullText, formatState(state, source));
   fullText = capText(fullText || fallbackText(source), FULL_LABEL_MAX_LENGTH);
 
   var liveFavorite = typeof source.liveFavorite === "boolean"
     ? source.liveFavorite
     : FavoritePresentation && FavoritePresentation.isLiveFavoriteState(state);
-  var tooltip = textOr(countdownText, textOr(source.tooltipText, fullText));
+  var tooltip = textOr(source.tooltipText, fullText);
   if (liveFavorite && tooltip.indexOf("Live favorite · ") !== 0)
     tooltip = "Live favorite · " + tooltip;
   tooltip = capText(tooltip, TOOLTIP_MAX_LENGTH);
@@ -114,7 +113,8 @@ function build(input) {
     fullText: fullText,
     label: mode === "full" ? fullText : "",
     tooltipText: tooltip,
-    hasLiveFavorite: liveFavorite === true
+    hasLiveFavorite: liveFavorite === true,
+    hasUpcomingFavorite: isUpcomingFavoriteState(state)
   };
 }
 

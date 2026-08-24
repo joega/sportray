@@ -3720,7 +3720,8 @@ test("ambient bar policy selects bounded modes from the installed bar orientatio
   const barWidget = readSource("BarWidget.qml");
   assert.equal(barWidget.includes('import "model/BarPresentation.js" as BarPresentation'), true);
   assert.equal(barWidget.includes("BarPresentation.modeForBar(root.bar)"), true);
-  assert.equal(barWidget.includes("WidgetButton {"), true);
+  assert.equal(barWidget.includes("BarIconButton {"), true);
+  assert.equal(barWidget.includes("text: Iconography.displayText(root.barIconName, fullButton.fontFamily)"), true);
   assert.equal(barWidget.includes("visible: !root.fullMode"), true);
   assert.equal(barWidget.includes("visible: root.fullMode"), true);
 });
@@ -3870,7 +3871,7 @@ test("ambient priority transitions preserve rotation cadence and countdown fallb
   assert.equal(neutral.state.game.id, transitions.neutralAfterRemoval.expectedGameId);
 });
 
-test("ambient bar policy exposes only valid favorite-upcoming countdown text", () => {
+test("ambient bar policy keeps countdowns out of the tray and exposes status indicators", () => {
   const fixture = readBarPresentationFixture().countdownPresentation;
   const withCountdown = (countdown, mode = "full") => barPresentation.build({
     mode,
@@ -3882,15 +3883,16 @@ test("ambient bar policy exposes only valid favorite-upcoming countdown text", (
 
   const future = withCountdown(fixture.future);
   assert.equal(future.countdown.kind, "future");
-  assert.equal(future.fullText, fixture.future.label);
-  assert.equal(future.label, fixture.future.label);
-  assert.equal(future.tooltipText, fixture.future.label);
+  assert.equal(future.fullText, fixture.sourceText);
+  assert.equal(future.label, fixture.sourceText);
+  assert.equal(future.tooltipText, fixture.sourceText);
+  assert.equal(future.hasUpcomingFavorite, true);
 
   const due = withCountdown(fixture.due, "compact");
   assert.equal(due.mode, "compact");
-  assert.equal(due.fullText, fixture.due.label);
+  assert.equal(due.fullText, fixture.sourceText);
   assert.equal(due.label, "");
-  assert.equal(due.tooltipText, fixture.due.label);
+  assert.equal(due.tooltipText, fixture.sourceText);
 
   [fixture.empty, fixture.offline].forEach((countdown) => {
     const safe = withCountdown(countdown);
@@ -3909,6 +3911,22 @@ test("ambient bar policy exposes only valid favorite-upcoming countdown text", (
   });
   assert.equal(live.state.kind, "live-favorite");
   assert.equal(live.fullText, fixture.sourceText);
+  assert.equal(live.hasUpcomingFavorite, false);
+
+  const indicator = readBarPresentationFixture().indicatorPresentation;
+  const upcoming = barPresentation.build({
+    mode: "full",
+    state: indicator.upcomingState,
+    fullText: fixture.sourceText,
+    tooltipText: fixture.sourceText
+  });
+  assert.equal(upcoming.hasUpcomingFavorite, indicator.expectedUpcoming);
+  assert.equal(upcoming.hasLiveFavorite, indicator.expectedLive);
+
+  const barWidget = readSource("BarWidget.qml");
+  assert.equal(barWidget.includes("barHasUpcomingFavorite"), true);
+  assert.equal(barWidget.includes("root.barHasLiveFavorite ? Color.urgent : Color.accent"), true);
+  assert.equal(barWidget.includes("text: root.barLabelText"), false);
 });
 
 test("ambient countdown wiring keeps caller time and existing ownership boundaries", () => {

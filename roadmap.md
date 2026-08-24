@@ -2073,3 +2073,77 @@ Next bounded unit: revisit the helper only after a concrete existing client
 caller is introduced or an installed Omarchy/Quickshell update changes the
 registration/readiness contract. Do not broaden into plugin runtime changes,
 providers, polling, settings, or new IPC. No remote state was changed.
+
+## Icon-only ambient tray presentation slice — 2026-08-24
+
+Status: complete. The ambient tray no longer replaces the sport icon with a
+close countdown such as `Starts in 8h 49m`. Horizontal and vertical bar paths
+now use the installed `BarIconButton` contract; a small accent dot marks an
+upcoming favorite and an urgent dot marks a live favorite. Existing score/start
+details remain available through the host tooltip and panel.
+
+Evidence:
+
+- `model/BarPresentation.js` keeps the accepted normalized countdown projection
+  available in its result for compatibility, but no longer promotes its label
+  into the tray label or tooltip. It exposes `hasUpcomingFavorite` for the
+  presentation indicator while preserving live-favorite priority and bounded
+  tooltip text.
+- `BarWidget.qml` renders both orientation branches with `BarIconButton` and
+  uses the same five-pixel status dot in each branch. The icon and tooltip
+  remain provider-neutral and use the existing `Iconography`/formatter
+  boundaries; no provider, polling, timer, settings, or IPC behavior changed.
+- `fixtures/bar-presentation/policy.json` and the deterministic suite cover
+  countdown suppression, tooltip fallback, upcoming/live indicator state, and
+  icon-button source wiring. The complete suite passes with 185 tests.
+- README now documents the compact icon presentation and color status
+  indicator. The checkout intentionally remains without
+  `docs/upstream-contract.md`; installed Omarchy 4.0.0-1 / Quickshell 0.3.0
+  revision `28771c7` were used for the `BarIconButton` boundary.
+- `omarchy plugin validate "$PWD"`, the real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` command over every QML
+  file, and `git diff --check` pass with the established lint warnings.
+- Actual Omarchy shell restart loaded the linked checkout into one running
+  Quickshell instance (`p66hhg1akt`, PID 801169). `shell ping` returned `ok`,
+  `debugBarGeometry` showed a visible 27x26 Sportray slot, and a fresh
+  screenshot showed the icon-only tray with no countdown text. The fresh log
+  contains normal Sportray initialization/fetch activity and no Sportray
+  exception, QML load failure, or binding-loop warning. The earlier rescan-only
+  attempt retained the old 133px widget until the supported shell restart;
+  this is host cache/lifecycle evidence, not a Sportray runtime error.
+
+Decision log: prefer the smallest glanceable status treatment requested by the
+user: preserve the icon, use accent for a scheduled favorite and urgent for a
+live favorite, and leave richer score/start text to hover and the panel. Do not
+add an upcoming-game count or a new timer while the color indicator is enough.
+Keep the pure countdown policy fixture-tested for possible future non-tray use,
+but do not expose its minute-changing label in the ambient button.
+
+Known risks: the indicator communicates only the presence of an upcoming
+favorite, not a total upcoming-game count; the tooltip still reflects the
+selected normalized ambient state; and the installed host may require a full
+shell restart to replace a cached active widget after source edits.
+
+## Latest handoff — 2026-08-24 icon-only ambient tray presentation complete
+
+The tray presentation change is complete in `/home/joeg/Projects/sportray`.
+`BarPresentation` no longer uses `favorite-upcoming` countdown labels as tray
+text. Both horizontal and vertical `BarWidget.qml` branches render the sport
+icon through `BarIconButton`; upcoming favorites get an accent dot and live
+favorites get an urgent dot. Tooltips retain bounded score/start details, and
+the panel, normalized providers, polling, settings, notifications, and IPC
+remain unchanged.
+
+The fixture-driven suite passes with 185 tests. Plugin validation, full
+real-import-path QML lint, and `git diff --check` pass. On actual Omarchy, the
+linked plugin was loaded after the supported `omarchy-restart-shell` boundary;
+one Quickshell instance remained healthy, geometry was 27x26, and a fresh
+screenshot confirmed the countdown text was gone. The fresh instance log has
+normal Sportray activity with no exception, QML load failure, or binding-loop
+warning. No push, tag, release, Marketplace, or remote action occurred.
+
+Next bounded unit: revisit the external post-rescan summon helper only after a
+concrete existing client caller is introduced or an installed Omarchy/Quickshell
+update changes the widget-registration/readiness contract. If neither
+prerequisite exists, recheck installed sources, record the unchanged blocker,
+and stop without speculative runtime changes.
