@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Commons
 import qs.Ui
+import "model/BarPresentation.js" as BarPresentation
 import "model/Iconography.js" as Iconography
 import "model/LifecyclePolicy.js" as LifecyclePolicy
 import "services" as Services
@@ -10,10 +11,27 @@ BarWidget {
   id: root
   moduleName: "io.github.joega.sportray"
 
+  readonly property var barPresentation: BarPresentation.build({
+    mode: BarPresentation.modeForBar(root.bar),
+    state: panelLoader.item ? panelLoader.item.barState : null,
+    games: panelLoader.item ? panelLoader.item.normalizedGames : [],
+    favoriteTeamIds: panelLoader.item ? panelLoader.item.favoriteTeamIds : [],
+    fullText: panelLoader.item ? panelLoader.item.barScoreText : "",
+    tooltipText: panelLoader.item ? panelLoader.item.barTooltipText : "",
+    liveFavorite: panelLoader.item ? panelLoader.item.barHasLiveFavorite : false,
+    loading: panelLoader.item && panelLoader.item.fetchService
+      ? panelLoader.item.fetchService.loading : false,
+    hasData: panelLoader.item && panelLoader.item.fetchService
+      ? panelLoader.item.fetchService.hasData : false,
+    errorCode: panelLoader.item && panelLoader.item.fetchService
+      ? panelLoader.item.fetchService.errorCode : ""
+  })
   readonly property string barIconName: panelLoader.item && panelLoader.item.barIconName
     ? panelLoader.item.barIconName : "soccerField"
-  readonly property string barTooltipText: panelLoader.item && panelLoader.item.barTooltipText
-    ? panelLoader.item.barTooltipText : "Sportray"
+  readonly property string barTooltipText: root.barPresentation.tooltipText || "Sportray"
+  readonly property string barLabelText: root.barPresentation.label || ""
+  readonly property bool fullMode: root.barPresentation.mode === "full"
+  readonly property bool barHasLiveFavorite: root.barPresentation.hasLiveFavorite === true
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true : false
@@ -56,7 +74,7 @@ BarWidget {
     root.barRegion = moduleFallback
   }
   readonly property string barPosition: root.bar ? String(root.bar.position || "") : ""
-  readonly property var panelAnchorItem: button
+  readonly property var panelAnchorItem: root.fullMode ? fullButton : compactButton
 
   function injectPanel() {
     var target = panelLoader.item
@@ -85,8 +103,8 @@ BarWidget {
     if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
   }
 
-  implicitWidth: button.implicitWidth
-  implicitHeight: button.implicitHeight
+  implicitWidth: root.fullMode ? fullButton.implicitWidth : compactButton.implicitWidth
+  implicitHeight: root.fullMode ? fullButton.implicitHeight : compactButton.implicitHeight
 
   onBarChanged: {
     resolveBarRegion()
@@ -126,13 +144,14 @@ BarWidget {
   }
 
   BarIconButton {
-    id: button
+    id: compactButton
     anchors.fill: parent
     bar: root.bar
-    text: Iconography.displayText(root.barIconName, button.fontFamily)
+    text: Iconography.displayText(root.barIconName, compactButton.fontFamily)
     tooltipText: root.barTooltipText
     Accessible.name: root.barTooltipText
     Accessible.role: Accessible.Button
+    visible: !root.fullMode
 
     Rectangle {
       anchors.top: parent.top
@@ -143,7 +162,7 @@ BarWidget {
       height: width
       radius: width / 2
       color: Color.accent
-      visible: panelLoader.item && panelLoader.item.barHasLiveFavorite === true
+      visible: root.barHasLiveFavorite
       Accessible.ignored: true
     }
 
@@ -151,5 +170,24 @@ BarWidget {
       if (buttonId === Qt.LeftButton) root.togglePanel()
     }
 
+  }
+
+  WidgetButton {
+    id: fullButton
+    anchors.fill: parent
+    bar: root.bar
+    text: root.barLabelText
+    tooltipText: root.barTooltipText
+    Accessible.name: root.barTooltipText
+    Accessible.role: Accessible.Button
+    visible: root.fullMode
+    hasVisualContent: text !== ""
+    labelVisible: true
+    horizontalMargin: 8.75
+    verticalPadding: 8.75
+
+    onPressed: function(buttonId) {
+      if (buttonId === Qt.LeftButton) root.togglePanel()
+    }
   }
 }

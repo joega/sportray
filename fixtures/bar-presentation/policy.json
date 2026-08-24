@@ -1,0 +1,88 @@
+{
+  "modeCases": [
+    {"name": "horizontal bar", "vertical": false, "expectedMode": "full"},
+    {"name": "vertical bar", "vertical": true, "expectedMode": "compact"},
+    {"name": "explicit compact", "mode": "compact", "expectedMode": "compact"},
+    {"name": "explicit full", "mode": "full", "expectedMode": "full"}
+  ],
+  "longLabel": {
+    "mode": "full",
+    "state": {
+      "kind": "live-favorite",
+      "game": {
+        "id": "nhl:long",
+        "league": "nhl",
+        "status": "live",
+        "awayTeam": {"id": "nhl:6", "name": "A very long away team name that must be bounded"},
+        "homeTeam": {"id": "nhl:10", "name": "A very long home team name that must be bounded"},
+        "awayScore": 123456,
+        "homeScore": 987654
+      },
+      "count": 1
+    }
+  },
+  "fallbackCases": [
+    {
+      "name": "loading without data",
+      "mode": "full",
+      "loading": true,
+      "hasData": false,
+      "errorCode": "",
+      "expectedText": "Sportray …"
+    },
+    {
+      "name": "empty after a healthy fetch",
+      "mode": "full",
+      "loading": false,
+      "hasData": true,
+      "errorCode": "",
+      "expectedText": "Sportray · no games"
+    },
+    {
+      "name": "offline",
+      "mode": "compact",
+      "loading": false,
+      "hasData": false,
+      "errorCode": "unavailable",
+      "expectedText": "Sportray · offline"
+    }
+  ],
+  "priority": {
+    "now": "2026-10-08T10:00:00Z",
+    "favoriteTeamIds": ["nhl:6"],
+    "games": [
+      {
+        "id": "nhl:101",
+        "league": "nhl",
+        "startTime": "2026-10-08T09:55:00Z",
+        "status": "live",
+        "awayTeam": {"id": "nhl:6", "abbreviation": "BOS"},
+        "homeTeam": {"id": "nhl:10", "abbreviation": "TOR"},
+        "awayScore": 3,
+        "homeScore": 2
+      },
+      {
+        "id": "nhl:105",
+        "league": "nhl",
+        "startTime": "2026-10-08T09:45:00Z",
+        "status": "live",
+        "awayTeam": {"id": "nhl:14", "abbreviation": "TB"},
+        "homeTeam": {"id": "nhl:68", "abbreviation": "UTA"},
+        "awayScore": 2,
+        "homeScore": 1
+      },
+      {
+        "id": "nhl:103",
+        "league": "nhl",
+        "startTime": "2026-10-08T10:20:00Z",
+        "status": "scheduled",
+        "awayTeam": {"id": "nhl:13", "abbreviation": "MTL"},
+        "homeTeam": {"id": "nhl:68", "abbreviation": "UTA"},
+        "awayScore": null,
+        "homeScore": null
+      }
+    ],
+    "expectedKind": "live-favorite",
+    "expectedGameId": "nhl:101"
+  }
+}

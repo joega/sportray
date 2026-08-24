@@ -33,6 +33,8 @@ At a glance:
 - Game cards show the event venue and use a restrained home-team color tint,
   with neutral fallbacks when either field is unavailable
 - Favorite-aware bar priority and pinned favorite games in league views
+- Automatic ambient bar modes: bounded score text on horizontal bars and a
+  compact icon-only presentation on vertical bars
 - Provider-friendly adaptive polling, bounded date caches, and one in-flight
   request per league
 - Desktop notifications for favorite game starts, score changes, and finals

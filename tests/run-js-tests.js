@@ -10,6 +10,7 @@ const teams = require(path.join(root, "model/TeamModel.js"));
 const games = require(path.join(root, "model/GameModel.js"));
 const gameDetails = require(path.join(root, "model/GameDetailModel.js"));
 const formatters = require(path.join(root, "model/Formatters.js"));
+const barPresentation = require(path.join(root, "model/BarPresentation.js"));
 const presentation = require(path.join(root, "model/FavoritePresentation.js"));
 const nhl = require(path.join(root, "providers/NhlProvider.js"));
 const espn = require(path.join(root, "providers/EspnProvider.js"));
@@ -143,6 +144,11 @@ function readGameDetailRouteFixture() {
 function readSettingsBoundaryFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/settings-boundary/panel.json"), "utf8"));
+}
+
+function readBarPresentationFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/bar-presentation/policy.json"), "utf8"));
 }
 
 function readNotificationFixture() {
@@ -877,7 +883,7 @@ test("U2.4 keeps semantic icons local and maps every active league", () => {
   assert.equal(bar.includes("Iconography.displayText(root.barIconName"), true);
   assert.equal(bar.includes("tooltipText: root.barTooltipText"), true);
   assert.equal(bar.includes("Accessible.name: root.barTooltipText"), true);
-  assert.equal(bar.includes("barHasLiveFavorite === true"), true);
+  assert.equal(bar.includes("root.barHasLiveFavorite"), true);
   assert.equal(panel.includes("SemanticIcon {"), true);
   assert.equal(panel.includes("iconName: Iconography.iconNameForLeague(root.activeDestination)"), true);
   assert.equal(panel.includes('return "Live favorite · " + text'), true);
@@ -2857,7 +2863,8 @@ test("horizontal overlay anchors to its button and clamps at the screen edge", (
   assert.equal(widget.includes("slot.activeItem === root"), true);
   assert.equal(widget.includes("slot.moduleName === root.moduleName"), true);
   assert.equal(widget.includes("function onModuleSlotsChanged()"), true);
-  assert.equal(widget.includes("readonly property var panelAnchorItem: button"), true);
+  assert.equal(widget.includes(
+    "readonly property var panelAnchorItem: root.fullMode ? fullButton : compactButton"), true);
   assert.equal(widget.includes("panelEdgeAnchor"), false);
   assert.equal(widget.includes("root.mapFromItem(root.bar, edgeX, edgeY)"), false);
   assert.equal(widget.includes("target.barRegion = root.barRegion"), true);
@@ -3689,6 +3696,51 @@ test("degraded presentation bounds long labels and never exposes provider errors
   assert.equal(dense.sections.find((section) => section.leagueId === "nba").errorSummary,
     "Some scores could not be updated");
   assert.equal(JSON.stringify(dense).includes("raw provider payload"), false);
+});
+
+test("ambient bar policy selects bounded modes from the installed bar orientation", () => {
+  const fixture = readBarPresentationFixture();
+  fixture.modeCases.forEach((modeCase) => {
+    const input = {vertical: modeCase.vertical, mode: modeCase.mode};
+    assert.equal(barPresentation.build(input).mode, modeCase.expectedMode, modeCase.name);
+  });
+
+  const barWidget = readSource("BarWidget.qml");
+  assert.equal(barWidget.includes('import "model/BarPresentation.js" as BarPresentation'), true);
+  assert.equal(barWidget.includes("BarPresentation.modeForBar(root.bar)"), true);
+  assert.equal(barWidget.includes("WidgetButton {"), true);
+  assert.equal(barWidget.includes("visible: !root.fullMode"), true);
+  assert.equal(barWidget.includes("visible: root.fullMode"), true);
+});
+
+test("ambient bar policy bounds long labels and keeps compact text in the tooltip", () => {
+  const fixture = readBarPresentationFixture();
+  const result = barPresentation.build(fixture.longLabel);
+  assert.equal(result.mode, "full");
+  assert.equal(result.label.length <= barPresentation.FULL_LABEL_MAX_LENGTH, true);
+  assert.equal(result.tooltipText.length <= barPresentation.TOOLTIP_MAX_LENGTH, true);
+  assert.equal(result.label.endsWith("…"), true);
+
+  const compact = barPresentation.build(Object.assign({}, fixture.longLabel, {mode: "compact"}));
+  assert.equal(compact.label, "");
+  assert.equal(compact.tooltipText.length <= barPresentation.TOOLTIP_MAX_LENGTH, true);
+});
+
+test("ambient bar policy preserves neutral empty/offline fallbacks", () => {
+  const fixture = readBarPresentationFixture();
+  fixture.fallbackCases.forEach((fallbackCase) => {
+    const result = barPresentation.build(fallbackCase);
+    assert.equal(result.fullText, fallbackCase.expectedText, fallbackCase.name);
+    assert.equal(result.state.kind, "neutral", fallbackCase.name);
+  });
+});
+
+test("ambient bar policy preserves live favorite priority and today input", () => {
+  const fixture = readBarPresentationFixture();
+  const result = barPresentation.build(fixture.priority);
+  assert.equal(result.state.kind, fixture.priority.expectedKind);
+  assert.equal(result.state.game.id, fixture.priority.expectedGameId);
+  assert.equal(result.hasLiveFavorite, true);
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

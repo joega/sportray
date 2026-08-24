@@ -1295,3 +1295,82 @@ presentation policy for the existing normalized game state, preserving today
 focus and the current bar priority/polling boundaries. Start with the pure
 policy/model and one existing bar consumer only; do not add live rotation,
 countdown requests, new provider fields, new leagues, or publication work.
+
+## Ambient bar presentation policy slice — 2026-08-24
+
+Status: complete. The bounded ambient presentation unit adds automatic compact
+and full modes for the existing normalized bar state and keeps all selection,
+date, polling, provider, favorites, and notification ownership unchanged.
+
+Evidence:
+
+- `model/BarPresentation.js` is a provider-neutral policy with explicit
+  `compact` and `full` modes, 32-character full labels, 64-character tooltips,
+  neutral loading/empty/offline fallbacks, and the existing
+  `FavoritePresentation.selectBarState` priority when a pure model caller does
+  not already provide the selected state.
+- `fixtures/bar-presentation/policy.json` drives mode selection, long-label,
+  fallback, and live-favorite priority cases. The deterministic suite passes
+  with 172 tests.
+- `BarWidget.qml` is the only consumer changed: the installed host's
+  `vertical` boundary selects compact icon-only `BarIconButton` rendering for
+  left/right bars and full bounded `WidgetButton` text for top/bottom bars.
+  The panel still supplies the existing `barState`, `barScoreText`,
+  `barTooltipText`, and live-favorite signal, so today focus and current
+  priority/polling boundaries remain owned by the existing panel/service path.
+  The popup anchor follows whichever mode is visible.
+- Installed Omarchy 4.0.0-1 and Quickshell 0.3.0 revision `28771c7` were
+  inspected before the QML change. Their `BarWidget.vertical`, `WidgetButton`,
+  `BarIconButton`, and `ModuleSlot` contracts support this presentation without
+  an upstream API extension. The intentionally absent
+  `docs/upstream-contract.md` required no replacement repository document.
+- `omarchy plugin validate "$PWD"`, real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file,
+  `tests/run-js-tests.sh`, and `git diff --check` pass. The linked plugin was
+  rescanned in actual Omarchy with exactly one Quickshell instance. The
+  horizontal/top full route and a temporary left/vertical compact route were
+  manually opened/rendered; the user bar position was restored to `top`.
+  The fresh log has normal Sportray fetch activity and no Sportray exception,
+  QML load failure, or binding-loop warning.
+
+Decision log: mode selection is derived from the installed bar orientation,
+not a new settings field. QML-imported JavaScript cannot rely on Node's
+`require`, so the consumer passes the already normalized and formatted panel
+projection into the policy; Node tests still load the existing pure formatter
+and favorite helpers for fixture coverage. No provider response, endpoint,
+timer, rotation, countdown, alert, league, or settings schema changed.
+
+Known risk: full mode consumes horizontal bar width according to its bounded
+32-character label and the host's `WidgetButton` padding. If a future shell
+changes that width contract, stop before adding a custom upstream-dependent
+layout and preserve the compact icon fallback.
+
+## Latest handoff — 2026-08-24 ambient bar presentation policy complete
+
+The compact/full ambient bar presentation unit is complete and ready for its
+atomic commit. `BarPresentation.js` and its fixture select full bounded score
+text on horizontal bars and compact icon-only presentation on vertical bars.
+`BarWidget.qml` alone consumes the policy, while the existing panel continues
+to own normalized today-scoped state, favorite-first priority, formatting
+projection, polling, and the popup anchor contract.
+
+The fixture-driven suite passes with 172 tests. Actual Omarchy 4.0.0-1 with
+Quickshell 0.3.0 revision `28771c7` rescanned the linked checkout in one
+running shell; top/full and temporary left/compact bar routes were opened and
+rendered, the bar was restored to `top`, and the fresh log had no Sportray
+exception, QML load failure, or binding-loop warning. Plugin validation, real
+import-path QML lint, and diff check pass. No upstream boundary deviation,
+provider field, endpoint, polling change, live rotation, countdown, alert,
+league, settings schema, package, tag, push, release, or Marketplace action
+occurred.
+
+Next bounded unit: add a pure fixture-driven live-favorite rotation/cadence
+policy for the already normalized today-scoped ambient state. Keep it separate
+from timers, provider polling, countdown requests, settings, and QML until the
+selection/cadence contract is accepted. Start by rereading `AGENTS.md`,
+`README.md`, the intentionally absent `docs/upstream-contract.md`,
+`roadmap.md`, this handoff, the installed bar sources, and the current
+`BarPresentation.js`/`FavoritePresentation.js` tests. Require a roadmap and
+handoff update, refreshed next-session prompt, all repository gates, and one
+atomic Conventional Commit-style commit when the pure unit passes; stop if
+rotation would require an upstream shell contract or new provider data.
