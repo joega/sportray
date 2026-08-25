@@ -50,7 +50,8 @@ function safeGameUrl(value) {
   if (!match) return null;
   var host = match[1].toLowerCase();
   return host === "espn.com" || host === "www.espn.com"
-    || host === "nhl.com" || host === "www.nhl.com" ? url : null;
+    || host === "nhl.com" || host === "www.nhl.com"
+    || host === "mlb.com" || host === "www.mlb.com" ? url : null;
 }
 
 function normalizePrimaryColor(value) {

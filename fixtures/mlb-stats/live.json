@@ -1,0 +1,35 @@
+{
+  "dates": [
+    {
+      "date": "2026-08-25",
+      "games": [
+        {
+          "gamePk": 824233,
+          "gameDate": "2026-08-25T22:40:00Z",
+          "status": {
+            "abstractGameState": "Live",
+            "codedGameState": "I",
+            "detailedState": "In Progress",
+            "startTimeTBD": false
+          },
+          "teams": {
+            "away": {
+              "team": {"id": 139, "name": "Tampa Bay Rays", "teamName": "Rays", "abbreviation": "TB"},
+              "score": 3
+            },
+            "home": {
+              "team": {"id": 116, "name": "Detroit Tigers", "teamName": "Tigers", "abbreviation": "DET"},
+              "score": 2
+            }
+          },
+          "venue": {"name": "Comerica Park"},
+          "linescore": {
+            "currentInning": 7,
+            "currentInningOrdinal": "7th",
+            "inningState": "Top"
+          }
+        }
+      ]
+    }
+  ]
+}

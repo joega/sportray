@@ -33,8 +33,8 @@ At a glance:
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
 - Loaded game rows open a local game-details drill-down from whole-row
-  activation, and the labeled source action opens the ESPN gamecast or
-  NHL.com gamecenter page
+  activation, and the labeled source action opens the ESPN gamecast, MLB.com
+  gameday, or NHL.com gamecenter page
 - Upcoming ESPN-backed games show the bookmaker line (spread details and
   over/under, attributed to the provider such as DraftKings) on the score
   card and in the game-details drill-down, projected from the same fetched
@@ -120,10 +120,10 @@ omarchy plugin remove io.github.joega.sportray
 ```
 
 Sportray requires Omarchy 4 with the Quattro shell and the `curl` command
-included by Omarchy. It makes direct HTTPS requests to ESPN and NHL data
-endpoints and uses Omarchy's notification helper when favorite-team alerts are
-enabled. It does not install packages, request privileged access, create a
-service, or overwrite user configuration.
+included by Omarchy. It makes direct HTTPS requests to ESPN, MLB StatsAPI, and
+NHL data endpoints and uses Omarchy's notification helper when favorite-team
+alerts are enabled. It does not install packages, request privileged access,
+create a service, or overwrite user configuration.
 
 The normal Omarchy removal command unloads Sportray and removes its plugin
 checkout. It intentionally leaves the preferences file documented below in
@@ -227,13 +227,18 @@ the favorite picker remain usable when an asset is unavailable.
 
 ## Data sources and privacy
 
-NHL scores come from the NHL public scoreboard API. NFL, MLB, NBA, NCAA
-Football, NCAA Men's Basketball, English Premier League, and MLS scores and
-team catalogs come from
-ESPN's site JSON endpoints. ESPN's site API is an undocumented website interface
-rather than a supported public developer contract; its response shape or
-availability may change. ESPN-backed league destinations use ESPN's standings
-route when the standings view is opened. NHL standings use the verified
+NHL scores come from the NHL public scoreboard API. NFL, NBA, NCAA Football,
+NCAA Men's Basketball, English Premier League, and MLS scores and team catalogs
+come from ESPN's site JSON endpoints. MLB uses ESPN as its primary scoreboard
+provider and has an ordered MLB StatsAPI fallback after repeated ESPN failures.
+The fallback uses the key-free
+`statsapi.mlb.com/api/v1/schedule?sportId=1&date=YYYY-MM-DD&hydrate=team,linescore`
+route and is limited to the owner's accepted individual, non-commercial,
+non-bulk use of MLB materials. ESPN's site API is an undocumented website
+interface rather than a supported public developer contract; its response shape
+or availability may change. The MLB StatsAPI is also an undocumented provider
+interface and may change without notice. ESPN-backed league destinations use
+ESPN's standings route when the standings view is opened. NHL standings use the verified
 `api-web.nhle.com/v1/standings/now` response, grouped by conference and ordered
 by the provider's conference sequence; tri-codes are resolved through the
 bounded current-team catalog before favorites are exposed. Missing optional
@@ -249,7 +254,7 @@ nulls for fields the provider omits.
 Each valid game keeps its score, participants, status/timing, and venue on the
 scoreboard card. Whole-row activation opens a local game-details drill-down for
 that already loaded game: participants, status/timing, venue, the guarded
-ESPN/NHL.com source action, and, when the provider snapshot supplies them, an
+ESPN/MLB.com/NHL.com source action, and, when the provider snapshot supplies them, an
 optional final outcome, bounded per-period scoring lines, bounded team
 statistic rows (such as MLB hits and errors), and up to two labeled event links
 when the provider snapshot itself supplies safe attributable pages — an ESPN
@@ -259,7 +264,7 @@ provider omits — including pre-event lines, non-MLB statistics, most NHL
 detail, and broadcast streams (ESPN and NHL payloads carry station names only,
 never stream URLs) — render as
 neutral placeholders rather than implying box-score depth. The labeled
-**ESPN** or **NHL.com** source action opens the provider's game page in the
+source action opens the provider's ESPN, MLB.com, or NHL.com game page in the
 Omarchy browser. Sportray never fetches a second per-game endpoint; detail is
 a projection of the scoreboard snapshot. ESPN event links are used when
 supplied; otherwise Sportray builds the provider's standard game URL from the
@@ -294,8 +299,8 @@ than 256 provider events are rejected before normalization. A rejected response
 is isolated to its league and retains the last-good snapshot when one exists.
 
 Each league fetch admits its request through an ordered per-league provider
-fallback chain: NHL uses the NHL adapter and every other league uses the ESPN
-adapter today, so each chain has exactly one verified candidate. Three
+fallback chain: NHL uses the NHL adapter, MLB uses ESPN followed by the MLB
+StatsAPI adapter, and every other league uses the ESPN adapter. Three
 consecutive failed responses put that provider into a 15-minute cooldown during
 which the league stops issuing requests, keeps its last-good snapshot, and
 shows the existing unavailable or stale state; healthy leagues are unaffected.

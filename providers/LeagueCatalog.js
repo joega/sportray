@@ -11,7 +11,8 @@ var ESPN_LEAGUE_METADATA = {
   nfl: {id: "nfl", name: "NFL", displayName: "NFL", enabledByDefault: false,
     provider: "espn", sport: "football", slug: "nfl", standingsSupported: true},
   mlb: {id: "mlb", name: "MLB", displayName: "MLB", enabledByDefault: false,
-    provider: "espn", sport: "baseball", slug: "mlb", standingsSupported: true},
+    provider: "espn", sport: "baseball", slug: "mlb", standingsSupported: true,
+    fallbackProviders: ["mlb-stats"]},
   nba: {id: "nba", name: "NBA", displayName: "NBA", enabledByDefault: false,
     provider: "espn", sport: "basketball", slug: "nba", standingsSupported: true},
   "college-football": {id: "college-football", name: "NCAA Football",
@@ -66,10 +67,18 @@ function normalizeLeagueId(leagueId) {
 
 // Ordered per-league provider candidates for the fallback chain policy. The
 // first entry is the league's primary provider. Every id must be a verified
-// adapter in this repository; unknown leagues have no chain.
+// adapter in this repository; unknown leagues have no chain. A league may
+// carry reviewed fallback provider ids behind its primary adapter.
 function providerChain(leagueId) {
   var league = getLeague(leagueId);
-  return league && league.provider ? [league.provider] : null;
+  if (!league || !league.provider) return null;
+  var chain = [league.provider];
+  if (Array.isArray(league.fallbackProviders)) {
+    for (var i = 0; i < league.fallbackProviders.length; i++) {
+      if (league.fallbackProviders[i]) chain.push(league.fallbackProviders[i]);
+    }
+  }
+  return chain;
 }
 
 function defaultLeagueIds() {

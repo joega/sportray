@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Io
 import "../providers/NhlProvider.js" as NhlProvider
 import "../providers/EspnProvider.js" as EspnProvider
+import "../providers/MlbStatsProvider.js" as MlbStatsProvider
 import "../providers/LeagueCatalog.js" as LeagueCatalog
 import "../model/FreshnessPolicy.js" as FreshnessPolicy
 import "../model/DateModel.js" as DateModel
@@ -78,6 +79,7 @@ Item {
 
   function buildScoreUrl(providerId) {
     if (providerId === "nhl") return NhlProvider.buildScoreUrl(root.dateKey)
+    if (providerId === "mlb-stats") return MlbStatsProvider.buildScoreUrl(root.dateKey)
     if (providerId === "espn")
       return EspnProvider.buildScoreUrl(root.leagueId, root.dateKey.replace(/-/g, ""))
     return ""
@@ -407,6 +409,8 @@ Item {
     try {
       var payload = JSON.parse(raw)
       if (root.requestProviderId === "nhl") return NhlProvider.parseScoreResponse(payload)
+      if (root.requestProviderId === "mlb-stats")
+        return MlbStatsProvider.parseScoreResponse(payload)
       return EspnProvider.parseScoreboardResponse(payload, root.leagueId)
     } catch (error) {
       return null

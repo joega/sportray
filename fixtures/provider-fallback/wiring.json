@@ -1,7 +1,8 @@
 {
   "productionChains": {
     "nhl": ["nhl"],
-    "espnLeagueIds": ["nfl", "mlb", "nba", "college-football", "eng.1",
+    "mlb": ["espn", "mlb-stats"],
+    "espnLeagueIds": ["nfl", "nba", "college-football", "eng.1",
       "usa.1", "mens-college-basketball"],
     "espnChain": ["espn"]
   },
@@ -12,7 +13,7 @@
   },
   "wiredFallbackSequence": {
     "leagueId": "mlb",
-    "chain": ["espn", "nhl"],
+    "chain": ["espn", "mlb-stats"],
     "now": "2026-08-24T18:00:00.000Z",
     "primaryFailureTimes": [
       "2026-08-24T17:58:00.000Z",

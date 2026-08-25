@@ -14,6 +14,7 @@ const barPresentation = require(path.join(root, "model/BarPresentation.js"));
 const presentation = require(path.join(root, "model/FavoritePresentation.js"));
 const nhl = require(path.join(root, "providers/NhlProvider.js"));
 const espn = require(path.join(root, "providers/EspnProvider.js"));
+const mlbStats = require(path.join(root, "providers/MlbStatsProvider.js"));
 const nhlTeams = require(path.join(root, "providers/NhlTeamCatalog.js"));
 const espnTeams = require(path.join(root, "providers/EspnTeamCatalog.js"));
 const pickerModel = require(path.join(root, "model/TeamPickerModel.js"));
@@ -205,6 +206,11 @@ function readProviderWiringFixture() {
     path.join(root, "fixtures/provider-fallback/wiring.json"), "utf8"));
 }
 
+function readMlbStatsFixture(name) {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/mlb-stats", `${name}.json`), "utf8"));
+}
+
 function readTeamPickerDiscoveryFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/team-picker/discovery.json"), "utf8"));
@@ -233,7 +239,7 @@ test("catalog exposes NHL enabled by default", () => {
       "mens-college-basketball"]);
   assert.deepEqual(catalog.ESPN_LEAGUE_METADATA, {
     nfl: {id: "nfl", name: "NFL", displayName: "NFL", enabledByDefault: false, provider: "espn", sport: "football", slug: "nfl", standingsSupported: true},
-    mlb: {id: "mlb", name: "MLB", displayName: "MLB", enabledByDefault: false, provider: "espn", sport: "baseball", slug: "mlb", standingsSupported: true},
+    mlb: {id: "mlb", name: "MLB", displayName: "MLB", enabledByDefault: false, provider: "espn", sport: "baseball", slug: "mlb", standingsSupported: true, fallbackProviders: ["mlb-stats"]},
     nba: {id: "nba", name: "NBA", displayName: "NBA", enabledByDefault: false, provider: "espn", sport: "basketball", slug: "nba", standingsSupported: true},
     "college-football": {id: "college-football", name: "NCAA Football", displayName: "NCAA Football", enabledByDefault: false, provider: "espn", sport: "football", slug: "college-football", standingsSupported: true},
     "eng.1": {id: "eng.1", name: "Premier League", displayName: "Premier League", enabledByDefault: false, provider: "espn", sport: "soccer", slug: "eng.1", standingsSupported: true},
@@ -241,6 +247,81 @@ test("catalog exposes NHL enabled by default", () => {
     "mens-college-basketball": {id: "mens-college-basketball", name: "NCAA Men's Basketball", displayName: "NCAA Men's Basketball", enabledByDefault: false, provider: "espn", sport: "basketball", slug: "mens-college-basketball", standingsSupported: true}
   });
   assert.equal(catalog.NHL.standingsSupported, true);
+});
+
+test("MLB StatsAPI URLs and team translation are explicit and bounded", () => {
+  const fixture = readMlbStatsFixture("translation");
+  assert.equal(mlbStats.MLB_STATS_PROVIDER, "mlb-stats");
+  assert.equal(mlbStats.buildScoreUrl(),
+    "https://statsapi.mlb.com/api/v1/schedule?sportId=1&hydrate=team,linescore");
+  assert.equal(mlbStats.buildScoreUrl("2026-08-25"),
+    "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-08-25&hydrate=team,linescore");
+  assert.equal(mlbStats.buildScoreUrl("20260825"), null);
+  assert.equal(mlbStats.buildGameUrl("824233"), "https://www.mlb.com/gameday/824233");
+  assert.equal(mlbStats.buildGameUrl(""), null);
+  assert.deepEqual(mlbStats.TEAM_IDS_BY_STATS_ID, fixture.pairs);
+  assert.equal(Object.keys(mlbStats.TEAM_IDS_BY_STATS_ID).length, 30);
+  assert.equal(new Set(Object.values(mlbStats.TEAM_IDS_BY_STATS_ID)).size, 30);
+});
+
+test("MLB StatsAPI scheduled and final fixtures normalize canonical teams", () => {
+  const scheduled = mlbStats.parseScoreResponse(readMlbStatsFixture("scheduled"));
+  assert.equal(scheduled.errors.length, 0);
+  assert.equal(scheduled.games.length, 1);
+  assert.deepEqual(scheduled.games[0].awayTeam, {
+    id: "mlb:30", league: "mlb", providerTeamId: "30", name: "Tampa Bay Rays",
+    shortName: "Rays", abbreviation: "TB", primaryColor: null, logoUrl: null, link: null
+  });
+  assert.equal(scheduled.games[0].homeTeam.id, "mlb:6");
+  assert.equal(scheduled.games[0].status, "scheduled");
+  assert.equal(scheduled.games[0].awayScore, null);
+  assert.equal(scheduled.games[0].link, "https://www.mlb.com/gameday/824233");
+
+  const final = mlbStats.parseScoreResponse(readMlbStatsFixture("final"));
+  assert.equal(final.errors.length, 0);
+  assert.equal(final.games[0].status, "final");
+  assert.equal(final.games[0].awayScore, 4);
+  assert.equal(final.games[0].homeScore, 1);
+  assert.equal(final.games[0].period, 9);
+  assert.equal(final.games[0].statusDetail, "Final");
+  assert.equal(final.games[0].venue, "Comerica Park");
+});
+
+test("MLB StatsAPI live and administrative states stay provider-neutral", () => {
+  const live = mlbStats.parseScoreResponse(readMlbStatsFixture("live"));
+  assert.equal(live.errors.length, 0);
+  assert.equal(live.games[0].status, "live");
+  assert.equal(live.games[0].period, 7);
+  assert.equal(live.games[0].periodLabel, "Top 7th");
+  assert.equal(live.games[0].awayScore, 3);
+
+  const variants = mlbStats.parseScoreResponse(readMlbStatsFixture("status-variants"));
+  assert.equal(variants.errors.length, 0);
+  assert.deepEqual(variants.games.map((game) => game.status),
+    ["postponed", "canceled", "final"]);
+  assert.equal(variants.games[0].statusDetail, "Postponed");
+  assert.equal(variants.games[1].statusDetail, "Cancelled");
+  assert.equal(variants.games[2].statusDetail, "Final");
+});
+
+test("MLB StatsAPI accepts empty offseason slates and rejects malformed teams", () => {
+  const empty = mlbStats.parseScoreResponse(readMlbStatsFixture("empty"));
+  assert.deepEqual(empty, {games: [], errors: []});
+
+  const malformed = mlbStats.parseScoreResponse(readMlbStatsFixture("malformed"));
+  assert.equal(malformed.games.length, 0);
+  assert.deepEqual(malformed.errors, [
+    {index: "0:0", code: "invalid-game"},
+    {index: "0:1", code: "invalid-game"}
+  ]);
+
+  const oversized = readMlbStatsFixture("scheduled");
+  oversized.dates[0].games = Array.from({length: 257}, (_, index) => ({
+    ...oversized.dates[0].games[0], gamePk: 900000 + index
+  }));
+  assert.deepEqual(mlbStats.parseScoreResponse(oversized), {
+    games: [], errors: [{index: null, code: "too-many-events"}]
+  });
 });
 
 test("ESPN team catalogs expose canonical identities without provider payloads", () => {
@@ -5436,9 +5517,12 @@ test("provider fallback reports bounded exhaustion when every candidate cools", 
   assert.equal(source.includes("require("), false);
 });
 
-test("every catalog league exposes one verified provider chain candidate", () => {
+test("every catalog league exposes its verified provider chain candidates", () => {
   const fixture = readProviderWiringFixture();
-  const expectedChains = {nhl: fixture.productionChains.nhl};
+  const expectedChains = {
+    nhl: fixture.productionChains.nhl,
+    mlb: fixture.productionChains.mlb
+  };
   fixture.productionChains.espnLeagueIds.forEach((leagueId) => {
     expectedChains[leagueId] = fixture.productionChains.espnChain;
   });
@@ -5508,7 +5592,7 @@ test("wired fallback records failures then advances to the next healthy candidat
   });
   assert.equal(decision.kind, "fallback");
   assert.equal(decision.reason, "next-healthy");
-  assert.equal(decision.providerId, "nhl");
+   assert.equal(decision.providerId, "mlb-stats");
   assert.equal(decision.index, 1);
   assert.deepEqual(decision.attempted, ["espn"]);
 
@@ -5518,7 +5602,7 @@ test("wired fallback records failures then advances to the next healthy candidat
     currentProviderId: decision.providerId, health, nowMs: nowMs + 1
   });
   assert.equal(stayedCurrent.kind, "current");
-  assert.equal(stayedCurrent.providerId, "nhl");
+   assert.equal(stayedCurrent.providerId, "mlb-stats");
 });
 
 test("wired exhaustion isolates the cooling league beside a healthy sibling", () => {
@@ -5563,7 +5647,11 @@ test("LeagueFetch admits through the fallback chain without new fetch ownership"
     /import "\.\.\/model\/ProviderFallbackPolicy\.js" as ProviderFallbackPolicy/);
   assert.match(leagueFetch,
     /import "\.\.\/providers\/LeagueCatalog\.js" as LeagueCatalog/);
+  assert.match(leagueFetch,
+    /import "\.\.\/providers\/MlbStatsProvider\.js" as MlbStatsProvider/);
   assert.match(leagueFetch, /LeagueCatalog\.providerChain\(root\.leagueId\)/);
+  assert.match(leagueFetch, /providerId === "mlb-stats".*MlbStatsProvider\.buildScoreUrl/s);
+  assert.match(leagueFetch, /requestProviderId === "mlb-stats".*MlbStatsProvider\.parseScoreResponse/s);
   assert.match(leagueFetch, /ProviderFallbackPolicy\.evaluate\(/);
   assert.match(leagueFetch, /ProviderFallbackPolicy\.recordFailure\(/);
   assert.match(leagueFetch, /ProviderFallbackPolicy\.recordSuccess\(/);

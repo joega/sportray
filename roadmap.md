@@ -1,6 +1,6 @@
 # Sportray private roadmap
 
-Last reviewed: 2026-08-24
+Last reviewed: 2026-08-25
 
 ## Competitive scan — 2026-08-23
 
@@ -4229,3 +4229,82 @@ its second candidate, bounded polling unchanged). Without owner answers,
 the standing live-football observational verification
 (`competitions[].details`, weather, leaders) remains the prepared unit for
 the CFB week-0 window from Sat Aug 29; do not infer direction.
+
+## Latest handoff — 2026-08-25 MLB StatsAPI second candidate
+
+Status: complete. The owner answered all three review gates: MLB's
+"individual, non-commercial, non-bulk use" framing is accepted for Sportray's
+personal use, MLB via StatsAPI is the first second-candidate league, and the
+explicit team-id translation requirement is accepted. The MLB fallback slice is
+implemented without changing settings, notifications, QML views, or polling
+cadence bounds.
+
+Evidence:
+
+- `providers/MlbStatsProvider.js` parses the verified
+  `statsapi.mlb.com/api/v1/schedule?sportId=1&date=YYYY-MM-DD&hydrate=team,linescore`
+  response into normalized MLB games. It admits the 30 current StatsAPI team
+  ids only through an explicit table to the ESPN id space observed on
+  2026-08-25, rejects unknown team ids, builds safe `https://www.mlb.com/gameday/`
+  links, preserves venue and scores, and projects live inning state without
+  passing raw payload fields onward.
+- The direct endpoint observation confirmed 15 Preview/Scheduled games on
+  2026-08-25, ten Final games on 2026-08-24, an empty offseason response with
+  `dates: []`, `totalGames: 0`, and the CDN headers
+  `max-age=20`, `stale-while-revalidate=30`, and `stale-if-error=86400`.
+  No in-progress MLB game was available during this session, so the Live
+  fixture pins the documented `Live`/`In Progress` shape rather than claiming
+  live runtime observation. MLB.com gameday links were checked to resolve from
+  a game id, and the shared game-link boundary now admits `mlb.com`.
+- `providers/LeagueCatalog.js` now gives only MLB the ordered
+  `['espn', 'mlb-stats']` chain. `services/LeagueFetch.qml` adds only the
+  provider URL/parser branches; it still owns exactly two `Process` objects,
+  two curl command arrays, two JSON parses, and the existing response bounds.
+  Lookahead remains on the existing ESPN route.
+- `fixtures/mlb-stats/` and the deterministic suite cover all 30 translation
+  pairs, URL validation, scheduled/final/live/administrative states,
+  empty/offseason slates, malformed/unknown teams, and the 256-event bound.
+  The complete suite passes with 230 tests.
+- `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`, `git diff --check`,
+  `omarchy plugin validate "$PWD"`, and the real-import-path QML lint over all
+  QML files pass with the established warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell `28771c7c74b42e20afca0b1b63980cb46515537`
+  was restarted into one shell instance (`yvanxb9ckt`), `shell ping` returned
+  `ok`, toggle/hide IPC completed, and the fresh log showed normal MLB and
+  sibling-provider initialization with no Sportray exception, QML-load error,
+  or binding-loop warning. The unrelated portal registration warning remains.
+  No forced ESPN failure was injected, so live fallback selection itself is
+  fixture-verified rather than runtime-claimed.
+
+Decision log: retain ESPN as MLB's primary provider and append StatsAPI as the
+second candidate so existing behavior changes only after the primary provider
+reaches its established failure threshold. Use the live ESPN id space as the
+translation target because the current ESPN scoreboard and current ESPN team
+endpoint agreed on those ids for all 30 teams; unknown StatsAPI ids fail closed.
+Do not add StatsAPI detail sections, a second lookahead endpoint, or a provider
+specific settings field in this unit.
+
+Known risks and follow-ups:
+
+- The current live ESPN scoreboard/team endpoint was observed to differ from
+  the checked-in static `EspnTeamCatalog` MLB snapshot for ten team assignments
+  (ATL, DET, LAA, MIA, MIL, MIN, PHI, SF, STL, and TB). The owner currently
+  follows `mlb:2` (BOS), which is unaffected. This pre-existing identity drift
+  needs a separate owner-directed reconciliation; do not change persisted
+  settings or the static catalog as part of this adapter unit.
+- The MLB fallback has not been exercised by injecting a failed ESPN response;
+  doing so against the live shell would alter the provider-health path and was
+  not necessary for the bounded gate. StatsAPI detail fields beyond the core
+  scoreboard shape remain neutral when the fallback is active.
+- ESPN and MLB StatsAPI are undocumented provider interfaces; terms, regional
+  availability, response shapes, and rate limits may change. No push, tag,
+  release, Marketplace, or remote action occurred. The unrelated absence of
+  `MARKETPLACE_SUBMISSION.md` remains untouched.
+
+Next bounded unit: during live-football minutes (CFB week 0 from Sat Aug 29;
+NFL week 1 from Thu Sep 10), perform the prepared read-only observation of
+`competitions[].details` (scoring plays), `competitions[].weather`, and
+`competitions[].leaders` while at least one football game is in progress. If
+outside those minutes and no owner selects another unit, record the unchanged
+window blocker and stop; do not reconcile the MLB catalog drift, inject a
+provider failure, add detail fields, or change release/publication state.

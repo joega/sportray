@@ -1,0 +1,40 @@
+{
+  "dates": [
+    {
+      "date": "2026-08-25",
+      "games": [
+        {
+          "gamePk": 824240,
+          "gameDate": "2026-08-25T23:00:00Z",
+          "status": {"abstractGameState": "Preview", "detailedState": "Postponed"},
+          "teams": {
+            "away": {"team": {"id": 111, "name": "Boston Red Sox", "teamName": "Red Sox", "abbreviation": "BOS"}},
+            "home": {"team": {"id": 146, "name": "Miami Marlins", "teamName": "Marlins", "abbreviation": "MIA"}}
+          },
+          "venue": {"name": "loanDepot park"}
+        },
+        {
+          "gamePk": 824241,
+          "gameDate": "2026-08-25T23:10:00Z",
+          "status": {"abstractGameState": "Preview", "detailedState": "Cancelled"},
+          "teams": {
+            "away": {"team": {"id": 112, "name": "Chicago Cubs", "teamName": "Cubs", "abbreviation": "CHC"}},
+            "home": {"team": {"id": 145, "name": "Chicago White Sox", "teamName": "White Sox", "abbreviation": "CHW"}}
+          },
+          "venue": {"name": "Guaranteed Rate Field"}
+        },
+        {
+          "gamePk": 824242,
+          "gameDate": "2026-08-25T23:20:00Z",
+          "status": {"abstractGameState": "Live", "detailedState": "Game Over"},
+          "teams": {
+            "away": {"team": {"id": 144, "name": "Atlanta Braves", "teamName": "Braves", "abbreviation": "ATL"}, "score": 5},
+            "home": {"team": {"id": 147, "name": "New York Yankees", "teamName": "Yankees", "abbreviation": "NYY"}, "score": 4}
+          },
+          "venue": {"name": "Yankee Stadium"},
+          "linescore": {"currentInning": 9, "currentInningOrdinal": "9th", "inningState": "End"}
+        }
+      ]
+    }
+  ]
+}

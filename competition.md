@@ -1,9 +1,9 @@
 # Competition and feature ideas
 
-Private product-planning reference. Reviewed 2026-08-24 against the live
+Private product-planning reference. Reviewed 2026-08-25 against the live
 [Omarchy plugin catalog](https://omarchyplugins.com/catalog.json) and the
-linked public repositories. Backlog status last reconciled 2026-08-24 after
-the broader team discovery unit closed P1-5. Keep this file, the Marketplace review, and the
+linked public repositories. Backlog status last reconciled 2026-08-25 after
+the MLB second-provider unit closed the first P1-4 candidate. Keep this file, the Marketplace review, and the
 roadmap out of the public product tree unless the owner explicitly chooses to
 publish planning material. Backlog reconciled again 2026-08-24 after the
 baseball situation detail slice closed part of P2-7.
@@ -94,24 +94,20 @@ evidence.
 
 ### P1 — reliability and discovery
 
-4. **Provider fallback chains — wiring closed; multi-provider open.** The pure
-   chain policy is wired into every per-league score request with cooldown,
-   last-good retention, isolation, and exhaustion handling. Production chains
-   are single-candidate because each league has exactly one verified adapter.
-   Live multi-provider fallback requires a second reviewed adapter (for
-   example an MLB or NHL alternative source) and remains open until that
-   provider's terms, reliability, and response shape are verified.
-   Candidate reconnaissance completed 2026-08-25 (owner-selected unit):
-   MLB StatsAPI (`statsapi.mlb.com/api/v1/schedule`, key-free,
-   Fastly-cached with `max-age=20`/`stale-if-error=86400`, shape-compatible
-   with the normalized game model) is gated on the owner's read of MLB's
-   "individual, non-commercial, non-bulk use" terms; ESPN's NHL scoreboard
-   introduces no new terms but requires an explicit 32-team
-   ESPN↔NHL.com id-translation map because team ids and tri-code
-   conventions differ (a provider switch would otherwise break persisted
-   `nhl:<id>` favorite identity). Three owner review questions are recorded
-   in the roadmap handoff — terms acceptance, first league choice, and the
-   translation requirement — and must be answered before any adapter work.
+4. **Provider fallback chains — closed for MLB's first second candidate.** The
+   pure chain policy is wired into every per-league score request with cooldown,
+   last-good retention, isolation, and exhaustion handling. MLB now admits the
+   ordered `espn` then `mlb-stats` chain; the other leagues retain their single
+   verified candidate. The MLB StatsAPI adapter is fixture-covered for
+   scheduled, live, final, administrative, malformed, and empty/offseason
+   slates, with explicit 30-team id translation and unchanged response/polling
+   bounds. Runtime fallback under an injected ESPN failure remains unexercised.
+   Candidate reconnaissance completed 2026-08-25: MLB StatsAPI
+   (`statsapi.mlb.com/api/v1/schedule`, key-free, Fastly-cached with
+   `max-age=20`/`stale-if-error=86400`, shape-compatible with the normalized game
+   model) was accepted by the owner for individual, non-commercial, non-bulk
+   use. The ESPN-NHL alternative remains a future candidate because it still
+   requires a separate 32-team id-translation map.
 5. **Broader team discovery — closed.** The favorite picker discovers teams
    across all eight leagues from the bounded static catalogs: queries match
    league display names (e.g. "premier", "college"), direct hits rank above
@@ -196,12 +192,10 @@ Remaining candidate slices:
    ESPN Highlights/Preview pages rendered beside the labeled source action;
    streams remain out of scope without a verified new source.
 3. **A second verified provider adapter for live multi-provider fallback**
-   (P1-4 remainder): candidate reconnaissance completed 2026-08-25 — MLB
-   StatsAPI and ESPN's NHL scoreboard are both verified shape-compatible
-   (see the roadmap handoff). Blocked on the owner's review answers: MLB
-   terms acceptance, first-league choice, and the explicit id-translation
-   requirement. No `providerChain()` second candidate until the owner
-   approves.
+   (P1-4 remainder): completed 2026-08-25 for MLB. The owner accepted the
+   StatsAPI terms framing, selected MLB, and accepted explicit team-id
+   translation. The ordered chain now uses ESPN first and MLB StatsAPI second;
+   live failover injection remains a runtime follow-up.
 4. **Richer detail sections** (P0-1 remainder / P2-7): the baseball situation
    projection completed 2026-08-24 from already normalized data with no second
    endpoint, and the runtime detail path was wired through the same enriched
@@ -222,4 +216,3 @@ Remaining candidate slices:
   and rate limits as acceptance criteria, not documentation footnotes.
 - Do not add Marketplace, release, tag, or public-repository work to a product
   feature slice.
-

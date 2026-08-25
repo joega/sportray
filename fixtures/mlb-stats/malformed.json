@@ -1,0 +1,19 @@
+{
+  "dates": [
+    {
+      "date": "2026-08-25",
+      "games": [
+        {"gamePk": 824250, "status": {"abstractGameState": "Preview", "detailedState": "Scheduled"}},
+        {
+          "gamePk": 824251,
+          "gameDate": "2026-08-25T23:40:00Z",
+          "status": {"abstractGameState": "Preview", "detailedState": "Scheduled"},
+          "teams": {
+            "away": {"team": {"id": 9999, "name": "Unknown Club", "teamName": "Unknown", "abbreviation": "UNK"}},
+            "home": {"team": {"id": 111, "name": "Boston Red Sox", "teamName": "Red Sox", "abbreviation": "BOS"}}
+          }
+        }
+      ]
+    }
+  ]
+}
