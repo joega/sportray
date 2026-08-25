@@ -5,7 +5,8 @@ Private product-planning reference. Reviewed 2026-08-24 against the live
 linked public repositories. Backlog status last reconciled 2026-08-24 after
 the broader team discovery unit closed P1-5. Keep this file, the Marketplace review, and the
 roadmap out of the public product tree unless the owner explicitly chooses to
-publish planning material.
+publish planning material. Backlog reconciled again 2026-08-24 after the
+baseball situation detail slice closed part of P2-7.
 
 ## Similar apps
 
@@ -42,8 +43,9 @@ The current checkout now has meaningful parity with the generalists:
 - grouped standings on ESPN-backed and NHL destinations (verified
   `api-web.nhle.com/v1/standings/now` adapter) with favorite actions;
 - a local keyboard-accessible game-detail drill-down projected from normalized
-  data, with optional final-outcome and bounded per-period lines sections and
-  no second endpoint;
+  data, with optional final-outcome, bounded per-period lines, bounded team
+  statistics, a bounded live baseball situation section, labeled ESPN event
+  links, and no second endpoint;
 - a bounded calendar day list projecting the already-fetched five-date
   caches, with favorite-only filtering, an `F` filter shortcut, a `G`
   direct jump to the next cached day with games, and explicit local-time
@@ -113,10 +115,14 @@ evidence.
 
 ### P2 — specialist depth
 
-7. **Sport-specific panels — open.** Baseball situation, F1 session/leaderboard,
-   esports series state, and racing projections. Optional sections only when a
-   provider supports them reliably; never fields every normalized game must
-   carry.
+7. **Sport-specific panels — partially closed.** The baseball situation
+   section (count, outs, base occupancy, last-play text) shipped 2026-08-24 as
+   a bounded game-detail projection from the already fetched ESPN scoreboard
+   snapshot, hidden when the sport has no situation data. Still open: F1
+   session/leaderboard, esports series state, racing projections, and scoring
+   plays/leaders (scoring plays could not be verified live on 2026-08-24 — no
+   football game was in progress). Optional sections only when a provider
+   supports them reliably; never fields every normalized game must carry.
 8. **Broadcast and event links — closed for the current payload boundary.**
    Completed 2026-08-24: the detail view renders at most two labeled links
    (ESPN **Highlights** video page, ESPN **Preview** article) admitted from the
@@ -167,9 +173,10 @@ Remaining candidate slices:
    (P1-4 remainder): requires an explicit provider review (terms, region,
    reliability, response shape) before `providerChain()` gains a second
    candidate for any league.
-4. **Richer detail sections** (P0-1 remainder / P2-7): scoring plays,
-   leaders, or one sport-specific situation projection from already normalized
-   data only; stop before any second endpoint.
+4. **Richer detail sections** (P0-1 remainder / P2-7): the baseball situation
+   projection completed 2026-08-24 from already normalized data with no second
+   endpoint. Still open: scoring plays (requires live verification while a
+   football game is in progress) and leaders; stop before any second endpoint.
 5. **Release/publication follow-up**: owner-assigned release actions for the
    unreleased `1.0.0-rc.8` candidate (tagging/release/Marketplace verification)
    remain separate, owner-controlled steps outside feature work.

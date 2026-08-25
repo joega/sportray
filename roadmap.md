@@ -3609,3 +3609,90 @@ gated second verified provider adapter (P1-4 remainder, still requires an
 owner-provided terms/region/reliability review) or select another slice
 from the `competition.md` decision list. If no direction is given, do not
 infer one and stop after recording the still-pending decision.
+
+## Baseball situation rich-detail projection — 2026-08-24
+
+Status: complete. The owner selected the richer-detail slice (P0-1 remainder /
+P2-7) for this unit. One bounded sport-specific section — the baseball
+situation — is now projected into the game-detail drill-down from the already
+fetched ESPN scoreboard snapshot, with no second endpoint and no change to the
+normalized game shape or runtime fetch wiring.
+
+Evidence:
+
+- On 2026-08-24 the live ESPN MLB scoreboard response was inspected directly
+  and confirmed to carry `competitions[].situation` for in-progress games with
+  `balls`, `strikes`, `outs`, `onFirst`, `onSecond`, `onThird`, and a
+  `lastPlay.text` summary. The same inspection showed no
+  `competitions[].details` scoring plays for the day's completed football
+  games, so scoring plays remain unverified and open. Pitcher/batter athlete
+  blocks exist but are intentionally not projected.
+- `model/GameDetailModel.js` adds an optional `situation` record — counts
+  bounded by `MAX_SITUATION_COUNT = 9`, strict boolean bases, optional
+  `lastPlay` text capped by `MAX_SITUATION_TEXT_LENGTH = 160` — failing closed
+  to `situation: null` for malformed, non-boolean, over-bound, or over-length
+  input. `emptyDetail` carries `situation: null`.
+- `providers/EspnProvider.js` extracts the situation from the same payload
+  inside `parseGameDetailResponse` only (`competitionSituation`,
+  `detailSituationByGameId`), truncating over-length last-play text at the
+  model bound before normalization. `parseScoreboardResponse`, polling, and
+  all other consumers are unchanged, matching the per-period-lines and
+  team-stats precedent.
+- `components/GameDetailView.qml` renders a `SITUATION` section (count, outs,
+  three base-occupancy dots using the existing accent/`transparent` token
+  convention, and an optional last-play line) that is visible only when the
+  projection exists; a sport-specific section hides rather than rendering a
+  permanent placeholder. The bases label exposes
+  `situationAccessibleBases()` as its accessible name. No routing, cursor, or
+  focusable changed.
+- `fixtures/espn/raw/game-detail-situation.json` covers the populated live
+  shape, a count-less situation, malformed count, non-boolean base, over-bound
+  count, 200-character last play (truncated to 160 by the provider), and a
+  missing situation. One new deterministic test asserts the accepted
+  projection, every rejected case as `null`, the provider truncation, both new
+  bounds, the absence of raw provider fields (`pitcher`, `athlete`), and the
+  view-source bindings. The complete suite passes with 220 tests.
+- `./tests/run-js-tests.sh` (220 tests), `./tests/test-summon-helper.sh`,
+  `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass; lint exits 0 with the established standalone import and
+  unqualified-access warnings.
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0: the supported
+  `omarchy restart shell` loaded the linked checkout into exactly one instance
+  (PID 971959); `shell ping` returned `ok`. Real keyboard exercise with
+  screenshots: summon opened the Today scores view; `c`/Escape calendar
+  round-trip still works; Down/Space and a later Down/Return opened the game
+  detail for `mlb:401816655` (BOS @ MIA, Live · Top 7th) rendering the existing
+  sections with the new SITUATION section correctly hidden, because runtime
+  detail games come from `parseScoreboardResponse`, which does not attach the
+  optional detail records — the same documented runtime precedent as the
+  populated lines/stats paths, which are fixture-verified. The fresh log
+  contains normal Sportray fetch/cache/polling activity and no Sportray error,
+  exception, or binding-loop warning (the only error-shaped lines are the
+  pre-existing unrelated `xkbcomp` Hyprland keymap messages).
+
+Decision log: keep the situation strictly a detail-section concept fed from
+the already fetched scoreboard snapshot; do not add fields to every normalized
+game and do not rewire `LeagueFetch` to `parseGameDetailResponse` in this
+unit. Extract only the verified count/bases/last-play fields; pitcher/batter
+athlete blocks, `dueUp`, and football `details`/`situation` remain unverified
+or out of scope for this boundary. A sport-specific section hides when its
+projection is null instead of occupying a permanent placeholder row. Counts
+are bounded generously (≤9) so transient boundary values never reject an otherwise
+valid live snapshot.
+
+Known risks: ESPN is an undocumented site API; situation presence varies by
+sport and state, and the populated section is fixture-verified rather than
+runtime-observed (no runtime wiring carries detail records today — a known
+cross-section follow-up, not a regression of this unit). Scoring plays
+(`competitions[].details`) could not be verified live today because no
+football game was in progress; they remain open behind a live verification.
+The unrelated absence of `MARKETPLACE_SUBMISSION.md` remains untouched and
+unstaged. No push, tag, release, or Marketplace action occurred.
+
+Next bounded unit: with explicit owner direction, either revisit the gated
+second verified provider adapter (P1-4 remainder, still requires an
+owner-provided terms/region/reliability review), pursue live verification of
+scoring plays when a football game is in progress, or select another slice
+from the `competition.md` decision list. If no direction is given, do not
+infer one and stop after recording the still-pending decision.

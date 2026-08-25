@@ -1765,6 +1765,63 @@ test("optional team stats project bounded rows without provider fields", () => {
   assert.equal(JSON.stringify(details["stats-final"].stats).includes("displayValue"), false);
 });
 
+test("optional live situation projects bounded at-bat state without provider fields", () => {
+  const result = espn.parseGameDetailResponse(readEspnFixture("game-detail-situation"), "nfl");
+  assert.deepEqual(result.errors, []);
+
+  const details = Object.fromEntries(result.details.map((detail) => [detail.providerGameId, detail]));
+  assert.deepEqual(details["situation-live"].situation, {
+    balls: 2,
+    strikes: 1,
+    outs: 1,
+    onFirst: true,
+    onSecond: false,
+    onThird: true,
+    lastPlay: "Pitch 3 : Ball 2 to R. Calder"
+  });
+  assert.equal(details["situation-missing"].situation, null);
+  ["situation-no-count", "situation-malformed", "situation-bad-bases",
+    "situation-over-bound"].forEach((id) =>
+    assert.equal(details[id].situation, null, id));
+
+  const longText = details["situation-long-text"].situation;
+  assert.equal(longText.balls, 3);
+  assert.equal(longText.strikes, 2);
+  assert.equal(longText.outs, 2);
+  assert.equal(longText.lastPlay.length, 160);
+
+  assert.equal(gameDetails.MAX_SITUATION_COUNT, 9);
+  assert.equal(gameDetails.MAX_SITUATION_TEXT_LENGTH, 160);
+  assert.equal(gameDetails.normalizeSituation({situation: {
+    balls: gameDetails.MAX_SITUATION_COUNT + 1, strikes: 0, outs: 0,
+    onFirst: false, onSecond: false, onThird: false
+  }}), null);
+  assert.equal(gameDetails.normalizeSituation({situation: {
+    balls: 0, strikes: -1, outs: 0,
+    onFirst: false, onSecond: false, onThird: false
+  }}), null);
+  assert.equal(gameDetails.normalizeSituation({situation: {
+    balls: 0, strikes: 0, outs: 0
+  }}), null);
+  assert.equal(gameDetails.normalizeSituation({situation: {
+    balls: 1, strikes: 1, outs: 1,
+    onFirst: true, onSecond: true, onThird: true,
+    lastPlay: "y".repeat(gameDetails.MAX_SITUATION_TEXT_LENGTH + 1)
+  }}), null);
+  assert.equal(gameDetails.normalizeSituation(null), null);
+  assert.equal(JSON.stringify(details["situation-live"]).includes("pitcher"), false);
+  assert.equal(JSON.stringify(details["situation-live"].situation).includes("athlete"), false);
+  assert.equal(JSON.stringify(details["situation-live"].situation).includes("lastPlayId"), false);
+
+  const view = readSource("components/GameDetailView.qml");
+  assert.match(view, /readonly property var situationData: root\.detail\.situation/);
+  assert.match(view, /text: "SITUATION"/);
+  assert.match(view, /visible: root\.situationData !== null/);
+  assert.match(view, /function situationCountLabel\(\)/);
+  assert.match(view, /root\.situationOutsLabel\(\)/);
+  assert.match(view, /root\.situationAccessibleBases\(\)/);
+});
+
 test("provider event links project bounded labeled pages beside the source action", () => {
   const result = espn.parseScoreboardResponse(readEspnFixture("game-detail-links"), "nfl");
   assert.deepEqual(result.errors, []);

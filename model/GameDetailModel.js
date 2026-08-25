@@ -12,6 +12,8 @@ var MAX_LINE_PERIOD_NUMBER = 99;
 var MAX_STAT_ROWS = 8;
 var MAX_STAT_KEY_LENGTH = 32;
 var MAX_STAT_LABEL_LENGTH = 24;
+var MAX_SITUATION_COUNT = 9;
+var MAX_SITUATION_TEXT_LENGTH = 160;
 var MAX_DETAIL_LINKS = 2;
 var MAX_LINK_URL_LENGTH = 2048;
 var LINK_LABELS = {highlights: "Highlights", preview: "Preview"};
@@ -157,6 +159,36 @@ function normalizeStatSide(value) {
   return entries;
 }
 
+// Situation projection: a bounded at-bat snapshot (count, outs, bases,
+// optional last-play text) for sports whose provider supplies it live.
+function normalizeSituation(game) {
+  if (!isRecord(game) || !isRecord(game.situation)) return null;
+
+  var balls = nonNegativeInteger(game.situation.balls);
+  var strikes = nonNegativeInteger(game.situation.strikes);
+  var outs = nonNegativeInteger(game.situation.outs);
+  if (balls === null || strikes === null || outs === null
+      || balls > MAX_SITUATION_COUNT || strikes > MAX_SITUATION_COUNT
+      || outs > MAX_SITUATION_COUNT) return null;
+  var onFirst = game.situation.onFirst;
+  var onSecond = game.situation.onSecond;
+  var onThird = game.situation.onThird;
+  if (typeof onFirst !== "boolean" || typeof onSecond !== "boolean"
+      || typeof onThird !== "boolean") return null;
+  var lastPlay = cleanString(game.situation.lastPlay);
+  if (lastPlay && lastPlay.length > MAX_SITUATION_TEXT_LENGTH) return null;
+
+  return {
+    balls: balls,
+    strikes: strikes,
+    outs: outs,
+    onFirst: onFirst,
+    onSecond: onSecond,
+    onThird: onThird,
+    lastPlay: lastPlay
+  };
+}
+
 function normalizeDetailLinks(game) {
   var input = isRecord(game) && Array.isArray(game.links) ? game.links : [];
   var seenKeys = {};
@@ -200,6 +232,7 @@ function emptyDetail(errorCode) {
     outcome: null,
     lines: null,
     stats: null,
+    situation: null,
     links: [],
     source: {
       provider: null,
@@ -252,6 +285,7 @@ function normalizeDetail(game, source) {
     outcome: normalizeOutcome(game),
     lines: normalizeLines(game),
     stats: normalizeStats(game),
+    situation: normalizeSituation(game),
     links: normalizeDetailLinks(game),
     source: normalizeSource(source, game),
     isValid: true,
@@ -309,6 +343,8 @@ if (typeof module !== "undefined" && module.exports) {
     MAX_STAT_ROWS: MAX_STAT_ROWS,
     MAX_STAT_KEY_LENGTH: MAX_STAT_KEY_LENGTH,
     MAX_STAT_LABEL_LENGTH: MAX_STAT_LABEL_LENGTH,
+    MAX_SITUATION_COUNT: MAX_SITUATION_COUNT,
+    MAX_SITUATION_TEXT_LENGTH: MAX_SITUATION_TEXT_LENGTH,
     MAX_DETAIL_LINKS: MAX_DETAIL_LINKS,
     MAX_LINK_URL_LENGTH: MAX_LINK_URL_LENGTH,
     normalizeDetailLinks: normalizeDetailLinks,
@@ -319,6 +355,7 @@ if (typeof module !== "undefined" && module.exports) {
     normalizeLines: normalizeLines,
     normalizeStatSide: normalizeStatSide,
     normalizeStats: normalizeStats,
+    normalizeSituation: normalizeSituation,
     normalizeDetail: normalizeDetail,
     normalizeDetails: normalizeDetails
   };

@@ -79,6 +79,7 @@ Item {
 
   readonly property var linesData: root.detail.lines
   readonly property var statsData: root.detail.stats
+  readonly property var situationData: root.detail.situation
   readonly property var extraLinks: root.detail.links || []
   readonly property int linkCursorOffset: 1 + (root.sourceAvailable ? 1 : 0)
   readonly property int maxCursorIndex: root.linkCursorOffset + root.extraLinks.length - 1
@@ -109,6 +110,24 @@ Item {
     if (!root.linesData) return []
     var entries = side === "away" ? root.linesData.away : root.linesData.home
     return entries.map(function(entry) { return String(entry.value) })
+  }
+
+  function situationCountLabel() {
+    if (!root.situationData) return "—"
+    return root.situationData.balls + "-" + root.situationData.strikes
+  }
+
+  function situationOutsLabel() {
+    return root.situationData ? String(root.situationData.outs) : "—"
+  }
+
+  function situationAccessibleBases() {
+    if (!root.situationData) return "none"
+    var names = []
+    if (root.situationData.onFirst) names.push("first")
+    if (root.situationData.onSecond) names.push("second")
+    if (root.situationData.onThird) names.push("third")
+    return names.length > 0 ? "runner on " + names.join(" and ") : "bases empty"
   }
 
   function moveCursor(delta) {
@@ -374,6 +393,102 @@ Item {
           Text {
             width: parent.width
             text: "Outcome   " + root.valueOrDash(root.outcomeLabel())
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            elide: Text.ElideRight
+          }
+        }
+
+        Column {
+          width: parent.width
+          visible: root.situationData !== null
+          spacing: Style.spacing.xxs
+
+          Text {
+            width: parent.width
+            text: "SITUATION"
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+
+          Row {
+            width: parent.width
+            spacing: Style.spacing.sm
+
+            Text {
+              width: Style.space(44)
+              text: "COUNT"
+              color: Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+            }
+
+            Text {
+              text: root.situationCountLabel()
+              color: Color.popups.text
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
+
+            Text {
+              width: Style.space(30)
+              text: "OUT"
+              color: Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+            }
+
+            Text {
+              text: root.situationOutsLabel()
+              color: Color.popups.text
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
+          }
+
+          Row {
+            width: parent.width
+            spacing: Style.spacing.sm
+
+            Text {
+              width: Style.space(44)
+              text: "BASES"
+              color: Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+              Accessible.role: Accessible.StaticText
+              Accessible.name: root.situationAccessibleBases()
+            }
+
+            Repeater {
+              model: [
+                {occupied: root.situationData ? root.situationData.onFirst : false},
+                {occupied: root.situationData ? root.situationData.onSecond : false},
+                {occupied: root.situationData ? root.situationData.onThird : false}
+              ]
+
+              delegate: Rectangle {
+                required property var modelData
+                width: Style.space(8)
+                height: width
+                radius: width / 2
+                color: modelData.occupied ? Color.accent : "transparent"
+                border.color: modelData.occupied ? Color.accent : Color.muted
+                border.width: 1
+              }
+            }
+          }
+
+          Text {
+            width: parent.width
+            visible: Boolean(root.situationData && root.situationData.lastPlay)
+            text: root.situationData && root.situationData.lastPlay
+              ? "Last play   " + root.situationData.lastPlay : ""
             color: Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall

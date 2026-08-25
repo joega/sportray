@@ -351,13 +351,16 @@ function parseGameDetailResponse(payload, leagueId) {
   if (!GameDetailModel) return {details: [], errors: scoreboard.errors};
   var lines = detailLinesByGameId(payload);
   var stats = detailStatsByGameId(payload);
+  var situations = detailSituationByGameId(payload);
   var candidates = scoreboard.games.map(function(game) {
     var eventLines = lines[game.providerGameId];
     var eventStats = stats[game.providerGameId];
-    if (!eventLines && !eventStats) return game;
+    var eventSituation = situations[game.providerGameId];
+    if (!eventLines && !eventStats && !eventSituation) return game;
     return Object.assign({}, game,
       eventLines ? {lines: eventLines} : {},
-      eventStats ? {stats: eventStats} : {});
+      eventStats ? {stats: eventStats} : {},
+      eventSituation ? {situation: eventSituation} : {});
   });
   var details = GameDetailModel.normalizeDetails(candidates, {
     provider: ESPN_PROVIDER,
@@ -407,6 +410,52 @@ function detailLinesByGameId(payload) {
     var providerGameId = providerId(event.id || competition.id);
     if (!providerGameId) continue;
     result[providerGameId] = {away: away, home: home};
+  }
+  return result;
+}
+
+var MAX_SITUATION_TEXT_LENGTH = GameDetailModel
+  ? GameDetailModel.MAX_SITUATION_TEXT_LENGTH : 160;
+
+function competitionSituation(competition) {
+  if (!isRecord(competition) || !isRecord(competition.situation)) return null;
+  var raw = competition.situation;
+  var balls = integerOrNull(raw.balls);
+  var strikes = integerOrNull(raw.strikes);
+  var outs = integerOrNull(raw.outs);
+  var onFirst = raw.onFirst;
+  var onSecond = raw.onSecond;
+  var onThird = raw.onThird;
+  if (balls === null || strikes === null || outs === null) return null;
+  if (typeof onFirst !== "boolean" || typeof onSecond !== "boolean"
+      || typeof onThird !== "boolean") return null;
+  var lastPlay = isRecord(raw.lastPlay) ? cleanString(raw.lastPlay.text) : null;
+  if (lastPlay && lastPlay.length > MAX_SITUATION_TEXT_LENGTH)
+    lastPlay = lastPlay.slice(0, MAX_SITUATION_TEXT_LENGTH);
+  return {
+    balls: balls,
+    strikes: strikes,
+    outs: outs,
+    onFirst: onFirst,
+    onSecond: onSecond,
+    onThird: onThird,
+    lastPlay: lastPlay
+  };
+}
+
+function detailSituationByGameId(payload) {
+  var result = {};
+  if (!isRecord(payload) || !Array.isArray(payload.events)) return result;
+
+  for (var i = 0; i < payload.events.length; i++) {
+    var event = payload.events[i];
+    var competition = findCompetition(event);
+    var situation = competitionSituation(competition);
+    if (!situation) continue;
+
+    var providerGameId = providerId(event.id || competition.id);
+    if (!providerGameId) continue;
+    result[providerGameId] = situation;
   }
   return result;
 }

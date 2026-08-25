@@ -1,0 +1,338 @@
+{
+ "events": [
+  {
+   "id": "situation-live",
+   "competitions": [
+    {
+     "status": {
+      "period": 4,
+      "displayClock": "",
+      "type": {
+       "name": "STATUS_IN_PROGRESS",
+       "state": "in",
+       "completed": false,
+       "detail": "Top 4th"
+      }
+     },
+     "venue": {
+      "fullName": "Situation Park"
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "score": "1",
+       "team": {
+        "id": "2",
+        "displayName": "Harbor Herons",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "2",
+       "team": {
+        "id": "17",
+        "displayName": "Summit Stags",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "situation": {
+      "lastPlay": {
+       "id": "4018166550603010001",
+       "type": {
+        "id": "5",
+        "text": "Ball",
+        "type": "ball"
+       },
+       "text": "Pitch 3 : Ball 2 to R. Calder",
+       "scoreValue": 0,
+       "team": {
+        "id": "2"
+       }
+      },
+      "balls": 2,
+      "strikes": 1,
+      "outs": 1,
+      "onFirst": true,
+      "onSecond": false,
+      "onThird": true,
+      "pitcher": {
+       "playerId": 35241,
+       "athlete": {
+        "fullName": "S. Alcantara"
+       }
+      },
+      "batter": {
+       "playerId": 42178,
+       "athlete": {
+        "fullName": "A. Rutschman"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "situation-no-count",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true,
+       "detail": "Final"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "score": "3",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "4",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "situation": {
+      "balls": 0,
+      "strikes": 0,
+      "outs": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "situation-malformed",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_IN_PROGRESS",
+       "state": "in",
+       "completed": false,
+       "detail": "Bot 7th"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "score": "0",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "1",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "situation": {
+      "balls": "two",
+      "strikes": 0,
+      "outs": 0,
+      "onFirst": true,
+      "onSecond": false,
+      "onThird": false
+     }
+    }
+   ]
+  },
+  {
+   "id": "situation-bad-bases",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_IN_PROGRESS",
+       "state": "in",
+       "completed": false,
+       "detail": "Top 8th"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "score": "2",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "2",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "situation": {
+      "balls": 1,
+      "strikes": 1,
+      "outs": 0,
+      "onFirst": true,
+      "onSecond": "yes",
+      "onThird": false
+     }
+    }
+   ]
+  },
+  {
+   "id": "situation-over-bound",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_IN_PROGRESS",
+       "state": "in",
+       "completed": false,
+       "detail": "Top 9th"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "score": "4",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "4",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "situation": {
+      "balls": 12,
+      "strikes": 1,
+      "outs": 0,
+      "onFirst": false,
+      "onSecond": false,
+      "onThird": false,
+      "lastPlay": "Impossible count"
+     }
+    }
+   ]
+  },
+  {
+   "id": "situation-long-text",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_IN_PROGRESS",
+       "state": "in",
+       "completed": false,
+       "detail": "Bot 5th"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "score": "1",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "1",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "situation": {
+      "balls": 3,
+      "strikes": 2,
+      "outs": 2,
+      "onFirst": false,
+      "onSecond": false,
+      "onThird": false,
+      "lastPlay": {
+       "id": "4018166570699990058",
+       "type": {
+        "id": "58",
+        "text": "End Inning",
+        "type": "end-inning"
+       },
+       "text": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+       "scoreValue": 0,
+       "team": {
+        "id": "17"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "situation-missing",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Tue, Aug 25"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
