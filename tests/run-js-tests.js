@@ -50,6 +50,7 @@ const pregameReminder = require(path.join(root, "model/PregameReminderPolicy.js"
 const closeGame = require(path.join(root, "model/CloseGamePolicy.js"));
 const calendarModel = require(path.join(root, "model/CalendarModel.js"));
 const providerFallback = require(path.join(root, "model/ProviderFallbackPolicy.js"));
+const chunkPolicy = require(path.join(root, "model/ChunkPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -209,6 +210,11 @@ function readProviderFallbackFixture() {
 function readProviderWiringFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/provider-fallback/wiring.json"), "utf8"));
+}
+
+function readChunkFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/provider-range/c2.json"), "utf8"));
 }
 
 function readMlbStatsFixture(name) {
@@ -5734,6 +5740,87 @@ test("wired exhaustion isolates the cooling league beside a healthy sibling", ()
   assert.equal(retried.kind, "current");
   assert.equal(retried.reason, "current-healthy");
   assert.equal(retried.providerId, "espn");
+});
+
+test("C2 range reconnaissance is sanitized and preserves honest provider status", () => {
+  const fixture = readChunkFixture();
+  const expected = ["espn-nfl", "espn-mlb", "espn-nba", "espn-cfb",
+    "espn-epl", "espn-mls", "espn-ncaab", "nhl", "mlb-stats"];
+  assert.deepEqual(Object.keys(fixture.observations).sort(), expected.sort());
+  assert.equal(fixture.request.spanDays, 42);
+  assert.equal(fixture.request.maxFilesizeBytes, responsePolicy.MAX_RESPONSE_BYTES);
+  assert.equal(fixture.observations["espn-mlb"].eventCount, 100);
+  assert.equal(fixture.observations["espn-mlb"].continuation, null);
+  assert.equal(fixture.observations.nhl.continuation, "2026-04-08");
+  assert.equal(fixture.observations["mlb-stats"].bytes, null);
+  assert.equal(fixture.observations["espn-ncaab"].status, 404);
+  Object.values(fixture.observations).forEach((observation) => {
+    assert.equal(Object.prototype.hasOwnProperty.call(observation, "raw"), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(observation, "payload"), false);
+  });
+});
+
+test("C2 chunk planner stays within provider-neutral request and date bounds", () => {
+  const fixture = readChunkFixture();
+  const plan = chunkPolicy.plan("espn-epl", fixture.request.startDate,
+    fixture.request.endDate);
+  assert.equal(plan.kind, "plan");
+  assert.equal(plan.requestCount, 6);
+  assert.equal(plan.maxConcurrency, chunkPolicy.MAX_CONCURRENCY);
+  assert.deepEqual(plan.windows[0], {
+    startDate: "2026-04-01", endDate: "2026-04-07", spanDays: 7
+  });
+  assert.deepEqual(plan.windows.at(-1), {
+    startDate: "2026-05-06", endDate: "2026-05-12", spanDays: 7
+  });
+  assert.equal(chunkPolicy.plan("espn-mlb", fixture.request.startDate,
+    fixture.request.endDate).reason, "request-count");
+  assert.equal(chunkPolicy.plan("espn-ncaab", fixture.request.startDate,
+    fixture.request.endDate).reason, "unsupported-provider");
+  assert.equal(chunkPolicy.plan("espn-epl", "2026-04-02", "2026-04-01").reason,
+    "date-span");
+  assert.equal(chunkPolicy.plan("espn-epl", "not-a-date", "2026-04-01").reason,
+    "invalid-date");
+  assert.equal(chunkPolicy.plan("espn-epl", "2026-01-01", "2026-02-12").reason,
+    "date-span");
+});
+
+test("C2 admission rejects malformed, oversized, capped, incomplete, and non-continuing ranges", () => {
+  const accepted = {status: 200, bytes: 556256, eventCount: 50,
+    dateSpanDays: 7, complete: true};
+  assert.equal(chunkPolicy.admit("espn-epl", accepted).kind, "accept");
+  assert.equal(chunkPolicy.admit("espn-epl", Object.assign({}, accepted,
+    {status: 404})).reason, "status");
+  assert.equal(chunkPolicy.admit("espn-epl", Object.assign({}, accepted,
+    {bytes: chunkPolicy.MAX_RESPONSE_BYTES + 1})).reason, "bytes");
+  assert.equal(chunkPolicy.admit("espn-epl", Object.assign({}, accepted,
+    {eventCount: chunkPolicy.MAX_EVENTS + 1})).reason, "events");
+  assert.equal(chunkPolicy.admit("espn-epl", Object.assign({}, accepted,
+    {dateSpanDays: 8})).reason, "date-span");
+  assert.equal(chunkPolicy.admit("espn-epl", Object.assign({}, accepted,
+    {complete: false})).reason, "incomplete");
+  assert.equal(chunkPolicy.admit("espn-mlb", Object.assign({}, accepted,
+    {dateSpanDays: 1, eventCount: 100})).reason, "provider-event-cap");
+  assert.equal(chunkPolicy.admit("nhl", Object.assign({}, accepted,
+    {eventCount: 56, nextDateKey: "2026-04-08"})).kind, "accept");
+  assert.equal(chunkPolicy.admit("nhl", accepted).reason, "missing-continuation");
+  assert.equal(chunkPolicy.admit("mlb-stats", accepted).reason, "unsupported-provider");
+});
+
+test("C2 policy is pure and C1 runtime ownership remains unchanged", () => {
+  const source = readSource("model/ChunkPolicy.js");
+  assert.equal(/\bQML\b|\bcurl\b|\bProcess\b|\bTimer\b|JSON\.parse|\bfetch\b|XMLHttpRequest/.test(source), false);
+  assert.equal(source.includes("Date.now"), false);
+  const leagueFetch = readSource("services/LeagueFetch.qml");
+  const fetchService = readSource("services/FetchService.qml");
+  assert.equal(leagueFetch.includes("ChunkPolicy"), false);
+  assert.equal(fetchService.includes("CalendarFetch"), false);
+  assert.equal((leagueFetch.match(/\bProcess\s*\{/g) || []).length, 2);
+  assert.equal((leagueFetch.match(/\bTimer\s*\{/g) || []).length, 0);
+  assert.equal((leagueFetch.match(/curl/g) || []).length, 2);
+  assert.equal((leagueFetch.match(/--max-filesize/g) || []).length, 2);
+  assert.match(leagueFetch, /readonly property int dateCacheLimit: 5/);
+  assert.match(leagueFetch, /ResponsePolicy\.MAX_RESPONSE_BYTES/);
 });
 
 test("LeagueFetch admits through the fallback chain without new fetch ownership", () => {

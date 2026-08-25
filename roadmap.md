@@ -4583,3 +4583,66 @@ strategy evidence. Do not add QML, a schedule fetch owner, month hydration,
 new endpoints, timers, polling changes, response-limit changes, cache
 widening, settings schema 2, watched games, followed leagues, detail
 providers, packaging, release, or Marketplace work.
+
+## Latest handoff — 2026-08-25 Level the Field C2 complete
+
+Status: complete as one policy-only work unit. Bounded in-memory observations
+were made against the already accepted ESPN site API, NHL API, and the
+owner-accepted key-free MLB StatsAPI route. No raw provider response was
+retained in the repository.
+
+Evidence: a 2026-04-01 through 2026-05-12 range (42 requested days) returned
+ESPN NFL and college-football empty off-season responses, ESPN MLB at 100
+events/~1.86 MiB, NBA at 100/~1.34 MiB, EPL at 50/~556 KiB, and MLS at
+100/~1.22 MiB; none advertised continuation. The ESPN men's college
+basketball route returned 404, so its in-season range behavior remains
+unresolved. The NHL schedule route returned seven `gameWeek` dates, 56 games,
+and `nextStartDate: 2026-04-08`. The 42-day MLB StatsAPI request exceeded the
+existing 2 MiB curl admission boundary before a response body could be
+inspected. Elapsed times were approximately 0.10–0.39 seconds for ESPN,
+0.57 seconds for NHL, and 0.55 seconds for the rejected MLB StatsAPI request.
+
+`model/ChunkPolicy.js` and `fixtures/provider-range/c2.json` add the pure
+policy/evidence slice. Accepted profiles plan at most seven-day chunks, eight
+requests, one concurrent request, a 42-day total window, the existing 2 MiB
+byte bound, and the existing 256-event bound; ESPN MLB is conservatively
+one-day because its observed range was capped. CFB, NCAA Men's Basketball,
+and MLB StatsAPI range hydration remain unsupported. Admission rejects bad
+status, bytes, event counts, date spans, incomplete results, observed ESPN
+100-event caps, and missing NHL continuation. Source assertions prove the
+policy has no QML/network/process/timer ownership and that C1's two-process,
+zero-timer, two-curl LeagueFetch topology and five-date cache remain intact.
+
+Decision: no provider has yet earned safe 42-day all-game completeness.
+ESPN capped responses without continuation, off-season observations, the
+unavailable NCAA Men's Basketball route, and the oversized MLB StatsAPI range
+remain unknown/partial rather than complete. C3 may add an owner only for
+profiles revalidated against current responses and must keep existing limits
+and the one-in-flight boundary.
+
+All required gates pass: JavaScript now passes with 238 tests, summon-helper,
+diff check, actual Omarchy plugin validation, and full real-import-path QML
+lint pass with established warnings. Installed Omarchy 4.0.0-1 and Quickshell
+0.3.0 remain the directly inspected boundary with no material deviation; no
+runtime shell exercise was needed because QML/service/runtime behavior did not
+change. The pre-existing unrelated `competition.md` and `roadmap.md` edits
+were preserved. `MARKETPLACE_SUBMISSION.md` remains absent and untouched. No
+push, tag, release, or Marketplace action occurred.
+
+Next bounded unit: implement **C3 — Low-frequency calendar fetch and cache**
+only, using `ChunkPolicy` as a feasibility gate. Read AGENTS.md, README.md,
+roadmap.md, the latest handoff, LEVEL_THE_FIELD_SPRINT.md, competition.md,
+and NEXT_SESSION_PROMPT.md; inspect installed/current Omarchy and Quickshell
+sources again. Add one focused schedule owner only for an explicitly admitted
+profile, a bounded window cache, normalized provider results, generation-safe
+late-response rejection, and honest stale/partial/empty/unavailable states.
+Do not widen bytes/events/requests/cache, enable unsupported CFB/NCAA Men's
+Basketball/MLB StatsAPI ranges, alter live polling/notifications/fallbacks,
+or add watches, followed leagues, scoring plays, leaders, broadcasts,
+packaging, release, or Marketplace work. Run all deterministic/repository
+gates plus actual Omarchy validator and every-file real-import-path QML lint;
+because C3 changes runtime ownership, also perform one-shell discovery, ping,
+summon, and fresh clean-log checks on actual Omarchy. Stop if current provider
+responses no longer satisfy policy or partial data could be mistaken for
+complete. Update roadmap, sprint evidence, and this prompt, then commit
+atomically only after all gates pass.

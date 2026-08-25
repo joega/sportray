@@ -1,0 +1,15 @@
+{
+  "observations": {
+    "espn-nfl": {"status": 200, "bytes": 724, "eventCount": 0, "dateSpanDays": 0, "continuation": null, "elapsedMs": 388, "note": "off-season empty"},
+    "espn-mlb": {"status": 200, "bytes": 1857755, "eventCount": 100, "dateSpanDays": 8, "continuation": null, "elapsedMs": 211, "note": "provider returned 100-event capped range"},
+    "espn-nba": {"status": 200, "bytes": 1335906, "eventCount": 100, "dateSpanDays": 16, "continuation": null, "elapsedMs": 202, "note": "provider returned 100-event capped range"},
+    "espn-cfb": {"status": 200, "bytes": 810, "eventCount": 0, "dateSpanDays": 0, "continuation": null, "elapsedMs": 103, "note": "off-season empty"},
+    "espn-epl": {"status": 200, "bytes": 556256, "eventCount": 50, "dateSpanDays": 32, "continuation": null, "elapsedMs": 182, "note": "provider returned 50-event range"},
+    "espn-mls": {"status": 200, "bytes": 1219287, "eventCount": 100, "dateSpanDays": 38, "continuation": null, "elapsedMs": 178, "note": "provider returned 100-event capped range"},
+    "espn-ncaab": {"status": 404, "bytes": 0, "eventCount": 0, "dateSpanDays": 0, "continuation": null, "elapsedMs": 119, "note": "route unavailable at observation time"},
+    "nhl": {"status": 200, "bytes": 106095, "eventCount": 56, "dateSpanDays": 7, "continuation": "2026-04-08", "elapsedMs": 565, "note": "seven-day gameWeek with nextStartDate"},
+    "mlb-stats": {"status": 200, "bytes": null, "eventCount": null, "dateSpanDays": 42, "continuation": null, "elapsedMs": 549, "note": "42-day range exceeded 2 MiB admission before body inspection"}
+  },
+  "request": {"startDate": "2026-04-01", "endDate": "2026-05-12", "spanDays": 42, "maxFilesizeBytes": 2097152},
+  "policy": {"maxRequests": 8, "maxConcurrency": 1, "maxRangeDays": 42, "maxChunkDays": 7, "espnMlbChunkDays": 1, "existingMaxEvents": 256}
+}

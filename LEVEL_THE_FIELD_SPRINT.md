@@ -297,10 +297,28 @@ before background month hydration exists.
 
 #### C2 — Provider range reconnaissance and chunk policy
 
-- Perform the feasibility gate above.
-- Add pure request-window planning and admission fixtures only after evidence.
-- Document accepted and rejected provider strategies.
-- Do not add QML or network ownership if any necessary boundary is unresolved.
+Status: **complete — 2026-08-25**
+
+- Bounded in-memory observations covered every ESPN-backed family, NHL schedule
+  continuation, and the already owner-accepted MLB StatsAPI candidate. No raw
+  response was retained.
+- ESPN range responses had no continuation field: NFL and CFB were empty
+  off-season responses; MLB, NBA, and MLS returned 100-event capped ranges;
+  EPL returned 50 events. The men's college basketball route returned 404,
+  so its in-season range behavior is unresolved.
+- NHL returned seven `gameWeek` dates, 56 games, and `nextStartDate`; the
+  continuation is suitable for a later bounded owner. The 42-day MLB StatsAPI
+  request exceeded the existing 2 MiB admission boundary before inspection.
+- `model/ChunkPolicy.js` is pure and fixture-tested. It plans at most 42 days,
+  eight requests, one concurrent request, and seven-day chunks for accepted
+  profiles; ESPN MLB is limited to one-day chunks. It rejects unsupported
+  providers, invalid or oversized spans, status/byte/event violations,
+  incomplete ranges, observed ESPN 100-event caps, and missing NHL
+  continuation. Existing 2 MiB and 256-event limits are unchanged.
+- C1 ownership remains unchanged: no QML, endpoint, Process, Timer, polling,
+  cache, response-limit, or runtime range-fetch change was made. C3 must keep
+  unresolved CFB/NCAA Men's Basketball range behavior unsupported and must not
+  infer completeness from a capped or off-season response.
 
 #### C3 — Low-frequency calendar fetch and cache
 

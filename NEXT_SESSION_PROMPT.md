@@ -1,82 +1,60 @@
-Work in /home/joeg/Projects/sportray on exactly one bounded work unit:
-Level the Field C2 — Provider range reconnaissance and chunk policy.
+Work in `/home/joeg/Projects/sportray` on exactly one bounded work unit:
+Level the Field C3 — Low-frequency calendar fetch and cache.
 
-Before editing or testing, read AGENTS.md, README.md, roadmap.md including its
-latest handoff, competition.md, LEVEL_THE_FIELD_SPRINT.md, and this prompt in
-full. docs/upstream-contract.md is intentionally absent; inspect the installed
-Omarchy and Quickshell sources directly for every host-boundary claim and
-record any material deviation in roadmap.md. Inspect git status, branch, and
-recent commits. Preserve unrelated changes, including the absence of
-MARKETPLACE_SUBMISSION.md; do not restore or stage it. Use subagents only for
-independent read-only provider or host reconnaissance that materially helps.
+Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`
+including its latest handoff, `competition.md`, `LEVEL_THE_FIELD_SPRINT.md`,
+and this prompt in full. `docs/upstream-contract.md` is intentionally absent;
+inspect installed/current Omarchy and Quickshell sources directly for every
+host-boundary claim. Inspect git status, branch, and recent commits; preserve
+unrelated changes and the absence of `MARKETPLACE_SUBMISSION.md`.
 
 Verified starting state:
 
-- C1 is the current source slice. CalendarModel produces a Monday-first
-  42-cell month projection with adjacent dates, selected/today state, bounded
-  counts and favorite markers, and explicit unknown versus known-complete-
-  empty state.
-- LeagueFetch date-cache entries carry complete true only after successful
-  zero-error normalized snapshots. MonthCalendar.qml replaces the old
-  CalendarWeekStrip.qml and uses the existing selected-date fetch path. No
-  calendar schedule owner, range request, new endpoint, timer, Process,
-  polling change, response-limit change, or cache widening exists.
-- C1 deterministic coverage is 234 passing tests. The summon-helper suite,
-  diff check, actual Omarchy plugin validation, and full real-import-path QML
-  lint pass. Actual Omarchy 4.0.0-1 with Quickshell 0.3.0 revision
-  28771c7c74b42e20afca0b1b63980cb46515537 is the current boundary.
-- C1 was rendered on actual Omarchy in one shell instance with ping, rescan,
-  summon, and fresh-log checks. Keyboard l/j plus Enter selected an adjacent
-  month date and triggered the existing fetch route. Pointer and child-panel
-  Accessible activation could not be injected reliably and remain explicitly
-  unclaimed runtime evidence.
+- C1 is complete: Calendar is a Monday-first 42-cell month projection using
+  existing five-date caches and the existing selected-date fetch route.
+- C2 is complete: `model/ChunkPolicy.js` is pure and fixture-tested. It keeps
+  the 2 MiB/256-event limits, one concurrent request, at most eight requests,
+  a 42-day total window, and seven-day chunks for admitted profiles; ESPN MLB
+  is one-day. ESPN CFB, ESPN NCAA Men's Basketball, and MLB StatsAPI range
+  hydration remain unsupported.
+- Reconnaissance is sanitized in `fixtures/provider-range/c2.json`: ESPN
+  ranges had no continuation and observed 100-event caps for MLB/NBA/MLS;
+  EPL returned 50 events; NHL returned seven `gameWeek` dates with
+  `nextStartDate`; a 42-day MLB StatsAPI request exceeded 2 MiB. No raw body
+  is in the repository.
+- Runtime ownership is unchanged: `LeagueFetch.qml` still has two Process
+  objects, two curl command arrays, zero timers, one in-flight per league, and
+  a five-date live-score cache. The C1 month UI must remain honest for unknown
+  or partial dates.
 
-Concrete outcome: complete the C2 provider feasibility gate only. Perform
-bounded read-only observations against already accepted provider hosts/routes
-for ESPN range behavior across every ESPN-backed league family, NHL schedule
-continuation behavior, and MLB StatsAPI only if its already accepted terms and
-shape make it a candidate. Record status, advertised content length when
-available, event count, date span, continuation/next-page shape, and elapsed
-time without retaining long-lived raw payloads. Derive and fixture-test a
-pure provider-neutral chunk/request-window policy with hard request, byte,
-event, date-span, and concurrency bounds.
+Concrete outcome: add one focused, low-frequency calendar schedule owner only
+for a currently admitted provider profile, with bounded window caching,
+provider parsing outside QML, generation-safe cancellation/late-response
+rejection, and explicit stale/partial/empty/unavailable states. Reuse
+`ChunkPolicy`; do not infer completeness from capped, off-season, unsupported,
+or partial responses.
 
 Hard scope limits:
 
-- Do not add QML, visible-month hydration, a schedule fetch owner, cache
-  widening, range requests in runtime, new endpoints, timers, polling changes,
-  response-limit changes, settings schema 2, watched games, followed leagues,
-  scoring plays, leaders, broadcasts, provider fallback, team-ID
-  reconciliation, packaging, tagging, pushing, release, or Marketplace work.
-- Do not raise the 2 MiB or 256-event limits, weaken one-in-flight ownership,
-  alter notification/privacy/no-daemon boundaries, or infer provider shape
-  from a non-evidence response.
-- If a provider cannot safely support a full month, preserve the honest C1
-  month UI and record an unknown/partial strategy rather than inventing
-  completeness.
+- Do not widen byte, event, request, concurrency, or cache bounds.
+- Do not enable ESPN CFB/NCAA Men's Basketball or MLB StatsAPI range fetching
+  without new verified evidence; do not add endpoints, polling changes,
+  settings schema 2, watches, followed leagues, scoring plays, leaders,
+  broadcasts, packaging, release, or Marketplace work.
+- Schedule hydration must not generate notifications or replace selected-day
+  live-score ownership. Preserve the no-account/no-backend/no-daemon model.
 
-Required checks:
+Required checks: fixture-driven provider/cache/partial/late-response tests;
+source assertions for ownership and bounds; `./tests/run-js-tests.sh`,
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and real-import-path `qmllint` over every
+QML file. Because this unit changes runtime ownership, on actual Omarchy also
+confirm one shell, discovery, ping, summon, and fresh clean logs, plus the
+changed behavior. Stop if current provider behavior no longer satisfies
+`ChunkPolicy` or completeness cannot be represented honestly.
 
-- Add sanitized fixture evidence and pure policy tests for accepted,
-  rejected, malformed, oversized, continuation, date-span, request-count,
-  and provider-specific cases. Keep raw payloads out of the repository.
-- Add source assertions proving the policy has no QML/network/process/timer
-  ownership and that C1 runtime ownership remains unchanged.
-- Run ./tests/run-js-tests.sh, ./tests/test-summon-helper.sh, git diff --check,
-  omarchy plugin validate "$PWD", and real-import-path qmllint over every QML.
-- Recheck installed host sources if any boundary is involved. Runtime shell
-  exercise is not required unless C2 changes QML/service/runtime; if it is
-  required, confirm one shell, discovery, ping, summon, and fresh clean logs
-  on actual Omarchy.
-
-Stop condition: if any accepted provider's range behavior, terms, byte/event
-bound, continuation, or date coverage is unresolved, do not add runtime
-fetching or widen limits. Record the smallest unresolved decision and leave
-C1 behavior intact.
-
-At the end, update LEVEL_THE_FIELD_SPRINT.md with C2 status/evidence, append a
-dated milestone/decision/risk/handoff entry to roadmap.md, update competition.md
-only if parity evidence changed, and replace this prompt with one
-self-contained prompt for exactly C3 or the smallest blocker-resolution unit.
-Commit C2 atomically only after all applicable gates pass. Do not push or make
-release/Marketplace changes.
+When the gate passes, update `LEVEL_THE_FIELD_SPRINT.md`, `roadmap.md`, and
+this prompt with evidence and risks, then commit C3 atomically. Do not push or
+make release/Marketplace changes. If blocked, leave C1 intact, document the
+smallest blocker, refresh this prompt for that blocker, and do not create a
+success commit.

@@ -120,8 +120,12 @@ evidence.
     explicit unknown-versus-known-empty states, direct `G` date jumps within
     the existing cache boundary, local-time row labels, and selected-day
     drill-down. C1 uses only complete existing five-date snapshots and the
-    existing selected-date fetch route. Wider month hydration remains open and
-    requires a verified wider source before any new fetch ownership.
+    existing selected-date fetch route. C2 reconnaissance found ESPN ranges
+    without continuation (including observed 100-event caps for MLB, NBA, and
+    MLS), NHL's seven-day `gameWeek` with `nextStartDate`, and an MLB StatsAPI
+    42-day response exceeding the existing 2 MiB boundary. A pure chunk policy
+    is committed, but wider hydration remains provider-gated; CFB and NCAA
+    Men's Basketball stay unresolved/unsupported until in-season evidence.
 
 ### P2 — specialist depth
 
