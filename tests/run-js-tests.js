@@ -1822,6 +1822,46 @@ test("optional live situation projects bounded at-bat state without provider fie
   assert.match(view, /root\.situationAccessibleBases\(\)/);
 });
 
+test("runtime scoreboard parsing carries the same bounded detail records as the detail path", () => {
+  ["game-detail-outcome", "game-detail-lines", "game-detail-stats",
+    "game-detail-situation"].forEach((name) => {
+    const payload = readEspnFixture(name);
+    const runtime = espn.parseScoreboardResponse(payload, "nfl");
+    assert.deepEqual(runtime.errors, [], name);
+    const projected = gameDetails.normalizeDetails(
+      runtime.games.map((game) => game), {provider: "espn", label: "ESPN"});
+    const expected = espn.parseGameDetailResponse(payload, "nfl");
+    assert.deepEqual(projected.details, expected.details, name);
+    assert.deepEqual(projected.errors, expected.errors, name);
+  });
+
+  const mixed = espn.parseScoreboardResponse(readGameDetailFixture(), "nfl");
+  assert.deepEqual(mixed.errors, [{
+    provider: "espn",
+    league: "nfl",
+    endpoint: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+    index: 2,
+    code: "invalid-event"
+  }]);
+  const byId = Object.fromEntries(mixed.games.map((game) => [game.providerGameId, game]));
+  ["lines", "stats", "situation", "links"].forEach((key) =>
+    ["detail-scheduled", "detail-missing"].forEach((id) =>
+      assert.equal(Object.prototype.hasOwnProperty.call(byId[id], key), false,
+        id + ":" + key)));
+  assert.equal(JSON.stringify(mixed.games).includes("competitions"), false);
+  assert.equal(JSON.stringify(mixed.games).includes("linescores"), false);
+
+  const sparse = gameDetails.normalizeDetail(
+    espn.parseScoreboardResponse(readEspnFixture("nfl-final"), "nfl").games[0],
+    {provider: "espn", label: "ESPN"});
+  assert.equal(sparse.lines, null);
+  assert.equal(sparse.stats, null);
+  assert.equal(sparse.situation, null);
+
+  const fetch = readSource("services/LeagueFetch.qml");
+  assert.equal(fetch.includes("parseScoreboardResponse(payload"), true);
+});
+
 test("provider event links project bounded labeled pages beside the source action", () => {
   const result = espn.parseScoreboardResponse(readEspnFixture("game-detail-links"), "nfl");
   assert.deepEqual(result.errors, []);

@@ -329,12 +329,22 @@ function parseScoreboardResponse(payload, leagueId) {
     return result;
   }
 
+  var lines = detailLinesByGameId(payload);
+  var stats = detailStatsByGameId(payload);
+  var situations = detailSituationByGameId(payload);
+
   for (var i = 0; i < payload.events.length; i++) {
     var game = parseGame(payload.events[i], metadata.id);
     if (!game || game.status === "malformed" || game.isValid !== true) {
       result.errors.push(errorFor(metadata.id, "invalid-event", i));
       continue;
     }
+    var eventLines = lines[game.providerGameId];
+    var eventStats = stats[game.providerGameId];
+    var eventSituation = situations[game.providerGameId];
+    if (eventLines) game.lines = eventLines;
+    if (eventStats) game.stats = eventStats;
+    if (eventSituation) game.situation = eventSituation;
     var links = eventLinks(payload.events[i]);
     if (links.length > 0) game.links = links;
     result.games.push(game);
@@ -349,20 +359,7 @@ function parseNextGamesResponse(payload, leagueId) {
 function parseGameDetailResponse(payload, leagueId) {
   var scoreboard = parseScoreboardResponse(payload, leagueId);
   if (!GameDetailModel) return {details: [], errors: scoreboard.errors};
-  var lines = detailLinesByGameId(payload);
-  var stats = detailStatsByGameId(payload);
-  var situations = detailSituationByGameId(payload);
-  var candidates = scoreboard.games.map(function(game) {
-    var eventLines = lines[game.providerGameId];
-    var eventStats = stats[game.providerGameId];
-    var eventSituation = situations[game.providerGameId];
-    if (!eventLines && !eventStats && !eventSituation) return game;
-    return Object.assign({}, game,
-      eventLines ? {lines: eventLines} : {},
-      eventStats ? {stats: eventStats} : {},
-      eventSituation ? {situation: eventSituation} : {});
-  });
-  var details = GameDetailModel.normalizeDetails(candidates, {
+  var details = GameDetailModel.normalizeDetails(scoreboard.games, {
     provider: ESPN_PROVIDER,
     label: "ESPN"
   });
