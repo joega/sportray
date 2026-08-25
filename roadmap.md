@@ -3696,3 +3696,46 @@ owner-provided terms/region/reliability review), pursue live verification of
 scoring plays when a football game is in progress, or select another slice
 from the `competition.md` decision list. If no direction is given, do not
 infer one and stop after recording the still-pending decision.
+
+## Scoring-play live verification — BLOCKED 2026-08-24
+
+Status: blocked. The owner selected the live scoring-play verification unit
+(P2-7 prerequisite). Its precondition — an ESPN football game in progress at
+inspection time — was unmet during this session's inspection window, so the
+verification did not occur and no adapter work was started.
+
+Evidence:
+
+- Inspection time 2026-08-25T00:58Z (Mon Aug 24, ~9:00 PM EDT).
+  `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard`
+  returned 16 events, all `post`/`Final`/completed (preseason concluded with
+  SEA @ TEN, 2026-08-24T00:00Z); zero events were `in`.
+  `https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard`
+  returned 25 events, all `pre`, beginning SJSU @ USC 2026-08-29T19:00Z;
+  college football had not started.
+- Completed-game scoreboard payloads again carried no
+  `competitions[].details`: both today's default NFL window and the dated
+  `?dates=20260823` window contain zero `details` arrays across all events,
+  matching the 2026-08-24 daytime finding. This strengthens the hypothesis
+  that `details` populates only while a game is live (or not at all on the
+  scoreboard endpoint), but neither case is confirmed.
+- No repository source files changed; this entry, the `competition.md` backlog
+  note, and `NEXT_SESSION_PROMPT.md` are the only edits. No success commit is
+  created for this unit.
+
+Decision log: keep the verification strictly observational — direct reads of
+the two documented football scoreboards only; no new endpoint, provider, or
+fetch path was inspected beyond them. Retry windows: the next realistic
+opportunities are CFB week-0 games from Sat Aug 29 onward and NFL week 1 from
+Thu Sep 10 (2026 season), during actual game minutes.
+
+Known risks: even during a live game, `competitions[].details` may never
+appear on the scoreboard payload, which would close the scoring-plays idea
+under the current single-endpoint boundary rather than open adapter work. The
+unrelated absence of `MARKETPLACE_SUBMISSION.md` remains untouched and
+unstaged. No push, tag, release, or Marketplace action occurred.
+
+Next bounded unit: retry this verification during live football minutes
+(CFB from Aug 29, NFL from Sep 10), or select another owner-directed slice
+from the `competition.md` decision list. If no direction is given, do not
+infer one and stop after recording the still-pending decision.

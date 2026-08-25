@@ -123,6 +123,11 @@ evidence.
    plays/leaders (scoring plays could not be verified live on 2026-08-24 — no
    football game was in progress). Optional sections only when a provider
    supports them reliably; never fields every normalized game must carry.
+   Scoring-play live verification was attempted 2026-08-24 ~9:00 PM EDT and
+   blocked: no football game was in progress (NFL preseason concluded, CFB
+   begins Aug 29) and completed-game scoreboards again carried no
+   `competitions[].details`. Retry during CFB week 0 (from Aug 29) or NFL
+   week 1 (from Sep 10); see the roadmap blocked-handoff entry.
 8. **Broadcast and event links — closed for the current payload boundary.**
    Completed 2026-08-24: the detail view renders at most two labeled links
    (ESPN **Highlights** video page, ESPN **Preview** article) admitted from the
