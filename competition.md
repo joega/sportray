@@ -227,3 +227,18 @@ Remaining candidate slices:
   and rate limits as acceptance criteria, not documentation footnotes.
 - Do not add Marketplace, release, tag, or public-repository work to a product
   feature slice.
+
+## Owner-selected feature sprint — Level the Field
+
+On 2026-08-25 the owner reopened calendar parity and selected a five-epic
+feature catch-up sprint: a true month calendar, one-game watches, followed and
+ordered leagues, verified scoring-play/leader detail, and verified broadcast
+context. The complete implementation plan, ordering, acceptance gates, and
+risks are in `LEVEL_THE_FIELD_SPRINT.md`.
+
+The prior cache-only calendar work remains valid implementation history but no
+longer closes the product gap. The first sprint unit is C1: replace Calendar's
+five-day strip with a 42-cell month surface using existing safe caches and the
+existing selected-day fetch route, while representing unqueried dates as
+unknown rather than empty. Wider month hydration is a separate provider-gated
+unit so it cannot destabilize live polling or silently exceed response bounds.

@@ -4457,3 +4457,46 @@ state `in`. Inspect bounded shapes for `competitions[].details`, weather, and
 populated leaders. If no game is live, record the missed window and stop; do
 not add provider fields or change catalogs, settings, polling, notifications,
 fixtures, QML, normalized fields, fallback behavior, or release state.
+
+## Latest handoff — 2026-08-25 Level the Field sprint planned
+
+Status: planning complete; implementation not started. The owner selected the
+named **Level the Field** feature catch-up sprint and directed the coding team
+to ship five competitor-parity outcomes: a real month calendar, expiring
+one-game watches, followed and ordered leagues, verified scoring-play/leader
+detail, and verified broadcast context. `LEVEL_THE_FIELD_SPRINT.md` is the
+detailed sprint source of truth with product contracts, architecture,
+dependencies, bounded work units, acceptance gates, regression matrix, risks,
+and definition of done.
+
+Decision log: reopen P1-6 calendar parity. The shipped five-day cache strip is
+valid historical work but does not satisfy the owner's product expectation of
+a calendar. Calendar must become a conventional 42-cell month surface with
+honest unknown/loading/partial/empty states and a selected-day agenda. Wider
+schedule hydration will be a separate low-frequency fetch concern gated by
+provider-volume evidence; it must not crawl live polling or raise the 2 MiB/
+256-event limits merely to fit a month. Watches, followed leagues, and their
+ordering will share one deliberate schema-2 migration that preserves schema-1
+preferences and future-schema opacity. Scoring plays/leaders remain live-data
+gated and do not block the calendar. Broadcast labels are useful without a
+stream URL and must not imply regional availability.
+
+Current verified source baseline remains `ccfc099` with 231 deterministic
+tests and the previously passing summon-helper, diff, actual-Omarchy validator,
+and real-import-path QML-lint gates. This planning unit changed no runtime,
+provider, model, QML, settings, notification, endpoint, fallback, catalog, or
+release behavior, so runtime checks were not required. Installed Omarchy
+`4.0.0-1` and Quickshell `0.3.0` remain the current host boundary; no new host
+claim was introduced. Existing unresolved live-football evidence, MLB team-ID
+drift, and fixture-only live fallback risks remain recorded and outside C1.
+
+Next bounded unit: implement `LEVEL_THE_FIELD_SPRINT.md` unit **C1 — Month
+grid vertical slice** only. Extend the pure calendar projection with 42-cell
+month geometry and explicit known-versus-unknown state; replace the five-day
+Calendar strip with a keyboard- and accessibility-reachable month surface;
+reuse existing cached summaries, selected-date fetching, selected-day rows,
+filters, and detail routing. Add no schedule crawler, new endpoint, settings
+schema, watched game, followed league, scoring-play/leader, broadcast,
+fallback, catalog, packaging, release, or Marketplace change. Pass the complete
+deterministic and actual-Omarchy gates, update sprint/roadmap evidence, refresh
+the next prompt, and commit the source unit atomically.
