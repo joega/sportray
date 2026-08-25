@@ -14,6 +14,12 @@ var MAX_STAT_KEY_LENGTH = 32;
 var MAX_STAT_LABEL_LENGTH = 24;
 var MAX_SITUATION_COUNT = 9;
 var MAX_SITUATION_TEXT_LENGTH = 160;
+var MAX_ODDS_DETAILS_LENGTH = 48;
+var MAX_ODDS_PROVIDER_LENGTH = 32;
+var MAX_ODDS_TOTAL = 999;
+var MAX_ODDS_DETAILS_LENGTH = 48;
+var MAX_ODDS_PROVIDER_LENGTH = 32;
+var MAX_ODDS_VALUE = 999;
 var MAX_DETAIL_LINKS = 2;
 var MAX_LINK_URL_LENGTH = 2048;
 var LINK_LABELS = {highlights: "Highlights", preview: "Preview"};
@@ -189,6 +195,26 @@ function normalizeSituation(game) {
   };
 }
 
+// Odds projection: a bounded, attributed pre-game line (spread/total text,
+// optional over/under, bookmaker label) for sports whose provider supplies
+// it on the already fetched scoreboard snapshot.
+function normalizeOdds(game) {
+  if (!isRecord(game) || !isRecord(game.odds)) return null;
+
+  var details = cleanString(game.odds.details);
+  if (!details || details.length > MAX_ODDS_DETAILS_LENGTH) return null;
+  var provider = cleanString(game.odds.provider);
+  if (!provider || provider.length > MAX_ODDS_PROVIDER_LENGTH) return null;
+  var overUnder = null;
+  if (game.odds.overUnder !== null && game.odds.overUnder !== undefined) {
+    if (typeof game.odds.overUnder !== "number" || !isFinite(game.odds.overUnder)
+        || Math.abs(game.odds.overUnder) > MAX_ODDS_TOTAL) return null;
+    overUnder = game.odds.overUnder;
+  }
+
+  return {details: details, overUnder: overUnder, provider: provider};
+}
+
 function normalizeDetailLinks(game) {
   var input = isRecord(game) && Array.isArray(game.links) ? game.links : [];
   var seenKeys = {};
@@ -233,6 +259,7 @@ function emptyDetail(errorCode) {
     lines: null,
     stats: null,
     situation: null,
+    odds: null,
     links: [],
     source: {
       provider: null,
@@ -286,6 +313,7 @@ function normalizeDetail(game, source) {
     lines: normalizeLines(game),
     stats: normalizeStats(game),
     situation: normalizeSituation(game),
+    odds: normalizeOdds(game),
     links: normalizeDetailLinks(game),
     source: normalizeSource(source, game),
     isValid: true,
@@ -345,6 +373,9 @@ if (typeof module !== "undefined" && module.exports) {
     MAX_STAT_LABEL_LENGTH: MAX_STAT_LABEL_LENGTH,
     MAX_SITUATION_COUNT: MAX_SITUATION_COUNT,
     MAX_SITUATION_TEXT_LENGTH: MAX_SITUATION_TEXT_LENGTH,
+    MAX_ODDS_DETAILS_LENGTH: MAX_ODDS_DETAILS_LENGTH,
+    MAX_ODDS_PROVIDER_LENGTH: MAX_ODDS_PROVIDER_LENGTH,
+    MAX_ODDS_TOTAL: MAX_ODDS_TOTAL,
     MAX_DETAIL_LINKS: MAX_DETAIL_LINKS,
     MAX_LINK_URL_LENGTH: MAX_LINK_URL_LENGTH,
     normalizeDetailLinks: normalizeDetailLinks,
@@ -356,6 +387,7 @@ if (typeof module !== "undefined" && module.exports) {
     normalizeStatSide: normalizeStatSide,
     normalizeStats: normalizeStats,
     normalizeSituation: normalizeSituation,
+    normalizeOdds: normalizeOdds,
     normalizeDetail: normalizeDetail,
     normalizeDetails: normalizeDetails
   };

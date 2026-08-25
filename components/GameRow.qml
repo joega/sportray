@@ -38,11 +38,15 @@ Item {
   readonly property string homeLabel: Formatters.teamLabel(root.game.homeTeam)
   readonly property string awayScoreLabel: Formatters.formatScoreboardTeamScore(root.game, "away")
   readonly property string homeScoreLabel: Formatters.formatScoreboardTeamScore(root.game, "home")
+  readonly property string oddsSuffix: root.game
+    && root.game.status === "scheduled" && root.game.odds
+    && typeof root.game.odds.details === "string" && root.game.odds.details !== ""
+    ? " · " + root.game.odds.details : ""
   readonly property string detailLabel: Formatters.formatGameStateLabel(root.game, {
     includeStartTime: true,
     startTimeText: root.resolvedStartTimeText(root.game.startTime),
     stale: root.stale
-  })
+  }) + root.oddsSuffix
   readonly property bool awayIsFavorite: Boolean(root.game.presentation
     && root.game.presentation.awayIsFavorite)
   readonly property bool homeIsFavorite: Boolean(root.game.presentation

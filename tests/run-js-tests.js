@@ -1845,9 +1845,79 @@ test("optional live situation projects bounded at-bat state without provider fie
   assert.match(view, /root\.situationAccessibleBases\(\)/);
 });
 
+test("optional betting odds project bounded attributed lines without provider fields", () => {
+  const result = espn.parseGameDetailResponse(readEspnFixture("game-detail-odds"), "nfl");
+  assert.deepEqual(result.errors, []);
+
+  const details = Object.fromEntries(result.details.map((detail) => [detail.providerGameId, detail]));
+  assert.deepEqual(details["odds-scheduled"].odds, {
+    details: "SUM -3.5",
+    overUnder: 48.5,
+    provider: "DraftKings"
+  });
+  assert.equal(details["odds-no-provider"].odds, null);
+  assert.deepEqual(details["odds-malformed-ou"].odds, {
+    details: "HAR -2",
+    overUnder: null,
+    provider: "Example Book"
+  });
+  assert.equal(details["odds-missing"].odds, null);
+  assert.equal(details["odds-long-details"].odds.details.length,
+    gameDetails.MAX_ODDS_DETAILS_LENGTH);
+
+  assert.equal(gameDetails.MAX_ODDS_DETAILS_LENGTH, 48);
+  assert.equal(gameDetails.MAX_ODDS_PROVIDER_LENGTH, 32);
+  assert.equal(gameDetails.MAX_ODDS_TOTAL, 999);
+  assert.equal(gameDetails.normalizeOdds(null), null);
+  assert.equal(gameDetails.normalizeOdds({odds: {details: "SUM -3.5"}}), null);
+  assert.equal(gameDetails.normalizeOdds({odds: {
+    details: "SUM -3.5", provider: "Book"
+  }}).overUnder, null);
+  assert.equal(gameDetails.normalizeOdds({odds: {
+    details: "SUM -3.5", provider: "Book", overUnder: "high"
+  }}), null);
+  assert.equal(gameDetails.normalizeOdds({odds: {
+    details: "SUM -3.5", provider: "Book", overUnder: 1000
+  }}), null);
+  assert.equal(gameDetails.normalizeOdds({odds: {
+    details: "x".repeat(gameDetails.MAX_ODDS_DETAILS_LENGTH + 1), provider: "Book"
+  }}), null);
+  assert.equal(gameDetails.normalizeOdds({odds: {
+    details: "SUM -3.5", provider: "p".repeat(gameDetails.MAX_ODDS_PROVIDER_LENGTH + 1)
+  }}), null);
+
+  const oddsJson = JSON.stringify(details["odds-scheduled"]);
+  assert.equal(oddsJson.includes("moneyline"), false);
+  assert.equal(oddsJson.includes("pointSpread"), false);
+  assert.equal(oddsJson.includes("awayTeamOdds"), false);
+  assert.equal(oddsJson.includes("disclaimer"), false);
+  assert.equal(oddsJson.includes("sportsbook"), false);
+
+  const runtime = espn.parseScoreboardResponse(readEspnFixture("game-detail-odds"), "nfl");
+  assert.deepEqual(runtime.errors, []);
+  const runtimeById = Object.fromEntries(runtime.games.map((game) => [game.providerGameId, game]));
+  assert.deepEqual(runtimeById["odds-scheduled"].odds, {
+    details: "SUM -3.5",
+    overUnder: 48.5,
+    provider: "DraftKings"
+  });
+  assert.equal(Object.prototype.hasOwnProperty.call(runtimeById["odds-missing"], "odds"), false);
+
+  const view = readSource("components/GameDetailView.qml");
+  assert.match(view, /readonly property var oddsData: root\.detail\.odds/);
+  assert.match(view, /text: "ODDS"/);
+  assert.match(view, /visible: root\.oddsData !== null/);
+  assert.match(view, /function oddsLabel\(\)/);
+
+  const row = readSource("components/GameRow.qml");
+  assert.match(row, /readonly property string oddsSuffix: root\.game/);
+  assert.match(row, /root\.game\.status === "scheduled" && root\.game\.odds/);
+  assert.match(row, /\) \+ root\.oddsSuffix/);
+});
+
 test("runtime scoreboard parsing carries the same bounded detail records as the detail path", () => {
   ["game-detail-outcome", "game-detail-lines", "game-detail-stats",
-    "game-detail-situation"].forEach((name) => {
+    "game-detail-situation", "game-detail-odds"].forEach((name) => {
     const payload = readEspnFixture(name);
     const runtime = espn.parseScoreboardResponse(payload, "nfl");
     assert.deepEqual(runtime.errors, [], name);
@@ -1867,7 +1937,7 @@ test("runtime scoreboard parsing carries the same bounded detail records as the 
     code: "invalid-event"
   }]);
   const byId = Object.fromEntries(mixed.games.map((game) => [game.providerGameId, game]));
-  ["lines", "stats", "situation", "links"].forEach((key) =>
+  ["lines", "stats", "situation", "odds", "links"].forEach((key) =>
     ["detail-scheduled", "detail-missing"].forEach((id) =>
       assert.equal(Object.prototype.hasOwnProperty.call(byId[id], key), false,
         id + ":" + key)));

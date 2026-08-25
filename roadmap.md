@@ -3896,3 +3896,99 @@ Next bounded unit: retry the blocked scoring-play live verification
 Sat Aug 29, NFL week 1 from Thu Sep 10 — strictly observationally as before.
 Outside live minutes, or if the owner directs otherwise, select a slice from
 the `competition.md` decision list instead; do not infer direction.
+
+## Latest handoff — 2026-08-25 betting-odds context projection
+
+Status: complete. The owner deferred the scoring-play live verification
+(outside football minutes) and directed this slice from the decision list:
+surface verified provider-supplied context the scoreboard payloads already
+carry instead of discarding it. One bounded provider-neutral `odds` record is
+now projected from the already fetched ESPN scoreboard snapshot onto the
+score card and the game-details drill-down, with no second endpoint.
+
+Verified provider fields (observed directly on 2026-08-25 before any edit):
+
+- `competitions[].odds[0]` exists on `pre` games across CFB and NFL (and the
+  live Aug 29 MLS slate at runtime): `details` (for example `USC -38.5`,
+  `CLB -110`), numeric `overUnder`, and `provider.name` (DraftKings). The
+  deep `moneyline`/`pointSpread`/`total` objects contain draftkings.com
+  bet-slip deep links and are intentionally not projected; no sportsbook
+  link or disclaimer text enters the projection, and the bookmaker name is
+  kept as attribution.
+- `competitions[].weather` was absent from every payload inspected today
+  (CFB, NFL now, NFL week-1 dated, MLB, EPL). Weather therefore stays
+  unverified and out of the projection; retry the observation during the
+  live-football window when NFL games approach kickoff.
+- `competitions[].leaders` exists but carried zero athlete entries in every
+  inspected payload (MLB `MLBRating` groups, NFL `passingYards` groups on
+  completed games), so leaders remain unverified and open.
+
+Evidence:
+
+- `model/GameDetailModel.js` adds an optional `odds` record —
+  `{details: string ≤ 48, overUnder: finite number with |value| ≤ 999 or
+  null, provider: string ≤ 32}` — failing closed to `odds: null` for missing
+  details/provider, over-length text, or non-finite/over-bound over-under.
+  `emptyDetail` carries `odds: null`.
+- `providers/EspnProvider.js` extracts the first odds entry per competition
+  inside `parseScoreboardResponse` only (`competitionOdds`,
+  `detailOddsByGameId`), truncating over-length details/provider at the model
+  bounds and requiring the bookmaker attribution, then attaches the record to
+  the enriched normalized game like the existing lines/stats/situation
+  records. `parseGameDetailResponse` re-admits it through
+  `GameDetailModel.normalizeOdds`; sparse games gain no `odds` key.
+- `components/GameDetailView.qml` renders a bounded `ODDS` section
+  (`details · O/U <total> — <provider>`) that hides when the projection is
+  null, following the situation-section precedent. `components/GameRow.qml`
+  appends the bounded `details` text to scheduled score cards' status line
+  (for example `SCHEDULED · Aug 29, 7:30 PM · CLB -110`); no row geometry,
+  routing, source-action, or accessibility behavior changed beyond the label
+  text.
+- `fixtures/espn/raw/game-detail-odds.json` covers the attributed projection
+  with raw junk fields present, missing-provider rejection, malformed
+  over-under demotion to null, over-length truncation, and missing odds. The
+  new deterministic test asserts the projections, every bound, raw-field
+  exclusion (`moneyline`, `pointSpread`, `awayTeamOdds`, `disclaimer`,
+  `sportsbook`), runtime attachment, and the QML view/row bindings; the
+  runtime/fixture parity test now includes the odds fixture and sparse games
+  are pinned to gain no `odds` key. The suite passes with 224 tests.
+- `./tests/run-js-tests.sh` (224 tests), `./tests/test-summon-helper.sh`,
+  `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass with the established standalone warnings.
+- Runtime verification on actual Omarchy 4.0.0-1 with Quickshell 0.3.0:
+  `omarchy-restart-shell` loaded the linked checkout into exactly one
+  instance (PID 1023762); `shell ping` returned `ok`. Through the real
+  keyboard path, the Aug 29 slate rendered attributed odds on the scheduled
+  score cards (`CLB -110`, `CHI +120`, `LAFC +100`, `MIA -250`,
+  `ATL +130`) and the `usa.1:761758` drill-down rendered the new ODDS
+  section as `CLB -110 · O/U 2.5 — DraftKings`. Escape, `T` (today), and
+  panel close completed the route. The fresh log contains normal provider
+  fetch activity, zero binding-loop warnings, and no Sportray error or
+  exception; only the pre-existing unrelated portal registration warning
+  remains. The owner's league/favorite/notification configuration was not
+  changed during verification.
+
+Decision log: odds are a context projection from the already fetched
+snapshot — never a field every normalized game must carry, never a betting
+link, and never unattributed. The bookmaker name is required precisely so
+the line is attributable; deep sportsbook links stay out because their hosts
+are unreviewed and bet-slip activation is not Sportray's surface. Weather
+and leaders remain unverified observations for a future live-minutes unit,
+not assumptions.
+
+Known risks: ESPN is an undocumented API and odds presence/shape varies by
+league and state (post and sparse slates carry none, which hides the
+section); odds can go stale between polling refreshes like any snapshot
+field; the card line is elided at narrow widths by the existing bounded
+footer. The unrelated absence of `MARKETPLACE_SUBMISSION.md` remains
+untouched and unstaged. No push, tag, release, or Marketplace action
+occurred.
+
+Next bounded unit: during the live-football window (CFB week 0 from Sat
+Aug 29; NFL week 1 from Thu Sep 10), perform one combined observational
+verification: `competitions[].details` (scoring plays) and
+`competitions[].weather` presence/shape, plus `leaders` if any payload
+carries athlete entries. Outside live minutes, or on owner direction,
+select another `competition.md` decision-list slice instead; do not infer
+direction.

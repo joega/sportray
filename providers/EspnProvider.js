@@ -332,6 +332,7 @@ function parseScoreboardResponse(payload, leagueId) {
   var lines = detailLinesByGameId(payload);
   var stats = detailStatsByGameId(payload);
   var situations = detailSituationByGameId(payload);
+  var odds = detailOddsByGameId(payload);
 
   for (var i = 0; i < payload.events.length; i++) {
     var game = parseGame(payload.events[i], metadata.id);
@@ -342,9 +343,11 @@ function parseScoreboardResponse(payload, leagueId) {
     var eventLines = lines[game.providerGameId];
     var eventStats = stats[game.providerGameId];
     var eventSituation = situations[game.providerGameId];
+    var eventOdds = odds[game.providerGameId];
     if (eventLines) game.lines = eventLines;
     if (eventStats) game.stats = eventStats;
     if (eventSituation) game.situation = eventSituation;
+    if (eventOdds) game.odds = eventOdds;
     var links = eventLinks(payload.events[i]);
     if (links.length > 0) game.links = links;
     result.games.push(game);
@@ -413,6 +416,46 @@ function detailLinesByGameId(payload) {
 
 var MAX_SITUATION_TEXT_LENGTH = GameDetailModel
   ? GameDetailModel.MAX_SITUATION_TEXT_LENGTH : 160;
+
+var MAX_ODDS_DETAILS_LENGTH = GameDetailModel
+  ? GameDetailModel.MAX_ODDS_DETAILS_LENGTH : 48;
+var MAX_ODDS_PROVIDER_LENGTH = GameDetailModel
+  ? GameDetailModel.MAX_ODDS_PROVIDER_LENGTH : 32;
+
+function competitionOdds(competition) {
+  if (!isRecord(competition) || !Array.isArray(competition.odds)) return null;
+  var raw = isRecord(competition.odds[0]) ? competition.odds[0] : null;
+  if (!raw) return null;
+
+  var details = cleanString(raw.details);
+  if (!details) return null;
+  if (details.length > MAX_ODDS_DETAILS_LENGTH)
+    details = details.slice(0, MAX_ODDS_DETAILS_LENGTH);
+  var provider = isRecord(raw.provider) ? cleanString(raw.provider.name) : null;
+  if (!provider) return null;
+  if (provider.length > MAX_ODDS_PROVIDER_LENGTH)
+    provider = provider.slice(0, MAX_ODDS_PROVIDER_LENGTH);
+  var overUnder = raw.overUnder;
+  if (typeof overUnder !== "number" || !isFinite(overUnder)) overUnder = null;
+  return {details: details, overUnder: overUnder, provider: provider};
+}
+
+function detailOddsByGameId(payload) {
+  var result = {};
+  if (!isRecord(payload) || !Array.isArray(payload.events)) return result;
+
+  for (var i = 0; i < payload.events.length; i++) {
+    var event = payload.events[i];
+    var competition = findCompetition(event);
+    var odds = competitionOdds(competition);
+    if (!odds) continue;
+
+    var providerGameId = providerId(event.id || (competition && competition.id));
+    if (!providerGameId) continue;
+    result[providerGameId] = odds;
+  }
+  return result;
+}
 
 function competitionSituation(competition) {
   if (!isRecord(competition) || !isRecord(competition.situation)) return null;

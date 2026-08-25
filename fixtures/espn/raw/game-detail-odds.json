@@ -1,0 +1,240 @@
+{
+ "events": [
+  {
+   "id": "odds-scheduled",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Sat, Aug 29"
+      }
+     },
+     "venue": {
+      "fullName": "Summit Stadium"
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "team": {
+        "id": "2",
+        "displayName": "Harbor Herons",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "team": {
+        "id": "17",
+        "displayName": "Summit Stags",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "odds": [
+      {
+       "details": "SUM -3.5",
+       "overUnder": 48.5,
+       "spread": -3.5,
+       "provider": {
+        "id": "40",
+        "name": "DraftKings",
+        "priority": 1
+       },
+       "moneyline": {
+        "displayName": "Moneyline",
+        "home": {
+         "close": {
+          "odds": "-185",
+          "link": {
+           "href": "https://sportsbook.example.com/betslip?x=1"
+          }
+         }
+        }
+       },
+       "pointSpread": {
+        "displayName": "Spread"
+       },
+       "total": {
+        "displayName": "Total"
+       },
+       "awayTeamOdds": {
+        "favorite": false,
+        "underdog": true
+       },
+       "homeTeamOdds": {
+        "favorite": true,
+        "underdog": false
+       },
+       "footer": {
+        "disclaimer": "Example disclaimer text"
+       },
+       "link": {
+        "href": "https://sportsbook.example.com/gateway?x=1"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "odds-no-provider",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Sat, Aug 29"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "odds": [
+      {
+       "details": "SUM -7",
+       "overUnder": 51.5
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "odds-malformed-ou",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Sat, Aug 29"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "odds": [
+      {
+       "details": "HAR -2",
+       "overUnder": "high",
+       "provider": {
+        "name": "Example Book"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "odds-long-details",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Sat, Aug 29"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ],
+     "odds": [
+      {
+       "details": "SUM -3.5 with a very long annotated line description that keeps going and going",
+       "provider": {
+        "name": "Example Book"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "odds-missing",
+   "competitions": [
+    {
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false,
+       "detail": "Sat, Aug 29"
+      }
+     },
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "away",
+       "team": {
+        "id": "2",
+        "abbreviation": "HAR"
+       }
+      },
+      {
+       "id": "17",
+       "homeAway": "home",
+       "team": {
+        "id": "17",
+        "abbreviation": "SUM"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -80,6 +80,7 @@ Item {
   readonly property var linesData: root.detail.lines
   readonly property var statsData: root.detail.stats
   readonly property var situationData: root.detail.situation
+  readonly property var oddsData: root.detail.odds
   readonly property var extraLinks: root.detail.links || []
   readonly property int linkCursorOffset: 1 + (root.sourceAvailable ? 1 : 0)
   readonly property int maxCursorIndex: root.linkCursorOffset + root.extraLinks.length - 1
@@ -128,6 +129,13 @@ Item {
     if (root.situationData.onSecond) names.push("second")
     if (root.situationData.onThird) names.push("third")
     return names.length > 0 ? "runner on " + names.join(" and ") : "bases empty"
+  }
+
+  function oddsLabel() {
+    if (!root.oddsData) return ""
+    var label = root.oddsData.details
+    if (root.oddsData.overUnder !== null) label += " · O/U " + root.oddsData.overUnder
+    return label + " — " + root.oddsData.provider
   }
 
   function moveCursor(delta) {
@@ -644,6 +652,31 @@ Item {
                 horizontalAlignment: Text.AlignRight
               }
             }
+          }
+        }
+
+        Column {
+          width: parent.width
+          visible: root.oddsData !== null
+          spacing: Style.spacing.xxs
+
+          Text {
+            width: parent.width
+            text: "ODDS"
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+
+          Text {
+            width: parent.width
+            text: root.oddsLabel()
+            color: Color.popups.text
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+            elide: Text.ElideRight
           }
         }
 

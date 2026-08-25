@@ -140,9 +140,15 @@ evidence.
    streams stay closed because ESPN and NHL payloads carry station names only,
    never stream URLs; any stream/VOD surface would require a verified new
    source.
-9. **Venue and competition context — open.** Venue-local time, circuit
-   weather/maps, and competition metadata after generic foundations remain
-   stable. Venue text itself is already shown on cards and in detail.
+9. **Venue and competition context — partially closed.** Betting-odds
+   context closed 2026-08-25: the bookmaker line (`details` spread text,
+   over/under, attributed provider such as DraftKings) projects from the
+   already fetched ESPN scoreboard snapshot onto scheduled score cards and
+   the game-details drill-down; sportsbook deep links and disclaimer text
+   stay out. Still open: weather (absent from every payload inspected
+   2026-08-25; retry during the live-football window), leaders (payload
+   groups carried zero athlete entries), venue-local time, and
+   circuit/competition metadata.
 
 ## Product principles taken from the scan
 

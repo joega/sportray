@@ -35,6 +35,10 @@ At a glance:
 - Loaded game rows open a local game-details drill-down from whole-row
   activation, and the labeled source action opens the ESPN gamecast or
   NHL.com gamecenter page
+- Upcoming ESPN-backed games show the bookmaker line (spread details and
+  over/under, attributed to the provider such as DraftKings) on the score
+  card and in the game-details drill-down, projected from the same fetched
+  scoreboard snapshot with no extra request
 - Game cards show the event venue and use a restrained home-team color tint,
   with neutral fallbacks when either field is unavailable
 - Favorite-aware bar priority and pinned favorite games in league views
