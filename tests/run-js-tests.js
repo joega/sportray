@@ -1373,6 +1373,24 @@ test("formatters keep presentation out of QML", () => {
   assert.equal(formatters.formatStartTime("bad-time"), "Time unavailable");
 });
 
+test("scoring period units use sport-aware nouns per league", () => {
+  assert.equal(formatters.scoringPeriodUnit("mlb"), "Inning");
+  assert.equal(formatters.scoringPeriodUnit("nhl"), "Period");
+  assert.equal(formatters.scoringPeriodUnit("nfl"), "Quarter");
+  assert.equal(formatters.scoringPeriodUnit("college-football"), "Quarter");
+  assert.equal(formatters.scoringPeriodUnit("nba"), "Quarter");
+  assert.equal(formatters.scoringPeriodUnit("mens-college-basketball"), "Quarter");
+  assert.equal(formatters.scoringPeriodUnit("eng.1"), "Half");
+  assert.equal(formatters.scoringPeriodUnit("usa.1"), "Half");
+  assert.equal(formatters.scoringPeriodUnit("unknown-league"), "Period");
+  assert.equal(formatters.scoringPeriodUnit(null), "Period");
+  assert.equal(formatters.scoringPeriodUnit(42), "Period");
+
+  const view = readSource("components/GameDetailView.qml");
+  assert.match(view, /Formatters\.scoringPeriodUnit\(root\.detail\.league\)\.toUpperCase\(\)/);
+  assert.equal(view.includes('"SCORING BY PERIOD"'), false);
+});
+
 test("league formatters use normalized NFL, MLB, and NBA fields", () => {
   const nflScheduled = espn.parseScoreboardResponse(readEspnFixture("nfl-scheduled"), "nfl").games[0];
   const nflLive = espn.parseScoreboardResponse(readEspnFixture("nfl-live"), "nfl").games[0];

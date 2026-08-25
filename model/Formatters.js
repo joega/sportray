@@ -47,6 +47,19 @@ function sportPeriodFallback(game) {
   }
 }
 
+function scoringPeriodUnit(league) {
+  switch (typeof league === "string" ? league.toLowerCase() : "") {
+  case "mlb": return "Inning";
+  case "nfl":
+  case "college-football":
+  case "nba":
+  case "mens-college-basketball": return "Quarter";
+  case "eng.1":
+  case "usa.1": return "Half";
+  default: return "Period";
+  }
+}
+
 function soccerFinalLabel(game) {
   if (!game || typeof game.league !== "string"
       || ["eng.1", "usa.1"].indexOf(game.league.toLowerCase()) === -1)
@@ -277,6 +290,7 @@ if (typeof module !== "undefined" && module.exports) {
     teamLabel: teamLabel,
     formatMatchup: formatMatchup,
     formatPeriodLabel: formatPeriodLabel,
+    scoringPeriodUnit: scoringPeriodUnit,
     formatScore: formatScore,
     formatPeriodClock: formatPeriodClock,
     formatStatus: formatStatus,

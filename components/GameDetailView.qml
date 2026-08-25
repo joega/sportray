@@ -502,7 +502,8 @@ Item {
 
           Text {
             width: parent.width
-            text: "SCORING BY PERIOD"
+            text: "SCORING BY "
+              + Formatters.scoringPeriodUnit(root.detail.league).toUpperCase()
             color: Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
