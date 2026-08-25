@@ -2,7 +2,7 @@
 
 Private implementation plan for `/home/joeg/Projects/sportray`.
 
-Status: **planned**
+Status: **C1 complete; remaining epics planned**
 
 Owner direction recorded: **2026-08-25**
 
@@ -269,6 +269,8 @@ terms/shape/bounds review.
 
 #### C1 — Month grid vertical slice
 
+Status: **complete — 2026-08-25**
+
 - Extend the pure calendar model with 42-cell month geometry and explicit
   known-versus-unknown summaries.
 - Replace the five-day strip in Calendar mode with a focused month component.
@@ -277,6 +279,18 @@ terms/shape/bounds review.
 - Preserve selected-day rows, filters, details, and failure states.
 - Fixture-test geometry, state distinctions, filters, routing, and bounds.
 - Runtime-test pointer, keyboard, focus, height, themes, and panel edges.
+
+Implemented evidence: CalendarModel now produces exactly 42 Monday-first
+local-date cells with adjacent-month dates, selected/today flags, bounded
+counts, favorite markers, and explicit unknown versus empty state. Cache
+entries carry complete true only when admitted from a successful zero-error
+score snapshot; absent dates remain unknown. MonthCalendar.qml replaces the
+old week strip and routes pointer, Accessible, grid keyboard, month, and Today
+actions through the existing selected-date path. The selected-day list keeps
+the existing row/detail/source vocabulary and neutral loading/error/unknown
+states. No new fetch, Process, timer, endpoint, polling, response, or cache
+owner was added. Fixture coverage and actual Omarchy verification are recorded
+in the roadmap handoff below.
 
 This is the first sprint unit and must produce a visibly genuine calendar even
 before background month hydration exists.
@@ -824,9 +838,10 @@ reconnaissance or separate test/log investigation.
 - Release metadata, asset rights, and publication remain owner-controlled
   follow-ups after the feature sprint.
 
-## First handoff
+## Current handoff
 
-Begin with **C1 — Month grid vertical slice** only. Do not add the month
-schedule fetch owner, schema 2, watched games, followed leagues, scoring plays,
-leaders, or broadcasts in that unit. The concrete prompt is maintained in
-`NEXT_SESSION_PROMPT.md`.
+C1 — Month grid vertical slice is complete. Begin with **C2 — Provider range
+reconnaissance and chunk policy** only. Do not add visible-month hydration, a
+schedule fetch owner, runtime range requests, schema 2, watched games,
+followed leagues, scoring plays, leaders, or broadcasts in that unit. The
+self-contained prompt is maintained in NEXT_SESSION_PROMPT.md.

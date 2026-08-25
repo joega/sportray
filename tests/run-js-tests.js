@@ -196,6 +196,11 @@ function readCalendarFixture() {
     path.join(root, "fixtures/calendar/calendar.json"), "utf8"));
 }
 
+function readMonthCalendarFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/calendar/month-grid.json"), "utf8"));
+}
+
 function readProviderFallbackFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/provider-fallback/chain.json"), "utf8"));
@@ -5378,6 +5383,71 @@ test("calendar selected-day rows reuse scoreboard vocabulary for one day", () =>
   assert.deepEqual(calendarModel.flattenDay("calendar", expected.dateKey), []);
 });
 
+test("calendar month geometry is exactly 42 local date cells", () => {
+  const fixture = readMonthCalendarFixture();
+  Object.values(fixture.months).forEach((month) => {
+    const keys = calendarModel.monthDateKeys(month.monthKey);
+    assert.equal(keys.length, 42);
+    assert.equal(keys[0], month.first || keys[0]);
+    assert.equal(keys[41], month.last || keys[41]);
+    assert.equal(new Set(keys).size, 42);
+  });
+  const leap = calendarModel.monthDateKeys(fixture.months.leap.monthKey);
+  assert.equal(leap.includes(fixture.months.leap.contains), true);
+  assert.deepEqual(calendarModel.monthDateKeys("not-a-month"), []);
+  assert.deepEqual(calendarModel.monthDateKeys("2026-02-30"), []);
+});
+
+test("calendar month model distinguishes complete empty, cached games, and unknown", () => {
+  const fixture = readMonthCalendarFixture();
+  const grid = calendarModel.monthGrid(fixture.windows, {
+    monthKey: "2026-08-01",
+    selectedDateKey: fixture.expected.selectedDateKey,
+    todayDateKey: "2026-08-01",
+    enabledLeagues: ["nhl"],
+    favoriteTeamIds: [],
+    matcher: presentation.isFavoriteGame
+  });
+  assert.equal(grid.cells.length, 42);
+  const empty = grid.cells.find((cell) => cell.dateKey === fixture.expected.emptyDateKey);
+  const game = grid.cells.find((cell) => cell.dateKey === fixture.expected.gameDateKey);
+  const unknown = grid.cells.find((cell) => cell.dateKey === fixture.expected.unknownDateKey);
+  assert.equal(empty.state, "empty");
+  assert.equal(empty.known, true);
+  assert.equal(game.state, "known");
+  assert.equal(game.gameCount, 1);
+  assert.equal(unknown.state, "unknown");
+  assert.equal(unknown.known, false);
+  assert.equal(unknown.gameCount, 0);
+  assert.equal(grid.cells.find((cell) => cell.isToday).dateKey, "2026-08-01");
+  assert.equal(grid.cells.find((cell) => cell.isSelected).dateKey, "2026-08-02");
+  assert.equal(calendarModel.flattenDay(grid, "2026-08-03", {showUnknown: true})[1].text,
+    "Games not checked");
+  assert.equal(calendarModel.flattenDay(grid, "2026-08-03",
+    {showUnknown: true, loading: true})[1].kind, "loading");
+});
+
+test("calendar month model preserves filters, bounds, rollover, and local DST dates", () => {
+  const fixture = readMonthCalendarFixture();
+  const filtered = calendarModel.monthGrid(fixture.windows, {
+    monthKey: "2026-08-01",
+    selectedDateKey: "2026-08-02",
+    enabledLeagues: ["nhl"],
+    favoriteTeamIds: ["nhl:6"],
+    favoritesOnly: true,
+    matcher: presentation.isFavoriteGame
+  });
+  assert.equal(filtered.cells.find((cell) => cell.dateKey === "2026-08-02").gameCount, 1);
+  assert.equal(calendarModel.addMonths("2026-12-01", 1), "2027-01-01");
+  assert.equal(calendarModel.addMonths("2027-01-01", -1), "2026-12-01");
+  assert.equal(calendarModel.addMonths("not-a-date", 1), "");
+  const dstStart = dateModel.localDateKey(new Date("2026-03-08T06:59:00.000Z"));
+  const dstEnd = dateModel.localDateKey(new Date("2026-11-01T05:59:00.000Z"));
+  assert.equal(dateModel.isDateKey(dstStart), true);
+  assert.equal(dateModel.isDateKey(dstEnd), true);
+  assert.equal(calendarModel.MAX_MONTH_CELLS, 42);
+});
+
 test("calendar projection adds no new fetch ownership or provider parsing", () => {
   const fetchService = readSource("services/FetchService.qml");
   const leagueFetch = readSource("services/LeagueFetch.qml");
@@ -5397,7 +5467,7 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
 
   // Panel mounts it behind a minimal entry point without touching the
   // ambient bar state or notification graph.
-  assert.equal(panel.includes("readonly property var calendarDaySummaries: CalendarModel.daySummaries("), true);
+  assert.equal(panel.includes("readonly property var calendarDaySummaries: root.calendarState.cells"), true);
   assert.equal(panel.includes("readonly property var calendarDayRows: CalendarModel.flattenDay("), true);
   assert.equal(panel.includes("root.calendarOpen ? root.calendarDayRows : root.resultRows"), true);
   assert.equal(panel.includes("root.fetchService ? root.fetchService.calendarStates : []"), true);
@@ -5405,10 +5475,15 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.equal(panel.includes('root.toggleCalendar()'), true);
   assert.equal(panel.includes('root.toggleCalendarFilter()'), true);
 
-  // The week strip replaces the shared date chrome while the calendar route
-  // is open, and arrow-left/right moves the selected cached day.
-  assert.equal(panel.includes("CalendarWeekStrip {"), true);
-  assert.equal(panel.includes("root.calendarOpen && dx !== 0) root.selectRelativeDate(dx)"), true);
+  // The month grid replaces the shared date chrome while the calendar route
+  // is open, and the grid owns arrow movement and activation.
+  assert.equal(panel.includes("MonthCalendar {"), true);
+  assert.equal(panel.includes("else if (root.calendarOpen) monthCalendar.moveFocus(dx, dy)"), true);
+  assert.equal(panel.includes("else if (root.calendarOpen) monthCalendar.activateFocused()"), true);
+  assert.equal(readSource("components/MonthCalendar.qml").includes("new Date"), false);
+  assert.equal(readSource("components/MonthCalendar.qml").includes("Process"), false);
+  assert.equal(readSource("components/MonthCalendar.qml").includes("JSON.parse"), false);
+  assert.equal(fs.existsSync(path.join(root, "components/CalendarWeekStrip.qml")), false);
 });
 
 test("provider fallback retains a healthy primary for its league chain", () => {

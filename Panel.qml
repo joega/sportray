@@ -39,6 +39,7 @@ Panel {
   property bool standingsOpen: false
   property bool calendarOpen: false
   property bool calendarFavoritesOnly: false
+  property string calendarMonthKey: ""
   property bool detailOpen: false
   property var detailGame: null
   property string utilityReturnDestination: "following"
@@ -120,13 +121,20 @@ Panel {
     root.standingsState, root.favoriteTeamIds, root.standingsRevision)
   // Calendar projects the already-fetched bounded date caches only; it never
   // requests new data and owns no polling.
-  readonly property var calendarState: CalendarModel.compose(
+  readonly property var calendarState: CalendarModel.monthGrid(
     root.fetchService ? root.fetchService.calendarStates : [], {
       enabledLeagues: root.enabledLeagues,
       favoriteTeamIds: root.favoriteTeamIds,
-      centerDateKey: root.selectedDateKey,
-      halfWidth: CalendarModel.DEFAULT_HALF_WIDTH_DAYS,
+      monthKey: root.calendarMonthKey || CalendarModel.monthKey(root.selectedDateKey),
+      selectedDateKey: root.selectedDateKey,
+      todayDateKey: root.todayDateKey,
       favoritesOnly: root.calendarFavoritesOnly,
+      selectedLoading: root.fetchService && root.fetchService.loading
+        && !root.fetchService.hasData,
+      selectedUnavailable: root.fetchService && root.fetchService.errorCode !== ""
+        && !root.fetchService.hasData,
+      selectedErrorCode: root.fetchService ? root.fetchService.errorCode : "",
+      selectedErrorSummary: root.fetchService ? root.fetchService.errorSummary : "",
       orderer: FavoritePresentation.orderGames,
       matcher: FavoritePresentation.isFavoriteGame,
       annotate: function(game, leagueMeta) {
@@ -135,10 +143,16 @@ Panel {
       },
       revision: root.presentationRevision
     })
-  readonly property var calendarDaySummaries: CalendarModel.daySummaries(
-    root.calendarState, {todayDateKey: root.todayDateKey})
+  readonly property var calendarDaySummaries: root.calendarState.cells || []
   readonly property var calendarDayRows: CalendarModel.flattenDay(
-    root.calendarState, root.selectedDateKey)
+    root.calendarState, root.selectedDateKey, {
+      showUnknown: true,
+      loading: root.fetchService && root.fetchService.loading && !root.fetchService.hasData,
+      unavailable: root.fetchService && root.fetchService.errorCode !== ""
+        && !root.fetchService.hasData,
+      errorCode: root.fetchService ? root.fetchService.errorCode : "",
+      errorSummary: root.fetchService ? root.fetchService.errorSummary : ""
+    })
   readonly property var displayRows: root.standingsOpen
     ? root.standingsRows : root.calendarOpen ? root.calendarDayRows : root.resultRows
   readonly property var orderedGames: scoreboard.games
@@ -201,6 +215,7 @@ Panel {
   }
 
   function openCalendar() {
+    root.calendarMonthKey = CalendarModel.monthKey(root.selectedDateKey)
     root.calendarOpen = true
     root.standingsOpen = false
     root.selectedRowIndex = -1
@@ -229,6 +244,18 @@ Panel {
     root.calendarFavoritesOnly = !root.calendarFavoritesOnly
     root.selectedRowIndex = -1
     root.selectedRowId = ""
+    root.recalculatePanelHeight()
+  }
+
+  function changeCalendarMonth(delta) {
+    if (!root.calendarOpen) return
+    var next = CalendarModel.addMonths(root.calendarMonthKey
+      || CalendarModel.monthKey(root.selectedDateKey), delta)
+    if (!next) return
+    root.calendarMonthKey = next
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    root.deferPanelCallback(function() { monthCalendar.focusSelected() })
     root.recalculatePanelHeight()
   }
 
@@ -349,6 +376,7 @@ Panel {
 
   function selectDate(dateKey) {
     if (!DateModel.isDateKey(dateKey) || dateKey === root.selectedDateKey) return
+    if (root.calendarOpen) root.calendarMonthKey = CalendarModel.monthKey(dateKey)
     root.queuePanelHeightRecalculation()
     root.setSelectedDate(dateKey)
     root.selectedRowIndex = -1
@@ -846,7 +874,7 @@ Panel {
       onMoveRequested: function(dx, dy) {
         if (root.detailOpen) root.moveDetailCursor(dy !== 0 ? dy : dx)
         else if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
-        else if (root.calendarOpen && dx !== 0) root.selectRelativeDate(dx)
+        else if (root.calendarOpen) monthCalendar.moveFocus(dx, dy)
         else if (dx !== 0) {
           root.tabStripFocused = true
           root.moveTabCursor(dx)
@@ -856,6 +884,7 @@ Panel {
       onActivateRequested: {
         if (root.detailOpen) root.activateDetailCursor()
         else if (root.settingsOpen) settingsHub.activateCursor()
+        else if (root.calendarOpen) monthCalendar.activateFocused()
         else if (root.tabStripFocused) root.activateTabCursor()
           else root.activateRow(root.selectedRowIndex)
       }
@@ -884,7 +913,13 @@ Panel {
       // Keep only the extra viewport navigation keys here; the installed
       // Omarchy handler does not emit semantic signals for these keys.
       Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_PageDown) {
+        if (root.calendarOpen && event.key === Qt.Key_PageDown) {
+          root.changeCalendarMonth(1)
+          event.accepted = true
+        } else if (root.calendarOpen && event.key === Qt.Key_PageUp) {
+          root.changeCalendarMonth(-1)
+          event.accepted = true
+        } else if (event.key === Qt.Key_PageDown) {
           root.tabStripFocused = false
           root.moveResultCursorByPage(1)
         } else if (event.key === Qt.Key_PageUp) {
@@ -1108,13 +1143,21 @@ Panel {
                 onDateSelected: function(dateKey) { root.selectDate(dateKey) }
               }
 
-              CalendarWeekStrip {
-                id: calendarWeekStrip
+              MonthCalendar {
+                id: monthCalendar
                 width: parent.width
                 visible: root.calendarOpen
-                summaries: root.calendarDaySummaries
+                gridState: root.calendarState
                 selectedDateKey: root.selectedDateKey
-                onDateSelected: function(dateKey) { root.selectDate(dateKey) }
+                onDateSelected: function(dateKey) {
+                  root.selectDate(dateKey)
+                  root.deferPanelCallback(function() { monthCalendar.focusSelected() })
+                }
+                onMonthRequested: function(delta) { root.changeCalendarMonth(delta) }
+                onTodayRequested: function() {
+                  root.selectDate(root.todayDateKey)
+                  root.calendarMonthKey = CalendarModel.monthKey(root.todayDateKey)
+                }
               }
 
               Item {

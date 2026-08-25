@@ -1,0 +1,36 @@
+{
+  "months": {
+    "ordinary": {"monthKey": "2026-02-01", "first": "2026-01-26", "last": "2026-03-08"},
+    "sixWeek": {"monthKey": "2026-08-01", "first": "2026-07-27", "last": "2026-09-06"},
+    "leap": {"monthKey": "2028-02-01", "contains": "2028-02-29"},
+    "rollover": {"monthKey": "2026-12-01", "first": "2026-11-30", "last": "2027-01-10"}
+  },
+  "windows": [
+    {
+      "leagueId": "nhl",
+      "displayName": "NHL",
+      "days": [
+        {"dateKey": "2026-08-01", "complete": true, "games": []},
+        {
+          "dateKey": "2026-08-02",
+          "complete": true,
+          "games": [{
+            "id": "nhl:month-game",
+            "league": "nhl",
+            "isValid": true,
+            "status": "scheduled",
+            "startTime": "2026-08-02T18:00:00.000Z",
+            "awayTeam": {"id": "nhl:6"},
+            "homeTeam": {"id": "nhl:10"}
+          }]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "selectedDateKey": "2026-08-02",
+    "unknownDateKey": "2026-08-03",
+    "emptyDateKey": "2026-08-01",
+    "gameDateKey": "2026-08-02"
+  }
+}

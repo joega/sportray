@@ -4500,3 +4500,86 @@ schema, watched game, followed league, scoring-play/leader, broadcast,
 fallback, catalog, packaging, release, or Marketplace change. Pass the complete
 deterministic and actual-Omarchy gates, update sprint/roadmap evidence, refresh
 the next prompt, and commit the source unit atomically.
+
+## Latest handoff — 2026-08-25 Level the Field C1 month grid complete
+
+Status: complete as one bounded C1 vertical slice. Calendar now renders a
+Monday-first 6-by-7 month grid with exactly 42 stable local YYYY-MM-DD cells,
+adjacent-month dates, selected and today states, previous/next month controls,
+Today, bounded cached game counts, favorite markers, and explicit unknown
+versus known-complete-empty presentation. The old CalendarWeekStrip consumer
+was removed after source inspection showed no remaining consumer.
+
+Implementation evidence:
+
+- DateModel.js adds pure local month-key and month-step helpers.
+  CalendarModel.js adds exact 42-cell geometry, month projection,
+  completeness-aware state, bounded counts/league markers, favorite filtering,
+  and selected-day loading/unknown/unavailable row states. QML performs no
+  date arithmetic, provider parsing, raw filtering, or URL construction.
+- LeagueFetch.qml marks a date-cache entry complete true only when it was
+  written after a successful zero-error normalized snapshot. Missing dates
+  remain unknown; C1 adds no schedule owner, request, Process, timer, polling,
+  response-limit, or cache-width change.
+- MonthCalendar.qml owns only presentation and intent signals. Pointer and
+  Accessible buttons converge on the same date/month/Today functions; the
+  installed PanelKeyCatcher routes grid Left/Right and Up/Down focus movement,
+  Enter/Space activation, and PageUp/PageDown month movement through the
+  existing panel focus owner. Selected-day rows continue through the existing
+  game/detail/source route and list scroll ownership.
+- Fixture-driven tests cover ordinary, six-week, leap-day, year-rollover,
+  adjacent-cell, invalid-input, local-DST, completeness, filters, selected
+  day loading/unknown, keyboard routing, bounds, and no-new-owner assertions.
+  The deterministic suite passes with 234 tests. Summon-helper, diff check,
+  plugin validation, and full real-import-path QML lint pass.
+
+Host evidence and boundary decision:
+
+- The private docs/upstream-contract.md remains intentionally absent.
+  Installed Omarchy 4.0.0-1 and Quickshell 0.3.0 revision
+  28771c7c74b42e20afca0b1b63980cb46515537 were inspected directly.
+  KeyboardPanel still provides availableCardHeight, fittedContentHeight,
+  and four-edge clamping; PanelKeyCatcher remains a Keys.BeforeItem semantic
+  dispatcher. No material upstream deviation was found or introduced.
+- Actual Omarchy was restarted into exactly one Quickshell instance
+  (c0240dfe8c8e8a421e1f8db23a03fc60), plugin discovery showed Sportray
+  enabled, shell ping returned ok, rescan returned ok, and the summon helper
+  returned ok. A fresh screenshot showed the current August 2026 42-cell
+  grid, adjacent July/September cells, neutral Unknown cells, the selected
+  cached Aug 25 count, month controls, and bounded selected-day rows. Real
+  l/j focus movement plus Enter selected adjacent September 2 and triggered
+  the existing enabled-league date-changed fetch path. Fresh logs contain
+  normal fetch activity and no Sportray error, QML-load failure, exception,
+  binding-loop warning, late callback, or duplicate graph; the unrelated
+  portal-registration warning remains.
+- No reliable pointer injector or child-panel accessibility injector is
+  available in this host session. Pointer and Accessible routes are source
+  verified and share the same guarded button signals, but those two direct
+  runtime activations are not claimed as manually exercised. The grid fit
+  within the current top-bar available-card-height contract; the existing
+  host fitting/clamping contract remains applicable to bottom/left/right
+  bars and no orientation-specific code was added.
+
+Decision log: C1 uses only existing successful five-date score caches for
+month density and deliberately leaves unvisited dates unknown. A known empty
+day requires complete entries for every enabled league, so a missing sibling
+league cannot be mistaken for a verified empty slate. Wider month hydration
+and provider feasibility work remain C2/C3; no false completeness or new
+fetch ownership was added. The unresolved live-football evidence, ESPN/static
+MLB team-ID drift, and fixture-only runtime fallback selection remain outside
+C1.
+
+Known risks: cache-only month density is intentionally sparse until C2/C3;
+pointer/accessibility direct runtime activation remains host-input limited;
+and changing bar orientation still needs the usual actual-Omarchy exercise in
+a later runtime-polish pass. No push, tag, release, Marketplace, or remote
+action occurred. The unrelated absence of MARKETPLACE_SUBMISSION.md remains
+untouched and unstaged.
+
+Next bounded unit: implement C2 — Provider range reconnaissance and chunk
+policy only. Inspect accepted provider range/schedule behavior read-only,
+derive fixture-tested bounded pure chunk planning, and update provider
+strategy evidence. Do not add QML, a schedule fetch owner, month hydration,
+new endpoints, timers, polling changes, response-limit changes, cache
+widening, settings schema 2, watched games, followed leagues, detail
+providers, packaging, release, or Marketplace work.

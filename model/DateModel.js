@@ -99,6 +99,22 @@ function providerDateKey(value) {
   return isDateKey(value) ? value.replace(/-/g, "") : "";
 }
 
+function monthKey(value) {
+  if (!isDateKey(value)) return "";
+  return value.slice(0, 7) + "-01";
+}
+
+function addMonths(value, delta) {
+  var base = monthKey(value);
+  if (!base) return "";
+  var parts = base.split("-").map(Number);
+  var offset = Number(delta);
+  if (!isFinite(offset)) return "";
+  var date = new Date(parts[0], parts[1] - 1, 1);
+  date.setMonth(date.getMonth() + Math.trunc(offset));
+  return dateKey(date.getFullYear(), date.getMonth(), 1);
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     addDays: addDays,
@@ -108,6 +124,8 @@ if (typeof module !== "undefined" && module.exports) {
     displayLabel: displayLabel,
     isDateKey: isDateKey,
     localDateKey: localDateKey,
+    monthKey: monthKey,
+    addMonths: addMonths,
     parseDateKey: parseDateKey,
     providerDateKey: providerDateKey,
     relativeDayLabel: relativeDayLabel,

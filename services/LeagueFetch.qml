@@ -667,7 +667,7 @@ Item {
       var dateKey = root.dateCacheOrder[i]
       var entry = root.dateCache[dateKey]
       if (!entry || !Array.isArray(entry.games)) continue
-      days.push({dateKey: dateKey, games: entry.games.slice()})
+      days.push({dateKey: dateKey, games: entry.games.slice(), complete: true})
     }
     return {leagueId: root.leagueId, displayName: root.displayName, days: days}
   }

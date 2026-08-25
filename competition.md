@@ -114,15 +114,14 @@ evidence.
    broader matches, the query is clamped at 48 characters, and non-empty
    search results are capped at 60 while unfiltered browsing stays complete.
    No new endpoint; canonical identities and schema-1 settings unchanged.
- 6. **Calendar and schedule context — closed for the current cache
-    boundary.** The bounded calendar day list with favorite-only filtering,
-    the preserved five-day carousel, direct `G` date jumps to the next
-    cached day with games, explicit local-time row labels, and the
-    week-strip overview (per-day counts, favorite dots, selected-day
-    drill-down replacing the shared date chrome while the calendar is
-    open) are shipped and runtime-verified. Still open only: any window
-    wider than the five-date caches, which requires a verified wider
-    source before any new fetch ownership.
+ 6. **Calendar and schedule context — C1 month-grid slice complete.** The
+    bounded calendar now renders a conventional 42-cell month grid with
+    adjacent-month selection, month navigation, Today, favorite-only filtering,
+    explicit unknown-versus-known-empty states, direct `G` date jumps within
+    the existing cache boundary, local-time row labels, and selected-day
+    drill-down. C1 uses only complete existing five-date snapshots and the
+    existing selected-date fetch route. Wider month hydration remains open and
+    requires a verified wider source before any new fetch ownership.
 
 ### P2 — specialist depth
 
@@ -237,8 +236,8 @@ context. The complete implementation plan, ordering, acceptance gates, and
 risks are in `LEVEL_THE_FIELD_SPRINT.md`.
 
 The prior cache-only calendar work remains valid implementation history but no
-longer closes the product gap. The first sprint unit is C1: replace Calendar's
-five-day strip with a 42-cell month surface using existing safe caches and the
-existing selected-day fetch route, while representing unqueried dates as
-unknown rather than empty. Wider month hydration is a separate provider-gated
-unit so it cannot destabilize live polling or silently exceed response bounds.
+longer closes the product gap. C1 is now complete: Calendar is a 42-cell month
+surface using existing safe caches and the existing selected-day fetch route,
+while representing unqueried dates as unknown rather than empty. Wider month
+hydration is a separate provider-gated unit so it cannot destabilize live
+polling or silently exceed response bounds.

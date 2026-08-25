@@ -26,10 +26,10 @@ At a glance:
 - Grouped standings on ESPN-backed and NHL league destinations, with missing
   provider fields shown as neutral blanks and one-click favorite-team toggles
 - A five-day date carousel with previous/next-day navigation and a Today reset
-- A bounded calendar view behind the panel header that projects the
-  already-fetched five-date caches into a week-strip overview with per-day
-  game counts and favorite highlights, plus a selected-day game list with
-  favorite-only and enabled-league filters; it never starts new requests
+- A bounded calendar view behind the panel header that renders a conventional
+  42-cell month grid from already-fetched date caches, including adjacent
+  dates, month navigation, Today, bounded game counts, favorite markers, and
+  explicit unknown-versus-known-empty states; it never starts new requests
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
 - Loaded game rows open a local game-details drill-down from whole-row
@@ -61,15 +61,16 @@ back to completed slates or forward to upcoming games; each fetch and result
 model is scoped to the selected local date. Closing the panel returns the
 ambient bar indicator to the current date. `[` and `]` move one day while `T`
 returns to today. On an ESPN-backed league destination, `S` toggles the
-standings view. `C` toggles the calendar view: a week-strip overview of the
-five cached days around the selected date, showing each day's game count and
-an accent dot on days that include favorite games, with only the selected
-day's games listed below. Click a strip cell (or press Left/Right while the
-calendar is open) to drill into another cached day; the strip is built only
-from the date caches already fetched, with an All games/Favorites filter and
-neutral "No games" days. `F` toggles that filter while the calendar is open.
-`G` jumps directly to the next cached day that has games without leaving the
-cache window. Calendar game rows show an
+standings view. `C` toggles the calendar view: a conventional 42-cell month
+grid with adjacent-month dates, previous/next month controls, Today, bounded
+cached counts, favorite markers, and neutral unknown days for dates not
+verified by a complete cached snapshot. Select any cell to use the existing
+selected-date fetch path; the selected day's games are listed below. The
+month grid is built only from date caches already fetched, with an All
+games/Favorites filter and `No games` only for known-complete empty days.
+`F` toggles that filter while the calendar is open. `G` jumps directly to
+the next cached day that has games without leaving the cache window. Calendar
+game rows show an
 explicit local-time label, open the same local detail drill-down, and Escape
 returns from detail,
 settings, and calendar before closing the panel.
