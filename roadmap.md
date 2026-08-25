@@ -3739,3 +3739,75 @@ Next bounded unit: retry this verification during live football minutes
 (CFB from Aug 29, NFL from Sep 10), or select another owner-directed slice
 from the `competition.md` decision list. If no direction is given, do not
 infer one and stop after recording the still-pending decision.
+
+## Runtime detail wiring + sport-aware scoring labels — 2026-08-24
+
+Status: complete. The owner selected the runtime detail-wiring slice (plus the
+gated live-verification and second-provider candidates for later units). The
+runtime scoreboard path and the fixture-verified detail path now produce the
+same enriched normalized games, and the scoring header uses sport-aware period
+nouns.
+
+Evidence:
+
+- `providers/EspnProvider.js` now attaches the bounded optional `lines`,
+  `stats`, and `situation` records inside `parseScoreboardResponse` itself, and
+  `parseGameDetailResponse` reuses those enriched games directly. Runtime
+  league fetches therefore carry the same records the fixtures verified,
+  without a second endpoint, provider payload exposure, or fetch-ownership
+  change. Sparse games keep the hidden/placeholder state.
+- The user reported that the detail scoring header said "period" for every
+  sport. `model/Formatters.js` gains `scoringPeriodUnit` (MLB → Inning,
+  NFL/CFB/NBA/NCAAM-BB → Quarter, soccer → Half, default/NHL → Period);
+  `GameDetailView.qml` renders it from the game's league.
+- New deterministic tests: a runtime/fixture parity test over all four detail
+  fixtures (identical projected details and errors, no raw payload fields, no
+  keys added to sparse games, LeagueFetch still parsing through
+  `parseScoreboardResponse`), and a sport-aware unit-label test covering all
+  eight leagues plus unknown/null input and the QML consumer. The route
+  fixture now pins the sport-neutral "SCORING BY " prefix. The suite passes
+  with 222 tests.
+- All repository gates pass: `tests/run-js-tests.sh`,
+  `tests/test-summon-helper.sh`, `git diff --check`,
+  `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
+  with the established standalone warnings.
+- Runtime verification on actual Omarchy: `omarchy-shell shell rescanPlugins`
+  did NOT reload the linked plugin's singleton fetch service (cache-hit lines
+  appeared immediately after the rescan and the old code kept running), so the
+  shell was fully restarted with `omarchy-restart-shell`. The fresh instance
+  initialized all leagues with cold fetches, one Quickshell instance remained
+  running, and shell ping returned `ok`. Through the real input path (panel
+  toggle plus keyboard Down/Return), the live MLB game's drill-down rendered
+  the previously hidden sections from runtime data: SITUATION (count, outs,
+  bases, last play) and TEAM STATS (hits/errors), while SCORING BY INNING
+  replaced the generic header and the lines table kept its safe placeholder
+  because the mid-inning sides had unequal lengths (the documented admission
+  rule). Escape closed the detail route and the panel toggle restored the bar.
+  The fresh log showed normal fetch/polling activity with no new Sportray
+  error, exception, or binding-loop warning during this exercise.
+
+Decision log: enrich at the provider parse boundary rather than passing raw
+payloads toward QML, keeping provider parsing in `providers/` and the detail
+projection in `GameDetailModel`. Reuse one parse path so fixture coverage and
+runtime behavior cannot diverge again. The unequal-side mid-inning lines case
+stays null by the existing bounded rule rather than being padded.
+
+New known risk (pre-existing, recorded for a future unit): the installed shell
+logs a `NotificationService`/`SportrayService.qml:68` `games` binding-loop
+warning on the `enabled-leagues-changed` path (observed 2026-08-24 20:45,
+20:57, and 21:24 EDT on the pre-restart instance). It did not appear in fresh
+startup logs or during this unit's detail-route exercise. This unit did not
+introduce or change that binding; a future bounded unit should diagnose and
+remove the loop without changing notification ownership.
+
+Two atomic commits were created: `3bdee00` (runtime detail projection) and
+`4fa30b5` (sport-aware scoring labels). No push, tag, release, or Marketplace
+action was performed. The live scoring-play verification (CFB week 0 from
+Aug 29) and the second verified provider adapter (requires the owner's
+terms/region/reliability review) remain gated owner-directed candidates.
+
+Next bounded unit: diagnose and remove the recorded `NotificationService`
+`games` binding loop on the `enabled-leagues-changed` path while preserving
+notification ownership, dedupe, and settings behavior; stop before any
+provider, publication, or unrelated interaction work.

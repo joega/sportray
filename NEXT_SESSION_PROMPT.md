@@ -1,78 +1,73 @@
 Work in `/home/joeg/Projects/sportray` on the next single bounded roadmap
-unit. The live scoring-play verification unit was selected by the owner and
-attempted 2026-08-24 ~9:00 PM EDT but is blocked: no football game was in
-progress (NFL preseason had concluded; CFB begins Sat Aug 29), and
-completed-game scoreboards again carried no `competitions[].details`. The
-next unit therefore requires explicit owner direction before implementation.
+unit: diagnose and remove the recorded `NotificationService` `games`
+binding-loop warning on the `enabled-leagues-changed` path, while preserving
+notification ownership, dedupe, favorite gating, and settings behavior.
 
 Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md` (see
-the "Scoring-play live verification — BLOCKED 2026-08-24" entry), and
-`competition.md`. `docs/upstream-contract.md` is intentionally absent in this
-checkout; inspect installed Omarchy/Quickshell sources directly for any
-host-boundary claim and record material deviations in `roadmap.md`. Inspect
-`git status`, the current branch, and recent commits. Preserve unrelated user
-changes, including the absence of `MARKETPLACE_SUBMISSION.md`; do not restore
-or stage it.
+the "Runtime detail wiring + sport-aware scoring labels — 2026-08-24" handoff
+and its binding-loop risk note), and `competition.md`.
+`docs/upstream-contract.md` is intentionally absent in this checkout; inspect
+installed Omarchy/Quickshell sources directly for any host-boundary claim and
+record material deviations in `roadmap.md`. Inspect `git status`, the current
+branch, and recent commits. Preserve unrelated user changes, including the
+absence of `MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
 
-Verified current state (2026-08-24):
+Verified current state (2026-08-24, after commits `3bdee00` and `4fa30b5`):
 
-- The checkout is on `main`, clean, with all five minimum competitive baseline
-  capabilities closed plus follow-up slices: standings (ESPN-backed and NHL),
-  bounded rich game detail (outcome, per-period lines, team stats, labeled
-  event links, live baseball situation section), icon-only ambient bar with
-  status dots, pregame reminders, close-game alerts, wired per-league provider
-  fallback chains (single verified candidate per league today), broader team
-  discovery, calendar extensions with the week-strip overview. 220
-  deterministic tests pass.
-- The game-detail drill-down renders bounded optional sections projected from
-  the already fetched ESPN scoreboard snapshot through `parseGameDetailResponse`
-  only; runtime detail games come from `parseScoreboardResponse`, so populated
-  lines/stats/situation are fixture-verified while runtime renders the hidden/
-  null path — a recorded cross-section follow-up, not a regression.
-- Scoring plays (`competitions[].details`) remain unverified: two inspection
-  windows on 2026-08-24 found no in-progress football game, and both the
-  default and dated (`?dates=20260823`) NFL scoreboards showed zero
-  `details` arrays for completed games.
+- `main` is clean and 2 commits ahead of `origin/main`. 222 deterministic
+  tests pass; plugin validation, real-import-path `qmllint`, summon-helper
+  tests, and `git diff --check` pass.
+- The runtime game-detail path now carries the fixture-verified optional
+  lines/stats/situation records (live-verified on an MLB drill-down), and the
+  scoring header uses sport-aware Inning/Quarter/Half/Period labels.
+- The binding loop: the installed shell logs `WARN scene: QML
+  NotificationService at .../services/SportrayService.qml[65:3]: Binding loop
+  detected for property "games"` pointing at `SportrayService.qml:68`
+  (`games: root.selectedDateKey === root.todayDateKey ?
+  fetchService.games : []`). It fired on `enabled-leagues-changed` events at
+  2026-08-24 20:45, 20:57, and 21:24 EDT (instance started 20:23). It did not
+  appear in fresh startup logs or during the detail-route exercise. Suspected
+  mechanism: evaluating the `games` binding reaches `settingsStore` (e.g. a
+  dedupe/state write or settings read inside `NotificationService`), which
+  re-notifies `FetchService` bindings and re-evaluates the same `games`
+  binding. Confirm the actual cycle from source before changing anything.
 
-Bounded outcome (only after explicit owner direction):
+Bounded outcome:
 
-Implement exactly one owner-selected bounded vertical slice. Candidates:
-(a) retry live verification of football scoring-play `competitions[].details`
-during actual game minutes — realistic windows are CFB week 0 from Sat
-Aug 29 and NFL week 1 from Thu Sep 10; do not attempt outside live minutes;
-(b) optionally wiring the runtime detail path through `parseGameDetailResponse`
-so the optional detail records reach the view — crosses fetch ownership and
-needs explicit owner approval; (c) the gated second verified provider adapter
-for live multi-provider fallback (P1-4 remainder) — may begin only after the
-owner provides an explicit terms/region/reliability review for the candidate
-provider; if absent, do not implement it; (d) owner-controlled release/
-publication follow-ups for the unreleased `1.0.0-rc.8` candidate — outside
-feature slices. Keep provider parsing in `providers/`, keep new logic in pure
-fixture-tested models, and preserve normalized game identity, favorites,
-settings schema-1, polling ownership, and the existing response/event bounds.
-If the owner supplies no direction, record the still-pending decision in
-`roadmap.md`, refresh this file, and stop without a success commit.
+One vertical slice: identify the exact cycle, break it at the smallest boundary
+(e.g. pass a bounded, already-projected value into `NotificationService`, or
+gate the write that re-enters the binding), and keep the singleton ownership
+topology from `MonitorOwnership` intact. Keep any new decision logic in a pure
+fixture-tested model under `model/` if behavior changes; do not change
+notification text, dedupe fingerprints, schema-1 settings, provider parsing,
+or polling cadence. If the cycle cannot be reproduced or confirmed from
+source, record the evidence and stop without a speculative refactor.
 
 Required checks (rerun all after implementation):
 
 - `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
   `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
   `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file.
-- On actual Omarchy: restart/rescan as required by the changed boundary,
-  confirm one healthy shell, exercise the changed behavior through the real
-  input path available, and inspect the fresh Quickshell log for Sportray
-  errors, exceptions, or binding loops before claiming runtime success.
+- On actual Omarchy: `omarchy-shell shell rescanPlugins` alone may NOT reload
+  the linked plugin's singleton/fetch service (observed 2026-08-24); use
+  `omarchy-restart-shell` for a definitive load. Confirm one healthy
+  Quickshell instance and `shell ping` → `ok`. Exercise a settings change
+  (toggle an enabled league or a notification preference) while games are
+  loaded — that is the path that reproduced the warning — and inspect the
+  fresh log: the binding-loop warning must be gone with no new Sportray
+  error or exception.
 
-Known risks and stop conditions: ESPN remains an undocumented API; any new
-request path or provider requires explicit review before implementation;
-`competitions[].details` may never appear on scoreboard payloads even during
-live games, which would close the scoring-plays idea under the single-endpoint
-boundary; the calendar shows only dates present in the five-entry per-league
-caches; pointer clicks on calendar strip cells remain unexercised (no reliable
-injector); `wtype` Return presses can land before the summoned panel takes
-keyboard focus, so re-press or use Space and confirm via screenshot. Stop
-before packaging, tagging, pushing, releasing, or Marketplace work. Do not
-weaken acceptance gates to finish.
+Known risks and stop conditions: the loop involves the shared
+`SportrayService` singleton, so a wrong fix could duplicate per-monitor state
+or break notification dedupe — preserve the source-topology assertions in the
+test suite. Do not "fix" it by disabling the warning or weakening the
+notification gates. Gated owner-directed alternatives for later units: (a)
+live scoring-play `competitions[].details` verification during real football
+minutes (CFB week 0 from Sat Aug 29, NFL week 1 from Thu Sep 10; never outside
+live minutes), and (b) a second verified provider adapter for multi-provider
+fallback, which requires the owner's explicit terms/region/reliability review
+of the candidate provider first. Stop before packaging, tagging, pushing,
+releasing, or Marketplace work. Do not weaken acceptance gates to finish.
 
 At the end, update `roadmap.md` with the dated handoff and evidence, update
 `competition.md` backlog status when the slice maps to a backlog line,

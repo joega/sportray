@@ -75,9 +75,13 @@ evidence.
 1. **Rich game detail — partially closed.** The local detail route now renders
    an optional final-outcome section, bounded per-period lines, and bounded
    team statistic rows (MLB hits/errors) projected from the already normalized
-   ESPN scoreboard snapshot, with neutral placeholders for nulls. Still open:
-   scoring plays, leaders, and sport situation data; these require verified
-   provider fields before any adapter work.
+   ESPN scoreboard snapshot, with neutral placeholders for nulls. The runtime
+   scoreboard parse now carries the same optional records the fixtures
+   verified (closed 2026-08-24: a live MLB drill-down rendered the situation
+   and team-stat sections at runtime, with sport-aware "SCORING BY
+   INNING/QUARTER/HALF/PERIOD" headers). Still open:
+   scoring plays, leaders, and sport situation data beyond baseball; these
+   require verified provider fields before any adapter work.
 2. **Complete standings coverage — closed.** The NHL standings adapter is
    implemented and live-verified (conference grouping, `conferenceSequence`
    ordering, tri-code resolution through the bounded catalog); ESPN standings
@@ -180,8 +184,10 @@ Remaining candidate slices:
    candidate for any league.
 4. **Richer detail sections** (P0-1 remainder / P2-7): the baseball situation
    projection completed 2026-08-24 from already normalized data with no second
-   endpoint. Still open: scoring plays (requires live verification while a
-   football game is in progress) and leaders; stop before any second endpoint.
+   endpoint, and the runtime detail path was wired through the same enriched
+   parse the same day (live-verified on an MLB game). Still open: scoring
+   plays (requires live verification while a football game is in progress) and
+   leaders; stop before any second endpoint.
 5. **Release/publication follow-up**: owner-assigned release actions for the
    unreleased `1.0.0-rc.8` candidate (tagging/release/Marketplace verification)
    remain separate, owner-controlled steps outside feature work.
