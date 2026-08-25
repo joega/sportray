@@ -2124,6 +2124,23 @@ test("game detail hides internal game ids and scrolls within the panel bounds", 
   assert.match(detail, /detailScroll\.contentY = 0/);
 });
 
+test("detail height requests cap at half the screen viewport", () => {
+  const tokens = {minimum: 320, fixedCap: 600, viewportFraction: 0.5};
+  assert.equal(panelLayout.detailContentRequest(400, 720, tokens), 360);
+  assert.equal(panelLayout.detailContentRequest(200, 720, tokens), 320);
+  assert.equal(panelLayout.detailContentRequest(300, 720, tokens), 320);
+  assert.equal(panelLayout.detailContentRequest(900, 1440, tokens), 600);
+  assert.equal(panelLayout.detailContentRequest(900, 0, tokens), 600);
+  assert.equal(panelLayout.detailContentRequest(900, undefined, tokens), 600);
+  assert.equal(panelLayout.detailContentRequest(900, "bad", tokens), 600);
+  assert.equal(panelLayout.detailContentRequest(900, 500, tokens), 320);
+
+  const panel = readSource("Panel.qml");
+  assert.match(panel, /PanelLayout\.detailContentRequest\(/);
+  assert.match(panel, /panel && panel\.screen \? panel\.screen\.height : 0/);
+  assert.match(panel, /viewportFraction: 0\.5/);
+});
+
 test("NHL next-game lookup uses the schedule endpoint and keeps normalized games", () => {
   assert.equal(nhl.buildNextGamesUrl("2026-10-01"),
     "https://api-web.nhle.com/v1/schedule/2026-10-01");

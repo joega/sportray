@@ -4054,6 +4054,66 @@ exercised (keyboard was used). The unrelated absence of
 `MARKETPLACE_SUBMISSION.md` remains untouched and unstaged. No push, tag,
 release, or Marketplace action occurred.
 
+## Latest handoff — 2026-08-25 viewport-fraction detail height
+
+Status: complete. The owner asked whether the details pane needs a fixed
+window height and requested a variable height up to 50% of the screen
+viewport. The drill-down now sizes to its content but caps at half the
+panel's real screen height, with the existing scroll behavior absorbing the
+difference. No provider, model, notification, or routing behavior changed.
+
+Boundary note: the installed Omarchy `KeyboardPanel` (a Quickshell
+`PanelWindow`) already hard-fits panel content to the real screen via
+`fittedContentHeight`/`availableCardHeight`, so a plugin panel can never
+exceed usable screen space regardless of its request. The plugin-side fixed
+600px detail cap was therefore a presentation preference, not an overflow
+risk; on the owner's scaled display it consumed most of the viewport, which
+prompted this change. Best practice applied: content-sized, viewport-
+fraction cap, host fit-to-screen as the final boundary.
+
+Evidence:
+
+- `model/PanelLayout.js` adds the pure `detailContentRequest(contentHeight,
+  viewportHeight, tokens)` policy: the request is the content height clamped
+  to the 320px minimum and a cap of `min(fixedCap 600, floor(viewport ×
+  0.5))`; the minimum floor wins over a smaller fraction (the host still
+  hard-fits), and invalid/missing viewport input fails closed to the fixed
+  cap. `Panel.qml` feeds it `gameDetailView.implicitHeight` and
+  `panel.screen.height` from the installed `KeyboardPanel` window.
+- A new deterministic test covers content-sized, minimum-floor, fixed-cap,
+  viewport-capped, missing/invalid-viewport, and tiny-viewport cases plus
+  the Panel wiring. The suite passes with 226 tests.
+- `./tests/run-js-tests.sh` (226 tests), `./tests/test-summon-helper.sh`,
+  `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass with the established standalone warnings.
+- Runtime verification on actual Omarchy 4.0.0-1 with Quickshell 0.3.0:
+  `omarchy-restart-shell` loaded the linked checkout into exactly one
+  instance (PID 1051121); `shell ping` returned `ok`. Through the real
+  keyboard path, the MLB Aug 29 `BOS at NYY` drill-down opened at roughly
+  half the viewport height with the content clipped at the panel boundary,
+  and keyboard Down-scroll brought the bottom (TEAM STATS, source action)
+  into view inside the pane. Escape, `T`, and panel close completed the
+  route. The fresh log has normal provider activity, zero binding-loop
+  warnings, and no Sportray error or exception; only the pre-existing
+  unrelated portal registration warning remains.
+
+Decision log: cap the detail at 50% of the panel's own screen rather than
+replacing the general 640px scores cap, because the owner asked about the
+details pane specifically and the scores view is already content-sized and
+runtime-accepted. Keep the 320px minimum floor so sparse details remain a
+usable panel, and keep the host's fit-to-screen contract as the final
+boundary rather than duplicating screen math. The pre-existing duplicated
+status word in the detail status line (`Scheduled · Scheduled`) remains a
+known cosmetic issue, unchanged by this unit.
+
+Known risks: `panel.screen.height` is read when the height request is
+recalculated, so a panel moved between screens mid-open keeps the previous
+screen's cap until the next recalculation; multi-monitor detail use remains
+otherwise unchanged. The unrelated absence of `MARKETPLACE_SUBMISSION.md`
+remains untouched and unstaged. No push, tag, release, or Marketplace
+action occurred.
+
 Next bounded unit: during the live-football window (CFB week 0 from Sat
 Aug 29; NFL week 1 from Thu Sep 10), perform one combined observational
 verification: `competitions[].details` (scoring plays) and

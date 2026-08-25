@@ -8,7 +8,7 @@ outside live football minutes, or the owner directs a different slice from
 the `competition.md` decision list, do that instead; do not infer direction.
 
 Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md` (see
-the "Latest handoff — 2026-08-25 game-detail bounds and ID removal" and the
+the "Latest handoff — 2026-08-25 viewport-fraction detail height" and the
 blocked 2026-08-24 scoring-play verification), and `competition.md`.
 `docs/upstream-contract.md` is intentionally absent in this checkout; inspect
 installed Omarchy/Quickshell sources directly for any host-boundary claim and
@@ -16,18 +16,18 @@ record material deviations in `roadmap.md`. Inspect `git status`, the current
 branch, and recent commits. Preserve unrelated user changes, including the
 absence of `MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
 
-Verified current state (2026-08-25, after commits `a905e6a`, `1414304`, and
-the game-detail bounds fix):
+Verified current state (2026-08-25, after the binding-loop fix, the odds
+slice, the detail-bounds/ID fix, and the viewport-fraction height cap):
 
-- `main` is clean. 225 deterministic tests pass; plugin validation,
+- `main` is clean. 226 deterministic tests pass; plugin validation,
   real-import-path `qmllint`, summon-helper tests, and `git diff --check`
   pass. One healthy Quickshell instance runs the linked checkout with zero
   binding-loop warnings.
 - The `NotificationService` `games` binding loop is fixed (settings identity
   guard in `SettingsStore.writeState`); attributed betting odds project onto
   scheduled score cards and the game-details drill-down from the already
-  fetched snapshot; the detail view now hides all internal game IDs and
-  scrolls within the bounded panel height.
+  fetched snapshot; the detail view hides all internal game IDs, scrolls
+  within the bounded panel height, and caps at 50% of the screen viewport.
 - Owner configuration: six leagues enabled, six favorites, notification
   preferences unchanged. Do not alter favorites or enabled leagues during
   verification.

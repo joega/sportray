@@ -39,6 +39,20 @@ function contentRequest(rows, destination, settingsOpen, tokens) {
     : scoreContentRequest(rows, tokens);
 }
 
+// Detail requests size to their content but never claim more than the
+// viewport fraction, so the drill-down stays a panel rather than a
+// full-screen surface. The minimum floor always wins over a fraction
+// smaller than itself (the host still hard-fits to the real screen), and
+// invalid or missing viewport input fails closed to the fixed cap.
+function detailContentRequest(contentHeight, viewportHeight, tokens) {
+  var cap = tokens.fixedCap;
+  var viewport = Number(viewportHeight);
+  if (viewport > 0 && isFinite(viewport) && tokens.viewportFraction > 0)
+    cap = Math.max(tokens.minimum,
+      Math.min(cap, Math.floor(viewport * tokens.viewportFraction)));
+  return clamp(Number(contentHeight) || 0, tokens.minimum, cap);
+}
+
 function dateRadius(width, compactWidth) {
   return Number(width) > 0 && Number(width) < Number(compactWidth) ? 1 : 2;
 }
@@ -59,6 +73,7 @@ if (typeof module !== "undefined" && module.exports) {
     compactTabLabel: compactTabLabel,
     contentRequest: contentRequest,
     dateRadius: dateRadius,
+    detailContentRequest: detailContentRequest,
     rowHeight: rowHeight,
     scoreContentRequest: scoreContentRequest,
     settingsContentRequest: settingsContentRequest

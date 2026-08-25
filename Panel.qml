@@ -286,8 +286,13 @@ Panel {
 
   function recalculatePanelHeight() {
     if (root.detailOpen) {
-      root.panelContentHeightRequest = Math.min(Style.space(600),
-        Math.max(Style.space(320), gameDetailView.implicitHeight))
+      root.panelContentHeightRequest = PanelLayout.detailContentRequest(
+        gameDetailView.implicitHeight,
+        panel && panel.screen ? panel.screen.height : 0, {
+          minimum: Style.space(320),
+          fixedCap: Style.space(600),
+          viewportFraction: 0.5
+        })
       return
     }
     root.panelContentHeightRequest = PanelLayout.contentRequest(root.displayRows,
