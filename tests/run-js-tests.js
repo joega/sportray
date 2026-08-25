@@ -157,6 +157,11 @@ function readSettingsBoundaryFixture() {
     path.join(root, "fixtures/settings-boundary/panel.json"), "utf8"));
 }
 
+function readBindingLoopFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/settings-boundary/binding-loop.json"), "utf8"));
+}
+
 function readBarPresentationFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/bar-presentation/policy.json"), "utf8"));
@@ -2874,6 +2879,29 @@ test("SettingsStore gates FileView writes on permission repair and hardens saved
   assert.equal(source.includes("console.warn(\"Sportray settings permission repair failed\""), true);
   assert.equal(source.includes("JSON.stringify(state"), true);
   assert.equal(source.includes("rawResponse"), false);
+});
+
+test("SettingsStore breaks the notification games binding loop with a settings identity guard", () => {
+  const fixture = readBindingLoopFixture();
+  const store = readSource("services/SettingsStore.qml");
+  const service = readSource("services/SportrayService.qml");
+
+  assert.equal(store.includes(fixture.settingsStore.identityGuard), true);
+  assert.equal(store.includes(fixture.settingsStore.dedupeWritePath), true);
+  assert.equal(store.includes(fixture.settingsStore.uiWritePath), true);
+  assert.equal(
+    store.includes(fixture.settingsStore.forbiddenUnconditionalAssignment), false);
+
+  const gamesBinding =
+    "games: root.selectedDateKey === root.todayDateKey ? fetchService.games : []";
+  assert.equal(service.includes(gamesBinding), true);
+  assert.equal((service.match(/NotificationService \{/g) || []).length, 1);
+  assert.equal((service.match(/FetchService \{/g) || []).length, 1);
+  assert.equal((service.match(/SettingsStore \{/g) || []).length, 1);
+
+  const fetch = readSource("services/FetchService.qml");
+  fixture.fetchService.unchangedTokens.forEach((token) =>
+    assert.equal(fetch.includes(token), true));
 });
 
 test("notification preferences toggle independently and round-trip", () => {

@@ -1,0 +1,14 @@
+{
+  "settingsStore": {
+    "identityGuard": "if (candidateSettings !== root.settings)",
+    "dedupeWritePath": "root.writeState(root.settings, root.transitionDedupe)",
+    "uiWritePath": "root.writeState(normalized.settings, root.transitionDedupe)",
+    "forbiddenUnconditionalAssignment": "root.settings = {\n      schemaVersion"
+  },
+  "fetchService": {
+    "unchangedTokens": [
+      "onEnabledLeaguesChanged",
+      "function updateAggregateState()"
+    ]
+  }
+}

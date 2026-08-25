@@ -52,11 +52,13 @@ Item {
     if (root.preservedRawStateText.length > 0) return false
     if (!root.permissionsReady || permissionProcess.running) return false
     var state = StateModel.createState(candidateSettings, candidateDedupe, SettingsModel, TransitionDedupe)
-    root.settings = {
-      schemaVersion: state.schemaVersion,
-      enabledLeagues: state.enabledLeagues,
-      favoriteTeamIds: state.favoriteTeamIds,
-      notifications: state.notifications
+    if (candidateSettings !== root.settings) {
+      root.settings = {
+        schemaVersion: state.schemaVersion,
+        enabledLeagues: state.enabledLeagues,
+        favoriteTeamIds: state.favoriteTeamIds,
+        notifications: state.notifications
+      }
     }
     root.transitionDedupe = state.transitionDedupe
     root.permissionsReady = false

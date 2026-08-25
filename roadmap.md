@@ -3811,3 +3811,88 @@ Next bounded unit: diagnose and remove the recorded `NotificationService`
 `games` binding loop on the `enabled-leagues-changed` path while preserving
 notification ownership, dedupe, and settings behavior; stop before any
 provider, publication, or unrelated interaction work.
+
+## Latest handoff — 2026-08-25 notification games binding-loop fix
+
+Status: complete. The recorded `NotificationService` `games` binding loop on
+the `enabled-leagues-changed` path is diagnosed from source and removed at the
+smallest boundary, with notification ownership, dedupe fingerprints, schema-1
+settings, and the `MonitorOwnership` singleton topology unchanged.
+
+Diagnosis (confirmed from source before editing):
+
+- `SportrayService.qml` binds `NotificationService.games` to
+  `fetchService.games` on the today path. `FetchService.updateAggregateState()`
+  assigns a fresh `games` array on every `enabledLeaguesChanged` notification.
+- `NotificationService.handleGamesChanged()` runs synchronously on that
+  change; when transitions are detected it calls
+  `SettingsStore.acceptTransitionEvents`, which calls `writeState`.
+- `writeState` unconditionally reassigned `root.settings` with a brand-new
+  object even when only the transition-dedupe state changed, so the
+  `FetchService.enabledLeagues`/`favoriteTeamIds` bindings re-fired
+  synchronously inside the still-active `games` binding notification stack,
+  re-entering `updateAggregateState()` and recursively re-evaluating the same
+  `games` binding — the exact warning Qt logged at `SportrayService.qml:68`.
+
+Fix: `SettingsStore.writeState` now skips the `root.settings` reassignment
+when the candidate already is the current normalized settings object
+(identity guard). UI toggles and state loads pass fresh candidates and keep
+full normalization; the dedupe-write path no longer re-notifies the fetch
+bindings, and the persisted dedupe file write is unchanged. Notification text,
+fingerprints, favorite gating, first-fetch silence, and polling cadence are
+unchanged; the singleton still owns exactly one settings/fetch/notification
+graph (pinned by the existing ownership tests).
+
+Deterministic coverage: `fixtures/settings-boundary/binding-loop.json` plus a
+new test assert the identity guard, both write paths, the unchanged
+`SportrayService` games binding and singleton topology, and the unchanged
+FetchService aggregation entry points. The suite passes with 223 tests.
+
+Runtime verification on actual Omarchy 4.0.0-1 with Quickshell 0.3.0:
+`omarchy-restart-shell` loaded the linked checkout into exactly one instance
+(PID 1000776); `shell ping` returned `ok`. The exact recorded repro path — an
+enabled-league change while games were loaded — was exercised repeatedly
+(keyboard NHL toggle off at 2026-08-24 22:28 EDT with live MLB games, a
+favorite change at 08:30, and the NHL re-enable at 08:32 EDT via the watched
+state-file reload). The full fresh-instance log contains zero binding-loop
+warnings; the only warnings were transient league `unavailable` retries on
+the existing isolated recovery path, which recovered by cache-hit.
+
+Honest exercise notes: the blind keyboard sequence partially misfired — one
+stray Return briefly unfavorited Aston Villa (owner noticed, manually
+restored it to six favorites) and NHL remained disabled after the first
+attempt, so it was re-enabled through a direct schema-1 state-file edit that
+the running store reloaded through its supported `watchChanges` path (itself
+an `enabled-leagues-changed` under load). Final persisted state matches the
+owner's intended configuration: six leagues enabled, six favorites, all
+notification preferences unchanged. No state data was lost.
+
+Gates: `./tests/run-js-tests.sh` (223 tests), `./tests/test-summon-helper.sh`,
+`git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file all
+pass with the established standalone import/unqualified-access warnings.
+
+Decision log: break the cycle at the settings-write boundary rather than
+deferring the notification handler or changing the `games` binding, because
+the reassignment was the only synchronous write back into the fetch graph.
+An identity guard is sufficient because settings objects are treated
+immutably everywhere (`SettingsModel` functions return new objects); the
+guard can never skip a real content change. Do not "fix" this by disabling
+the warning, weakening notification gates, or adding timers/deferrals.
+
+Known risks: the identity guard relies on the immutable-settings convention;
+a future mutation of `root.settings` in place would silently skip
+reassignment, so the new source assertion pins the guard. The binding loop
+could only fire when a transition event was actually accepted, so long-run
+absence of the warning is corroborating, not primary, evidence — the source
+diagnosis and deterministic coverage are primary. `competition.md` has no
+backlog line for this reliability fix, so that file is unchanged.
+
+No push, tag, release, or Marketplace action occurred. The unrelated absence
+of `MARKETPLACE_SUBMISSION.md` remains untouched and unstaged.
+
+Next bounded unit: retry the blocked scoring-play live verification
+(`competitions[].details`) during real football minutes — CFB week 0 begins
+Sat Aug 29, NFL week 1 from Thu Sep 10 — strictly observationally as before.
+Outside live minutes, or if the owner directs otherwise, select a slice from
+the `competition.md` decision list instead; do not infer direction.
