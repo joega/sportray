@@ -8,56 +8,66 @@ deviations in `roadmap.md`. Inspect `git status`, the current branch, and recent
 commits. Preserve unrelated user changes, including the absence of
 `MARKETPLACE_SUBMISSION.md`; do not restore or stage it.
 
-Current verified state after the 2026-08-25 MLB StatsAPI second-candidate unit:
+Current verified state after the 2026-08-25 detail presentation cleanup:
 
-- `main` contains the completed and committed local adapter changes in
-  `cb53ded` (`feat: add MLB StatsAPI fallback`). The MLB owner review gate is
-  resolved: MLB terms framing
-  accepted, MLB selected as the first second-candidate league, and explicit
-  team-id translation accepted.
-- `providers/MlbStatsProvider.js` parses the key-free MLB schedule route,
-  translates all 30 MLB StatsAPI team ids to the current ESPN id space, rejects
-  unknown ids, and handles scheduled, live, final, administrative, malformed,
-  and empty/offseason responses. `LeagueCatalog.providerChain('mlb')` is
-  `['espn', 'mlb-stats']`; all other chains are unchanged.
-- `LeagueFetch.qml` has only the new provider URL/parser branches. Response
-  admission remains 2 MiB transport, bounded streamed text, and 256 events;
-  lookahead remains on ESPN. The shared game-link boundary admits `mlb.com`.
-- The deterministic suite passes with 230 tests. Summon-helper tests, plugin
-  validation, real-import-path QML lint, and diff check pass. Actual Omarchy
-  restart/ping/toggle/hide passed with one shell and a clean fresh Sportray log.
-- No forced ESPN failure was injected, so live fallback selection remains
-  fixture-verified rather than runtime-claimed. No owner enabled-league or
-  favorite setting was changed; the current MLB favorite is `mlb:2` (BOS).
-- A pre-existing live-provider drift was observed: current ESPN scoreboard and
-  team-catalog endpoints assign different ids from the checked-in static MLB
-  `EspnTeamCatalog` for ATL, DET, LAA, MIA, MIL, MIN, PHI, SF, STL, and TB.
-  The adapter targets the current live ESPN id space. Do not reconcile that
-  drift, migrate persisted favorites, or alter the static catalog in this unit.
+- `main` contains committed MLB StatsAPI fallback `cb53ded` (`feat: add MLB
+  StatsAPI fallback`). The adapter is fixture-verified for scheduled, live,
+  final, administrative, malformed, and empty/offseason states. MLB's chain is
+  `['espn', 'mlb-stats']`; all other provider chains are unchanged.
+- The deterministic suite has 231 passing tests. Summon-helper checks, plugin
+  validation, real-import-path QML lint, and `git diff --check` pass.
+- `model/Formatters.js` now owns bounded detail-status and detail-timing
+  presentation formatters. `components/GameDetailView.qml` uses them so
+  duplicate labels such as `Scheduled · Scheduled` collapse to `Scheduled`,
+  missing status detail has no trailing `· —`, and absent timing renders as
+  `Timing unavailable` or a clean partial start/end label. No provider,
+  normalized field, polling, settings, notification, or routing behavior
+  changed. The route fixture and deterministic tests cover the new cases.
+- Installed Omarchy `4.0.0-1` and Quickshell `0.3.0` revision
+  `28771c7c74b42e20afca0b1b63980cb46515537` were inspected directly. The
+  current `Panel.settings`, `KeyboardPanel`, `Process`, `SplitParser`, and
+  `StdioCollector` contracts remain the verified host boundaries; no material
+  upstream deviation was found.
+- Actual Omarchy verification after the QML change used one shell instance
+  (`hpznhufckt`, PID 1119365): `shell ping` and the summon helper returned `ok`.
+  The real keyboard path opened the BOS at MIA details card and the inspected
+  render showed one `Scheduled` label and a single start-time line. The fresh
+  log had normal polling and no Sportray exception, QML-load error, or
+  binding-loop warning; the unrelated portal registration warning remains.
+- At 2026-08-25 14:53:54 EDT, ESPN NFL returned 16 events all in `post` state,
+  and ESPN college football returned 25 events all in `pre` state. No event was
+  in progress, so `competitions[].details`, `weather`, and `leaders` were not
+  inspected. No raw payload was stored.
+- A follow-up read-only check at 2026-08-25 15:12:41 EDT returned the same
+  bounded state: 16 NFL `post` events, 25 college-football `pre` events, and
+  zero events in state `in`. No live field shape was inferred or recorded.
+- A third read-only check at 2026-08-25 16:23:31 EDT again returned 16 NFL
+  `post` events and 25 college-football `pre` events, with zero events in
+  state `in`. No `details`, weather, or leaders fields were inspected and no
+  raw payload was retained.
+- Live fallback selection remains fixture-verified only. ESPN/static MLB
+  team-id drift for ATL, DET, LAA, MIA, MIL, MIN, PHI, SF, STL, and TB remains
+  unresolved and must not be changed. The owner's current MLB favorite is
+  `mlb:2` (BOS).
 
-Bounded outcome: perform one observational football-payload verification during
-actual live football minutes only. Fetch only the documented ESPN NFL and
-college-football scoreboard endpoints while at least one event has status `in`.
-Record field names and bounded shape summaries for:
+Bounded outcome: during the next actual live-football minutes, beginning with
+the first CFB week-0 game from 2026-08-29 or NFL week 1 from 2026-09-10,
+perform one read-only observation of the documented ESPN NFL and
+college-football scoreboard payloads. Proceed only if at least one event has
+status state `in`.
+For each live event, inspect bounded shape summaries for:
 
-- `competitions[].details` (scoring-play candidate);
-- `competitions[].weather`; and
-- `competitions[].leaders`, only if any group contains athlete entries.
+- `competitions[].details`;
+- `competitions[].weather`;
+- `competitions[].leaders`, only when a group contains athlete entries.
 
-Do not add an adapter, provider field, endpoint, fetch path, fixture, QML view,
-timer, setting, notification, or catalog migration during this observational
-unit. If `details` is absent during live play, close the scoring-play idea under
-the current single-endpoint boundary. If weather or leaders are absent or
-empty, record that exact result. Do not store raw provider payloads in the
-repository. If no football game is live, record the missed window and stop.
+Do not add or modify providers, parsing, endpoints, polling, settings,
+notifications, catalogs, fixtures, QML, normalized fields, release state, or
+team-id mappings. Do not store raw provider payloads. If no NFL or college
+football game is live, record the missed window in `roadmap.md` and
+`competition.md` if applicable, then stop without inferring field behavior.
 
-Timing: CFB week 0 begins Sat Aug 29, 2026; NFL week 1 begins Thu Sep 10, 2026.
-Outside live-football minutes, do not infer a different feature direction. If
-the owner explicitly selects another `competition.md` slice, stop and obtain
-that direction before editing.
-
-Required checks for the observational outcome, rerun to record the unchanged
-baseline:
+Required checks after the observation:
 
 - `./tests/run-js-tests.sh`
 - `./tests/test-summon-helper.sh`
@@ -65,16 +75,9 @@ baseline:
 - `omarchy plugin validate "$PWD"`
 - `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
 
-No repository QML/service source should change in this unit. If an owner later
-authorizes a different unit that changes QML/service code, use the actual
-Omarchy restart boundary, confirm one shell and `shell ping` -> `ok`, exercise
-the changed behavior, and inspect a fresh log. Do not toggle the owner's
-enabled leagues or favorites for testing.
-
 At the end, append a dated evidence/handoff entry to `roadmap.md`, update the
-matching `competition.md` backlog line if applicable, replace this prompt with
-the next self-contained single-unit prompt, and create one atomic
-Conventional Commit-style commit only when a source-changing unit passes all
-gates. A pure observational result records evidence and creates no success
-commit. Stop before provider fallback injection, catalog identity migration,
-packaging, tagging, pushing, release, or Marketplace work.
+matching `competition.md` backlog line if applicable, and replace this prompt
+with the next self-contained single-unit prompt. A pure observation creates no
+success commit; a source-changing unit is out of scope. Stop before provider
+fallback injection, MLB/static-catalog drift reconciliation, packaging,
+tagging, pushing, release, or Marketplace work.

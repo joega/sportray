@@ -136,6 +136,45 @@ function formatStatus(game) {
   }
 }
 
+function formatDetailStatus(status) {
+  var value = status && typeof status === "object" ? status : {};
+  var state = textOr(value.state, null);
+  var label = "Status unavailable";
+  switch (state) {
+  case "scheduled": label = "Scheduled"; break;
+  case "live": label = "Live"; break;
+  case "intermission": label = "Intermission"; break;
+  case "final": label = "Final"; break;
+  case "postponed": label = "Postponed"; break;
+  case "canceled": label = "Canceled"; break;
+  case "malformed": label = "Data unavailable"; break;
+  case "unknown":
+  case null: label = "Status unavailable"; break;
+  default: label = "Status unavailable"; break;
+  }
+
+  var values = [];
+  [value.detail, value.periodLabel, value.clock].forEach(function(candidate) {
+    var detail = textOr(candidate, null);
+    if (!detail) return;
+    var duplicate = detail.toLowerCase() === label.toLowerCase()
+      || values.some(function(existing) { return existing.toLowerCase() === detail.toLowerCase(); });
+    if (!duplicate) values.push(detail);
+  });
+  return [label].concat(values).join(" · ");
+}
+
+function formatDetailTiming(start, end) {
+  var startText = textOr(start, null);
+  var endText = textOr(end, null);
+  var hasStart = startText && startText !== "—";
+  var hasEnd = endText && endText !== "—";
+  if (hasStart && hasEnd) return "Start " + startText + " · End " + endText;
+  if (hasStart) return "Start " + startText;
+  if (hasEnd) return "End " + endText;
+  return "Timing unavailable";
+}
+
 function formatGameStateLabel(game, options) {
   if (!game || typeof game.status !== "string") return "STATUS UNAVAILABLE";
   var config = options || {};
@@ -294,6 +333,8 @@ if (typeof module !== "undefined" && module.exports) {
     formatScore: formatScore,
     formatPeriodClock: formatPeriodClock,
     formatStatus: formatStatus,
+    formatDetailStatus: formatDetailStatus,
+    formatDetailTiming: formatDetailTiming,
     formatGameStateLabel: formatGameStateLabel,
     formatPanelStatus: formatPanelStatus,
     formatCompactGame: formatCompactGame,

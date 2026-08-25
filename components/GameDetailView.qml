@@ -46,22 +46,6 @@ Item {
     return participant ? root.valueOrDash(participant.score) : "—"
   }
 
-  function stateLabel() {
-    var state = root.detail.status ? root.detail.status.state : null
-    if (!state || state === "unknown") return "Status unavailable"
-    return state.charAt(0).toUpperCase() + state.slice(1)
-  }
-
-  function statusDetailLabel() {
-    var status = root.detail.status || {}
-    var values = []
-    if (status.detail) values.push(status.detail)
-    if (status.periodLabel && values.indexOf(status.periodLabel) === -1)
-      values.push(status.periodLabel)
-    if (status.clock) values.push(status.clock)
-    return values.length > 0 ? values.join(" · ") : "—"
-  }
-
   function timeLabel(value) {
     if (!value) return "—"
     var date = new Date(value)
@@ -391,7 +375,7 @@ Item {
 
           Text {
             width: parent.width
-            text: root.stateLabel() + " · " + root.statusDetailLabel()
+            text: Formatters.formatDetailStatus(root.detail.status)
             color: Color.popups.text
             font.family: Style.font.family
             font.pixelSize: Style.font.body
@@ -401,8 +385,9 @@ Item {
 
           Text {
             width: parent.width
-            text: "Start " + root.timeLabel(root.detail.timing.startTime)
-              + "   ·   End " + root.timeLabel(root.detail.timing.endTime)
+            text: Formatters.formatDetailTiming(
+              root.timeLabel(root.detail.timing.startTime),
+              root.timeLabel(root.detail.timing.endTime))
             color: Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall

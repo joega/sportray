@@ -137,8 +137,19 @@ evidence.
    Scoring-play live verification was attempted 2026-08-24 ~9:00 PM EDT and
    blocked: no football game was in progress (NFL preseason concluded, CFB
    begins Aug 29) and completed-game scoreboards again carried no
-   `competitions[].details`. Retry during CFB week 0 (from Aug 29) or NFL
-   week 1 (from Sep 10); see the roadmap blocked-handoff entry.
+   `competitions[].details`. A second read-only window on 2026-08-25 at
+   14:53 EDT also missed: NFL returned 16 `post` events and college football
+   returned 25 `pre` events, with no event in progress. No `details`, weather,
+   or leaders fields were inspected because the live-minute gate was not met.
+   A follow-up read-only check at 15:12:41 EDT returned the same bounded state
+   (16 NFL `post`, 25 college-football `pre`, zero `in` events), so no live
+   field shape was inferred or recorded.
+   A third read-only check on 2026-08-25 at 16:23 EDT also missed the gate:
+   NFL returned 16 `post` events and college football returned 25 `pre`
+   events, with zero events in state `in`. No `details`, weather, or leaders
+   fields were inspected and no raw payload was retained.
+   Retry during CFB week 0 (from Aug 29) or NFL week 1 (from Sep 10); see the
+   roadmap handoff.
 8. **Broadcast and event links — closed for the current payload boundary.**
    Completed 2026-08-24: the detail view renders at most two labeled links
    (ESPN **Highlights** video page, ESPN **Preview** article) admitted from the

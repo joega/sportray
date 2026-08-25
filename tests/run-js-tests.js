@@ -1459,6 +1459,26 @@ test("formatters keep presentation out of QML", () => {
   assert.equal(formatters.formatStartTime("bad-time"), "Time unavailable");
 });
 
+test("detail status formatting removes duplicate and missing placeholders", () => {
+  assert.equal(formatters.formatDetailStatus({state: "scheduled", detail: "Scheduled"}), "Scheduled");
+  assert.equal(formatters.formatDetailStatus({
+    state: "live", detail: "2nd", periodLabel: "2nd", clock: "08:42"
+  }), "Live · 2nd · 08:42");
+  assert.equal(formatters.formatDetailStatus({state: "final", detail: "Final"}), "Final");
+  assert.equal(formatters.formatDetailStatus({state: "unknown"}), "Status unavailable");
+  assert.equal(formatters.formatDetailTiming("—", "—"), "Timing unavailable");
+  assert.equal(formatters.formatDetailTiming("Aug 14, 3:00 PM", "—"), "Start Aug 14, 3:00 PM");
+  assert.equal(formatters.formatDetailTiming("—", "Aug 14, 5:00 PM"), "End Aug 14, 5:00 PM");
+  assert.equal(formatters.formatDetailTiming("Aug 14, 3:00 PM", "Aug 14, 5:00 PM"),
+    "Start Aug 14, 3:00 PM · End Aug 14, 5:00 PM");
+
+  const detail = readSource("components/GameDetailView.qml");
+  assert.match(detail, /Formatters\.formatDetailStatus\(root\.detail\.status\)/);
+  assert.match(detail, /Formatters\.formatDetailTiming\(/);
+  assert.equal(detail.includes("function stateLabel()"), false);
+  assert.equal(detail.includes("function statusDetailLabel()"), false);
+});
+
 test("scoring period units use sport-aware nouns per league", () => {
   assert.equal(formatters.scoringPeriodUnit("mlb"), "Inning");
   assert.equal(formatters.scoringPeriodUnit("nhl"), "Period");

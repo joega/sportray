@@ -4310,3 +4310,150 @@ NFL week 1 from Thu Sep 10), perform the prepared read-only observation of
 outside those minutes and no owner selects another unit, record the unchanged
 window blocker and stop; do not reconcile the MLB catalog drift, inject a
 provider failure, add detail fields, or change release/publication state.
+
+## Latest handoff — 2026-08-25 football observation missed window
+
+The prepared read-only football observation was attempted once at
+2026-08-25 14:53:54 EDT (18:53:54 UTC). The documented ESPN NFL scoreboard
+endpoint returned 16 events, all with status state `post`; the documented ESPN
+college-football scoreboard endpoint returned 25 events, all with status state
+`pre`. Neither payload contained an event with status state `in`, so the live-
+minutes gate was not met.
+
+No `competitions[].details`, `competitions[].weather`, or populated
+`competitions[].leaders` observation was made. This is intentional: no raw
+provider payload was stored, no field presence was inferred from non-live
+games, and no scoring-play, weather, or leader direction was changed. The
+missed window should be retried during CFB week 0 from 2026-08-29 or NFL week
+1 from 2026-09-10.
+
+The checkout remains at committed MLB StatsAPI fallback `cb53ded` with 230
+deterministic tests. The full suite, summon-helper checks, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and real-import-path QML lint over every QML
+file pass. Installed Omarchy `4.0.0-1` and Quickshell `0.3.0` revision
+`28771c7c74b42e20afca0b1b63980cb46515537` remain the inspected host boundary;
+no upstream deviation was found. No source, fixture, QML, endpoint, setting,
+notification, catalog, fallback, runtime, or release state changed. The
+absence of `MARKETPLACE_SUBMISSION.md` remains untouched.
+
+Known follow-ups remain unchanged: live fallback selection is fixture-verified
+only, current ESPN/static MLB team-id drift must not be reconciled without a
+separate owner-directed unit, and no provider detail fields should be added
+from this missed window. No success commit was created for this pure
+observation/documentation update.
+
+Next bounded unit: during the next actual live-football minutes (first CFB week
+0 game from 2026-08-29, or NFL week 1 from 2026-09-10), repeat one read-only
+observation of `competitions[].details`, `competitions[].weather`, and
+`competitions[].leaders` only while at least one NFL or college-football event
+has status state `in`. If no game is live, record the missed window and stop.
+Do not change providers, catalogs, settings, notifications, polling, QML,
+fixtures, endpoints, release state, or MLB/static-team-id drift.
+
+## Latest handoff — 2026-08-25 football observation recheck
+
+A second same-day read-only check was completed at 2026-08-25 15:12:41 EDT
+(19:12:41 UTC). The documented ESPN NFL scoreboard endpoint again returned 16
+events, all with status state `post`; the documented ESPN college-football
+scoreboard endpoint again returned 25 events, all with status state `pre`.
+There were zero events in state `in`, so the live-minutes gate remained closed.
+
+No `competitions[].details`, `competitions[].weather`, or populated
+`competitions[].leaders` shape was inspected. No raw payload was stored and no
+provider behavior was inferred from this recheck. The required unchanged
+baseline passed: 230 deterministic JavaScript tests, summon-helper tests,
+`git diff --check`, actual-Omarchy `omarchy plugin validate`, and real-import-
+path QML lint over every QML file (exit 0 with established warnings).
+
+No source, fixture, QML, endpoint, setting, notification, catalog, fallback,
+runtime, or release state changed. The unresolved ESPN/static MLB team-id drift
+and fixture-only fallback selection remain unchanged. The next eligible unit is
+the same live-football observation during CFB week 0 from 2026-08-29 or NFL
+week 1 from 2026-09-10; outside those minutes, stop rather than infer fields or
+select an owner-gated release, identity, or provider unit.
+
+## Latest handoff — 2026-08-25 football observation third missed window
+
+A third same-day read-only check was completed at 2026-08-25 16:23:31 EDT
+(20:23:31 UTC). The documented ESPN NFL scoreboard endpoint returned 16 events,
+all with status state `post`; the documented ESPN college-football scoreboard
+endpoint returned 25 events, all with status state `pre`. There were zero events
+in state `in`, so the live-minutes gate remained closed.
+
+No `competitions[].details`, `competitions[].weather`, or populated
+`competitions[].leaders` shape was inspected. No raw payload was stored, no
+provider behavior was inferred from non-live games, and no scoring-play,
+weather, or leader direction changed. Installed Omarchy 4.0.0-1 and Quickshell
+0.3.0 revision `28771c7c74b42e20afca0b1b63980cb46515537` remain the directly
+inspected host boundary with no material deviation.
+
+The unchanged baseline gates remain required after this documentation-only
+observation. No source, fixture, QML, endpoint, setting, notification, catalog,
+fallback, runtime, or release state changed. The unresolved ESPN/static MLB
+team-id drift and fixture-only fallback selection remain unchanged. The
+absence of `MARKETPLACE_SUBMISSION.md` remains untouched and unstaged. No
+success commit is created for this pure observation.
+
+Next bounded unit: during the next actual live-football minutes, beginning with
+the first CFB week-0 game from 2026-08-29 or NFL week 1 from 2026-09-10, perform
+one read-only observation of `competitions[].details`,
+`competitions[].weather`, and `competitions[].leaders` only while at least one
+ESPN NFL or college-football event has status state `in`. If no game is live,
+record the missed window and stop. Do not change providers, parsing,
+endpoints, polling, settings, notifications, catalogs, fixtures, QML,
+normalized fields, release state, fallback behavior, or MLB/static-team-id
+drift.
+
+## Latest handoff — 2026-08-25 detail presentation cleanup
+
+Status: complete. This bounded presentation slice removes duplicate and empty
+status/timing labels from the local game-details card without changing
+providers, normalized fields, routing, polling, settings, or notifications.
+
+Evidence:
+
+- `model/Formatters.js` now owns `formatDetailStatus(status)`, which suppresses
+  case-insensitive duplicates across the state, detail, period, and clock
+  values. `Scheduled · Scheduled` now renders as `Scheduled`, and missing
+  status detail no longer produces a trailing `· —`.
+- `formatDetailTiming(start, end)` renders complete timing, start-only, or
+  end-only labels and uses `Timing unavailable` when both values are absent.
+  `components/GameDetailView.qml` consumes both pure presentation formatters;
+  provider parsing and the normalized detail model remain unchanged.
+- The game-detail route fixture now keeps sparse-placeholder assertions at the
+  QML wiring boundary, while the deterministic formatter test covers scheduled,
+  live duplicate-period, final duplicate-detail, unknown, complete timing,
+  partial timing, and missing timing cases. The suite passes with 231 tests.
+- Required checks pass: `./tests/run-js-tests.sh`,
+  `./tests/test-summon-helper.sh`, `git diff --check`,
+  `omarchy plugin validate "$PWD"`, and real-import-path QML lint over every
+  QML file (exit 0 with the established standalone warnings).
+- Actual Omarchy 4.0.0-1 with Quickshell 0.3.0 was restarted into one shell
+  instance (`hpznhufckt`, PID 1119365); `shell ping` returned `ok` and the
+  summon helper returned `ok`. The real keyboard path opened the BOS at MIA
+  details card and the inspected render showed one `Scheduled` label and a
+  single start-time line. The fresh log contains normal Sportray polling and
+  no Sportray exception, QML-load error, or binding-loop warning; only the
+  pre-existing unrelated portal registration warning remains.
+
+Decision log: keep these strings in the shared formatter layer so every detail
+view state is deduplicated consistently while QML remains a projection-only
+view. Treat a missing end time as partial timing rather than an error, and use
+one neutral `Timing unavailable` label only when neither endpoint exists.
+
+Known risks and follow-ups remain unchanged: live football verification of
+`competitions[].details`, weather, and populated leaders still requires an
+actual event in state `in`; live fallback selection remains fixture-verified
+only; and the ESPN/static MLB team-id drift remains unresolved and must not be
+changed in the live-observation unit. The absence of
+`MARKETPLACE_SUBMISSION.md` remains untouched and unstaged. No push, tag,
+release, or Marketplace action occurred.
+
+Next bounded unit: during the next actual live-football minutes, beginning with
+the first CFB week-0 game from 2026-08-29 or NFL week 1 from 2026-09-10,
+perform one read-only observation of the documented ESPN NFL and
+college-football scoreboard payloads only while at least one event has status
+state `in`. Inspect bounded shapes for `competitions[].details`, weather, and
+populated leaders. If no game is live, record the missed window and stop; do
+not add provider fields or change catalogs, settings, polling, notifications,
+fixtures, QML, normalized fields, fallback behavior, or release state.
