@@ -4275,6 +4275,8 @@ Evidence:
   or binding-loop warning. The unrelated portal registration warning remains.
   No forced ESPN failure was injected, so live fallback selection itself is
   fixture-verified rather than runtime-claimed.
+- The completed source unit is committed as `cb53ded` (`feat: add MLB StatsAPI
+  fallback`).
 
 Decision log: retain ESPN as MLB's primary provider and append StatsAPI as the
 second candidate so existing behavior changes only after the primary provider

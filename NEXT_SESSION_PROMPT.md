@@ -10,8 +10,9 @@ commits. Preserve unrelated user changes, including the absence of
 
 Current verified state after the 2026-08-25 MLB StatsAPI second-candidate unit:
 
-- `main` has the completed local adapter changes but they are not yet committed
-  in this work unit. The MLB owner review gate is resolved: MLB terms framing
+- `main` contains the completed and committed local adapter changes in
+  `cb53ded` (`feat: add MLB StatsAPI fallback`). The MLB owner review gate is
+  resolved: MLB terms framing
   accepted, MLB selected as the first second-candidate league, and explicit
   team-id translation accepted.
 - `providers/MlbStatsProvider.js` parses the key-free MLB schedule route,
