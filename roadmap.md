@@ -4121,3 +4121,111 @@ verification: `competitions[].details` (scoring plays) and
 carries athlete entries. Outside live minutes, or on owner direction,
 select another `competition.md` decision-list slice instead; do not infer
 direction.
+
+## Second-provider candidate reconnaissance — 2026-08-25
+
+Status: complete as a read-only reconnaissance unit. The owner selected the
+P1-4 provider reconnaissance slice (outside live-football minutes). No
+Sportray production source changed; `providerChain()` still has exactly one
+candidate per league. This entry records the owner-review evidence that
+gates any later second-adapter work.
+
+Candidate A — MLB StatsAPI
+(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=YYYY-MM-DD&hydrate=team,linescore`):
+
+- Verified live 2026-08-25: 15 MLB games today (all `Preview`), and the
+  2026-08-24 slate (all `Final`) carries `teams.away/home.score` plus a
+  `linescore` with `currentInningOrdinal`, `inningState`, and per-side
+  `runs`. Bounded shape: `dates[].games[]` entries carry `gamePk`, ISO-8601
+  UTC `gameDate`, `status.{abstractGameState, detailedState,
+  codedGameState, startTimeTBD}`, `teams.away/home.{team.{id, name,
+  abbreviation}, score}`, `venue.name`, and the optional `linescore` — a
+  clean match for the normalized `GameModel` contract and the existing
+  bounded parse pattern.
+- Transport/reliability: plain unauthenticated GET with no key or
+  User-Agent requirement, open CORS, ~47 KB JSON for a 15-game day (far
+  under the 2 MiB admission bound), Fastly CDN with `cache-control:
+  max-age=20, public, stale-while-revalidate=30, stale-if-error=86400` — a
+  bounded-polling tolerance signal stronger than ESPN's `max-age=1`. No
+  rate-limit headers are published; community guidance is cache and backoff.
+- Terms (the gate): every payload embeds a copyright pointer to
+  `gdx.mlb.com/components/copyright.txt` — "Only individual, non-commercial,
+  non-bulk use of the Materials is permitted and any other use of the
+  Materials is prohibited without prior written authorization from MLBAM."
+  The general MLB.com terms (last updated 2025-03-11) permit personal
+  non-commercial single-copy use and prohibit redistribution/derivative
+  works without written permission; the API is officially undocumented and
+  partner-gated. Whether a personal, no-account, attribution-preserving bar
+  widget making roughly one request per bounded polling cadence fits
+  "individual, non-commercial, non-bulk use" is an owner legal
+  determination, not an engineering one.
+- Identity: MLB StatsAPI team ids differ from ESPN ids (Tigers 116 vs 3), so
+  canonical `mlb:<providerTeamId>` favorites would change identity on a
+  provider switch unless the adapter translates; both payloads carry team
+  abbreviations (`TB`, `DET`) usable as a join key against the existing
+  `EspnTeamCatalog`.
+- Region: reachable from this US machine; other regions were not verifiable
+  from here.
+
+Candidate B — ESPN NHL scoreboard
+(`https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard`):
+
+- Verified live 2026-08-25 via dated queries (20260110: 14 events; 20260115:
+  10 events including Utah as ESPN id `129764`): the
+  event/competition/competitor shape is the same family the verified
+  `EspnProvider` adapter already parses for the seven ESPN-backed leagues,
+  on the already-reviewed host. No new third-party terms, endpoint family,
+  or auth requirement would be introduced.
+- Identity blocker: ESPN NHL team ids do not match the NHL.com ids in
+  `NhlTeamCatalog` (BOS 1 vs 6, NYR 13 vs 3, TOR 21 vs 10, UTA 129764 vs
+  68, SEA 124292 vs 55), and tri-code conventions differ (`TB` vs `TBL`,
+  `SJ` vs `SJS`, `LA` vs `LAK`). A provider switch would break canonical
+  `nhl:<id>` favorite identity unless the adapter gains an explicit 32-team
+  ESPN-id↔NHL-id translation map; a naive abbreviation string join cannot
+  work.
+- Transport matches the existing ESPN endpoints (`cache-control:
+  max-age=1`, no rate-limit headers). The current offseason query returns
+  zero events — the same safe empty state the ESPN standings adapter
+  already handles.
+
+Owner review required before any adapter work (the P1-4 gate): (1) accept
+or reject the MLB StatsAPI terms framing for Sportray's personal
+non-commercial use; (2) choose the first second-candidate league (MLB via
+StatsAPI, or NHL via ESPN); (3) accept the explicit id-translation
+requirement so canonical favorite identities survive provider switches.
+
+Evidence: gates rerun to record the unchanged baseline —
+`./tests/run-js-tests.sh` passes with 226 deterministic tests,
+`./tests/test-summon-helper.sh` passes, `git diff --check` passes,
+`omarchy plugin validate "$PWD"` exits 0, and real-import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
+exits 0 with the established standalone warnings. No QML or provider source
+changed, so no shell restart, rescan, or fresh-log claim is made. The
+unrelated absence of `MARKETPLACE_SUBMISSION.md` remains untouched. No push,
+tag, release, or Marketplace action occurred.
+
+Decision log: keep the reconnaissance strictly read-only — no adapter, no
+`providerChain()` change, no fixture — until the owner answers the three
+review questions. Record the MLB terms near-verbatim rather than summarizing
+them away, and treat the ESPN-NHL identity translation as a mandatory part
+of any later unit, because canonical favorite identity is a persisted
+product contract. The ESPN-NHL candidate's zero-new-terms advantage is
+real, but it cannot be adopted without the translation map.
+
+Known risks: both APIs are undocumented site APIs that may change without
+notice; the MLB terms determination is owner-owned legal review; region
+coverage outside the US is unverified; and the reconnaissance observed no
+live in-progress MLB game state today (evening slate was all `Preview`), so
+the live-state field variety (for example `abstractGameState: "Live"`) was
+not directly observed from the schedule endpoint this session — the status
+vocabulary is documented by the same endpoint family's Final/Preview states
+and would be pinned by fixtures in any adapter unit.
+
+Next bounded unit: on the owner's answers to the three review questions,
+implement the first second-candidate adapter as one bounded vertical slice
+(provider parsing in `providers/`, the explicit id translation table,
+fixture coverage including live-state variants, `providerChain()` gaining
+its second candidate, bounded polling unchanged). Without owner answers,
+the standing live-football observational verification
+(`competitions[].details`, weather, leaders) remains the prepared unit for
+the CFB week-0 window from Sat Aug 29; do not infer direction.

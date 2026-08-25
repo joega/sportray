@@ -101,6 +101,17 @@ evidence.
    Live multi-provider fallback requires a second reviewed adapter (for
    example an MLB or NHL alternative source) and remains open until that
    provider's terms, reliability, and response shape are verified.
+   Candidate reconnaissance completed 2026-08-25 (owner-selected unit):
+   MLB StatsAPI (`statsapi.mlb.com/api/v1/schedule`, key-free,
+   Fastly-cached with `max-age=20`/`stale-if-error=86400`, shape-compatible
+   with the normalized game model) is gated on the owner's read of MLB's
+   "individual, non-commercial, non-bulk use" terms; ESPN's NHL scoreboard
+   introduces no new terms but requires an explicit 32-team
+   ESPN↔NHL.com id-translation map because team ids and tri-code
+   conventions differ (a provider switch would otherwise break persisted
+   `nhl:<id>` favorite identity). Three owner review questions are recorded
+   in the roadmap handoff — terms acceptance, first league choice, and the
+   translation requirement — and must be answered before any adapter work.
 5. **Broader team discovery — closed.** The favorite picker discovers teams
    across all eight leagues from the bounded static catalogs: queries match
    league display names (e.g. "premier", "college"), direct hits rank above
@@ -185,9 +196,12 @@ Remaining candidate slices:
    ESPN Highlights/Preview pages rendered beside the labeled source action;
    streams remain out of scope without a verified new source.
 3. **A second verified provider adapter for live multi-provider fallback**
-   (P1-4 remainder): requires an explicit provider review (terms, region,
-   reliability, response shape) before `providerChain()` gains a second
-   candidate for any league.
+   (P1-4 remainder): candidate reconnaissance completed 2026-08-25 — MLB
+   StatsAPI and ESPN's NHL scoreboard are both verified shape-compatible
+   (see the roadmap handoff). Blocked on the owner's review answers: MLB
+   terms acceptance, first-league choice, and the explicit id-translation
+   requirement. No `providerChain()` second candidate until the owner
+   approves.
 4. **Richer detail sections** (P0-1 remainder / P2-7): the baseball situation
    projection completed 2026-08-24 from already normalized data with no second
    endpoint, and the runtime detail path was wired through the same enriched
