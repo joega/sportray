@@ -2105,6 +2105,25 @@ test("game detail back and Escape close only the local detail route first", () =
   assert.match(detail, /function activateCursor\(\)/);
 });
 
+test("game detail hides internal game ids and scrolls within the panel bounds", () => {
+  const detail = readSource("components/GameDetailView.qml");
+
+  assert.equal(detail.includes("root.detail.id"), false);
+  assert.equal(detail.includes("gameIdLabel"), false);
+  assert.equal((detail.match(/root\.detail\.providerGameId/g) || []).length, 0);
+  assert.match(detail, /text: root\.teamLabel\(root\.detail\.participants\[0\]\) \+ " at "/);
+
+  assert.match(detail, /Flickable \{/);
+  assert.match(detail, /id: detailScroll/);
+  assert.match(detail, /contentHeight: detailColumn\.implicitHeight/);
+  assert.match(detail, /clip: true/);
+  assert.match(detail, /interactive: contentHeight > height/);
+  assert.match(detail, /ScrollBar\.vertical/);
+  assert.match(detail, /function ensureVisible\(item\)/);
+  assert.match(detail, /root\.ensureVisible\(target\)/);
+  assert.match(detail, /detailScroll\.contentY = 0/);
+});
+
 test("NHL next-game lookup uses the schedule endpoint and keeps normalized games", () => {
   assert.equal(nhl.buildNextGamesUrl("2026-10-01"),
     "https://api-web.nhle.com/v1/schedule/2026-10-01");

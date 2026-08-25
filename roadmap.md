@@ -3992,3 +3992,72 @@ verification: `competitions[].details` (scoring plays) and
 carries athlete entries. Outside live minutes, or on owner direction,
 select another `competition.md` decision-list slice instead; do not infer
 direction.
+
+## Latest handoff — 2026-08-25 game-detail bounds and ID removal
+
+Status: complete. The owner reported two game-details defects after the odds
+slice: the detail content overflowed the panel's bottom boundary, and
+internal game IDs (`usa.1:761758`, `#761758`) were visible to end users.
+Both are fixed in one bounded presentation unit; no provider, model,
+settings, polling, or routing behavior changed.
+
+Evidence:
+
+- `components/GameDetailView.qml` no longer renders `detail.id` or
+  `providerGameId` anywhere: the card's internal-ID row is removed and the
+  header title is now the human matchup (`AWAY at HOME`) above the existing
+  league·source subtitle. This restores the earlier "do not expose internal
+  canonical IDs in a presentation surface" decision that the drill-down
+  remount had regressed.
+- The detail content is now hosted in a clipped `Flickable`
+  (`contentHeight: detailColumn.implicitHeight`, vertical-only, interactive
+  only when content exceeds the available height, `ScrollBar.AsNeeded`
+  following the settings `utilityScroll` pattern), so the bounded panel
+  height (320–600) can never be overflowed — taller content scrolls instead.
+  Cursor movement scrolls the focused Back/source/link target into view via
+  a bounded `ensureVisible` clamp, `resetCursor` returns to the top, and
+  wheel scrolling follows the Flickable. The panel's height request still
+  uses the full `implicitHeight` clamped to the same bounds.
+- A new deterministic test asserts the ID removal (no `root.detail.id`, no
+  `gameIdLabel`, zero `providerGameId` renders, matchup header), the
+  Flickable/clip/interactive/scrollbar boundary, `ensureVisible`, and the
+  reset-to-top behavior. The suite passes with 225 tests.
+- `./tests/run-js-tests.sh` (225 tests), `./tests/test-summon-helper.sh`,
+  `git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over all QML files
+  pass with the established standalone warnings.
+- Runtime verification on actual Omarchy 4.0.0-1 with Quickshell 0.3.0:
+  `omarchy-restart-shell` loaded the linked checkout into exactly one
+  instance (PID 1034334); `shell ping` returned `ok`. Through the real
+  keyboard path, the NFL Aug 29 slate's drill-down (`nfl` DET @ IND)
+  rendered `Back · GAME DETAILS / DET at IND / NFL · ESPN` with no internal
+  IDs, the content clipped exactly at the panel's bottom boundary, and
+  Down-scroll brought the bottom content into view inside the panel: TEAM
+  STATS, `ODDS — IND -3.5 · O/U 35.5 — DraftKings`, and the focused ESPN
+  source action. Escape, `T`, and panel close completed the route. The fresh
+  log has normal provider activity, zero binding-loop warnings, and no
+  Sportray error or exception; only the pre-existing unrelated portal
+  registration warning remains.
+
+Decision log: fix the overflow by making the content scroll within the
+existing bounded height rather than raising the bound, because the owner
+asked for content that fits with scrolling; the settings surface already
+uses the identical Flickable pattern. Keep the matchup as the header title
+and drop both ID renderings; canonical/provider IDs remain internal model
+identity only. Cursor-follow scrolling keeps the keyboard route usable
+without a pointer.
+
+Known risks: very dense live games (situation + lines + stats + odds) will
+require scrolling on small panels, which is the intended bounded trade; the
+pointer wheel path shares the same Flickable and was not separately
+exercised (keyboard was used). The unrelated absence of
+`MARKETPLACE_SUBMISSION.md` remains untouched and unstaged. No push, tag,
+release, or Marketplace action occurred.
+
+Next bounded unit: during the live-football window (CFB week 0 from Sat
+Aug 29; NFL week 1 from Thu Sep 10), perform one combined observational
+verification: `competitions[].details` (scoring plays) and
+`competitions[].weather` presence/shape, plus `leaders` if any payload
+carries athlete entries. Outside live minutes, or on owner direction,
+select another `competition.md` decision-list slice instead; do not infer
+direction.

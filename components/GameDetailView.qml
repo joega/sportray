@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import QtQuick.Controls as QQC
 import qs.Commons
 import qs.Ui
 import "../model/GameDetailModel.js" as GameDetailModel
@@ -143,14 +144,33 @@ Item {
     root.focusCursor()
   }
 
+  function ensureVisible(item) {
+    if (!item) return
+    var top = item.mapToItem(detailScroll, 0, 0).y
+    var bottom = top + item.height
+    if (top < 0)
+      detailScroll.contentY = Math.max(0, detailScroll.contentY + top)
+    else if (bottom > detailScroll.height)
+      detailScroll.contentY = Math.max(0,
+        Math.min(detailScroll.contentHeight - detailScroll.height,
+          detailScroll.contentY + bottom - detailScroll.height))
+  }
+
   function focusCursor() {
     root.deferFocus(function() {
-      if (root.cursorIndex === 0) backButton.forceActiveFocus()
-      else if (root.sourceAvailable && root.cursorIndex === 1) sourceLink.focusAction()
-      else {
-        var button = extraLinkButtons.itemAt(root.cursorIndex - root.linkCursorOffset)
-        if (button) button.forceActiveFocus()
+      var target = null
+      if (root.cursorIndex === 0) {
+        target = backButton
+        target.forceActiveFocus()
+      } else if (root.sourceAvailable && root.cursorIndex === 1) {
+        target = sourceLink
+        target.focusAction()
+      } else {
+        target = extraLinkButtons.itemAt(root.cursorIndex - root.linkCursorOffset)
+        if (target) target.forceActiveFocus()
       }
+      if (!target) return
+      root.ensureVisible(target)
     })
   }
 
@@ -163,6 +183,7 @@ Item {
 
   function resetCursor() {
     root.cursorIndex = 0
+    detailScroll.contentY = 0
     root.focusCursor()
   }
 
@@ -179,54 +200,76 @@ Item {
     + " at " + root.teamLabel(root.detail.participants[1])
   Accessible.role: Accessible.StaticText
 
+  Flickable {
+    id: detailScroll
+    anchors.fill: parent
+    contentWidth: width
+    contentHeight: detailColumn.implicitHeight
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    flickableDirection: Flickable.VerticalFlick
+    interactive: contentHeight > height
+    QQC.ScrollBar.vertical: QQC.ScrollBar { policy: QQC.ScrollBar.AsNeeded }
+
   Column {
     id: detailColumn
-    width: parent.width
+    width: detailScroll.width
     spacing: Style.spacing.md
 
-    Row {
-      width: parent.width
-      spacing: Style.spacing.sm
-
-      SemanticActionButton {
-        id: backButton
-        text: "Back"
-        tooltipText: "Return to scores"
-        textBold: true
-        textFontSize: Style.font.bodySmall
-        textVerticalPadding: Style.spacing.xs
-        bordered: true
-        focusable: true
-        hasCursor: root.cursorIndex === 0
-        onClicked: root.backRequested()
-        Accessible.name: "Back to scores"
-        Accessible.role: Accessible.Button
-      }
-
-      Column {
-        width: parent.width - backButton.implicitWidth - parent.spacing
-        spacing: Style.spacing.xxs
-
-        Text {
+        Row {
           width: parent.width
-          text: "GAME DETAILS"
-          color: Color.accent
-          font.family: Style.font.family
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
+          spacing: Style.spacing.sm
 
-        Text {
-          width: parent.width
-          text: root.valueOrDash(root.detail.league).toUpperCase()
-            + " · " + root.valueOrDash(root.detail.source.label)
-          color: Color.muted
-          font.family: Style.font.family
-          font.pixelSize: Style.font.bodySmall
-          elide: Text.ElideRight
+          SemanticActionButton {
+            id: backButton
+            text: "Back"
+            tooltipText: "Return to scores"
+            textBold: true
+            textFontSize: Style.font.bodySmall
+            textVerticalPadding: Style.spacing.xs
+            bordered: true
+            focusable: true
+            hasCursor: root.cursorIndex === 0
+            onClicked: root.backRequested()
+            Accessible.name: "Back to scores"
+            Accessible.role: Accessible.Button
+          }
+
+          Column {
+            width: parent.width - backButton.implicitWidth - parent.spacing
+            spacing: Style.spacing.xxs
+
+            Text {
+              width: parent.width
+              text: "GAME DETAILS"
+              color: Color.accent
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+
+            Text {
+              width: parent.width
+              text: root.teamLabel(root.detail.participants[0]) + " at "
+                + root.teamLabel(root.detail.participants[1])
+              color: Color.popups.text
+              font.family: Style.font.family
+              font.pixelSize: Style.font.subtitle
+              font.bold: true
+              elide: Text.ElideRight
+            }
+
+            Text {
+              width: parent.width
+              text: root.valueOrDash(root.detail.league).toUpperCase()
+                + " · " + root.valueOrDash(root.detail.source.label)
+              color: Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              elide: Text.ElideRight
+            }
+          }
         }
-      }
-    }
 
     BorderSurface {
       width: parent.width
@@ -240,29 +283,6 @@ Item {
         anchors.fill: parent
         anchors.margins: Style.spacing.lg
         spacing: Style.spacing.md
-
-        Row {
-          width: parent.width
-          spacing: Style.spacing.sm
-
-          Text {
-            width: parent.width - gameIdLabel.implicitWidth - parent.spacing
-            text: root.valueOrDash(root.detail.id)
-            color: Color.popups.text
-            font.family: Style.font.family
-            font.pixelSize: Style.font.subtitle
-            font.bold: true
-            elide: Text.ElideRight
-          }
-
-          Text {
-            id: gameIdLabel
-            text: root.detail.providerGameId ? "#" + root.detail.providerGameId : "#—"
-            color: Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-          }
-        }
 
         Column {
           width: parent.width
@@ -730,5 +750,6 @@ Item {
         }
       }
     }
+  }
   }
 }
