@@ -56,7 +56,7 @@ function eventFor(game, startTimeMs, nowMs) {
   };
 }
 
-function eligibleEvents(games, settings, now, todayDate) {
+function eligibleEvents(games, settings, now, todayDate, watches) {
   var source = Array.isArray(games) ? games : [];
   var nowMs = integer(now) && now >= 0 ? now : Date.now();
   var todayDateKey = typeof todayDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(todayDate)
@@ -64,14 +64,14 @@ function eligibleEvents(games, settings, now, todayDate) {
   var notifications = notificationsFor(settings);
   if (!notifications.enabled || !notifications.pregameReminder) return [];
 
-  var favorites = favoriteTeamIds(settings);
   var seen = Object.create(null);
   var events = [];
   for (var i = 0; i < source.length; i++) {
     var game = source[i];
     if (!isRecord(game) || game.isValid !== true || typeof game.id !== "string"
         || !game.id.trim() || seen[game.id] || game.status !== "scheduled"
-        || !isFavorite(game, favorites) || typeof game.startTime !== "string") continue;
+        || !(isFavorite(game, favoriteTeamIds(settings)) || isActiveWatch(game, watches, nowMs))
+        || typeof game.startTime !== "string") continue;
 
     var startTimeMs = Date.parse(game.startTime);
     if (!isFinite(startTimeMs) || startTimeMs <= nowMs
@@ -82,6 +82,26 @@ function eligibleEvents(games, settings, now, todayDate) {
     events.push(eventFor(game, startTimeMs, nowMs));
   }
   return events;
+}
+
+function isActiveWatch(game, watches, currentTime) {
+  if (!isRecord(game) || game.isValid !== true || typeof game.id !== "string"
+      || !Array.isArray(watches)) return false;
+  var gameId = game.id.trim().toLowerCase();
+  var nowMs = integer(currentTime) && currentTime >= 0 ? currentTime : Date.now();
+  for (var i = 0; i < watches.length; i++) {
+    var watch = watches[i];
+    if (!isRecord(watch) || watch.status !== "active"
+        || typeof watch.gameId !== "string" || typeof watch.league !== "string"
+        || typeof watch.providerGameId !== "string" || typeof watch.expiresAt !== "string") continue;
+    var watchId = watch.gameId.trim().toLowerCase();
+    var league = watch.league.trim().toLowerCase();
+    var providerGameId = watch.providerGameId.trim().toLowerCase();
+    var expiresAt = Date.parse(watch.expiresAt);
+    if (watchId === gameId && watchId === league + ":" + providerGameId
+        && isFinite(expiresAt) && expiresAt > nowMs) return true;
+  }
+  return false;
 }
 
 if (typeof module !== "undefined" && module.exports) {

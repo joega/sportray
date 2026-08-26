@@ -1,0 +1,49 @@
+{
+  "now": "2026-10-08T14:00:00Z",
+  "settings": {
+    "favoriteTeamIds": ["nhl:6"],
+    "notifications": {
+      "enabled": true,
+      "gameStart": true,
+      "scoreChange": true,
+      "gameFinal": true,
+      "pregameReminder": true,
+      "closeGame": true
+    }
+  },
+  "watchOnly": {
+    "league": "nhl",
+    "providerGameId": "w2-watch-only",
+    "status": "live",
+    "startTime": "2026-10-08T13:00:00Z",
+    "awayTeam": {"id": "nhl:10", "league": "nhl", "providerTeamId": "10", "abbreviation": "FLA"},
+    "homeTeam": {"id": "nhl:24", "league": "nhl", "providerTeamId": "24", "abbreviation": "ANA"},
+    "awayScore": 2,
+    "homeScore": 1
+  },
+  "activeWatch": {
+    "gameId": "nhl:w2-watch-only",
+    "league": "nhl",
+    "providerGameId": "w2-watch-only",
+    "startTime": "2026-10-08T13:00:00Z",
+    "createdAt": "2026-10-08T12:00:00Z",
+    "expiresAt": "2026-11-07T12:00:00Z",
+    "status": "active"
+  },
+  "expiredWatch": {
+    "gameId": "nhl:w2-watch-only",
+    "league": "nhl",
+    "providerGameId": "w2-watch-only",
+    "startTime": "2026-10-08T13:00:00Z",
+    "createdAt": "2026-09-01T12:00:00Z",
+    "expiresAt": "2026-10-08T13:59:59Z",
+    "status": "active"
+  },
+  "malformedWatch": {
+    "gameId": "nhl:w2-watch-only",
+    "league": "nhl",
+    "providerGameId": "different-id",
+    "expiresAt": "2026-11-07T12:00:00Z",
+    "status": "active"
+  }
+}

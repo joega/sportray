@@ -73,11 +73,10 @@ function eventFor(game) {
 // Admit only a transition into a one-score-or-tied in-progress game. The
 // previous snapshot is required so a startup snapshot cannot replay an alert;
 // first-fetch suppression remains owned by NotificationService.
-function eligibleEvents(previousGames, currentGames, settings, todayDate) {
+function eligibleEvents(previousGames, currentGames, settings, todayDate, watches, currentTime) {
   var notifications = notificationSettings(settings);
   if (!notifications.enabled || !notifications.closeGame) return [];
 
-  var favorites = favoriteTeamIds(settings);
   var previous = Array.isArray(previousGames) ? previousGames : [];
   var current = Array.isArray(currentGames) ? currentGames : [];
   var dateKey = typeof todayDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(todayDate)
@@ -89,7 +88,8 @@ function eligibleEvents(previousGames, currentGames, settings, todayDate) {
   for (var i = 0; i < current.length; i++) {
     var game = current[i];
     if (!validIdentity(game) || seen[game.id] || !isClose(game)
-        || !isFavorite(game, favorites) || typeof game.startTime !== "string") continue;
+        || !(isFavorite(game, favoriteTeamIds(settings)) || isActiveWatch(game, watches, currentTime))
+        || typeof game.startTime !== "string") continue;
 
     var startTimeMs = Date.parse(game.startTime);
     if (!isFinite(startTimeMs) || localDateKey(startTimeMs) !== dateKey) continue;
@@ -107,6 +107,27 @@ function eligibleEvents(previousGames, currentGames, settings, todayDate) {
     events.push(eventFor(game));
   }
   return events;
+}
+
+function isActiveWatch(game, watches, currentTime) {
+  if (!isRecord(game) || game.isValid !== true || typeof game.id !== "string"
+      || !Array.isArray(watches)) return false;
+  var gameId = game.id.trim().toLowerCase();
+  var now = typeof currentTime === "number" && isFinite(currentTime) && currentTime >= 0
+    ? currentTime : Date.now();
+  for (var i = 0; i < watches.length; i++) {
+    var watch = watches[i];
+    if (!isRecord(watch) || watch.status !== "active"
+        || typeof watch.gameId !== "string" || typeof watch.league !== "string"
+        || typeof watch.providerGameId !== "string" || typeof watch.expiresAt !== "string") continue;
+    var watchId = watch.gameId.trim().toLowerCase();
+    var league = watch.league.trim().toLowerCase();
+    var providerGameId = watch.providerGameId.trim().toLowerCase();
+    var expiresAt = Date.parse(watch.expiresAt);
+    if (watchId === gameId && watchId === league + ":" + providerGameId
+        && isFinite(expiresAt) && expiresAt > now) return true;
+  }
+  return false;
 }
 
 if (typeof module !== "undefined" && module.exports) {

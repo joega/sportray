@@ -53,19 +53,19 @@ Item {
     var events = TransitionDetector.detectGames(previous, current).concat(
       PregameReminderPolicy.eligibleEvents(
         current, root.settingsStore.settings, nowMs,
-        DateModel.localDateKey(new Date(nowMs)))
+        DateModel.localDateKey(new Date(nowMs)), root.settingsStore.watchedGames)
     ).concat(
       CloseGamePolicy.eligibleEvents(
         previous, current, root.settingsStore.settings,
-        DateModel.localDateKey(new Date(nowMs)))
+        DateModel.localDateKey(new Date(nowMs)), root.settingsStore.watchedGames, nowMs)
     )
     if (events.length === 0 || typeof root.settingsStore.acceptTransitionEvents !== "function") return
 
     var deliveries = NotificationModel.buildDeliveries(
-      events, current, root.settingsStore.settings)
+      events, current, root.settingsStore.settings, root.settingsStore.watchedGames, nowMs)
     if (deliveries.length === 0) return
 
-    // Accept only events that pass favorite and preference gating. The store
+    // Accept only events that pass favorite/watch and preference gating. The store
     // persists these fingerprints before the helper is launched, so a helper
     // failure cannot corrupt state or cause an unbounded retry loop.
     var accepted = root.settingsStore.acceptTransitionEvents(

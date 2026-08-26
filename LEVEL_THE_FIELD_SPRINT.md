@@ -502,9 +502,26 @@ admission.
 
 #### W2 — Notification admission
 
+Status: **complete — 2026-08-25**
+
 - Extend pure notification, reminder, and close-game admission.
 - Cover favorite-only, watch-only, both, removed, expired, malformed, restart,
   and disabled-notification cases.
+
+Implemented evidence: the existing normalized notification pipeline now admits
+an event when its game matches a favorite team or a bounded active watch. The
+same predicate is applied to transition deliveries, pregame reminders, and
+close-game admission; expired, removed, malformed, and absent watches fail
+closed. Event preferences, global notification enablement, first-fetch silence,
+and persistent transition fingerprints remain authoritative, so favorite/watch
+overlap produces one delivery. Calendar schedule hydration is not connected to
+the notification service.
+
+Fixture evidence covers favorite-only, watch-only, overlap, removed, expired,
+malformed, restart-loaded active watches, disabled global notification state,
+pregame and close-game watch admission, and calendar non-admission. No UI,
+provider parsing, fetching, polling, watch mutation, or new notification type
+was added.
 
 #### W3 — Watch UI and runtime
 

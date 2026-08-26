@@ -4918,6 +4918,43 @@ calendar behavior without changing its public contract.
 
 Next bounded unit: **W2 — Notification admission** only.
 
+## Latest handoff — 2026-08-25 W2 notification admission complete
+
+Status: complete. W2 extends the existing pure notification admission path so
+favorite-team alerts and active explicit watches share one bounded
+favorite-or-watch gate. Transition deliveries, pregame reminders, and
+close-game admission all use the persisted `watchedGames` projection. A watch
+must be active, canonical (`<league>:<providerGameId>`), and unexpired at the
+admission timestamp; malformed, removed, expired, or absent watches fail
+closed. Favorite admission remains independent, so removing a watch does not
+silence a favorite-team alert.
+
+The existing global and per-event notification settings remain authoritative.
+First-fetch suppression remains in `NotificationService`; transition
+fingerprints remain owned by the existing persistent dedupe state, so a game
+matching both favorite and watch criteria produces one delivery. Calendar
+hydration has no notification-service connection. The installed Omarchy
+notification helper was inspected directly; its existing positional
+argument-array boundary remains unchanged.
+
+Fixture evidence covers favorite-only, watch-only, overlap without duplicate
+delivery, removed, expired, malformed, restart-safe active watch, disabled
+global/event settings, first-fetch silence, pregame, close-game, and no
+calendar-hydration admission. No UI, provider parsing, fetching, polling,
+watch mutation, or new notification type changed.
+
+Validation: `./tests/run-js-tests.sh` passes with 249 deterministic tests;
+`./tests/test-summon-helper.sh` passes; `git diff --check` passes;
+`omarchy plugin validate "$PWD"` passes; and
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` exits 0 over all QML
+files with the established standalone import/unqualified-access warnings.
+Actual Omarchy runtime exercise was not required because no QML wiring or
+host-boundary behavior changed.
+
+Decision: keep W2 admission validation local to the pure notification policy
+inputs and do not normalize or persist watches from the notification path.
+W3 owns watch UI/runtime actions and any resulting mutation boundary.
+
 ## Latest handoff — 2026-08-25 W1 watch policy and durable state complete
 
 Status: complete. W1 adds only pure watch normalization/expiry and the

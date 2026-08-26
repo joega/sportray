@@ -1,56 +1,60 @@
 Work in `/home/joeg/Projects/sportray` on exactly one bounded work unit:
-implement **W2 — Notification admission** from `LEVEL_THE_FIELD_SPRINT.md`.
+implement **W3 — Watch UI and runtime** from `LEVEL_THE_FIELD_SPRINT.md`.
 
 Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`
 including its latest handoff, `competition.md`, `LEVEL_THE_FIELD_SPRINT.md`,
-and this prompt. `docs/upstream-contract.md` is absent; inspect installed/current
-Omarchy and Quickshell sources directly for any host-boundary claim. Inspect
-git status, branch, and recent commits; preserve unrelated changes and the
-absence of `MARKETPLACE_SUBMISSION.md`.
+and this prompt. `docs/upstream-contract.md` is absent; inspect
+installed/current Omarchy and Quickshell sources directly for every
+host-boundary claim.
 
 Verified current state:
 
-- C1-C4 and W1 are complete. W1 is a bounded watch policy and durable-state
-  projection in the existing schema-1 state file.
+- C1-C4, W1, and W2 are complete. W1 persists a bounded schema-1
+  `watchedGames` projection; future-schema state remains exact opaque raw text
+  and is never rewritten.
 - `model/WatchPolicy.js` admits only canonical game identity, league, provider
   game ID, normalized start/created/expiry times, and active/expired state. It
   rejects malformed entries, deduplicates newest-by-created identity, caps
-  watches at 32, applies a six-hour terminal recovery window when supplied a
-  terminal normalized game, and applies a 30-day hard maximum.
-- `StateModel.js` and `services/SettingsStore.qml` persist `watchedGames` as a
-  bounded known schema-1 field. Future schema state remains exact opaque raw
-  text, uses safe defaults, and is never rewritten.
-- W1 added no UI, notification admission, provider parsing, fetching, polling,
-  calendar ownership, or followed-league behavior.
+  watches at 32, applies terminal recovery when supplied a terminal game, and
+  enforces a 30-day hard maximum.
+- W2 extends only pure notification admission. Transition, pregame, and
+  close-game alerts admit `favorite OR active unexpired watch`; malformed,
+  removed, expired, and absent watches fail closed. Global/event settings,
+  first-fetch silence, argument-array delivery, and persistent dedupe remain
+  authoritative. Favorite/watch overlap produces one delivery.
+- No watch UI, watch mutation action, provider fetching, polling, calendar
+  ownership, followed-league behavior, or new notification type exists.
 - Deterministic suite, summon-helper tests, diff check, plugin validation, and
-  real-import-path QML lint pass. Actual Omarchy 4.0.0-1 / Quickshell 0.3.0
-  revision `28771c7c74b42e20afca0b1b63980cb46515537` was restarted with one
-  shell; summon returned `ok` and fresh logs were clean of Sportray errors.
-  The unrelated desktop-portal warning remains.
+  real-import-path QML lint pass. Installed Omarchy is 4.0.0-1 with Quickshell
+  0.3.0 revision `28771c7c74b42e20afca0b1b63980cb46515537`.
 
-Bounded outcome: extend only the existing pure notification admission policy
-so a normalized event is eligible when its game is a favorite team OR an
-active explicitly watched game. Preserve one delivery when both match,
-stop watch-derived admission after removal/expiry, retain favorite-derived
-admission, and keep global/event notification settings authoritative. Reuse
-existing transition detection, sanitization, argument-array delivery, and
-persistent dedupe. Do not add watch UI, provider fetching, polling changes,
-new notification types, followed leagues, scoring/leaders, broadcasts,
-packaging, release, push, or Marketplace work.
+Bounded outcome: add one semantic watch action usable from the existing game
+row and local game-detail route, with active/inactive state, accessible name,
+keyboard/pointer routing, safe disabled reasons, and persistence through the
+existing SettingsStore/WatchPolicy boundary. Keep watch mutation separate from
+notification admission and do not add provider fetching or polling. Exercise
+one safe stubbed delivery path on actual Omarchy after the QML wiring is
+complete.
 
-Required fixture checks: favorite-only, watch-only, both without duplicate
-delivery, removed watch, expired watch, malformed watch, restart-safe active
-watch, disabled global/event settings, first-fetch silence, and no calendar
-hydration admission. Then run `./tests/run-js-tests.sh`,
-`./tests/test-summon-helper.sh`, `git diff --check`,
-`omarchy plugin validate "$PWD"`, and
+Required checks: add fixture/source coverage for add/remove, canonical
+identity, duplicate suppression, malformed/expired guards, settings repair and
+future-schema opacity, accessibility action convergence, and restart-safe
+state. Then run `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
+`git diff --check`, `omarchy plugin validate "$PWD"`, and
 `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file.
-If QML or host wiring changes, use one shell on actual Omarchy and inspect a
-fresh log; otherwise runtime shell exercise is not required.
+Because W3 changes QML, use one shell on actual Omarchy, restart/rescan only
+through supported commands, exercise add/remove and one stubbed delivery, and
+inspect a fresh Quickshell log for Sportray errors or binding loops.
 
-Stop if active-watch identity cannot remain bounded/provider-neutral, if
-future-schema state would be rewritten, if favorite/watch admission produces
-duplicate deliveries, or if notification settings can bypass the gate. Update
-the sprint, roadmap, and this prompt with dated evidence and create one
-atomic Conventional Commit only after all gates pass. Request subagents only
-for independent read-only policy or test review.
+Known risks: preserve the existing one-owner settings boundary; do not rewrite
+future-schema state; do not start another Quickshell process; do not broaden
+provider polling for a watched game; and do not create duplicate semantic
+actions or notification deliveries. Request subagents only for independent
+read-only accessibility or runtime review.
+
+Stop if the watch action cannot remain bounded/provider-neutral, if persistence
+or future-schema opacity regresses, if a row/detail route duplicates actions,
+or if actual Omarchy exposes a host-boundary mismatch. When all gates pass,
+update `LEVEL_THE_FIELD_SPRINT.md`, `roadmap.md`, and this prompt with dated
+evidence, then create one atomic Conventional Commit. Do not push, tag,
+release, publish, or perform Marketplace work.

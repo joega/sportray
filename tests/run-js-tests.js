@@ -198,6 +198,11 @@ function readCloseGameFixture() {
     path.join(root, "fixtures/transitions/m6-6.json"), "utf8"));
 }
 
+function readW2NotificationFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/notifications/w2.json"), "utf8"));
+}
+
 function readCalendarFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/calendar/calendar.json"), "utf8"));
@@ -953,6 +958,53 @@ test("notification delivery gates favorites and global/event preferences", () =>
   assert.deepEqual(notificationModel.buildDeliveries(all, [favorite, other], globallyDisabled), []);
 });
 
+test("W2 admits active watched games without duplicating favorite delivery", () => {
+  const fixture = readW2NotificationFixture();
+  const now = Date.parse(fixture.now);
+  const settings = {...fixture.settings, favoriteTeamIds: []};
+  const watchOnly = games.normalizeGame(fixture.watchOnly);
+  const event = {type: "score-change", gameId: watchOnly.id,
+    awayScore: 2, homeScore: 1};
+  const active = [fixture.activeWatch];
+  assert.equal(notificationModel.isAdmittedGame(watchOnly, settings, active, now), true);
+  assert.equal(notificationModel.buildDeliveries([event], [watchOnly], settings, active, now).length, 1);
+
+  const favoriteSettings = {...fixture.settings};
+  const favoriteGame = games.normalizeGame({...fixture.watchOnly,
+    providerGameId: "w2-favorite-and-watch", awayTeam: {
+      ...fixture.watchOnly.awayTeam, id: "nhl:6", providerTeamId: "6"
+    }});
+  const overlapWatch = {...fixture.activeWatch, gameId: favoriteGame.id,
+    providerGameId: favoriteGame.providerGameId};
+  assert.equal(notificationModel.buildDeliveries([{
+    type: "score-change", gameId: favoriteGame.id, awayScore: 2, homeScore: 1
+  }], [favoriteGame], favoriteSettings, [overlapWatch], now).length, 1);
+});
+
+test("W2 removes watch-only admission for removed, expired, or malformed watches", () => {
+  const fixture = readW2NotificationFixture();
+  const now = Date.parse(fixture.now);
+  const game = games.normalizeGame(fixture.watchOnly);
+  const settings = {...fixture.settings, favoriteTeamIds: []};
+  assert.equal(notificationModel.isAdmittedGame(game, settings, [], now), false);
+  assert.equal(notificationModel.isAdmittedGame(game, settings, [fixture.expiredWatch], now), false);
+  assert.equal(notificationModel.isAdmittedGame(game, settings, [fixture.malformedWatch], now), false);
+  assert.equal(notificationModel.isAdmittedGame(game, settings, [fixture.activeWatch], now), true);
+  const disabled = {...settings, notifications: {...settings.notifications, enabled: false}};
+  assert.equal(notificationModel.buildDeliveries([{
+    type: "score-change", gameId: game.id, awayScore: 2, homeScore: 1
+  }], [game], disabled, [fixture.activeWatch], now).length, 0);
+
+  const reloaded = stateModel.parseStateText(JSON.stringify({
+    schemaVersion: 1, enabledLeagues: ["nhl"], favoriteTeamIds: [],
+    notifications: fixture.settings.notifications, transitionDedupe: {schemaVersion: 1, fingerprints: []},
+    watchedGames: [fixture.activeWatch]
+  }), now, settingsModel, transitionDedupe, watchPolicy);
+  assert.equal(notificationModel.isAdmittedGame(game, reloaded.settings,
+    reloaded.watchedGames, now), true);
+  assert.equal(readSource("services/NotificationService.qml").includes("CalendarFetch"), false);
+});
+
 test("notification argv and sport-neutral score/status text are deterministic", () => {
   const fixture = readNotificationFixture();
   const game = games.normalizeGame(fixture.favoriteGame);
@@ -1071,6 +1123,27 @@ test("pregame reminders admit only opted-in favorite games in the bounded local-
   disabled.notifications.pregameReminder = false;
   assert.deepEqual(pregameReminder.eligibleEvents(normalized, disabled, now,
     fixture.todayDateKey), []);
+});
+
+test("W2 extends pregame and close admission to active watches only", () => {
+  const fixture = readW2NotificationFixture();
+  const now = Date.parse(fixture.now);
+  const watchGame = games.normalizeGame({...fixture.watchOnly,
+    status: "scheduled", startTime: "2026-10-08T14:15:00Z"});
+  const settings = {...fixture.settings, favoriteTeamIds: []};
+  const watch = {...fixture.activeWatch, startTime: watchGame.startTime};
+  const reminders = pregameReminder.eligibleEvents([watchGame], settings, now,
+    "2026-10-08", [watch]);
+  assert.equal(reminders.length, 1);
+  assert.equal(pregameReminder.eligibleEvents([watchGame], settings, now,
+    "2026-10-08", [fixture.expiredWatch]).length, 0);
+
+  const previous = games.normalizeGame({...fixture.watchOnly, awayScore: 2, homeScore: 0});
+  const current = games.normalizeGame({...fixture.watchOnly, awayScore: 2, homeScore: 1});
+  assert.equal(closeGame.eligibleEvents([previous], [current], settings,
+    "2026-10-08", [fixture.activeWatch], now).length, 1);
+  assert.equal(closeGame.eligibleEvents([previous], [current], settings,
+    "2026-10-08", []).length, 0);
 });
 
 test("pregame reminder fingerprints use the existing persisted transition dedupe", () => {

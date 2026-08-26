@@ -127,6 +127,32 @@ function isFavoriteGame(game, settings) {
     || favorites.indexOf(teamId(game.homeTeam)) !== -1;
 }
 
+function isActiveWatch(game, watches, currentTime) {
+  if (!isRecord(game) || game.isValid !== true || typeof game.id !== "string") return false;
+  var gameId = game.id.trim().toLowerCase();
+  if (!gameId || !Array.isArray(watches)) return false;
+  var now = typeof currentTime === "number" && isFinite(currentTime) && currentTime >= 0
+    ? currentTime : Date.now();
+  for (var i = 0; i < watches.length; i++) {
+    var watch = watches[i];
+    if (!isRecord(watch) || watch.status !== "active") continue;
+    if (typeof watch.gameId !== "string" || typeof watch.league !== "string"
+        || typeof watch.providerGameId !== "string" || typeof watch.expiresAt !== "string") continue;
+    var watchId = watch.gameId.trim().toLowerCase();
+    var league = watch.league.trim().toLowerCase();
+    var providerGameId = watch.providerGameId.trim().toLowerCase();
+    var expiresAt = Date.parse(watch.expiresAt);
+    if (!watchId || !league || !providerGameId || watchId !== league + ":" + providerGameId
+        || watchId !== gameId || !isFinite(expiresAt) || expiresAt <= now) continue;
+    return true;
+  }
+  return false;
+}
+
+function isAdmittedGame(game, settings, watches, currentTime) {
+  return isFavoriteGame(game, settings) || isActiveWatch(game, watches, currentTime);
+}
+
 function gameForId(games, gameId) {
   if (!Array.isArray(games)) return null;
   for (var i = 0; i < games.length; i++) {
@@ -174,13 +200,14 @@ function buildDelivery(event, game) {
   };
 }
 
-function buildDeliveries(events, games, settings) {
+function buildDeliveries(events, games, settings, watches, currentTime) {
   if (!Array.isArray(events)) return [];
   var result = [];
   for (var i = 0; i < events.length; i++) {
     var event = events[i];
     var game = gameForId(games, event && event.gameId);
-    if (!eventEnabled(event, settings) || !isFavoriteGame(game, settings)) continue;
+    if (!eventEnabled(event, settings)
+        || !isAdmittedGame(game, settings, watches, currentTime)) continue;
     var delivery = buildDelivery(event, game);
     if (delivery) result.push(delivery);
   }
@@ -217,6 +244,8 @@ if (typeof module !== "undefined" && module.exports) {
     eventKey: eventKey,
     eventEnabled: eventEnabled,
     isFavoriteGame: isFavoriteGame,
+    isActiveWatch: isActiveWatch,
+    isAdmittedGame: isAdmittedGame,
     buildDelivery: buildDelivery,
     buildDeliveries: buildDeliveries,
     buildTestDelivery: buildTestDelivery,
