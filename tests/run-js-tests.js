@@ -3731,6 +3731,26 @@ test("calendar next-games jump is reachable through the panel text-key routing p
   assert.equal(gameRow.includes("startTimeTextOverride"), true);
 });
 
+test("calendar league filtering is bounded and keyboard reachable", () => {
+  const fixture = JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/keyboard-routing/calendar-league.json"), "utf8"));
+  fixture.cases.forEach((testCase) => {
+    assert.equal(
+      keyboardRouting.calendarLeagueAction(testCase.text, testCase.calendarOpen,
+        testCase.settingsOpen, testCase.detailOpen),
+      testCase.expected,
+      `${testCase.text} with calendar=${testCase.calendarOpen} settings=${testCase.settingsOpen} detail=${testCase.detailOpen}`);
+  });
+
+  const panel = readSource("Panel.qml");
+  assert.match(panel,
+    /KeyboardRoutingPolicy\.calendarLeagueAction\(text, root\.calendarOpen,\s*\n\s*root\.settingsOpen, root\.detailOpen\)/);
+  assert.match(panel,
+    /=== "cycle-calendar-league"\)\s*\n\s*root\.cycleCalendarLeague\(\)/);
+  assert.match(panel, /property string calendarLeagueId: ""/);
+  assert.match(panel, /leagueId: root\.calendarLeagueId/);
+});
+
 test("deferred callbacks run for live owners and reject destroyed owners", () => {
   const owner = lifecycle.createOwnerState();
   const generation = lifecycle.captureGeneration(owner);
@@ -5455,6 +5475,23 @@ test("calendar month model preserves filters, bounds, rollover, and local DST da
   assert.equal(dateModel.isDateKey(dstStart), true);
   assert.equal(dateModel.isDateKey(dstEnd), true);
   assert.equal(calendarModel.MAX_MONTH_CELLS, 42);
+
+  const otherLeague = JSON.parse(JSON.stringify(fixture.windows[0]));
+  otherLeague.leagueId = "nfl";
+  otherLeague.displayName = "NFL";
+  const otherLeagueDay = otherLeague.days.find((day) => Array.isArray(day.games) && day.games.length > 0);
+  otherLeagueDay.games[0].league = "nfl";
+  otherLeagueDay.games[0].id = otherLeagueDay.games[0].id + "-nfl";
+  const allLeagues = calendarModel.monthGrid(fixture.windows.concat([otherLeague]), {
+    monthKey: "2026-08-01", selectedDateKey: "2026-08-02",
+    enabledLeagues: ["nhl", "nfl"], favoriteTeamIds: [], matcher: presentation.isFavoriteGame
+  });
+  const nflOnly = calendarModel.monthGrid(fixture.windows.concat([otherLeague]), {
+    monthKey: "2026-08-01", selectedDateKey: "2026-08-02", leagueId: "nfl",
+    enabledLeagues: ["nhl", "nfl"], favoriteTeamIds: [], matcher: presentation.isFavoriteGame
+  });
+  assert.equal(allLeagues.cells.find((cell) => cell.dateKey === "2026-08-02").gameCount, 2);
+  assert.equal(nflOnly.cells.find((cell) => cell.dateKey === "2026-08-02").gameCount, 1);
 });
 
 test("calendar projection adds no new fetch ownership or provider parsing", () => {

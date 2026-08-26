@@ -2,7 +2,7 @@
 
 Private implementation plan for `/home/joeg/Projects/sportray`.
 
-Status: **C1 complete; remaining epics planned**
+Status: **C4 complete; remaining epics planned**
 
 Owner direction recorded: **2026-08-25**
 
@@ -368,11 +368,44 @@ the relevant host evidence.
 
 #### C4 — Calendar completion and polish
 
+Status: **complete — 2026-08-25**
+
 - Add bounded league filtering and complete keyboard/accessibility routes.
 - Verify month navigation, year rollover, today reset, favorites filter,
   selected-day detail, partial provider failure, and cache reuse on Omarchy.
 - Remove or retire the old week strip only when no other route consumes it.
 - Update public README only after runtime behavior passes.
+
+Completed evidence: the bounded league cycle is implemented in the existing
+calendar projection and is covered by fixture-driven keyboard and model tests.
+The old week-strip component has no remaining consumer; its pure helper and
+historical fixtures remain intentionally unchanged. The complete deterministic
+suite passes with 243 tests, as do the summon-helper, diff-check, actual-host
+plugin-validator, and real-import-path QML-lint gates over all 26 QML files.
+
+On actual Omarchy 4.0.0-1 / Quickshell 0.3.0 (revision
+`28771c7c74b42e20afca0b1b63980cb46515537`), the supported restart/rescan
+sequence restored the symlinked checkout's asynchronous bar-widget
+registration. Discovery lists Sportray enabled; exactly one shell remains;
+ping, rescan, and summon return `ok`; and `debugBarGeometry` reports the
+visible right-bar widget at 27x26. Calendar opened from the loaded widget,
+the August 2026 42-cell grid rendered, PageUp/PageDown replaced months,
+arrows moved the visible focus ring, and Space selected a focused adjacent
+date through the existing fetch route. Favorites/league filter, partial
+provider, cache reuse, selected-day detail, and accessibility convergence are
+fixture/source verified. The fitted panel remained within the host's bounded
+height contract, and fresh screenshots covered top, bottom, left, and right
+bar positions before restoring top.
+
+No reliable pointer injector or child-panel accessibility injector is
+installed in this session. Pointer handlers and Accessible actions are
+source/fixture verified against the same guarded date/header routes, but a
+direct injected click is not claimed as manually exercised. This is a host
+input limitation, not a registration blocker. Fresh post-restart logs contain
+normal Sportray initialization, date-change fetches, and no Sportray error,
+QML-load failure, exception, binding loop, late callback, duplicate graph, or
+registration failure; the unrelated desktop-portal registration warning
+remains.
 
 ### Calendar acceptance gate
 

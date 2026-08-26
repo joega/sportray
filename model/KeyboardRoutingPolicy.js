@@ -27,11 +27,19 @@ function calendarJumpAction(text, calendarOpen, settingsOpen, detailOpen) {
   return "jump-to-next-games";
 }
 
+function calendarLeagueAction(text, calendarOpen, settingsOpen, detailOpen) {
+  if (text !== "l" && text !== "L") return "none";
+  if (calendarOpen !== true || settingsOpen === true || detailOpen === true)
+    return "none";
+  return "cycle-calendar-league";
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     catcherBlocked: catcherBlocked,
     targetForKey: targetForKey,
     calendarFilterAction: calendarFilterAction,
-    calendarJumpAction: calendarJumpAction
+    calendarJumpAction: calendarJumpAction,
+    calendarLeagueAction: calendarLeagueAction
   };
 }

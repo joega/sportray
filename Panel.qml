@@ -39,6 +39,7 @@ Panel {
   property bool standingsOpen: false
   property bool calendarOpen: false
   property bool calendarFavoritesOnly: false
+  property string calendarLeagueId: ""
   property string calendarMonthKey: ""
   property bool detailOpen: false
   property var detailGame: null
@@ -129,6 +130,7 @@ Panel {
       selectedDateKey: root.selectedDateKey,
       todayDateKey: root.todayDateKey,
       favoritesOnly: root.calendarFavoritesOnly,
+      leagueId: root.calendarLeagueId,
       selectedLoading: root.fetchService && root.fetchService.loading
         && !root.fetchService.hasData,
       selectedUnavailable: root.fetchService && root.fetchService.errorCode !== ""
@@ -181,6 +183,12 @@ Panel {
   readonly property var enabledLeagues: {
     return root.copyStringList(root.settingsStore && root.settingsStore.settings
       ? root.settingsStore.settings.enabledLeagues : [], ["nhl"])
+  }
+
+  function calendarLeagueLabel() {
+    if (root.calendarLeagueId === "") return "All leagues"
+    var league = LeagueCatalog.getLeague(root.calendarLeagueId)
+    return league && league.displayName ? league.displayName : root.calendarLeagueId
   }
   readonly property var pickerTeams: buildPickerTeams()
   readonly property string barScoreText: buildBarScoreText()
@@ -246,6 +254,18 @@ Panel {
   function toggleCalendarFilter() {
     if (!root.calendarOpen) return
     root.calendarFavoritesOnly = !root.calendarFavoritesOnly
+    root.selectedRowIndex = -1
+    root.selectedRowId = ""
+    root.recalculatePanelHeight()
+  }
+
+  function cycleCalendarLeague() {
+    if (!root.calendarOpen) return
+    var ids = root.enabledLeagues.slice()
+    var options = [""]
+    ids.forEach(function(id) { if (options.indexOf(id) === -1) options.push(id) })
+    var index = options.indexOf(root.calendarLeagueId)
+    root.calendarLeagueId = options[(index + 1 + options.length) % options.length]
     root.selectedRowIndex = -1
     root.selectedRowId = ""
     root.recalculatePanelHeight()
@@ -910,6 +930,9 @@ Panel {
         if (KeyboardRoutingPolicy.calendarJumpAction(text, root.calendarOpen,
             root.settingsOpen, root.detailOpen) === "jump-to-next-games")
           root.jumpCalendarToNextGames()
+        if (KeyboardRoutingPolicy.calendarLeagueAction(text, root.calendarOpen,
+            root.settingsOpen, root.detailOpen) === "cycle-calendar-league")
+          root.cycleCalendarLeague()
         if ((text === "s" || text === "S") && !root.settingsOpen)
           root.toggleStandings()
         if (text === "[" || text === "{") root.selectRelativeDate(-1)
@@ -978,6 +1001,7 @@ Panel {
               - (standingsButton.visible ? standingsButton.implicitWidth : 0)
               - (calendarButton.visible ? calendarButton.implicitWidth : 0)
               - (calendarFilterButton.visible ? calendarFilterButton.implicitWidth : 0)
+              - (calendarLeagueButton.visible ? calendarLeagueButton.implicitWidth : 0)
               - (refreshButton.visible ? refreshButton.implicitWidth : 0)
               - settingsButton.implicitWidth - header.spacing * 6)
             height: 1
@@ -1052,6 +1076,25 @@ Panel {
             onClicked: root.toggleCalendarFilter()
             Accessible.name: root.calendarFavoritesOnly
               ? "Show every enabled league (F)" : "Show only favorite games (F)"
+            Accessible.role: Accessible.Button
+          }
+
+          SemanticActionButton {
+            id: calendarLeagueButton
+            visible: root.calendarOpen && !root.settingsOpen && !root.detailOpen
+            iconName: ""
+            fallbackText: ""
+            tooltipText: root.calendarLeagueId === ""
+              ? "Filter calendar by league (L)" : "Show all enabled leagues (L)"
+            text: root.calendarLeagueLabel()
+            textFontSize: Style.font.caption
+            textBold: true
+            textVerticalPadding: Style.spacing.controlPaddingY / 2
+            height: refreshButton.implicitHeight
+            focusable: true
+            onClicked: root.cycleCalendarLeague()
+            Accessible.name: root.calendarLeagueId === ""
+              ? "Filter calendar by league" : "Show all enabled leagues"
             Accessible.role: Accessible.Button
           }
 

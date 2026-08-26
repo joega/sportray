@@ -1,0 +1,11 @@
+{
+  "comment": "Bounded keyboard routing for the calendar league filter.",
+  "cases": [
+    { "text": "l", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "cycle-calendar-league" },
+    { "text": "L", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "cycle-calendar-league" },
+    { "text": "l", "calendarOpen": false, "settingsOpen": false, "detailOpen": false, "expected": "none" },
+    { "text": "l", "calendarOpen": true, "settingsOpen": true, "detailOpen": false, "expected": "none" },
+    { "text": "l", "calendarOpen": true, "settingsOpen": false, "detailOpen": true, "expected": "none" },
+    { "text": "f", "calendarOpen": true, "settingsOpen": false, "detailOpen": false, "expected": "none" }
+  ]
+}

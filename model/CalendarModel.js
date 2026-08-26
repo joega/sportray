@@ -322,9 +322,14 @@ function monthGrid(leagueWindows, options) {
   var requestedMonth = monthKey(config.monthKey || config.selectedDateKey || "");
   if (!requestedMonth) requestedMonth = monthKey(localDateKey(new Date()));
   var keys = monthDateKeys(requestedMonth);
+  var selectedLeague = normalizeLeagueId(config.leagueId);
+  var enabledLeagues = normalizeEnabledLeagueIds(config.enabledLeagues);
+  if (selectedLeague && enabledLeagues.indexOf(selectedLeague) !== -1)
+    enabledLeagues = [selectedLeague];
   var calendar = compose(leagueWindows, Object.assign({}, config, {
     centerDateKey: requestedMonth,
-    dateKeys: keys
+    dateKeys: keys,
+    enabledLeagues: enabledLeagues
   }));
   var selected = isDateKey(config.selectedDateKey) ? config.selectedDateKey : "";
   var today = isDateKey(config.todayDateKey) ? config.todayDateKey : "";

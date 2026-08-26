@@ -4828,3 +4828,92 @@ Next bounded unit: **C4 — Calendar completion and polish** only. Read the
 current sprint handoff and inspect the installed host boundary first. Do not
 add watches, followed leagues, scoring/leaders, broadcasts, provider profiles,
 wider bounds, packaging, release, push, or Marketplace work.
+
+## Latest handoff — 2026-08-25 C4 calendar filter implementation blocked at runtime
+
+Status: blocked; no success commit created. C4 adds a bounded calendar league
+filter without widening provider or cache ownership. `CalendarModel.monthGrid`
+accepts an optional enabled-league `leagueId` and narrows only the existing
+enabled set. `Panel.qml` cycles `All leagues` and each enabled league through
+the semantic header action and `L`/`l` route. Fixture-driven tests cover the
+projection, accepted/rejected keyboard states, and panel route/source guards.
+The old week-strip component has no remaining consumer; its model helper is
+retained only because existing historical fixture coverage still exercises it.
+
+Deterministic evidence: `./tests/run-js-tests.sh` passes, including the new
+calendar league cases; `./tests/test-summon-helper.sh` passes; `git diff
+--check` passes; `omarchy plugin validate "$PWD"` passes; and real-import-path
+QML lint passes over all 26 QML files with the established warnings.
+
+Actual Omarchy evidence: after `omarchy restart shell`, exactly one
+`quickshell -n -p /usr/share/omarchy/shell` remained and shell ping/rescan
+returned `ok`, but the supported summon helper could not obtain a live bar
+widget. The fresh log records `summon: no live bar widget for:
+io.github.joega.sportray`; no `omarchy-bar` process was present. Therefore
+pointer, keyboard, focus, panel-height, all-edge, and fresh changed-behavior
+claims remain unverified. The unrelated desktop-portal registration warning
+also remains present. No README update was made and no provider, polling,
+notification, second-process, destructive-host, release, push, or Marketplace
+change was made.
+
+Decision log: keep the league filter as a bounded cycle over enabled catalog
+IDs rather than introducing a persistent menu or new fetch path. Resume C4
+only after the installed bar-widget registration is restored; then summon the
+loaded checkout, exercise pointer/keyboard/focus and top/bottom/left/right
+placement, inspect fresh logs, and commit the source plus handoff atomically
+only if the full gate passes.
+
+## Latest handoff — 2026-08-25 Level the Field C4 calendar completion
+
+Status: complete. The C4 calendar league filter and keyboard/accessibility
+routes are complete, and the prior runtime registration blocker was restored
+through the supported Omarchy lifecycle. No success commit had been created
+before this handoff; the source and private handoff changes are ready for one
+atomic commit after this evidence update.
+
+Implementation evidence: `CalendarModel.monthGrid` accepts only an enabled
+catalog league ID and `Panel.qml` cycles All leagues and enabled leagues from
+the semantic header action and `L`/`l`. The existing month owner, selected-day
+route, filters, detail route, polling, notifications, and one-shell boundary
+are unchanged. The old week-strip component has no remaining consumer; its
+model helper and historical fixtures remain intentionally retained.
+
+Required deterministic gates pass: `./tests/run-js-tests.sh` reports 243
+tests, `./tests/test-summon-helper.sh` passes, `git diff --check` passes,
+`omarchy plugin validate "$PWD"` passes, and
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` exits 0 over all 26
+QML files with the established standalone import/unqualified-access warnings.
+
+Actual host evidence: Omarchy `4.0.0-1`, Quickshell `0.3.0`, revision
+`28771c7c74b42e20afca0b1b63980cb46515537`. After `omarchy restart shell`,
+exactly one `quickshell -n -p /usr/share/omarchy/shell` remained. Discovery
+listed Sportray enabled; shell ping and rescan returned `ok`; the bounded
+summon helper returned `ok`; and `debugBarGeometry` showed a visible Sportray
+slot in the right region at 27x26. The calendar opened from that loaded
+widget; the 42-cell August 2026 grid, month replacement via PageUp/PageDown,
+arrow focus movement, visible focus ring, Space activation of an adjacent
+date, selected-day rows, and existing date-change fetch path were exercised.
+Fresh screenshots covered top, bottom, left, and right bar positions; panel
+height stayed within the installed `KeyboardPanel` fitted-card contract; the
+bar was restored to top. Fixture/source checks cover favorites/league filters,
+partial-provider failure, cache reuse, selected-day detail, and Accessible
+action convergence.
+
+No reliable pointer-click or child-panel accessibility injector is installed
+in this host session. Pointer and Accessible handlers are source/fixture
+verified and converge on the guarded routes, but direct injected click
+activation is not claimed as manually exercised. This is a remaining host
+input limitation, not a registration failure. The fresh post-restart log
+(`k1cp6qpckt`) contains normal Sportray startup and date-change activity with
+no Sportray error, QML-load failure, exception, binding loop, late callback,
+duplicate graph, or registration failure. The unrelated desktop-portal
+registration warning remains.
+
+Decision log: the registration issue was the supported asynchronous
+rescan/component-load race. A restart followed by rescan and bounded summon
+is sufficient; no plugin retry process, second shell, destructive host repair,
+provider-bound change, or new upstream API is justified. Public README text
+does not need changing because C4 completes and verifies existing documented
+calendar behavior without changing its public contract.
+
+Next bounded unit: **W1 — Watch policy and durable-state integration** only.
