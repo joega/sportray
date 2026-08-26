@@ -621,9 +621,29 @@ separate future decision because they can be extremely noisy.
 
 #### L1 — Pure intent/order model
 
+Status: **complete — 2026-08-25**
+
 - Extend settings normalization and presentation composition.
 - Fixture-test subset enforcement, ordering, dedupe, migration, game dedupe,
   and stable non-followed catalog order.
+
+Implemented evidence: the schema remains version 1 for compatibility and adds
+the optional `followedLeagueIds` field. Legacy schema-1 settings recover to an
+empty followed list, while unknown, malformed, duplicate, disabled, and
+over-bound IDs fail closed against the normalized enabled catalog. Disabling a
+followed league removes it atomically; pure toggle and move helpers preserve
+the bounded canonical order. `StateModel` and `SettingsStore` include the
+field in the existing normalized persistence projection, and future schemas
+remain opaque through the existing raw-text preservation gate. Pure panel
+projection exposes followed-first stable league order and Following sections
+whose canonical game identities are deduplicated after favorite games, while
+existing favorite ordering remains dominant. No UI, provider, fetch, polling,
+notification, calendar, watch, detail, broadcast, or host-boundary behavior
+changed.
+
+Fixture evidence covers schema-1 empty migration, canonical subset and bound
+normalization, disable cleanup, toggle/move order, stable non-followed order,
+followed sections, and duplicate game suppression.
 
 #### L2 — Settings and navigation UI
 

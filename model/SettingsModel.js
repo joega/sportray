@@ -1,5 +1,6 @@
 var SCHEMA_VERSION = 1;
 var MAX_ENABLED_LEAGUES = 8;
+var MAX_FOLLOWED_LEAGUES = 8;
 var MAX_FAVORITE_TEAM_IDS = 32;
 var MAX_ID_LENGTH = 64;
 
@@ -22,6 +23,7 @@ function createDefaults() {
   return {
     schemaVersion: SCHEMA_VERSION,
     enabledLeagues: ["nhl"],
+    followedLeagueIds: [],
     favoriteTeamIds: [],
     notifications: {
       enabled: false,
@@ -59,6 +61,18 @@ function normalizeFavoriteTeamIds(value) {
     addUniqueBounded(out, value[i], MAX_FAVORITE_TEAM_IDS, function(id) {
       if (!/^[a-z0-9.-]{1,24}:[a-z0-9-]{1,32}$/.test(id)) return false;
       return ALLOWED_LEAGUE_IDS.indexOf(id.slice(0, id.indexOf(":"))) !== -1;
+    });
+  }
+  return out;
+}
+
+function normalizeFollowedLeagueIds(value, enabledLeagues) {
+  if (!Array.isArray(value)) return null;
+  var enabled = Array.isArray(enabledLeagues) ? enabledLeagues : [];
+  var out = [];
+  for (var i = 0; i < value.length; i++) {
+    addUniqueBounded(out, value[i], MAX_FOLLOWED_LEAGUES, function(id) {
+      return ALLOWED_LEAGUE_IDS.indexOf(id) !== -1 && enabled.indexOf(id) !== -1;
     });
   }
   return out;
@@ -107,6 +121,14 @@ function normalizeSettings(value) {
     out.favoriteTeamIds = favoriteTeamIds;
   }
 
+  var followedLeagueIds = normalizeFollowedLeagueIds(value.followedLeagueIds, out.enabledLeagues);
+  if (followedLeagueIds === null) {
+    if (value.followedLeagueIds === undefined) missingFields.push("followedLeagueIds");
+    else invalidFields.push("followedLeagueIds");
+  } else {
+    out.followedLeagueIds = followedLeagueIds;
+  }
+
   var notifications = normalizeNotifications(value.notifications);
   if (notifications === null) {
     if (value.notifications === undefined) missingFields.push("notifications");
@@ -123,7 +145,7 @@ function normalizeSettings(value) {
     }
   }
 
-  var knownFields = ["schemaVersion", "enabledLeagues", "favoriteTeamIds", "notifications"];
+  var knownFields = ["schemaVersion", "enabledLeagues", "followedLeagueIds", "favoriteTeamIds", "notifications"];
   var unknownFields = [];
   for (var key in value) {
     if (knownFields.indexOf(key) === -1) unknownFields.push(key);
@@ -153,6 +175,7 @@ function toggleFavoriteTeam(value, teamId) {
   return normalizeSettings({
     schemaVersion: SCHEMA_VERSION,
     enabledLeagues: normalized.enabledLeagues,
+    followedLeagueIds: normalized.followedLeagueIds,
     favoriteTeamIds: favorites,
     notifications: normalized.notifications
   }).settings;
@@ -168,14 +191,50 @@ function toggleLeague(value, leagueId) {
   var enabled = normalized.enabledLeagues.slice();
   var index = enabled.indexOf(id);
   if (index === -1) enabled.push(id);
-  else enabled.splice(index, 1);
+  else {
+    enabled.splice(index, 1);
+    normalized.followedLeagueIds = normalized.followedLeagueIds.filter(function(followedId) {
+      return followedId !== id;
+    });
+  }
 
   return normalizeSettings({
     schemaVersion: SCHEMA_VERSION,
     enabledLeagues: enabled,
+    followedLeagueIds: normalized.followedLeagueIds,
     favoriteTeamIds: normalized.favoriteTeamIds,
     notifications: normalized.notifications
   }).settings;
+}
+
+function toggleFollowedLeague(value, leagueId) {
+  var normalized = normalizeSettings(value).settings;
+  if (typeof leagueId !== "string") return normalized;
+  var id = leagueId.trim().toLowerCase();
+  if (normalized.enabledLeagues.indexOf(id) === -1) return normalized;
+  var followed = normalized.followedLeagueIds.slice();
+  var index = followed.indexOf(id);
+  if (index === -1) followed.push(id);
+  else followed.splice(index, 1);
+  return normalizeSettings({schemaVersion: SCHEMA_VERSION,
+    enabledLeagues: normalized.enabledLeagues, followedLeagueIds: followed,
+    favoriteTeamIds: normalized.favoriteTeamIds, notifications: normalized.notifications}).settings;
+}
+
+function moveFollowedLeague(value, leagueId, direction) {
+  var normalized = normalizeSettings(value).settings;
+  var id = typeof leagueId === "string" ? leagueId.trim().toLowerCase() : "";
+  var index = normalized.followedLeagueIds.indexOf(id);
+  var delta = direction === "up" ? -1 : direction === "down" ? 1 : 0;
+  var target = index + delta;
+  if (index < 0 || delta === 0 || target < 0 || target >= normalized.followedLeagueIds.length)
+    return normalized;
+  var followed = normalized.followedLeagueIds.slice();
+  followed[index] = followed[target];
+  followed[target] = id;
+  return normalizeSettings({schemaVersion: SCHEMA_VERSION,
+    enabledLeagues: normalized.enabledLeagues, followedLeagueIds: followed,
+    favoriteTeamIds: normalized.favoriteTeamIds, notifications: normalized.notifications}).settings;
 }
 
 function toggleNotification(value, key) {
@@ -193,6 +252,7 @@ function toggleNotification(value, key) {
   return normalizeSettings({
     schemaVersion: SCHEMA_VERSION,
     enabledLeagues: normalized.enabledLeagues,
+    followedLeagueIds: normalized.followedLeagueIds,
     favoriteTeamIds: normalized.favoriteTeamIds,
     notifications: notifications
   }).settings;
@@ -267,11 +327,14 @@ function parseSettingsText(raw) {
 var exported = {
   SCHEMA_VERSION: SCHEMA_VERSION,
   MAX_ENABLED_LEAGUES: MAX_ENABLED_LEAGUES,
+  MAX_FOLLOWED_LEAGUES: MAX_FOLLOWED_LEAGUES,
   MAX_FAVORITE_TEAM_IDS: MAX_FAVORITE_TEAM_IDS,
   createDefaults: createDefaults,
   normalizeSettings: normalizeSettings,
   toggleFavoriteTeam: toggleFavoriteTeam,
   toggleLeague: toggleLeague,
+  toggleFollowedLeague: toggleFollowedLeague,
+  moveFollowedLeague: moveFollowedLeague,
   toggleNotification: toggleNotification,
   parseSettingsText: parseSettingsText
 };

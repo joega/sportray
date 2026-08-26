@@ -21,6 +21,24 @@ function normalizeFavoriteIds(value) {
   return result;
 }
 
+function normalizeFollowedLeagueIds(value, enabledLeagues) {
+  var enabled = Array.isArray(enabledLeagues) ? enabledLeagues : [];
+  var result = [];
+  (Array.isArray(value) ? value : []).forEach(function(id) {
+    if (typeof id !== "string") return;
+    var normalized = id.trim().toLowerCase();
+    if (enabled.indexOf(normalized) === -1 || result.indexOf(normalized) !== -1) return;
+    result.push(normalized);
+  });
+  return result;
+}
+
+function orderLeagueIds(enabledLeagues, followedLeagueIds) {
+  var enabled = Array.isArray(enabledLeagues) ? enabledLeagues.slice() : [];
+  var followed = normalizeFollowedLeagueIds(followedLeagueIds, enabled);
+  return followed.concat(enabled.filter(function(id) { return followed.indexOf(id) === -1; }));
+}
+
 function gameIdentity(game) {
   if (!isRecord(game)) return "";
   if (typeof game.id === "string" && game.id.trim()) return game.id.trim().toLowerCase();
@@ -126,11 +144,17 @@ function leagueView(state, favoriteIds, orderer, matcher) {
   };
 }
 
-function build(composed, favoriteTeamIds, orderer, matcher) {
+function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds) {
   var favorites = normalizeFavoriteIds(favoriteTeamIds);
   var leagueStates = composed && Array.isArray(composed.leagueStates)
     ? composed.leagueStates : [];
-  var leagueViews = leagueStates.map(function(state) {
+  var enabledLeagueIds = leagueStates.map(function(state) { return state.leagueId; });
+  var followed = normalizeFollowedLeagueIds(followedLeagueIds, enabledLeagueIds);
+  var orderedLeagueIds = orderLeagueIds(enabledLeagueIds, followed);
+  var orderedStates = orderedLeagueIds.map(function(id) {
+    return leagueStates.filter(function(state) { return state.leagueId === id; })[0];
+  }).filter(Boolean);
+  var leagueViews = orderedStates.map(function(state) {
     return leagueView(state, favorites, orderer, matcher);
   });
   var followingGames = [];
@@ -145,6 +169,23 @@ function build(composed, favoriteTeamIds, orderer, matcher) {
     });
   });
   followingGames = deduplicateGames(orderGames(followingGames, favorites, orderer));
+  var shown = {};
+  followingGames.forEach(function(game) { shown[gameIdentity(game)] = true; });
+  var followingSections = [];
+  followed.forEach(function(leagueId) {
+    var state = orderedStates.filter(function(candidate) { return candidate.leagueId === leagueId; })[0];
+    if (!state) return;
+    var games = deduplicateGames(orderGames(state.games, favorites, orderer)).filter(function(game) {
+      var id = gameIdentity(game);
+      if (!id || shown[id]) return false;
+      shown[id] = true;
+      return true;
+    }).map(function(game) {
+      return annotate(game, favorites, false, matcher, state, true);
+    });
+    followingSections.push({leagueId: leagueId, displayName: state.displayName, games: games});
+    followingGames = followingGames.concat(games);
+  });
   var followingIsMixed = followingLeagueIds.length > 1;
   followingGames = followingGames.map(function(game) {
     var state = leagueStates.filter(function(candidate) {
@@ -158,6 +199,7 @@ function build(composed, favoriteTeamIds, orderer, matcher) {
       kind: "following",
       title: "Following",
       games: followingGames,
+      sections: followingSections,
       loading: leagueStates.some(function(state) { return state.loading === true; }),
       hasFavorites: favorites.length > 0,
       hasGames: followingGames.length > 0,
@@ -166,7 +208,9 @@ function build(composed, favoriteTeamIds, orderer, matcher) {
       isEmpty: followingGames.length === 0
     },
     leagues: leagueViews,
-    enabledLeagues: leagueViews.map(function(view) { return view.leagueId; }),
+    enabledLeagues: enabledLeagueIds,
+    orderedLeagueIds: orderedLeagueIds,
+    followedLeagueIds: followed,
     favoriteTeamIds: favorites
   };
 }
@@ -177,6 +221,8 @@ if (typeof module !== "undefined" && module.exports) {
     build: build,
     deduplicateGames: deduplicateGames,
     gameIdentity: gameIdentity,
-    normalizeFavoriteIds: normalizeFavoriteIds
+    normalizeFavoriteIds: normalizeFavoriteIds,
+    normalizeFollowedLeagueIds: normalizeFollowedLeagueIds,
+    orderLeagueIds: orderLeagueIds
   };
 }

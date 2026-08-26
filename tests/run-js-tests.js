@@ -3109,6 +3109,7 @@ test("settings defaults are versioned and safe", () => {
   assert.deepEqual(settingsModel.createDefaults(), {
     schemaVersion: 1,
     enabledLeagues: ["nhl"],
+    followedLeagueIds: [],
     favoriteTeamIds: [],
     notifications: {
       enabled: false,
@@ -3371,6 +3372,7 @@ test("valid schema 1 settings round-trip without provider or raw response fields
   const input = {
     schemaVersion: 1,
     enabledLeagues: ["nhl"],
+    followedLeagueIds: [],
     favoriteTeamIds: ["nhl:3", "nhl:10"],
     notifications: {
       enabled: true,
@@ -3388,6 +3390,46 @@ test("valid schema 1 settings round-trip without provider or raw response fields
   assert.deepEqual(result.settings, input);
   assert.equal(JSON.stringify(result.settings).includes("gameState"), false);
   assert.equal(JSON.stringify(result.settings).includes("games"), false);
+});
+
+test("L1 followed leagues migrate schema 1 to empty and enforce enabled canonical bounds", () => {
+  const legacy = settingsModel.parseSettingsText(JSON.stringify({
+    schemaVersion: 1, enabledLeagues: ["NHL", "nfl"], favoriteTeamIds: [],
+    notifications: settingsModel.createDefaults().notifications
+  }));
+  assert.deepEqual(legacy.settings.followedLeagueIds, []);
+  assert.equal(legacy.status, "field-recovered");
+
+  const normalized = settingsModel.normalizeSettings({
+    schemaVersion: 1,
+    enabledLeagues: ["nhl", "nfl", "mlb"],
+    followedLeagueIds: ["NFL", "nfl", "mlb", "nba", "bad", null],
+    favoriteTeamIds: [], notifications: settingsModel.createDefaults().notifications
+  }).settings;
+  assert.deepEqual(normalized.followedLeagueIds, ["nfl", "mlb"]);
+  assert.deepEqual(settingsModel.toggleLeague({
+    ...normalized, followedLeagueIds: ["nfl", "mlb"]
+  }, "nfl").followedLeagueIds, ["mlb"]);
+  assert.deepEqual(settingsModel.toggleFollowedLeague(normalized, "nba").followedLeagueIds, ["nfl", "mlb"]);
+  assert.deepEqual(settingsModel.moveFollowedLeague(normalized, "mlb", "up").followedLeagueIds,
+    ["mlb", "nfl"]);
+});
+
+test("L1 presentation orders followed leagues and deduplicates games", () => {
+  const duplicate = {id: "nhl:shared", league: "nhl", isValid: true, status: "live", startTime: "2026-08-25T12:00:00Z", awayTeam: {id: "nhl:1"}, homeTeam: {id: "nhl:2"}};
+  const other = {...duplicate, id: "nfl:other", league: "nfl", awayTeam: {id: "nfl:1"}, homeTeam: {id: "nfl:2"}};
+  const composed = {leagueStates: [
+    {leagueId: "nhl", displayName: "NHL", games: [duplicate], hasData: true},
+    {leagueId: "nfl", displayName: "NFL", games: [duplicate, other], hasData: true},
+    {leagueId: "mlb", displayName: "MLB", games: [], hasData: true}
+  ]};
+  const model = panelPresentation.build(composed, ["nhl:1"], null, null, ["nfl", "nhl", "mlb", "nfl", "unknown"]);
+  assert.deepEqual(model.orderedLeagueIds, ["nfl", "nhl", "mlb"]);
+  assert.deepEqual(model.followedLeagueIds, ["nfl", "nhl", "mlb"]);
+  assert.deepEqual(model.following.sections.map((section) => section.leagueId), ["nfl", "nhl", "mlb"]);
+  assert.deepEqual(model.following.games.map((game) => game.id), ["nhl:shared", "nfl:other"]);
+  assert.deepEqual(panelPresentation.orderLeagueIds(["nhl", "nfl", "mlb"], ["mlb", "nhl", "mlb", "bad"]),
+    ["mlb", "nhl", "nfl"]);
 });
 
 test("schema 1 admits required leagues while keeping NHL as the default", () => {
@@ -3465,7 +3507,7 @@ test("missing schema 1 fields recover independently to defaults", () => {
     enabledLeagues: ["nhl"]
   }));
   assert.equal(result.status, "field-recovered");
-  assert.deepEqual(result.missingFields, ["favoriteTeamIds", "notifications"]);
+  assert.deepEqual(result.missingFields, ["favoriteTeamIds", "followedLeagueIds", "notifications"]);
   assert.deepEqual(result.settings.favoriteTeamIds, []);
   assert.deepEqual(result.settings.notifications, settingsModel.createDefaults().notifications);
 });
@@ -3524,6 +3566,7 @@ test("picker favorite updates preserve the exact schema-1 store shape", () => {
   assert.deepEqual(selected, {
     schemaVersion: 1,
     enabledLeagues: ["nhl"],
+    followedLeagueIds: [],
     favoriteTeamIds: ["nhl:6"],
     notifications: {
       enabled: false,

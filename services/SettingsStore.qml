@@ -60,6 +60,7 @@ Item {
       root.settings = {
         schemaVersion: state.schemaVersion,
         enabledLeagues: state.enabledLeagues,
+        followedLeagueIds: state.followedLeagueIds,
         favoriteTeamIds: state.favoriteTeamIds,
         notifications: state.notifications
       }

@@ -5038,3 +5038,40 @@ Decision log: keep watch mutation provider-neutral and behind SettingsStore;
 allow active removal from disabled leagues without implicitly re-enabling them;
 keep future-schema files opaque; and treat UI watches as notification interest
 only. The next unit is L1 — followed/ordered league intent model.
+
+## Latest handoff — 2026-08-25 L1 followed and ordered league intent model complete
+
+Status: complete. L1 adds only the pure followed-league intent/order model and
+its normalized persistence projection. The checkout deliberately remains on
+schema 1: `followedLeagueIds` is an optional known schema-1 field, and legacy
+schema-1 state starts with no followed leagues. Future numeric schemas retain
+their existing exact raw text and remain unwritable.
+
+`SettingsModel` now canonicalizes, bounds, deduplicates, and intersects
+followed IDs with enabled catalog IDs. Unknown, malformed, duplicate,
+disabled, and over-bound values fail closed. Pure toggle, move-up, move-down,
+and disable cleanup helpers preserve the invariant. `StateModel` and
+`SettingsStore` include the field without adding a new schema version.
+`PanelPresentation` accepts an optional followed-order input, exposes stable
+followed-first destination order, and projects Following sections after
+favorite games while deduplicating by canonical game identity. Existing
+favorite ordering remains dominant. No UI, provider parsing/fetching,
+polling, notifications, calendar ownership, watch behavior, detail,
+broadcast, packaging, release, or Marketplace work changed.
+
+Deterministic evidence: `./tests/run-js-tests.sh` passes with 253 tests,
+including L1 migration, subset/bounds, ordering, disable cleanup, stable
+catalog order, section projection, and duplicate-game fixtures. The source
+uses no new host boundary or QML behavior, so no Omarchy runtime claim is
+made for this pure unit.
+
+Required repository gates pass: `./tests/test-summon-helper.sh`,
+`git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+QML lint over all QML files. No push, tag, release, or Marketplace action was
+performed.
+
+Decision log: keep followed intent separate from enabled leagues, favorite
+teams, and watched games; keep migration-to-followed behavior empty rather
+than implicitly following enabled leagues; and defer all user-facing actions
+and runtime wiring to L2/L3. Next bounded unit: **L2 — followed-league
+settings and navigation UI** only.
