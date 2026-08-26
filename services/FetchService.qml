@@ -22,7 +22,7 @@ Item {
   property string lastSuccessAt: ""
   property string lastAttemptAt: ""
   property string calendarMonthKey: ""
-  readonly property var calendarScheduleState: calendarFetch.snapshot()
+  readonly property var calendarScheduleState: calendarFetch.snapshotFor("nhl")
 
   function isLeagueEnabled(leagueId) {
     return Array.isArray(root.enabledLeagues) && root.enabledLeagues.indexOf(leagueId) !== -1
@@ -66,15 +66,17 @@ Item {
     if (!nhlFetch || !nflFetch || !mlbFetch || !nbaFetch || !ncaafFetch || !eplFetch || !mlsFetch || !ncaabFetch
         || typeof nhlFetch.calendarSnapshot !== "function") return []
     var liveNhl = nhlFetch.calendarSnapshot()
-    var scheduleNhl = calendarFetch.snapshot()
+    var scheduleNhl = calendarFetch.snapshotFor("nhl")
     var mergedNhl = CalendarCachePolicy.mergeState(
       CalendarCachePolicy.mergeState(liveNhl, scheduleNhl), calendarDiskCache.snapshotFor("nhl"))
     var liveStates = [mergedNhl, nflFetch.calendarSnapshot(), mlbFetch.calendarSnapshot(),
       nbaFetch.calendarSnapshot(), ncaafFetch.calendarSnapshot(), eplFetch.calendarSnapshot(),
       mlsFetch.calendarSnapshot(), ncaabFetch.calendarSnapshot()]
     return liveStates.map(function(state) {
-      return state.leagueId === "nhl" ? state
-        : CalendarCachePolicy.mergeState(state, calendarDiskCache.snapshotFor(state.leagueId))
+      var schedule = state.leagueId === "nhl" ? scheduleNhl
+        : calendarFetch.snapshotFor(state.leagueId)
+      var merged = state.leagueId === "nhl" ? state : CalendarCachePolicy.mergeState(state, schedule)
+      return CalendarCachePolicy.mergeState(merged, calendarDiskCache.snapshotFor(state.leagueId))
     })
   }
 
@@ -271,7 +273,8 @@ Item {
 
   CalendarFetch {
     id: calendarFetch
-    calendarEnabled: root.isLeagueEnabled("nhl")
+    calendarEnabled: root.enabledLeagues.length > 0
+    enabledLeagues: root.enabledLeagues
     calendarCacheReady: calendarDiskCache.ready
   }
 

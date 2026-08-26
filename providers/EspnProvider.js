@@ -359,6 +359,36 @@ function parseNextGamesResponse(payload, leagueId) {
   return parseScoreboardResponse(payload, leagueId);
 }
 
+// Range responses use the same event schema as the daily scoreboard. Keep the
+// provider boundary explicit so calendar owners can group normalized games by
+// the viewer's local date without exposing ESPN payloads to QML.
+function parseCalendarRangeResponse(payload, leagueId, startDate, endDate) {
+  var scoreboard = parseScoreboardResponse(payload, leagueId);
+  var result = {days: [], errors: scoreboard.errors.slice()};
+  if (result.errors.length > 0) return result;
+  if (typeof startDate !== "string" || typeof endDate !== "string") return result;
+
+  var byDate = {};
+  scoreboard.games.forEach(function(game) {
+    var date = new Date(game.startTime);
+    if (isNaN(date.getTime())) return;
+    var key = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0")
+      + "-" + String(date.getDate()).padStart(2, "0");
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(game);
+  });
+
+  var cursor = startDate;
+  while (cursor && cursor <= endDate) {
+    result.days.push({dateKey: cursor, games: byDate[cursor] || []});
+    var parts = cursor.split("-").map(Number);
+    var next = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+    cursor = next.getFullYear() + "-" + String(next.getMonth() + 1).padStart(2, "0")
+      + "-" + String(next.getDate()).padStart(2, "0");
+  }
+  return result;
+}
+
 function parseGameDetailResponse(payload, leagueId) {
   var scoreboard = parseScoreboardResponse(payload, leagueId);
   if (!GameDetailModel) return {details: [], errors: scoreboard.errors};
@@ -663,6 +693,7 @@ if (typeof module !== "undefined" && module.exports) {
     parseGame: parseGame,
     parseScoreboardResponse: parseScoreboardResponse,
     parseNextGamesResponse: parseNextGamesResponse,
+    parseCalendarRangeResponse: parseCalendarRangeResponse,
     parseGameDetailResponse: parseGameDetailResponse,
     parseStandingsResponse: parseStandingsResponse,
     normalizeStandingsEntry: normalizeStandingsEntry

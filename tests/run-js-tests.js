@@ -1721,6 +1721,18 @@ test("ESPN provider exposes controlled no-key scoreboard URLs and metadata", () 
   assert.equal(espn.buildGameUrl("nhl", "401816587"), null);
 });
 
+test("ESPN range responses project complete local calendar days", () => {
+  const payload = {events: [readEspnFixture("nfl-scheduled").events[0]]};
+  const parsed = espn.parseCalendarRangeResponse(payload, "nfl", "2026-09-13", "2026-09-15");
+  assert.deepEqual(parsed.errors, []);
+  assert.deepEqual(parsed.days.map((day) => day.dateKey),
+    ["2026-09-13", "2026-09-14", "2026-09-15"]);
+  assert.equal(parsed.days.reduce((total, day) => total + day.games.length, 0), 1);
+  assert.equal(parsed.days[0].games[0].id, "nfl:401772901");
+  assert.deepEqual(espn.parseCalendarRangeResponse({}, "nfl", "2026-09-13", "2026-09-15").errors[0].code,
+    "invalid-scoreboard-response");
+});
+
 test("ESPN standings fixture normalizes grouped rows, ordering, and missing fields", () => {
   assert.equal(espn.buildStandingsUrl("nfl"),
     "https://site.api.espn.com/apis/site/v2/sports/football/nfl/standings");
@@ -6224,10 +6236,15 @@ test("persistent calendar cache is a separate sequential FileView owner", () => 
   assert.equal(fetchService.includes("calendarDiskCache.*curl"), false);
 });
 
-test("C3 schedule owner is bounded, cancellable, and separate from live polling", () => {
+test("C3 schedule owner hydrates eligible leagues through bounded range chunks", () => {
   const source = readSource("services/CalendarFetch.qml");
-  assert.match(source, /ChunkPolicy\.plan\("nhl"/);
+  assert.match(source, /ChunkPolicy\.plan\(root\.providerIdFor\(leagueId\)/);
   assert.match(source, /ChunkPolicy\.planRolling\("nhl"/);
+  assert.match(source, /EspnProvider\.buildNextGamesUrl/);
+  assert.match(source, /EspnProvider\.parseCalendarRangeResponse/);
+  assert.match(source, /function snapshotFor\(leagueId\)/);
+  assert.match(source, /property var enabledLeagues/);
+  assert.equal(source.includes('if (leagueId === "mlb")'), false);
   assert.match(source, /calendarCacheReady/);
   assert.match(source, /ChunkPolicy\.ROLLING_INTERVAL_MS/);
   assert.match(source, /root\.backgroundIndex/);
@@ -6242,6 +6259,7 @@ test("C3 schedule owner is bounded, cancellable, and separate from live polling"
   const fetchService = readSource("services/FetchService.qml");
   assert.match(fetchService, /CalendarCachePolicy\.mergeState/);
   assert.match(fetchService, /requestCalendarMonth/);
+  assert.match(fetchService, /calendarFetch\.snapshotFor\(state\.leagueId\)/);
 });
 
 test("C5 NHL rolling plan is bounded and unsupported leagues stay rejected", () => {

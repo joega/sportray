@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell.Io
 import "../providers/NhlProvider.js" as NhlProvider
+import "../providers/EspnProvider.js" as EspnProvider
+import "../providers/LeagueCatalog.js" as LeagueCatalog
 import "../model/CalendarModel.js" as CalendarModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
 import "../model/ChunkPolicy.js" as ChunkPolicy
@@ -11,6 +13,7 @@ Item {
   id: root
 
   property bool calendarEnabled: false
+  property var enabledLeagues: ["nhl"]
   property string requestedMonthKey: ""
   property var windows: ({})
   property var windowOrder: []
@@ -32,33 +35,91 @@ Item {
   property string planKind: ""
   property var backgroundDays: []
   property int backgroundIndex: 0
+  property var scheduleStates: ({})
+  property string activeLeagueId: ""
 
-  function windowKey(monthKey) { return "nhl:" + monthKey }
+  function providerIdFor(leagueId) {
+    if (leagueId === "nhl") return "nhl"
+    if (leagueId === "nfl") return "espn-nfl"
+    if (leagueId === "nba") return "espn-nba"
+    if (leagueId === "eng.1") return "espn-epl"
+    if (leagueId === "usa.1") return "espn-mls"
+    return ""
+  }
+
+  function windowKey(leagueId, monthKey) { return leagueId + ":" + monthKey }
   function backgroundWindowKey(window) {
     return "nhl:rolling:" + window.startDate + ":" + window.endDate
   }
 
   function snapshot() { return root.currentState }
-
-  function publishBackground(days) {
-    var merged = CalendarCachePolicy.mergeState(root.currentState, {
-      leagueId: "nhl", displayName: "NHL", days: days || []
-    })
-    root.backgroundDays = merged.days
-    root.currentState = {
-      leagueId: "nhl", displayName: "NHL", days: merged.days,
-      status: root.currentState.status || "unknown",
-      loading: root.currentState.loading === true, stale: root.currentState.stale === true,
-      errorCode: root.currentState.errorCode || ""
+  function snapshotFor(leagueId) {
+    return root.scheduleStates[leagueId] || {
+      leagueId: leagueId || "", displayName: "", days: [], status: "unknown",
+      loading: false, stale: false, errorCode: ""
     }
   }
 
-  function setState(status, days, errorCode, stale) {
-    root.currentState = {
-      leagueId: "nhl", displayName: "NHL", days: Array.isArray(days) ? days : [],
-      status: status || "unknown", loading: status === "loading", stale: stale === true,
-      errorCode: errorCode || ""
+  function publishBackground(days) {
+    var merged = CalendarCachePolicy.mergeState(root.snapshotFor("nhl"), {
+      leagueId: "nhl", displayName: "NHL", days: days || []
+    })
+    root.backgroundDays = merged.days
+    root.setStateFor("nhl", root.snapshotFor("nhl").status || "unknown", merged.days,
+      root.snapshotFor("nhl").errorCode || "", root.snapshotFor("nhl").stale === true)
+  }
+
+  function setStateFor(leagueId, status, days, errorCode, stale) {
+    var nextStates = {}
+    for (var key in root.scheduleStates) nextStates[key] = root.scheduleStates[key]
+    var league = LeagueCatalog.getLeague(leagueId)
+    nextStates[leagueId] = {
+      leagueId: leagueId, displayName: league ? league.displayName : leagueId,
+      days: Array.isArray(days) ? days : [], status: status || "unknown",
+      loading: status === "loading", stale: stale === true, errorCode: errorCode || ""
     }
+    root.scheduleStates = nextStates
+    if (leagueId === root.activeLeagueId || root.activeLeagueId === "") root.currentState = nextStates[leagueId]
+  }
+
+  function setState(status, days, errorCode, stale) {
+    root.setStateFor(root.activeLeagueId || "nhl", status, days, errorCode, stale)
+  }
+
+  function eligibleLeagues() {
+    var result = []
+    var ids = Array.isArray(root.enabledLeagues) ? root.enabledLeagues : []
+    ids.forEach(function(value) {
+      var id = String(value || "").toLowerCase()
+      if (root.providerIdFor(id) && result.indexOf(id) === -1) result.push(id)
+    })
+    return result
+  }
+
+  function finishActiveLeague() {
+    if (!root.activeLeagueId || !root.planWindows.length) return
+    var first = root.planWindows.filter(function(item) { return item.leagueId === root.activeLeagueId })[0]
+    if (!first) return
+    var complete = root.activeDays.every(function(day) { return day.complete === true })
+    var entry = {providerId: first.providerId, startDate: first.monthStart,
+      endDate: first.monthEnd, status: complete ? "complete" : "partial", stale: false,
+      updatedAtMs: Date.now(), days: root.activeDays}
+    root.rememberFor(root.windowKey(root.activeLeagueId, first.monthKey), entry)
+    root.setStateFor(root.activeLeagueId, entry.status, entry.days, "", false)
+  }
+
+  function rememberFor(key, entry) {
+    var next = {}
+    for (var existing in root.windows) next[existing] = root.windows[existing]
+    next[key] = entry
+    var order = root.windowOrder.filter(function(value) { return value !== key })
+    order.push(key)
+    while (order.length > CalendarCachePolicy.MAX_CACHE_WINDOWS) {
+      var evicted = order.shift()
+      delete next[evicted]
+    }
+    root.windows = next
+    root.windowOrder = order
   }
 
   function cached(key, nowMs) {
@@ -98,6 +159,7 @@ Item {
     root.planWindows = []
     root.planIndex = 0
     root.activeDays = []
+    root.activeLeagueId = ""
     root.pendingBody = ""
     root.bodyReceived = false
     root.responseTooLarge = false
@@ -129,36 +191,41 @@ Item {
     }
     root.queuedMonthKey = ""
     root.cancel()
-    root.activeWindowKey = root.windowKey(requested)
     root.planKind = "month"
     var nowMs = Date.now()
-    var hit = root.cached(root.activeWindowKey, nowMs)
-    if (hit) {
-      root.publishEntry(hit)
-      return false
-    }
-
     var dates = CalendarModel.monthDateKeys(requested)
     if (!dates || dates.length !== 42) {
       root.setState("unavailable", [], "configuration", false)
       return false
     }
-    var plan = ChunkPolicy.plan("nhl", dates[0], dates[dates.length - 1])
-    if (plan.kind !== "plan" || plan.requestCount > ChunkPolicy.MAX_REQUESTS) {
-      root.setState("unavailable", [], "configuration", false)
-      return false
-    }
-    root.planWindows = plan.windows
+    root.planWindows = []
+    root.eligibleLeagues().forEach(function(leagueId) {
+      var key = root.windowKey(leagueId, requested)
+      var hit = root.cached(key, nowMs)
+      if (hit) {
+        root.setStateFor(leagueId, hit.status, hit.days,
+          hit.status === "unavailable" ? "unavailable" : "", hit.stale === true)
+        return
+      }
+      var plan = ChunkPolicy.plan(root.providerIdFor(leagueId), dates[0], dates[dates.length - 1])
+      if (plan.kind !== "plan" || plan.requestCount > ChunkPolicy.MAX_REQUESTS) return
+      plan.windows.forEach(function(window) {
+        root.planWindows.push({leagueId: leagueId, providerId: root.providerIdFor(leagueId),
+          monthKey: requested, monthStart: dates[0], monthEnd: dates[dates.length - 1],
+          startDate: window.startDate, endDate: window.endDate, spanDays: window.spanDays})
+      })
+    })
+    if (root.planWindows.length === 0) return false
     root.planIndex = 0
-    root.activeDays = CalendarCachePolicy.createWindow("nhl", dates[0], dates[dates.length - 1], nowMs).days
-    root.setState("loading", root.activeDays, "", false)
+    root.activeLeagueId = ""
     root.startNext()
     return true
   }
 
   function requestBackground() {
     if (!root.calendarEnabled || !root.calendarCacheReady || root.ownerDestroyed
-        || calendarProcess.running || root.queuedMonthKey) return false
+        || calendarProcess.running || root.queuedMonthKey
+        || root.eligibleLeagues().indexOf("nhl") === -1) return false
     var today = DateModel.localDateKey(new Date())
     var plan = ChunkPolicy.planRolling("nhl", today)
     if (plan.kind !== "plan" || plan.requestCount > ChunkPolicy.MAX_REQUESTS) return false
@@ -166,6 +233,11 @@ Item {
     root.planKind = "background"
     var index = root.backgroundIndex % plan.windows.length
     root.planWindows = [plan.windows[index]]
+    root.planWindows[0].leagueId = "nhl"
+    root.planWindows[0].providerId = "nhl"
+    root.planWindows[0].monthKey = DateModel.monthKey(today)
+    root.planWindows[0].monthStart = plan.windows[index].startDate
+    root.planWindows[0].monthEnd = plan.windows[index].endDate
     root.planIndex = 0
     root.activeDays = []
     root.startNext()
@@ -180,24 +252,28 @@ Item {
         root.activeDays = []
         return
       }
-      var complete = root.activeDays.every(function(day) { return day.complete === true })
-      var entry = {providerId: "nhl", startDate: root.planWindows.length
-        ? root.planWindows[0].startDate : "", endDate: root.planWindows.length
-        ? root.planWindows[root.planWindows.length - 1].endDate : "",
-        status: complete ? "complete" : "partial", stale: false,
-        updatedAtMs: Date.now(), days: root.activeDays}
-      root.remember(entry)
-      root.publishEntry(entry)
+      root.finishActiveLeague()
+      root.planKind = ""
       return
     }
     var window = root.planWindows[root.planIndex]
+    if (window.leagueId !== root.activeLeagueId) {
+      root.finishActiveLeague()
+      root.activeLeagueId = window.leagueId
+      root.activeWindowKey = root.windowKey(window.leagueId, window.monthKey)
+      root.activeDays = CalendarCachePolicy.createWindow(window.providerId,
+        window.monthStart, window.monthEnd, Date.now()).days
+      root.setStateFor(window.leagueId, "loading", root.activeDays, "", false)
+    }
     root.pendingBody = ""
     root.bodyReceived = false
     root.responseTooLarge = false
     calendarProcess.requestGeneration = root.activeGeneration
+    var url = window.providerId === "nhl" ? NhlProvider.buildNextGamesUrl(window.startDate)
+      : EspnProvider.buildNextGamesUrl(window.leagueId, window.startDate, window.endDate)
     calendarProcess.command = ["curl", "-fsSL", "--max-time", "10",
       "--max-filesize", String(ResponsePolicy.MAX_RESPONSE_BYTES),
-      NhlProvider.buildNextGamesUrl(window.startDate)]
+      url]
     calendarProcess.running = true
   }
 
@@ -215,13 +291,18 @@ Item {
 
   function applyResponse(window, payload) {
     var parsed = null
-    try { parsed = NhlProvider.parseCalendarScheduleResponse(payload) } catch (error) { parsed = null }
+    try {
+      parsed = window.providerId === "nhl"
+        ? NhlProvider.parseCalendarScheduleResponse(payload)
+        : EspnProvider.parseCalendarRangeResponse(payload, window.leagueId,
+          window.startDate, window.endDate)
+    } catch (error) { parsed = null }
     var next = CalendarCachePolicy.applyChunk(
-      CalendarCachePolicy.createWindow("nhl", window.startDate, window.endDate, Date.now()),
+      CalendarCachePolicy.createWindow(window.providerId, window.startDate, window.endDate, Date.now()),
       window.startDate, window.endDate, parsed, Date.now())
-    root.activeDays = CalendarCachePolicy.mergeState({leagueId: "nhl", days: root.activeDays}, next).days
+    root.activeDays = CalendarCachePolicy.mergeState({leagueId: window.leagueId, days: root.activeDays}, next).days
     root.planIndex++
-    root.setState("loading", root.activeDays, "", false)
+    root.setStateFor(window.leagueId, "loading", root.activeDays, "", false)
     root.startNext()
   }
 
