@@ -196,7 +196,9 @@ channel; the preview works even when alerts are disabled and does not change
 deduplication state. Escape or Back returns from a utility to the prior score
 view before closing the panel.
 
-Sportray stores bounded schema-1 JSON outside the plugin checkout at:
+Sportray stores bounded schema-1 JSON outside the plugin checkout at. It may
+include up to 32 normalized watched-game records; provider payloads and raw
+provider fields are never persisted:
 
 ```text
 ~/.local/state/omarchy/settings/sportray.json

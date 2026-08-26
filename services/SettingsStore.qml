@@ -5,6 +5,7 @@ import "../model/SettingsModel.js" as SettingsModel
 import "../model/SettingsPermissionPolicy.js" as SettingsPermissionPolicy
 import "../model/StateModel.js" as StateModel
 import "../model/TransitionDedupe.js" as TransitionDedupe
+import "../model/WatchPolicy.js" as WatchPolicy
 
 // Persistent application state only. Fetch results, normalized games, and
 // provider objects deliberately do not belong here. Transition fingerprints
@@ -19,6 +20,7 @@ Item {
   property string permissionStage: "idle"
   property var settings: SettingsModel.createDefaults()
   property var transitionDedupe: TransitionDedupe.createDefaults()
+  property var watchedGames: []
   // A future schema is intentionally kept opaque. The UI receives safe
   // defaults, but no later action may replace the file before a compatible
   // reload supplies a schema this version understands.
@@ -28,14 +30,15 @@ Item {
   property bool ready: false
 
   function applyText(raw) {
-    var result = StateModel.parseStateText(raw, Date.now(), SettingsModel, TransitionDedupe)
+    var result = StateModel.parseStateText(raw, Date.now(), SettingsModel, TransitionDedupe, WatchPolicy)
     root.settings = result.settings
     root.transitionDedupe = result.transitionDedupe
+    root.watchedGames = result.watchedGames || []
     root.preservedRawStateText = result.preservedRawText || ""
     root.loadStatus = result.status
     root.recovered = result.recovered
     root.ready = true
-    if (result.needsWrite) root.writeState(result.settings, result.transitionDedupe)
+    if (result.needsWrite) root.writeState(result.settings, result.transitionDedupe, root.watchedGames)
   }
 
   // Settings UI calls this narrow boundary with a candidate object. It is
@@ -48,10 +51,11 @@ Item {
     return true
   }
 
-  function writeState(candidateSettings, candidateDedupe) {
+  function writeState(candidateSettings, candidateDedupe, candidateWatches) {
     if (root.preservedRawStateText.length > 0) return false
     if (!root.permissionsReady || permissionProcess.running) return false
-    var state = StateModel.createState(candidateSettings, candidateDedupe, SettingsModel, TransitionDedupe)
+    var state = StateModel.createState(candidateSettings, candidateDedupe, SettingsModel, TransitionDedupe,
+      Date.now(), candidateWatches || root.watchedGames, WatchPolicy)
     if (candidateSettings !== root.settings) {
       root.settings = {
         schemaVersion: state.schemaVersion,
@@ -61,6 +65,7 @@ Item {
       }
     }
     root.transitionDedupe = state.transitionDedupe
+    root.watchedGames = state.watchedGames
     root.permissionsReady = false
     root.writePending = true
     settingsFile.setText(JSON.stringify(state, null, 2) + "\n")

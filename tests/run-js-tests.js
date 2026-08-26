@@ -29,6 +29,7 @@ const pollPolicy = require(path.join(root, "model/PollPolicy.js"));
 const freshness = require(path.join(root, "model/FreshnessPolicy.js"));
 const transitions = require(path.join(root, "model/TransitionDetector.js"));
 const transitionDedupe = require(path.join(root, "model/TransitionDedupe.js"));
+const watchPolicy = require(path.join(root, "model/WatchPolicy.js"));
 const stateModel = require(path.join(root, "model/StateModel.js"));
 const notificationModel = require(path.join(root, "model/NotificationModel.js"));
 const iconography = require(path.join(root, "model/Iconography.js"));
@@ -138,6 +139,10 @@ function readSettingsPermissionFixture() {
 function readSettingsSchemaFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/settings-schemas/state.json"), "utf8"));
+}
+
+function readWatchFixture() {
+  return JSON.parse(fs.readFileSync(path.join(root, "fixtures/watches/policy.json"), "utf8"));
 }
 
 function readMixedFollowingLayoutFixture() {
@@ -3179,6 +3184,48 @@ test("global notification off preserves event choices and blocks deliveries", ()
     "PregameReminderPolicy.eligibleEvents"), true);
   assert.equal(readSource("services/NotificationService.qml").includes(
     "CloseGamePolicy.eligibleEvents"), true);
+});
+
+test("W1 watch policy normalizes, deduplicates, bounds, expires, and strips provider fields", () => {
+  const fixture = readWatchFixture();
+  const entries = [fixture.valid, fixture.duplicate];
+  for (let i = 0; i < 40; i++) entries.push({...fixture.valid, gameId: `nhl:watch-${i}`, providerGameId: `watch-${i}`,
+    createdAt: `2026-10-08T13:${String(i).padStart(2, "0")}:00Z`, expiresAt: "2026-11-07T13:00:00Z"});
+  const result = watchPolicy.normalizeWatches(entries, Date.parse(fixture.now));
+  assert.equal(result.watches.length, watchPolicy.MAX_WATCHES);
+  assert.equal(result.watches.some((watch) => watch.gameId === "nhl:watch-1"), true);
+  assert.equal(result.watches.find((watch) => watch.gameId === "nhl:watch-1").createdAt,
+    watchPolicy.normalizeEntry(fixture.duplicate).createdAt);
+  assert.equal(JSON.stringify(result.watches).includes("raw"), false);
+  assert.equal(watchPolicy.normalizeEntry({...fixture.valid, provider: {secret: true}}).provider, undefined);
+  assert.equal(watchPolicy.normalizeEntry({...fixture.valid, gameId: "wrong:id"}), null);
+});
+
+test("W1 watch expiry covers clock skew, postponement, hard maximum, and terminal recovery", () => {
+  const fixture = readWatchFixture();
+  const now = Date.parse(fixture.now);
+  const active = watchPolicy.normalizeWatches([fixture.valid], now).watches[0];
+  assert.equal(active.status, "active");
+  assert.equal(watchPolicy.normalizeWatches([{...fixture.valid, expiresAt: "2026-10-08T13:59:00Z"}], now).watches[0].status, "expired");
+  assert.equal(watchPolicy.normalizeWatches([{...fixture.valid, startTime: "2026-10-20T15:00:00Z"}], now).watches[0].status, "active");
+  const terminal = watchPolicy.normalizeWatches([fixture.valid], now, {"nhl:watch-1": {status: "final"}}).watches[0];
+  assert.equal(Date.parse(terminal.expiresAt), now + watchPolicy.TERMINAL_RECOVERY_MS);
+  assert.equal(watchPolicy.normalizeWatches([terminal], now + watchPolicy.TERMINAL_RECOVERY_MS).watches[0].status, "expired");
+  const hard = {...fixture.valid, createdAt: "2026-09-01T13:00:00Z", expiresAt: "2026-12-01T13:00:00Z"};
+  assert.equal(watchPolicy.normalizeWatches([hard], now).watches[0].status, "expired");
+});
+
+test("W1 watches persist in schema 1 state without changing future-schema opacity", () => {
+  const fixture = readWatchFixture();
+  const state = stateModel.createState(settingsModel.createDefaults(), transitionDedupe.createDefaults(),
+    settingsModel, transitionDedupe, Date.parse(fixture.now), [fixture.valid]);
+  const loaded = stateModel.parseStateText(JSON.stringify(state), Date.parse(fixture.now), settingsModel, transitionDedupe);
+  assert.equal(loaded.status, "valid");
+  assert.deepEqual(loaded.watchedGames[0], watchPolicy.normalizeEntry(fixture.valid));
+  const future = stateModel.parseStateText(JSON.stringify({...state, schemaVersion: 2, future: {raw: true}}), Date.parse(fixture.now));
+  assert.equal(future.needsWrite, false);
+  assert.equal(future.preservedRawText.includes('"future"'), true);
+  assert.deepEqual(future.watchedGames, []);
 });
 
 test("notification preferences persist through the schema-1 state serializer", () => {

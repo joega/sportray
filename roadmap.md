@@ -4916,4 +4916,41 @@ provider-bound change, or new upstream API is justified. Public README text
 does not need changing because C4 completes and verifies existing documented
 calendar behavior without changing its public contract.
 
-Next bounded unit: **W1 — Watch policy and durable-state integration** only.
+Next bounded unit: **W2 — Notification admission** only.
+
+## Latest handoff — 2026-08-25 W1 watch policy and durable state complete
+
+Status: complete. W1 adds only pure watch normalization/expiry and the
+existing settings-store persistence projection. The state schema remains 1 so
+schema-1 round trips stay compatible; `watchedGames` is a known bounded state
+field, while schema versions greater than 1 retain their exact raw text and
+never write defaults over it.
+
+`model/WatchPolicy.js` rejects malformed or provider-shaped records,
+canonicalizes league/game identity, deduplicates by game ID using the newest
+created record, keeps at most 32 records, strips all fields not needed by the
+watch contract, and applies a six-hour terminal recovery window or 30-day
+hard maximum. No UI, notification admission, provider fetch, polling,
+calendar, or followed-league behavior changed.
+
+Fixture evidence covers malformed entries, duplicates, bounds, clock skew,
+postponement, terminal recovery, hard expiry, active restart recovery,
+schema-1 persistence, future-schema opacity, and raw provider-field absence.
+The JavaScript suite passes with 246 tests. Summon-helper tests, `git diff
+--check`, `omarchy plugin validate "$PWD"`, and real-import-path QML lint over
+all 26 QML files pass.
+
+Actual Omarchy evidence: after `omarchy restart shell`, exactly one
+`quickshell -n -p /usr/share/omarchy/shell` remained; the supported summon
+helper returned `ok`; and the fresh instance log showed normal Sportray
+initialization and league fetches with no Sportray QML error, exception, or
+binding loop. The unrelated desktop-portal registration warning and one
+generic FileView dropped-operation warning remain. An initial runtime pass
+exposed and fixed a missing explicit QML JS-module injection for
+`WatchPolicy`; the final fresh log is clean of that error.
+
+Decision: because the planned schema-2 migration is not present in this
+checkout, W1 kept the existing schema-1 boundary rather than introducing a
+version upgrade or rewriting future state. W2 must reuse this projection and
+extend admission only through the existing normalized transition pipeline.
+No push, tag, release, Marketplace, or destructive host action occurred.

@@ -2,7 +2,7 @@
 
 Private implementation plan for `/home/joeg/Projects/sportray`.
 
-Status: **C4 complete; remaining epics planned**
+Status: **W1 complete; remaining epics planned**
 
 Owner direction recorded: **2026-08-25**
 
@@ -479,9 +479,26 @@ promise delivery.
 
 #### W1 — Watch policy and durable-state integration
 
+Status: **complete — 2026-08-25**
+
 - Consume the already-landed shared settings-schema migration described below.
 - Add watch normalization, bounds, expiry, dedupe, and persistence fixtures.
 - No row/UI or notifications in this unit.
+
+Implemented evidence: `model/WatchPolicy.js` admits only canonical game
+identity, league, provider game ID, normalized start/created/expiry times, and
+active/expired state. It rejects malformed entries, deduplicates by game ID,
+keeps the newest duplicate, caps the retained set at 32, applies a 30-day
+hard maximum, handles clock skew/postponement, and applies a six-hour terminal
+recovery window when a normalized terminal observation is supplied.
+`StateModel` and `SettingsStore` persist the bounded projection in the existing
+schema-1 file while future schemas remain opaque and unwritable. No UI,
+notification admission, fetching, polling, or provider parsing was added.
+
+Fixture evidence covers malformed input, duplicate identity, the 32-item
+bound, expiry cases, restart round-trip, schema-1 preservation,
+future-schema opacity, and raw-field exclusion. W2 owns notification
+admission.
 
 #### W2 — Notification admission
 

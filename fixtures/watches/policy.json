@@ -1,0 +1,22 @@
+{
+  "now": "2026-10-08T14:00:00.000Z",
+  "valid": {
+    "gameId": "nhl:watch-1",
+    "league": "NHL",
+    "providerGameId": "watch-1",
+    "startTime": "2026-10-08T15:00:00Z",
+    "createdAt": "2026-10-08T13:00:00Z",
+    "expiresAt": "2026-11-07T13:00:00Z",
+    "status": "active",
+    "provider": {"raw": "must never persist"}
+  },
+  "duplicate": {
+    "gameId": "nhl:watch-1",
+    "league": "nhl",
+    "providerGameId": "watch-1",
+    "startTime": "2026-10-08T15:00:00Z",
+    "createdAt": "2026-10-08T13:30:00Z",
+    "expiresAt": "2026-11-07T13:30:00Z",
+    "status": "active"
+  }
+}
