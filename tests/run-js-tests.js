@@ -3,6 +3,7 @@ const childProcess = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const catalog = require(path.join(root, "providers/LeagueCatalog.js"));
@@ -6142,6 +6143,17 @@ test("C2 chunk planner stays within provider-neutral request and date bounds", (
     "invalid-date");
   assert.equal(chunkPolicy.plan("espn-epl", "2026-01-01", "2026-02-12").reason,
     "date-span");
+
+  // QML imports do not expose CommonJS require(). Exercise the standalone
+  // fallback too so Node's DateModel dependency cannot hide a runtime plan
+  // collapse.
+  const qmlContext = {};
+  vm.runInNewContext(readSource("model/ChunkPolicy.js"), qmlContext);
+  const qmlPlan = qmlContext.plan("espn-epl", fixture.request.startDate,
+    fixture.request.endDate);
+  assert.equal(qmlPlan.requestCount, 6);
+  assert.equal(qmlPlan.windows[0].endDate, "2026-04-07");
+  assert.equal(qmlPlan.windows.at(-1).endDate, "2026-05-12");
 });
 
 test("C2 admission rejects malformed, oversized, capped, incomplete, and non-continuing ranges", () => {
@@ -6212,6 +6224,17 @@ test("C3 calendar cache marks missing coverage partial and merges live identity"
   });
   assert.equal(merged.days.find((day) => day.dateKey === "2026-09-29").games.length, 1);
   assert.equal(merged.days.find((day) => day.dateKey === "2026-09-29").complete, true);
+
+  const qmlContext = {};
+  vm.runInNewContext(readSource("model/CalendarCachePolicy.js"), qmlContext);
+  const qmlWindow = qmlContext.createWindow("espn-nfl",
+    "2026-07-27", "2026-08-02", 100);
+  assert.equal(qmlWindow.configurationValid, true);
+  assert.equal(qmlWindow.days.length, 7);
+  assert.equal(qmlWindow.days[0].dateKey, "2026-07-27");
+  assert.equal(qmlWindow.days.at(-1).dateKey, "2026-08-02");
+  assert.equal(qmlContext.createWindow("espn-nfl", "bad", "bad", 100)
+    .configurationValid, false);
 });
 
 test("C3 calendar cache freshness and bounds stay low frequency", () => {
@@ -6254,6 +6277,32 @@ test("persistent calendar day files are normalized, bounded, and restart-readabl
     [calendarDiskCachePolicy.key("nhl", current.dateKey)]: current,
     [calendarDiskCachePolicy.key("mlb", mlb.dateKey)]: mlb
   }, fixture.today), fixture.manifest);
+
+  const coverageFixture = fixture.rehydrationCoverage;
+  const partialEntries = {
+    "nhl:2026-08-24": calendarDiskCachePolicy.createDay("nhl", "2026-08-24", [], 1),
+    "nhl:2026-08-25": current,
+    "nfl:2026-08-24": calendarDiskCachePolicy.createDay("nfl", "2026-08-24", [], 1)
+  };
+  const partialCoverage = calendarDiskCachePolicy.coverage(partialEntries,
+    coverageFixture.leagueIds, coverageFixture.dateKeys, fixture.today);
+  assert.deepEqual(partialCoverage, {
+    leagueCount: coverageFixture.retainedLeagueCount,
+    dateCount: coverageFixture.retainedDateCount,
+    requiredCount: coverageFixture.requiredCount,
+    availableCount: 3,
+    missingCount: 3,
+    needsHydration: true
+  });
+  const completeEntries = Object.assign({}, partialEntries, {
+    "nhl:2026-08-26": calendarDiskCachePolicy.createDay("nhl", "2026-08-26", [], 1),
+    "nfl:2026-08-25": calendarDiskCachePolicy.createDay("nfl", "2026-08-25", [], 1),
+    "nfl:2026-08-26": calendarDiskCachePolicy.createDay("nfl", "2026-08-26", [], 1)
+  });
+  assert.equal(calendarDiskCachePolicy.coverage(completeEntries,
+    coverageFixture.leagueIds, coverageFixture.dateKeys, fixture.today).needsHydration, false);
+  assert.equal(calendarDiskCachePolicy.coverage({}, [], coverageFixture.dateKeys,
+    fixture.today).needsHydration, false);
 });
 
 test("persistent calendar cache is a separate sequential FileView owner", () => {
@@ -6265,10 +6314,13 @@ test("persistent calendar cache is a separate sequential FileView owner", () => 
   assert.match(source, /CachePolicy\.parseDayText/);
   assert.match(source, /CachePolicy\.manifest/);
   assert.match(source, /function persistStates\(states\)/);
+  assert.match(source, /function coverageFor\(leagueIds, dateKeys\)/);
+  assert.equal((source.match(/Qt\.callLater\([^\n]*root\.readNext/g) || []).length, 3);
   assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 2);
   assert.equal((source.match(/\bFileView\s*\{/g) || []).length, 3);
   assert.match(fetchService, /CalendarDiskCache \{ id: calendarDiskCache \}/);
   assert.match(fetchService, /calendarDiskCache\.persistStates/);
+  assert.match(fetchService, /calendarDiskCache\.coverageFor/);
   assert.equal(fetchService.includes("calendarDiskCache.*curl"), false);
 });
 
@@ -6296,6 +6348,20 @@ test("C3 schedule owner hydrates eligible leagues through bounded range chunks",
   assert.match(fetchService, /CalendarCachePolicy\.mergeState/);
   assert.match(fetchService, /requestCalendarMonth/);
   assert.match(fetchService, /calendarFetch\.snapshotFor\(state\.leagueId\)/);
+  assert.match(fetchService, /function maybeStartCalendarRehydration\(\)/);
+  assert.match(fetchService, /calendarFetch\.requestRehydration\(monthKey\)/);
+  assert.match(fetchService, /property string rehydrationAttemptedKey/);
+  assert.match(source, /function requestRehydration\(monthKey\)/);
+  assert.match(source, /property string rehydrationStatus/);
+  assert.match(source, /root\.planKind === "rehydration"/);
+  assert.match(source, /Closing the view must not kill a one-time startup rehydration/);
+  const panel = readSource("Panel.qml");
+  const monthCalendar = readSource("components/MonthCalendar.qml");
+  assert.match(panel, /calendarRehydrating/);
+  assert.match(panel, /rehydrationCompleted:/);
+  assert.match(monthCalendar, /Rehydrating calendar/);
+  assert.match(monthCalendar, /Calendar refresh incomplete/);
+  assert.match(monthCalendar, /root\.rehydrating \? "Loading…" : "Unknown"/);
 });
 
 test("C5 NHL rolling plan is bounded and unsupported leagues stay rejected", () => {

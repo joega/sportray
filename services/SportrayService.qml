@@ -51,6 +51,7 @@ Item {
 
   FetchService {
     id: fetchService
+    settingsReady: settingsStore.ready
     enabledLeagues: settingsStore.settings ? settingsStore.settings.enabledLeagues : ["nhl"]
     favoriteTeamIds: settingsStore.settings ? settingsStore.settings.favoriteTeamIds : []
     selectedDateKey: root.selectedDateKey

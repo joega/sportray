@@ -122,8 +122,42 @@ function manifest(entries, todayDateKey) {
   return {cacheVersion: CACHE_VERSION, keys: Object.keys(kept).sort()};
 }
 
+// Report whether every retained day needed by the admitted calendar leagues
+// is present. The caller supplies only provider-approved league ids; dates
+// outside the rolling disk window are deliberately excluded because this
+// cache cannot retain them across a restart.
+function coverage(entries, leagueIds, dateKeys, todayDateKey) {
+  var leagues = [];
+  (Array.isArray(leagueIds) ? leagueIds : []).forEach(function(value) {
+    var league = typeof value === "string" ? value.trim().toLowerCase() : "";
+    if (/^[a-z0-9.]{1,32}$/.test(league) && leagues.indexOf(league) === -1)
+      leagues.push(league);
+  });
+  var dates = [];
+  (Array.isArray(dateKeys) ? dateKeys : []).forEach(function(value) {
+    if (validDate(value) && inWindow(value, todayDateKey) && dates.indexOf(value) === -1)
+      dates.push(value);
+  });
+  var availableCount = 0;
+  leagues.forEach(function(leagueId) {
+    dates.forEach(function(dateKey) {
+      var id = key(leagueId, dateKey);
+      if (id && entries && entries[id]) availableCount++;
+    });
+  });
+  var requiredCount = leagues.length * dates.length;
+  return {
+    leagueCount: leagues.length,
+    dateCount: dates.length,
+    requiredCount: requiredCount,
+    availableCount: availableCount,
+    missingCount: Math.max(0, requiredCount - availableCount),
+    needsHydration: requiredCount > 0 && availableCount < requiredCount
+  };
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {CACHE_VERSION, PAST_DAYS, FUTURE_DAYS, MAX_FILES, MAX_BYTES,
     MAX_GAMES_PER_DAY, key, fileName, inWindow, sanitizeGames, createDay,
-    parseDayText, prune, manifest, keyParts};
+    parseDayText, prune, manifest, keyParts, coverage};
 }

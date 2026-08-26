@@ -31,12 +31,20 @@ Item {
   property bool stoppingRequest: false
   property bool ownerDestroyed: false
   property string queuedMonthKey: ""
+  property string queuedPlanKind: ""
   property bool calendarCacheReady: false
   property string planKind: ""
+  property int planFailureCount: 0
   property var backgroundDays: []
   property int backgroundIndex: 0
   property var scheduleStates: ({})
   property string activeLeagueId: ""
+  property string rehydrationStatus: "idle"
+  property string rehydrationMonthKey: ""
+  property int rehydrationCompleted: 0
+  property int rehydrationTotal: 0
+  readonly property bool rehydrating: root.planKind === "rehydration"
+    || root.queuedPlanKind === "rehydration"
 
   function providerIdFor(leagueId) {
     if (leagueId === "nhl") return "nhl"
@@ -100,7 +108,9 @@ Item {
     if (!root.activeLeagueId || !root.planWindows.length) return
     var first = root.planWindows.filter(function(item) { return item.leagueId === root.activeLeagueId })[0]
     if (!first) return
-    var complete = root.activeDays.every(function(day) { return day.complete === true })
+    var complete = root.activeDays.length > 0
+      && root.activeDays.every(function(day) { return day.complete === true })
+    if (root.planKind === "rehydration" && !complete) root.planFailureCount++
     var entry = {providerId: first.providerId, startDate: first.monthStart,
       endDate: first.monthEnd, status: complete ? "complete" : "partial", stale: false,
       updatedAtMs: Date.now(), days: root.activeDays}
@@ -167,8 +177,29 @@ Item {
   }
 
   function cancelSchedule() {
-    root.queuedMonthKey = ""
+    // Closing the view must not kill a one-time startup rehydration. It is a
+    // shared cache repair owned by this service, not by the panel lifecycle.
+    if (root.planKind === "rehydration") {
+      if (root.queuedPlanKind === "month") {
+        root.queuedMonthKey = ""
+        root.queuedPlanKind = ""
+      }
+      return
+    }
+    if (root.queuedPlanKind !== "rehydration") {
+      root.queuedMonthKey = ""
+      root.queuedPlanKind = ""
+    }
     root.cancel()
+  }
+
+  function startQueuedPlan() {
+    var monthKey = root.queuedMonthKey
+    var kind = root.queuedPlanKind
+    root.queuedMonthKey = ""
+    root.queuedPlanKind = ""
+    if (!monthKey) return false
+    return root.beginMonthPlan(monthKey, kind === "rehydration" ? "rehydration" : "month")
   }
 
   onCalendarEnabledChanged: {
@@ -192,13 +223,47 @@ Item {
     root.requestedMonthKey = requested
     if (!root.calendarEnabled || root.ownerDestroyed) return false
     if (calendarProcess.running) {
+      if (root.planKind === "rehydration") {
+        // The shared repair keeps its sequential request slot. A visible
+        // adjacent-month request waits behind it instead of canceling the
+        // background pass that is filling the empty cache.
+        if (requested === root.rehydrationMonthKey) return true
+        root.queuedMonthKey = requested
+        root.queuedPlanKind = "month"
+        return true
+      }
       root.queuedMonthKey = requested
+      root.queuedPlanKind = "month"
       root.cancel()
       return false
     }
+    return root.beginMonthPlan(requested, "month")
+  }
+
+  function requestRehydration(monthKey) {
+    var requested = DateModel.monthKey(monthKey)
+    if (!requested || !root.calendarEnabled || root.ownerDestroyed) return false
+    if (root.rehydrationStatus === "loading" && root.rehydrationMonthKey === requested)
+      return true
+    root.rehydrationMonthKey = requested
+    root.rehydrationStatus = "loading"
+    root.rehydrationCompleted = 0
+    root.rehydrationTotal = 0
+    if (calendarProcess.running) {
+      root.queuedMonthKey = requested
+      root.queuedPlanKind = "rehydration"
+      if (root.planKind === "background") root.cancel()
+      return true
+    }
+    return root.beginMonthPlan(requested, "rehydration")
+  }
+
+  function beginMonthPlan(requested, kind) {
     root.queuedMonthKey = ""
+    root.queuedPlanKind = ""
     root.cancel()
-    root.planKind = "month"
+    root.planKind = kind === "rehydration" ? "rehydration" : "month"
+    root.planFailureCount = 0
     var nowMs = Date.now()
     var dates = CalendarModel.monthDateKeys(requested)
     if (!dates || dates.length !== 42) {
@@ -222,7 +287,19 @@ Item {
           startDate: window.startDate, endDate: window.endDate, spanDays: window.spanDays})
       })
     })
-    if (root.planWindows.length === 0) return false
+    if (root.planWindows.length === 0) {
+      if (root.planKind === "rehydration") {
+        root.rehydrationStatus = "complete"
+        console.log("Sportray calendar rehydration complete", requested, 0)
+      }
+      root.planKind = ""
+      return true
+    }
+    if (root.planKind === "rehydration") {
+      root.rehydrationTotal = root.planWindows.length
+      console.log("Sportray calendar rehydration started", requested,
+        root.rehydrationTotal)
+    }
     root.planIndex = 0
     root.activeLeagueId = ""
     root.startNext()
@@ -260,7 +337,17 @@ Item {
         return
       }
       root.finishActiveLeague()
+      var finishedKind = root.planKind
+      var failureCount = root.planFailureCount
       root.planKind = ""
+      if (finishedKind === "rehydration") {
+        root.rehydrationCompleted = root.rehydrationTotal
+        root.rehydrationStatus = failureCount > 0 ? "partial" : "complete"
+        console.log("Sportray calendar rehydration finished",
+          root.rehydrationStatus, root.rehydrationCompleted,
+          root.rehydrationTotal)
+      }
+      root.startQueuedPlan()
       return
     }
     var window = root.planWindows[root.planIndex]
@@ -309,6 +396,7 @@ Item {
       window.startDate, window.endDate, parsed, Date.now())
     root.activeDays = CalendarCachePolicy.mergeState({leagueId: window.leagueId, days: root.activeDays}, next).days
     root.planIndex++
+    if (root.planKind === "rehydration") root.rehydrationCompleted = root.planIndex
     root.setStateFor(window.leagueId, "loading", root.activeDays, "", false)
     root.startNext()
   }
@@ -359,25 +447,36 @@ Item {
         try { payload = JSON.parse(body) } catch (error) { payload = null }
       }
       root.responseTooLarge = false
-      if (root.ownerDestroyed || !root.calendarEnabled || !window) return
+      // cancel() deliberately clears planWindows. Service a queued plan before
+      // requiring the exited request's window or the replacement is lost.
+      if (root.ownerDestroyed || !root.calendarEnabled) return
       if (stopped) {
-        var queued = root.queuedMonthKey
-        root.queuedMonthKey = ""
-        if (queued) root.requestMonth(queued)
+        root.startQueuedPlan()
         return
       }
+      if (!window) return
       if (exitCode !== 0 || !payload) {
         if (root.planKind === "background") {
           root.planIndex = root.planWindows.length
           root.startNext()
           return
         }
-        root.planIndex = root.planWindows.length
-        var stale = root.windows[root.activeWindowKey]
-        if (stale) {
-          stale.stale = true
-          root.publishEntry(stale)
-        } else root.setState("unavailable", root.activeDays, "unavailable", false)
+        if (root.planKind !== "rehydration") {
+          root.planIndex = root.planWindows.length
+          var stale = root.windows[root.activeWindowKey]
+          if (stale) {
+            stale.stale = true
+            root.publishEntry(stale)
+          } else root.setState("unavailable", root.activeDays, "unavailable", false)
+          root.planKind = ""
+          root.startQueuedPlan()
+          return
+        }
+        root.planFailureCount++
+        root.planIndex++
+        if (root.planKind === "rehydration") root.rehydrationCompleted = root.planIndex
+        root.setState("loading", root.activeDays, "unavailable", false)
+        root.startNext()
         return
       }
       if (root.planKind === "background") root.applyBackgroundResponse(window, payload)

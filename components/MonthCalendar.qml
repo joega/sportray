@@ -15,6 +15,10 @@ Item {
   property int focusedIndex: -1
   property bool edgeRequestPending: false
   property bool edgeRequestsSuppressed: true
+  property bool rehydrating: false
+  property string rehydrationStatus: "idle"
+  property int rehydrationCompleted: 0
+  property int rehydrationTotal: 0
 
   signal dateSelected(string dateKey)
   signal monthRequested(int delta)
@@ -24,7 +28,9 @@ Item {
   readonly property int rowCount: 6
   readonly property real cellHeight: Style.space(46)
   readonly property var weekRows: root.buildWeekRows()
-  implicitHeight: controls.height + Style.spacing.xs + weekdays.height
+  implicitHeight: controls.height + (hydrationNotice.visible
+      ? Style.spacing.xs + hydrationNotice.height : 0)
+    + Style.spacing.xs + weekdays.height
     + Style.spacing.xs + Math.min(Style.space(6 * 46 + 5 * 2), weekList.height)
 
   function buildWeekRows() {
@@ -84,7 +90,7 @@ Item {
   }
 
   function countLine(cell) {
-    if (!cell || cell.state === "unknown") return "Unknown"
+    if (!cell || cell.state === "unknown") return root.rehydrating ? "Loading…" : "Unknown"
     if (cell.state === "empty") return "No games"
     return cell.gameCount === 1 ? "1 game" : cell.gameCount + " games"
   }
@@ -137,6 +143,43 @@ Item {
         Accessible.role: Accessible.Button
       }
 
+    }
+
+    Rectangle {
+      id: hydrationNotice
+      width: parent.width
+      height: visible ? Style.space(28) : 0
+      radius: Style.cornerRadius
+      color: Color.popups.background
+      visible: root.rehydrating || root.rehydrationStatus === "partial"
+
+      BusyIndicator {
+        id: hydrationSpinner
+        anchors.left: parent.left
+        anchors.leftMargin: Style.spacing.sm
+        anchors.verticalCenter: parent.verticalCenter
+        width: Style.space(18)
+        height: width
+        running: root.rehydrating
+        visible: running
+      }
+
+      Text {
+        anchors.left: root.rehydrating ? hydrationSpinner.right : parent.left
+        anchors.leftMargin: Style.spacing.sm
+        anchors.right: parent.right
+        anchors.rightMargin: Style.spacing.sm
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.rehydrating
+          ? "Rehydrating calendar · " + root.rehydrationCompleted + " of "
+            + root.rehydrationTotal
+          : "Calendar refresh incomplete · unknown days remain"
+        color: root.rehydrationStatus === "partial" ? Color.urgent : Color.muted
+        font.family: Style.font.family
+        font.pixelSize: Style.font.caption
+        elide: Text.ElideRight
+        Accessible.name: text
+      }
     }
 
     Row {

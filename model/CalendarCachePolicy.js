@@ -17,7 +17,15 @@ function validDate(value) {
 }
 
 function addDays(value, days) {
-  return DateModel ? DateModel.addDays(value, days) : "";
+  if (DateModel) return DateModel.addDays(value, days);
+  if (!validDate(value) || !isFinite(Number(days))) return "";
+  var parts = value.split("-").map(Number);
+  var date = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (isNaN(date.getTime()) || date.getFullYear() !== parts[0]
+      || date.getMonth() !== parts[1] - 1 || date.getDate() !== parts[2]) return "";
+  date.setDate(date.getDate() + Math.trunc(Number(days)));
+  function pad(number) { return number < 10 ? "0" + number : String(number); }
+  return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
 }
 
 function dateRange(startDate, endDate) {
@@ -46,6 +54,7 @@ function emptyDays(startDate, endDate, state) {
 }
 
 function createWindow(providerId, startDate, endDate, nowMs) {
+  var days = emptyDays(startDate, endDate, "loading");
   return {
     providerId: providerId || "",
     startDate: startDate || "",
@@ -53,7 +62,8 @@ function createWindow(providerId, startDate, endDate, nowMs) {
     status: "loading",
     stale: false,
     updatedAtMs: Number(nowMs) || 0,
-    days: emptyDays(startDate, endDate, "loading")
+    days: days,
+    configurationValid: days.length > 0
   };
 }
 
@@ -72,6 +82,10 @@ function mergeGames(existing, additions) {
 
 function applyChunk(window, startDate, endDate, parsed, nowMs) {
   var next = createWindow(window && window.providerId, startDate, endDate, nowMs);
+  if (next.configurationValid !== true) {
+    next.status = "unavailable";
+    return next;
+  }
   if (!parsed || !Array.isArray(parsed.days) || !Array.isArray(parsed.errors)) {
     next.status = "unavailable";
     next.days = emptyDays(startDate, endDate, "unavailable");

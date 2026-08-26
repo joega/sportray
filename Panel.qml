@@ -834,6 +834,10 @@ Panel {
 
   function buildBarTooltipText() {
     var text = Formatters.formatBarTooltip(barState, root.barFormatOptions(64))
+    if (root.fetchService && root.fetchService.calendarRehydrating)
+      return "Sportray · rehydrating calendar "
+        + root.fetchService.calendarRehydrationCompleted + " of "
+        + root.fetchService.calendarRehydrationTotal
     if (root.barHasLiveFavorite && text !== "") return "Live favorite · " + text
     if (text !== "") return text
     if (fetchService.errorCode !== "") return "Sportray · scores unavailable"
@@ -1231,6 +1235,13 @@ Panel {
                 gridState: root.calendarState
                 pages: root.calendarPages
                 selectedDateKey: root.selectedDateKey
+                rehydrating: root.fetchService && root.fetchService.calendarRehydrating
+                rehydrationStatus: root.fetchService
+                  ? root.fetchService.calendarRehydrationStatus : "idle"
+                rehydrationCompleted: root.fetchService
+                  ? root.fetchService.calendarRehydrationCompleted : 0
+                rehydrationTotal: root.fetchService
+                  ? root.fetchService.calendarRehydrationTotal : 0
                 onDateSelected: function(dateKey) {
                   root.selectDate(dateKey)
                   root.deferPanelCallback(function() { monthCalendar.focusSelected() })

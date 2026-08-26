@@ -1,6 +1,6 @@
 # Sportray private roadmap
 
-Last reviewed: 2026-08-25
+Last reviewed: 2026-08-26
 
 ## Competitive scan — 2026-08-23
 
@@ -5518,3 +5518,46 @@ summon-helper checks, diff check, plugin validation, and real-import-path QML
 lint pass. Actual Omarchy was restarted after the correction; a fresh visible
 Calendar click is the remaining runtime confirmation that month files are
 created and range-populated cells replace Unknown states.
+
+## Latest handoff — 2026-08-26 automatic calendar rehydration complete
+
+Status: complete for the owner-requested empty/partial-cache rehydration unit.
+After settings and the durable cache become ready, `FetchService` measures the
+retained current-month coverage for the provider-admitted NHL, NFL, NBA,
+Premier League, and MLS profiles. Incomplete coverage starts one bounded pass
+through the existing `CalendarFetch` owner and its single sequential `Process`.
+Closing Calendar does not cancel this shared repair. The tray tooltip and
+Calendar surface expose bounded progress; failed chunks retain honest Unknown
+days and an incomplete-refresh notice. Complete coverage is detected on the
+next start and does not refetch.
+
+The repeated open-trigger fixes had not addressed the runtime blockers.
+`CalendarDiskCache` retargeted its day `FileView` synchronously from a
+completion callback, which made Quickshell drop the next read and kept
+`ready=false`; serialized reads now advance through `Qt.callLater`.
+`ChunkPolicy` and `CalendarCachePolicy` also depended on CommonJS `require()`
+for date arithmetic. QML imports do not provide it, so live planning collapsed
+to one invalid request per league and cache windows had no days even though
+Node tests passed. Both policies now have fixture-exercised standalone date
+fallbacks. Canceled requests also service a queued plan before requiring the
+canceled plan's cleared window.
+
+Acceptance evidence: the complete deterministic JavaScript suite passes,
+including require-free QML-context planning/window tests and cache-coverage
+fixtures; summon-helper tests, `git diff --check`, actual-Omarchy plugin
+validation, and real-import-path QML lint pass. On Omarchy 4.0.0-1 /
+Quickshell 0.3.0, the first stable pass measured 5 of 210 retained league/day
+snapshots, ran all 30 bounded seven-day requests, finished `complete 30/30`,
+and wrote the 210 admitted snapshots plus the manifest. A subsequent clean
+shell start measured `210/210` and skipped the pass. Exactly one Quickshell
+shell remained, ping returned `ok`, and fresh logs contained no Sportray
+exception, QML-load failure, binding loop, or duplicate graph. The unrelated
+desktop-portal warning remains.
+
+Decision log: startup rehydration is coverage-triggered and one-shot per
+month/admitted-league signature; it does not admit MLB or NCAA ranges, add a
+second owner, widen provider/cache limits, or couple the repair to panel
+visibility. Preserve require-free runtime coverage for pure policies used from
+QML. Remaining risk is visual interaction only: this host still lacks a
+supported pointer/accessibility injector, so direct scrolling to both month
+edges and the progress banner's on-screen appearance were not claimed.

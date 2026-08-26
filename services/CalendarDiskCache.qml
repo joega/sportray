@@ -42,6 +42,10 @@ Item {
     return {leagueId: String(leagueId || "").toLowerCase(), days: days}
   }
 
+  function coverageFor(leagueIds, dateKeys) {
+    return CachePolicy.coverage(root.entries, leagueIds, dateKeys, root.todayDateKey)
+  }
+
   function enqueueReads(keys) {
     root.readQueue = []
     keys.forEach(function(value) {
@@ -51,7 +55,9 @@ Item {
       else if (parts)
         root.queueCleanupForKey(value)
     })
-    root.readNext()
+    // Let the manifest FileView completion settle before starting the first
+    // day read; subsequent day reads use the same deferred boundary below.
+    Qt.callLater(root.readNext)
   }
 
   function queueCleanupForKey(value) {
@@ -92,7 +98,10 @@ Item {
       next[root.activeReadKey] = entry
       root.retain(next)
     }
-    root.readNext()
+    // FileView finishes its current operation after emitting onLoaded. Do not
+    // retarget the same FileView from inside that callback or Quickshell drops
+    // the replacement operation and the cache never reaches ready.
+    Qt.callLater(function() { root.readNext() })
   }
 
   function persistStates(states) {
@@ -172,7 +181,7 @@ Item {
     watchChanges: false
     printErrors: false
     onLoaded: root.applyDayText(text())
-    onLoadFailed: root.readNext()
+    onLoadFailed: Qt.callLater(function() { root.readNext() })
   }
 
   FileView {

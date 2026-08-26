@@ -39,12 +39,22 @@ function validDate(value) {
 }
 
 function distance(left, right) {
-  return DateModel ? DateModel.calendarDistance(left, right)
-    : Math.round((Date.parse(left) - Date.parse(right)) / 86400000);
+  if (DateModel) return DateModel.calendarDistance(left, right);
+  if (!validDate(left) || !validDate(right)) return NaN;
+  var leftParts = left.split("-").map(Number);
+  var rightParts = right.split("-").map(Number);
+  return Math.round((Date.UTC(leftParts[0], leftParts[1] - 1, leftParts[2])
+    - Date.UTC(rightParts[0], rightParts[1] - 1, rightParts[2])) / 86400000);
 }
 
 function addDays(value, days) {
-  return DateModel ? DateModel.addDays(value, days) : "";
+  if (DateModel) return DateModel.addDays(value, days);
+  if (!validDate(value) || !isFinite(Number(days))) return "";
+  var parts = value.split("-").map(Number);
+  var date = new Date(parts[0], parts[1] - 1, parts[2]);
+  date.setDate(date.getDate() + Math.trunc(Number(days)));
+  function pad(number) { return number < 10 ? "0" + number : String(number); }
+  return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
 }
 
 function profileFor(providerId) {

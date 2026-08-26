@@ -1,12 +1,14 @@
 import QtQuick
 import "../model/ScoreboardModel.js" as ScoreboardModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
+import "../model/CalendarModel.js" as CalendarModel
 import "../model/DateModel.js" as DateModel
 
 Item {
   id: root
 
   property var enabledLeagues: ["nhl"]
+  property bool settingsReady: false
   property var favoriteTeamIds: []
   property string selectedDateKey: ""
   property string lookaheadLeagueId: ""
@@ -24,7 +26,12 @@ Item {
   property string lastSuccessAt: ""
   property string lastAttemptAt: ""
   property string calendarMonthKey: ""
+  property string rehydrationAttemptedKey: ""
   readonly property var calendarScheduleState: calendarFetch.snapshotFor("nhl")
+  readonly property bool calendarRehydrating: calendarFetch.rehydrating
+  readonly property string calendarRehydrationStatus: calendarFetch.rehydrationStatus
+  readonly property int calendarRehydrationCompleted: calendarFetch.rehydrationCompleted
+  readonly property int calendarRehydrationTotal: calendarFetch.rehydrationTotal
 
   function isLeagueEnabled(leagueId) {
     return Array.isArray(root.enabledLeagues) && root.enabledLeagues.indexOf(leagueId) !== -1
@@ -55,6 +62,28 @@ Item {
 
   function calendarKnownLeagueIds() {
     return calendarFetch.eligibleLeagues()
+  }
+
+  function maybeStartCalendarRehydration() {
+    if (!root.settingsReady || !calendarDiskCache.ready || root.enabledLeagues.length === 0)
+      return false
+    var monthKey = DateModel.monthKey(root.selectedDateKey)
+    var dates = CalendarModel.monthDateKeys(monthKey)
+    var leagues = calendarFetch.eligibleLeagues()
+    if (!monthKey || dates.length !== 42 || leagues.length === 0) return false
+    var signature = monthKey + "|" + leagues.slice().sort().join(",")
+    if (root.rehydrationAttemptedKey === signature) return false
+    var coverage = calendarDiskCache.coverageFor(leagues, dates)
+    console.log("Sportray calendar rehydration coverage", signature,
+      coverage ? coverage.availableCount : -1,
+      coverage ? coverage.requiredCount : -1)
+    if (!coverage || coverage.needsHydration !== true) {
+      root.rehydrationAttemptedKey = signature
+      return false
+    }
+    if (!calendarFetch.requestRehydration(monthKey)) return false
+    root.rehydrationAttemptedKey = signature
+    return true
   }
 
   function syncCalendarOpen() {
@@ -122,13 +151,20 @@ Item {
 
   onEnabledLeaguesChanged: {
     root.updateAggregateState()
+    Qt.callLater(function() { root.maybeStartCalendarRehydration() })
   }
+
+
+  onSettingsReadyChanged: Qt.callLater(function() { root.maybeStartCalendarRehydration() })
 
   onSelectedDateKeyChanged: root.updateAggregateState()
 
   onCalendarOpenChanged: Qt.callLater(function() { root.syncCalendarOpen() })
 
-  Component.onCompleted: root.updateAggregateState()
+  Component.onCompleted: {
+    root.updateAggregateState()
+    Qt.callLater(function() { root.maybeStartCalendarRehydration() })
+  }
 
   Connections {
     target: calendarFetch
@@ -137,7 +173,10 @@ Item {
 
   Connections {
     target: calendarDiskCache
-    function onReadyChanged() { root.updateAggregateState() }
+    function onReadyChanged() {
+      root.updateAggregateState()
+      Qt.callLater(function() { root.maybeStartCalendarRehydration() })
+    }
   }
 
   Connections {
