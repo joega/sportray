@@ -28,10 +28,10 @@ At a glance:
 - Grouped standings on ESPN-backed and NHL league destinations, with missing
   provider fields shown as neutral blanks and one-click favorite-team toggles
 - A five-day date carousel with previous/next-day navigation and a Today reset
-- A bounded calendar view behind the panel header that renders a conventional
-  42-cell month grid from already-fetched date caches, including adjacent
-  dates, month navigation, Today, bounded game counts, favorite markers, and
-  explicit unknown-versus-known-empty states; it never starts new requests
+- A bounded calendar view behind the panel header that renders a vertically
+  scrolling week stream with adjacent-month dates, Today, bounded game counts,
+  favorite markers, and explicit unknown-versus-known-empty states; reaching
+  either edge advances the month window automatically
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
 - Loaded game rows open a local game-details drill-down from whole-row
@@ -65,10 +65,11 @@ back to completed slates or forward to upcoming games; each fetch and result
 model is scoped to the selected local date. Closing the panel returns the
 ambient bar indicator to the current date. `[` and `]` move one day while `T`
 returns to today. On an ESPN-backed league destination, `S` toggles the
-standings view. `C` toggles the calendar view: a conventional 42-cell month
-grid with adjacent-month dates, previous/next month controls, Today, bounded
-cached counts, favorite markers, and neutral unknown days for dates not
-verified by a complete cached snapshot. Select any cell to use the existing
+standings view. `C` toggles the calendar view: a vertically scrolling stream
+of calendar weeks with adjacent-month dates, Today, bounded cached counts,
+favorite markers, and neutral unknown days for dates not verified by a complete
+cached snapshot. The stream keeps one month before and after the current month
+in memory and loads the next month automatically at either edge. Select any cell to use the existing
 selected-date fetch path; the selected day's games are listed below. The
 month grid is built only from date caches already fetched, with an All
 games/Favorites filter and `No games` only for known-complete empty days.
@@ -79,12 +80,20 @@ explicit local-time label, open the same local detail drill-down, and Escape
 returns from detail,
 settings, and calendar before closing the panel.
 
-Calendar background hydration is deliberately partial: after the durable day
-cache is ready, Sportray hydrates only NHL's verified rolling 30-day schedule
-window in bounded seven-day requests at low frequency through the existing
-calendar owner. Other leagues remain explicitly unknown until their existing
-selected-day or live paths verify a date; they are not crawled by the
-background schedule path.
+Calendar hydration is bounded by provider evidence: when Calendar opens,
+Sportray hydrates the visible month for NHL plus the verified ESPN NFL, NBA,
+Premier League, and MLS range profiles through one cancellable calendar owner.
+Each provider range is split into bounded seven-day requests and normalized
+into complete local-date buckets, so known empty days do not require a click.
+MLB and the NCAA leagues remain selected-day-only because their range behavior
+is not yet admitted by the provider safety policy. NHL also retains its
+low-frequency rolling 30-day background hydration.
+
+When a selected-day-only league is enabled alongside hydrated leagues, its
+missing non-selected dates do not make the hydrated calendar dates Unknown.
+Calendar completeness is certified by the enabled leagues with admitted range
+profiles; selected-day-only leagues still contribute games for dates already
+present in their normal date cache.
 
 When an enabled league has no games on the selected day, Sportray searches the
 next bounded schedule window and shows the first upcoming game below the empty

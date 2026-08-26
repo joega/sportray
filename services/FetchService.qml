@@ -53,6 +53,10 @@ Item {
     return calendarFetch.requestMonth(root.calendarMonthKey)
   }
 
+  function calendarKnownLeagueIds() {
+    return calendarFetch.eligibleLeagues()
+  }
+
   function syncCalendarOpen() {
     if (!root.calendarOpen) {
       calendarFetch.cancelSchedule()

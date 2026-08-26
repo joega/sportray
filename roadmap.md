@@ -5480,3 +5480,26 @@ service lifecycle trigger. The next check should open Calendar through a real
 pointer/focused interaction, confirm month cache files and visible known game
 or empty cells, then scroll to both edges. Do not broaden unsupported MLB or
 NCAA range hydration.
+
+## Latest handoff — 2026-08-26 calendar known-state projection fix
+
+The actual screenshot showed range games arriving on some dates while every
+other cell remained Unknown. The cause was projection completeness: the
+calendar required every enabled league to have complete range coverage, even
+when MLB or an NCAA league was intentionally selected-day-only. `CalendarModel`
+now accepts a bounded `knownLeagueIds` set. `Panel.qml` obtains that set from
+the existing `CalendarFetch` eligibility map, while still passing all enabled
+leagues for game display. Hydrated leagues can therefore mark known games and
+known empty dates; selected-day-only leagues contribute only cached dates and
+do not block those states. The calendar surface also clips to its panel width.
+
+Evidence: deterministic JavaScript tests pass with coverage for mixed
+hydrated/selected-day-only leagues; summon-helper tests, diff check, plugin
+validation, and real-import-path QML lint pass. Actual Omarchy 4.0.0-1 /
+Quickshell 0.3.0 reload and summon remain clean. The screenshot supplied by
+the owner verified the prior partial hydration symptom; final post-fix visual
+confirmation still requires reopening Calendar in the live widget.
+
+Decision log: preserve provider admission boundaries and use known-state
+certification only for `CalendarFetch.eligibleLeagues()`; do not infer MLB or
+NCAA multi-day completeness.

@@ -7,6 +7,7 @@ import qs.Ui
 // state; this component only renders bounded projections and emits intent.
 Item {
   id: root
+  clip: true
 
   property var gridState: ({cells: [], monthLabel: ""})
   property var pages: []

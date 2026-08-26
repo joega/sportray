@@ -5737,6 +5737,17 @@ test("calendar month model distinguishes complete empty, cached games, and unkno
     "Games not checked");
   assert.equal(calendarModel.flattenDay(grid, "2026-08-03",
     {showUnknown: true, loading: true})[1].kind, "loading");
+
+  const partialLeagueGrid = calendarModel.monthGrid(fixture.windows, {
+    monthKey: "2026-08-01",
+    selectedDateKey: fixture.expected.selectedDateKey,
+    enabledLeagues: ["nhl", "mlb"],
+    knownLeagueIds: ["nhl"],
+    favoriteTeamIds: [],
+    matcher: presentation.isFavoriteGame
+  });
+  assert.equal(partialLeagueGrid.cells.find((cell) => cell.dateKey === fixture.expected.emptyDateKey).state,
+    "empty");
 });
 
 test("calendar month model preserves filters, bounds, rollover, and local DST dates", () => {
@@ -5830,6 +5841,9 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   const fetchServiceSource = readSource("services/FetchService.qml");
   assert.match(fetchServiceSource, /onCalendarOpenChanged: root\.syncCalendarOpen\(\)/);
   assert.match(fetchServiceSource, /calendarFetch\.requestMonth\(monthKey\)/);
+  assert.match(fetchServiceSource, /function calendarKnownLeagueIds\(\)/);
+  assert.match(panel, /knownLeagueIds:/);
+  assert.match(panel, /scoreContent[\s\S]*clip: true/);
   assert.match(panel, /root\.fetchService\.calendarOpen = true/);
   assert.match(panel, /root\.fetchService\.calendarOpen = false/);
   assert.equal(fs.existsSync(path.join(root, "components/CalendarWeekStrip.qml")), false);

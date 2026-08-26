@@ -220,6 +220,8 @@ function compose(leagueWindows, options) {
   var favoritesOnly = config.favoritesOnly === true;
   var favorites = favoriteIds(config);
   var enabled = normalizeEnabledLeagueIds(config.enabledLeagues);
+  var knownLeagues = normalizeEnabledLeagueIds(
+    Array.isArray(config.knownLeagueIds) ? config.knownLeagueIds : enabled);
   var keys = windowKeys(center, halfWidth);
   if (Array.isArray(config.dateKeys)) {
     keys = config.dateKeys.filter(function(value, index, values) {
@@ -274,7 +276,9 @@ function compose(leagueWindows, options) {
       var target = byDate[day.dateKey];
       if (!target || !Array.isArray(day.games)) return;
       var legacyComplete = day.complete === undefined && !day.state;
-      if ((day.complete === true || legacyComplete) && !completeByDate[day.dateKey][leagueId]) {
+    if (knownLeagues.indexOf(leagueId) !== -1
+        && (day.complete === true || legacyComplete)
+        && !completeByDate[day.dateKey][leagueId]) {
         completeByDate[day.dateKey][leagueId] = true;
         target.completeLeagueCount++;
       }
@@ -309,7 +313,7 @@ function compose(leagueWindows, options) {
       });
     });
     if (day.hasGames) calendar.gameCount += day.games.length;
-    day.known = enabled.length > 0 && day.completeLeagueCount === enabled.length
+    day.known = knownLeagues.length > 0 && day.completeLeagueCount === knownLeagues.length
       && !day.partial && !day.unavailable;
     delete day.completeLeagueCount;
   });

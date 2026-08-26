@@ -60,3 +60,9 @@ and starts the existing `CalendarFetch` owner when that route opens, and
 cancels it when the route closes. This was added after the actual cache showed
 only selected-day files, proving that the earlier view-only trigger had not
 been observed in runtime.
+
+The latest projection fix adds `knownLeagueIds`: the calendar still displays
+all enabled leagues' cached games, but only leagues admitted by
+`CalendarFetch.eligibleLeagues()` are required to certify a date as known.
+This prevents enabled selected-day-only MLB/NCAA leagues from making all
+hydrated ESPN/NHL dates appear Unknown.

@@ -126,6 +126,8 @@ Panel {
   function calendarProjectionOptions(monthKey) {
     return {
       enabledLeagues: root.enabledLeagues,
+      knownLeagueIds: root.fetchService && typeof root.fetchService.calendarKnownLeagueIds === "function"
+        ? root.fetchService.calendarKnownLeagueIds() : root.enabledLeagues,
       favoriteTeamIds: root.favoriteTeamIds,
       monthKey: monthKey,
       selectedDateKey: root.selectedDateKey,
@@ -1186,10 +1188,11 @@ Panel {
             }
           }
 
-          Item {
-            id: scoreContent
-            anchors.fill: parent
-            visible: !root.settingsOpen && !root.detailOpen
+            Item {
+              id: scoreContent
+              anchors.fill: parent
+              visible: !root.settingsOpen && !root.detailOpen
+              clip: true
 
             SportAtmosphere {
               id: sportAtmosphere
