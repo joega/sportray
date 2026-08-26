@@ -172,7 +172,14 @@ Item {
   }
 
   onCalendarEnabledChanged: {
-    if (!root.calendarEnabled) root.cancel()
+    if (!root.calendarEnabled) {
+      root.cancel()
+    } else if (root.requestedMonthKey && root.planKind === "") {
+      // Settings can finish loading after the panel asks for its first
+      // calendar month. Retry that bounded request once the owner becomes
+      // eligible instead of waiting for a day click to start score polling.
+      Qt.callLater(function() { root.requestMonth(root.requestedMonthKey) })
+    }
   }
 
   onCalendarCacheReadyChanged: {
@@ -180,10 +187,10 @@ Item {
   }
 
   function requestMonth(monthKey) {
-    if (!root.calendarEnabled || root.ownerDestroyed || !DateModel.isDateKey(monthKey)) return false
     var requested = DateModel.monthKey(monthKey)
     if (!requested) return false
     root.requestedMonthKey = requested
+    if (!root.calendarEnabled || root.ownerDestroyed) return false
     if (calendarProcess.running) {
       root.queuedMonthKey = requested
       root.cancel()

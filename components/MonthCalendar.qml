@@ -1,15 +1,19 @@
 import QtQuick
+import QtQuick.Controls
 import qs.Commons
 import qs.Ui
 
-// Focused 6-by-7 calendar surface. CalendarModel supplies every date and
+// Vertically scrolling calendar surface. CalendarModel supplies every date and
 // state; this component only renders bounded projections and emits intent.
 Item {
   id: root
 
   property var gridState: ({cells: [], monthLabel: ""})
+  property var pages: []
   property string selectedDateKey: ""
   property int focusedIndex: -1
+  property bool edgeRequestPending: false
+  property bool edgeRequestsSuppressed: true
 
   signal dateSelected(string dateKey)
   signal monthRequested(int delta)
@@ -18,12 +22,37 @@ Item {
   readonly property int columnCount: 7
   readonly property int rowCount: 6
   readonly property real cellHeight: Style.space(46)
+  readonly property var weekRows: root.buildWeekRows()
   implicitHeight: controls.height + Style.spacing.xs + weekdays.height
-    + Style.spacing.xs + calendarGrid.height
+    + Style.spacing.xs + Math.min(Style.space(6 * 46 + 5 * 2), weekList.height)
+
+  function buildWeekRows() {
+    var source = Array.isArray(root.pages) && root.pages.length > 0
+      ? root.pages : [root.gridState]
+    var rows = []
+    source.forEach(function(page) {
+      var cells = page && Array.isArray(page.cells) ? page.cells : []
+      for (var offset = 0; offset + root.columnCount <= cells.length; offset += root.columnCount) {
+        rows.push({
+          monthKey: page.monthKey || "",
+          monthLabel: page.monthLabel || "",
+          cells: cells.slice(offset, offset + root.columnCount)
+        })
+      }
+    })
+    return rows
+  }
 
   function cellAt(index) {
-    if (!calendarGrid || index < 0 || index >= calendarGrid.children.length) return null
-    return calendarGrid.children[index]
+    if (!weekList || index < 0 || index >= weekList.contentItem.children.length) return null
+    var weeks = weekList.contentItem.children
+    // The middle page is the active month; pages on either side provide the
+    // scroll runway and are not part of the focused 42-cell month.
+    var weekIndex = (root.pages.length > 0 ? 6 : 0)
+      + Math.floor(index / root.columnCount)
+    var cellIndex = index % root.columnCount
+    var week = weeks[weekIndex]
+    return week && week.cellHosts ? week.cellHosts[cellIndex] : null
   }
 
   function focusCell(index) {
@@ -67,6 +96,13 @@ Item {
   }
 
   onGridStateChanged: root.focusSelected()
+  onPagesChanged: {
+    root.edgeRequestsSuppressed = true
+    root.edgeRequestPending = false
+    if (weekList && weekList.count > 0) weekList.positionViewAtIndex(weekList.count > 6 ? 6 : 0,
+      ListView.Beginning)
+    Qt.callLater(function() { root.edgeRequestsSuppressed = false })
+  }
   onSelectedDateKeyChanged: if (root.focusedIndex < 0) root.focusSelected()
 
   Column {
@@ -79,19 +115,8 @@ Item {
       height: Math.max(Style.space(40), Style.spacing.controlHeight)
       spacing: Style.spacing.xs
 
-      SemanticActionButton {
-        iconName: "chevronLeft"
-        fallbackText: "<"
-        tooltipText: "Previous month"
-        size: controls.height
-        focusable: true
-        onClicked: root.monthRequested(-1)
-        Accessible.name: "Previous month"
-        Accessible.role: Accessible.Button
-      }
-
       Text {
-        width: Math.max(0, controls.width - Style.space(150))
+        width: Math.max(0, controls.width - Style.space(90))
         height: controls.height
         text: root.gridState.monthLabel || "Calendar"
         color: Color.foreground
@@ -111,16 +136,6 @@ Item {
         Accessible.role: Accessible.Button
       }
 
-      SemanticActionButton {
-        iconName: "chevronRight"
-        fallbackText: ">"
-        tooltipText: "Next month"
-        size: controls.height
-        focusable: true
-        onClicked: root.monthRequested(1)
-        Accessible.name: "Next month"
-        Accessible.role: Accessible.Button
-      }
     }
 
     Row {
@@ -144,54 +159,77 @@ Item {
       }
     }
 
-    Grid {
-      id: calendarGrid
+    ListView {
+      id: weekList
       width: parent.width
-      height: root.cellHeight * root.rowCount + spacing * (root.rowCount - 1)
-      columns: root.columnCount
-      rows: root.rowCount
-      columnSpacing: Style.spacing.xxs
-      rowSpacing: Style.spacing.xxs
+      height: root.cellHeight * 6 + Style.spacing.xxs * 5
+      model: root.weekRows
+      spacing: Style.spacing.xxs
+      clip: true
+      interactive: contentHeight > height
+      boundsBehavior: Flickable.StopAtBounds
+      ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-      Repeater {
-        model: root.gridState.cells || []
-        Item {
-          id: cellHost
+      onAtYBeginningChanged: if (atYBeginning && !root.edgeRequestsSuppressed
+          && !root.edgeRequestPending && count > 6) {
+        root.edgeRequestPending = true
+        root.monthRequested(-1)
+      }
+      onAtYEndChanged: if (atYEnd && !root.edgeRequestsSuppressed
+          && !root.edgeRequestPending && count > 6) {
+        root.edgeRequestPending = true
+        root.monthRequested(1)
+      }
+
+      delegate: Row {
+          id: weekRow
           required property var modelData
-          property alias cellButton: cellButton
-          width: (calendarGrid.width - calendarGrid.columnSpacing * 6) / 7
+          property var cellHosts: []
+          width: weekList.width
           height: root.cellHeight
+          spacing: Style.spacing.xxs
 
-          Button {
-            id: cellButton
-            anchors.fill: parent
-            text: (modelData ? modelData.dayOfMonth : "") + "\n"
-              + root.countLine(modelData)
-            selected: Boolean(modelData && modelData.isSelected)
-            active: selected
-            focusable: true
-            fontSize: Style.font.caption
-            verticalPadding: Style.spacing.xxs
-            opacity: modelData && modelData.inMonth ? 1 : 0.58
-            foreground: modelData && modelData.isToday && !selected
-              ? Color.accent : Color.foreground
-            onClicked: if (modelData) root.dateSelected(modelData.dateKey)
-            Accessible.name: root.accessibleName(modelData)
-            Accessible.role: Accessible.Button
-          }
+          Repeater {
+            model: weekRow.modelData ? weekRow.modelData.cells : []
+            delegate: Item {
+              id: cellHost
+              required property var modelData
+              property alias cellButton: cellButton
+              width: (weekRow.width - weekRow.spacing * 6) / 7
+              height: root.cellHeight
+              Component.onCompleted: weekRow.cellHosts.push(cellHost)
 
-          Rectangle {
-            visible: Boolean(modelData && modelData.hasFavoriteGames)
-            width: Style.space(5)
-            height: width
-            radius: width / 2
-            color: Color.accent
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: Style.space(4)
-          }
-        }
+              Button {
+                id: cellButton
+                anchors.fill: parent
+                text: (modelData ? modelData.dayOfMonth : "") + "\n"
+                  + root.countLine(modelData)
+                selected: Boolean(modelData && modelData.isSelected)
+                active: selected
+                focusable: true
+                fontSize: Style.font.caption
+                verticalPadding: Style.spacing.xxs
+                opacity: modelData && modelData.inMonth ? 1 : 0.58
+                foreground: modelData && modelData.isToday && !selected
+                  ? Color.accent : Color.foreground
+                onClicked: if (modelData) root.dateSelected(modelData.dateKey)
+                Accessible.name: root.accessibleName(modelData)
+                Accessible.role: Accessible.Button
+              }
+
+              Rectangle {
+                visible: Boolean(modelData && modelData.hasFavoriteGames)
+                width: Style.space(5)
+                height: width
+                radius: width / 2
+                color: Color.accent
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: Style.space(4)
+              }
+            }
       }
     }
   }
+}
 }

@@ -1,52 +1,55 @@
 Work in `/home/joeg/Projects/sportray` on exactly one bounded work unit:
-complete D1 live-football provider-shape observation for scoring plays and
-leaders.
+runtime-verify multi-league calendar range hydration and the existing vertical
+month scroll/edge transition.
 
-Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`, the
-latest roadmap handoff, and `LEVEL_THE_FIELD_SPRINT.md`. If
-`docs/upstream-contract.md` is absent, inspect the installed/current Omarchy
-and Quickshell sources directly and record material boundary deviations.
+Before editing or testing, read `AGENTS.md`, `README.md`, `roadmap.md`, and
+this prompt with the latest roadmap handoff. If `docs/upstream-contract.md` is
+absent, inspect the installed/current Omarchy and Quickshell sources directly
+and record any material boundary deviation.
 
 Verified current state:
 
-- Calendar C1-C5, watches W1-W3, followed leagues L1-L2, and shared settings
-  migration S1 are complete. Settings now migrate schema 1 to schema 2 while
-  preserving compatible values; future schemas above 2 remain opaque.
-- The deterministic suite passes with 257 tests; actual Omarchy validation,
-  real-import-path QML lint, one-shell restart/ping, and schema-1 migration /
-  restart evidence pass.
-- L3 pointer/direct-Accessible runtime verification remains blocked because
-  this Wayland host has keyboard injection but no supported pointer injector
-  or AT-SPI event-driving client. Do not reopen it here.
-- Existing live football scoring-play/leader support remains provider-gated;
-  no verified in-progress shape has been accepted yet. Do not infer absent
-  fields from fixtures or add a second endpoint.
-- A bounded ESPN scoreboard request on 2026-08-26 12:48 EDT returned HTTP 200,
-  21,197 bytes, and 25 scheduled events; none was live or at intermission.
-  The nearest listed event was USC–SJSU on 2026-08-29 at 15:00 EDT.
+- ESPN's existing `/scoreboard?dates=YYYYMMDD-YYYYMMDD` route is implemented
+  by `EspnProvider.buildNextGamesUrl()` and its normalized response is grouped
+  into complete local-date buckets by `parseCalendarRangeResponse()`.
+- `CalendarFetch.qml` queues bounded seven-day chunks for enabled NHL, NFL,
+  NBA, Premier League, and MLS month hydration through one cancellable
+  `Process`; `FetchService.qml` merges per-league schedule snapshots with live
+  and disk state.
+- MLB and both NCAA leagues remain selected-day-only because their range
+  profiles are not admitted. NHL retains its rolling background schedule.
+- Deterministic tests, plugin validation, diff check, summon-helper tests, and
+  real-import-path QML lint pass. No live interaction has yet verified that
+  the opened calendar visibly receives the multi-league range data.
 
-Bounded outcome: during an actually eligible in-progress NCAA Football event,
-make bounded read-only scoreboard observations for scoring plays and leaders.
-Record sanitized keys, types, optionality, observed counts, ordering, identity
-relationships, response size, and elapsed time without retaining raw live
-payloads. Decide scoring-play support and leader support independently. If no
-eligible live event is available, record that gate and stop with no source
-changes. Do not implement D2/D3, add endpoints, increase response limits, or
-change providers, polling, notifications, watches, calendar, cache, settings,
-or host APIs.
+Bounded outcome: on actual Omarchy, obtain a live Sportray bar-widget,
+enable or use at least one ESPN calendar league, open Calendar, and verify
+that known game and empty days populate without clicking each day. Verify
+that the vertical week stream still scrolls in both directions, that reaching
+an edge requests the adjacent month, and that unknown days remain unknown.
+Inspect fresh Quickshell logs for exceptions, duplicate graphs, or binding
+loops. Do not change provider profiles, admit MLB/NCAA ranges, widen limits,
+alter polling/notifications/settings, or change packaging/release/remote
+state.
 
-Required checks if observations yield a source change: add only sanitized
-fixture coverage, run `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
+Required checks: `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
 `git diff --check`, `omarchy plugin validate "$PWD"`, and
 `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file.
-On actual Omarchy, keep one supported shell, inspect fresh Quickshell logs,
-and verify no duplicate graph, exception, or binding loop. If the live shape
-is insufficient, update the sprint, roadmap, competition evidence, and this
-prompt, and leave the unit incomplete rather than guessing.
+If the live widget or supported input path cannot be obtained, record the
+blocker and stop without a success commit. When the runtime gate passes,
+update `roadmap.md`, refresh this prompt for the next single unit, and create
+one atomic Conventional Commit.
 
-Known risks: the next eligible CFB window may not be live during the session;
-ESPN is undocumented; provider payloads may omit or cap optional sections; and
-the current response byte/event limits remain hard bounds. Do not push, tag,
-release, publish, or perform Marketplace work. If a verified shape is accepted,
-update all handoff files and create one atomic Conventional Commit only after
-the gate passes.
+Known risks: widget registration may race after rescan; Wayland pointer and
+AT-SPI injectors may be unavailable; a full month requires multiple sequential
+range requests per enabled provider; and ESPN remains an undocumented API.
+Request subagents only for independent read-only source or log inspection.
+
+Current fix context: the calendar owner preserves the requested month across
+an enabled-league readiness race and retries the bounded request through the
+same owner. The panel opens Calendar before requesting its month, the panel
+height reserves the real six-week viewport, and `MonthCalendar.qml` suppresses
+edge callbacks until its three-page list is recentered. These fixes pass all
+source gates, but the actual pointer/scroll interaction gate is still blocked
+on this host because the summoned panel did not receive keyboard focus and no
+supported pointer injector is installed.

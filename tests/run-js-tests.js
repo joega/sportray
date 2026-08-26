@@ -5800,18 +5800,33 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.equal(panel.includes("readonly property var calendarDayRows: CalendarModel.flattenDay("), true);
   assert.equal(panel.includes("root.calendarOpen ? root.calendarDayRows : root.resultRows"), true);
   assert.equal(panel.includes("root.fetchService ? root.fetchService.calendarStates : []"), true);
+  assert.equal(panel.includes("readonly property var calendarPages: [-1, 0, 1].map"), true);
+  assert.equal(panel.includes("pages: root.calendarPages"), true);
+  assert.equal(panel.includes("root.calendarOpen = true"), true);
+  assert.match(panel, /monthCalendar\.implicitHeight \+ Style\.spacing\.md \* 2/);
+  assert.match(panel, /height: root\.calendarOpen \? implicitHeight : 0/);
   assert.equal(panel.includes(": root.calendarOpen ? root.closeCalendar() : root.close()"), true);
   assert.equal(panel.includes('root.toggleCalendar()'), true);
   assert.equal(panel.includes('root.toggleCalendarFilter()'), true);
 
-  // The month grid replaces the shared date chrome while the calendar route
-  // is open, and the grid owns arrow movement and activation.
+  // The vertical week stream replaces the shared date chrome while the
+  // calendar route is open, and the component owns edge navigation, arrow
+  // movement, and activation.
   assert.equal(panel.includes("MonthCalendar {"), true);
   assert.equal(panel.includes("else if (root.calendarOpen) monthCalendar.moveFocus(dx, dy)"), true);
   assert.equal(panel.includes("else if (root.calendarOpen) monthCalendar.activateFocused()"), true);
-  assert.equal(readSource("components/MonthCalendar.qml").includes("new Date"), false);
-  assert.equal(readSource("components/MonthCalendar.qml").includes("Process"), false);
-  assert.equal(readSource("components/MonthCalendar.qml").includes("JSON.parse"), false);
+  const monthCalendar = readSource("components/MonthCalendar.qml");
+  assert.equal(monthCalendar.includes("ListView {"), true);
+  assert.equal(monthCalendar.includes("onAtYBeginningChanged"), true);
+  assert.equal(monthCalendar.includes("onAtYEndChanged"), true);
+  assert.equal(monthCalendar.includes("edgeRequestsSuppressed"), true);
+  assert.match(monthCalendar, /!root\.edgeRequestsSuppressed/);
+  assert.equal(monthCalendar.includes("new Date"), false);
+  assert.equal(monthCalendar.includes("Process"), false);
+  assert.equal(monthCalendar.includes("JSON.parse"), false);
+  const calendarFetch = readSource("services/CalendarFetch.qml");
+  assert.match(calendarFetch, /root\.requestedMonthKey = requested/);
+  assert.match(calendarFetch, /Qt\.callLater\(function\(\) \{ root\.requestMonth\(root\.requestedMonthKey\) \}\)/);
   assert.equal(fs.existsSync(path.join(root, "components/CalendarWeekStrip.qml")), false);
 });
 

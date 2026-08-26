@@ -120,13 +120,11 @@ Panel {
   }
   readonly property var standingsRows: StandingsRows.flatten(
     root.standingsState, root.favoriteTeamIds, root.standingsRevision)
-  // Calendar projects the bounded schedule cache plus the selected-day live
-  // cache; schedule ownership remains in FetchService, not in this view.
-  readonly property var calendarState: CalendarModel.monthGrid(
-    root.fetchService ? root.fetchService.calendarStates : [], {
+  function calendarProjectionOptions(monthKey) {
+    return {
       enabledLeagues: root.enabledLeagues,
       favoriteTeamIds: root.favoriteTeamIds,
-      monthKey: root.calendarMonthKey || CalendarModel.monthKey(root.selectedDateKey),
+      monthKey: monthKey,
       selectedDateKey: root.selectedDateKey,
       todayDateKey: root.todayDateKey,
       favoritesOnly: root.calendarFavoritesOnly,
@@ -144,7 +142,21 @@ Panel {
           FavoritePresentation.isFavoriteGame, leagueMeta, true)
       },
       revision: root.presentationRevision
-    })
+    }
+  }
+  // Calendar projects the bounded schedule cache plus the selected-day live
+  // cache; schedule ownership remains in FetchService, not in this view.
+  readonly property var calendarState: CalendarModel.monthGrid(
+    root.fetchService ? root.fetchService.calendarStates : [],
+    root.calendarProjectionOptions(root.calendarMonthKey || CalendarModel.monthKey(root.selectedDateKey)))
+  // Keep one month on either side in the bounded view window. Scrolling to an
+  // edge advances the center month, so the calendar never requires paging
+  // buttons while still avoiding an unbounded model or provider crawl.
+  readonly property var calendarPages: [-1, 0, 1].map(function(delta) {
+    return CalendarModel.monthGrid(root.fetchService ? root.fetchService.calendarStates : [],
+      root.calendarProjectionOptions(CalendarModel.addMonths(
+        root.calendarMonthKey || CalendarModel.monthKey(root.selectedDateKey), delta)))
+  })
   readonly property var calendarDaySummaries: root.calendarState.cells || []
   readonly property var calendarDayRows: CalendarModel.flattenDay(
     root.calendarState, root.selectedDateKey, {
@@ -226,9 +238,9 @@ Panel {
 
   function openCalendar() {
     root.calendarMonthKey = CalendarModel.monthKey(root.selectedDateKey)
+    root.calendarOpen = true
     if (root.fetchService && typeof root.fetchService.requestCalendarMonth === "function")
       root.fetchService.requestCalendarMonth(root.calendarMonthKey)
-    root.calendarOpen = true
     root.standingsOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""
@@ -350,7 +362,7 @@ Panel {
         })
       return
     }
-    root.panelContentHeightRequest = PanelLayout.contentRequest(root.displayRows,
+    var contentRequest = PanelLayout.contentRequest(root.displayRows,
       root.settingsDestination, root.settingsOpen, {
         compactMinimum: Style.space(280),
         maximum: Style.space(640),
@@ -367,6 +379,14 @@ Panel {
         teams: Style.space(640),
         notifications: Style.space(520)
       })
+    // The calendar owns a six-week viewport in scoreChrome. The normal score
+    // sizing token assumes a much shorter date header, so it can leave the
+    // calendar taller than the fitted panel and expose its last row below the
+    // card. Reserve the real calendar chrome plus the result viewport margin.
+    if (root.calendarOpen && monthCalendar)
+      contentRequest = Math.max(contentRequest,
+        monthCalendar.implicitHeight + Style.spacing.md * 2)
+    root.panelContentHeightRequest = contentRequest
   }
 
   function deferPanelCallback(callback) {
@@ -1191,6 +1211,7 @@ Panel {
                 id: dateCarousel
                 width: parent.width
                 visible: !root.calendarOpen
+                height: root.calendarOpen ? 0 : implicitHeight
                 selectedDateKey: root.selectedDateKey
                 compact: parent.width < Style.space(360)
                 onDateSelected: function(dateKey) { root.selectDate(dateKey) }
@@ -1200,7 +1221,9 @@ Panel {
                 id: monthCalendar
                 width: parent.width
                 visible: root.calendarOpen
+                height: root.calendarOpen ? implicitHeight : 0
                 gridState: root.calendarState
+                pages: root.calendarPages
                 selectedDateKey: root.selectedDateKey
                 onDateSelected: function(dateKey) {
                   root.selectDate(dateKey)

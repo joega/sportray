@@ -5349,3 +5349,108 @@ No source or runtime behavior changed after S1. Decision log: do not add a
 second endpoint, raise response limits, or start D2/D3 from scheduled-only
 evidence. L3 pointer/direct-Accessible verification remains blocked on the
 host input limitation.
+
+## Latest handoff — 2026-08-26 D1 live-football gate still not eligible
+
+D1 was rechecked at 2026-08-26 13:23 EDT with one bounded, read-only request
+to the accepted ESPN college-football scoreboard route. The response was HTTP
+200, 315,934 bytes, and 162.612 ms elapsed; it contained 25 events, all in
+provider state `pre`, with zero `in` or intermission events. No live scoring
+play or leader shape was observed, inferred, or retained. No raw payload was
+retained.
+
+D1 remains incomplete pending the first actual eligible in-progress event. No
+source, fixture, test, runtime, provider, endpoint, response-limit, polling,
+notification, calendar, cache, settings, or host behavior changed, so no
+success commit was created and implementation gates were not rerun. Do not add
+a second endpoint, raise limits, or begin D2/D3 from scheduled-only evidence.
+L3 pointer/direct-Accessible verification remains blocked by the host input
+limitation.
+
+## Latest handoff — 2026-08-26 calendar scroll and prefetch boundary
+
+The owner-requested calendar interaction slice is implemented in the current
+worktree. `MonthCalendar.qml` now renders a vertically scrollable week stream
+with one previous and one next month page around the active month. Reaching
+either list edge emits the existing bounded month request, recenters on the
+middle page, and keeps Today, date selection, keyboard focus, faded
+adjacent-month cells, and selected-day rows intact. The previous/next month
+buttons are removed because scrolling is now the primary navigation path.
+
+`Panel.qml` projects the three pages from the existing normalized calendar
+state; no provider parsing, new process, timer, or unbounded model was added.
+The broad prefetch question remains provider-gated: only the existing NHL
+calendar owner hydrates a rolling schedule, while other leagues still use the
+existing selected-day scoreboard request and their bounded date caches. ESPN
+range responses and MLB range limits remain insufficient evidence for a broad
+all-league calendar crawl, so this unit does not invent that behavior.
+
+Evidence: the deterministic suite passes with 258 tests, including source
+assertions for the three-page projection and vertical edge navigation.
+`git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+QML lint for all files pass; lint exits 0 with the established standalone
+import and unqualified-access warnings. Actual Omarchy 4.0.0-1 /
+Quickshell 0.3.0 restarted and loaded the revised component with no Sportray
+QML exception, binding loop, or duplicate shell. Direct scroll and pointer
+exercise remains unclaimed because this host again returned `no live bar
+widget` after summon; the existing keyboard-injection limitation remains.
+
+Decision log: use a bounded three-month visual runway and the existing
+CalendarFetch owner; do not add broad prefetch endpoints or reinterpret
+unknown days as empty. The next unit is runtime verification of this scroll
+path once a supported live widget registration/input path is available.
+
+## Latest handoff — 2026-08-26 verified ESPN calendar range hydration
+
+The requested schedule prefetch slice is implemented in the worktree. ESPN's
+existing scoreboard range route is now used by the calendar owner for enabled
+NFL, NBA, Premier League, and MLS leagues. `EspnProvider` groups the normalized
+range response into complete local-date buckets, including empty dates;
+`CalendarFetch.qml` queues each enabled eligible league's bounded seven-day
+chunks through its one cancellable `Process`; `FetchService.qml` merges the
+per-league schedule snapshots beside live and disk state. NHL behavior remains
+available, while MLB and both NCAA leagues remain excluded from calendar range
+hydration by the provider profile map.
+
+Evidence: deterministic JavaScript tests pass with the new fixture-backed ESPN
+range parser and calendar-owner source assertions; `git diff --check`,
+`omarchy plugin validate "$PWD"`, `./tests/test-summon-helper.sh`, and
+real-import-path QML lint all pass. A live Omarchy interaction pass remains
+needed to confirm the month opens with range-populated days and to inspect
+fresh Quickshell logs after the multi-league owner change.
+
+Decision log: use the already verified ESPN range route only for the four
+bounded seven-day profiles. Do not admit MLB or NCAA range hydration, widen
+response/cache limits, or change selected-day polling until new provider
+evidence supports those profiles. The next unit is actual Omarchy runtime
+verification of multi-league month hydration and the existing scroll/edge
+transition.
+
+## Latest handoff — 2026-08-26 calendar hydration and scroll fixes
+
+The calendar follow-up fixes are implemented in the current worktree. The
+calendar owner now records a requested month before checking the enabled-league
+boundary and retries that bounded month plan when settings finish enabling the
+owner, so opening Calendar cannot silently leave range hydration waiting for a
+selected-day click. `Panel.qml` opens the route before issuing the request and
+reserves the actual six-week calendar viewport in the fitted panel height.
+`MonthCalendar.qml` suppresses beginning/end callbacks while the three-page
+model is initially populated and recentered, preventing an unsolicited edge
+month request and subsequent scroll geometry drift.
+
+Evidence: 258 deterministic JavaScript tests pass, including source assertions
+for first-open hydration retry, calendar sizing, and edge suppression; summon
+helper, diff check, plugin validation, and real-import-path QML lint pass. The
+linked plugin was rescanned and summoned on actual Omarchy 4.0.0-1 /
+Quickshell 0.3.0; the shell remained healthy with no Sportray QML exception,
+binding loop, duplicate graph, or second shell. Full pointer/scroll and
+calendar-visible range completion remain unverified because the host input
+path did not focus the summoned panel and no supported pointer injector is
+installed. No provider profile, endpoint, response limit, polling,
+notification, settings schema, or packaging behavior changed.
+
+Decision log: retain the bounded ESPN seven-day range profiles and the
+NHL-only rolling background policy. The next eligible check is a supported
+live-widget interaction confirming known multi-day cells appear immediately
+after Calendar opens and both list edges recenter without overflow; do not
+claim that manual runtime gate from source tests alone.
