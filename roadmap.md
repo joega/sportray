@@ -5335,3 +5335,17 @@ No UI, provider, polling, notification, calendar, hydration, cache, or host
 API changed. Decision log: accept S1 and schedule D1 live-football shape
 observation for the next eligible in-progress event; keep L3 pointer and
 direct-Accessible claims blocked until a supported injector exists.
+
+## Latest handoff — 2026-08-26 D1 live-football gate not eligible
+
+A bounded read-only request to the accepted ESPN college-football scoreboard
+route at 2026-08-26 12:48 EDT returned HTTP 200, 21,197 bytes, and 25
+scheduled events. No event was live, in progress, or at intermission; the
+nearest listed event was USC–SJSU on 2026-08-29 at 15:00 EDT. No scoring-play
+or leader shape was inferred and no raw live payload was retained.
+
+D1 remains incomplete pending the first actual eligible in-progress event.
+No source or runtime behavior changed after S1. Decision log: do not add a
+second endpoint, raise response limits, or start D2/D3 from scheduled-only
+evidence. L3 pointer/direct-Accessible verification remains blocked on the
+host input limitation.

@@ -21,6 +21,9 @@ Verified current state:
 - Existing live football scoring-play/leader support remains provider-gated;
   no verified in-progress shape has been accepted yet. Do not infer absent
   fields from fixtures or add a second endpoint.
+- A bounded ESPN scoreboard request on 2026-08-26 12:48 EDT returned HTTP 200,
+  21,197 bytes, and 25 scheduled events; none was live or at intermission.
+  The nearest listed event was USC–SJSU on 2026-08-29 at 15:00 EDT.
 
 Bounded outcome: during an actually eligible in-progress NCAA Football event,
 make bounded read-only scoreboard observations for scoring plays and leaders.

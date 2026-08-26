@@ -1159,3 +1159,17 @@ the one-way downgrade limitation. No UI, provider, polling, notification,
 calendar, hydration, cache, or host API was changed. S1 is accepted; the next
 bounded sprint unit is D1 live-football shape observation when the eligible
 window is actually live.
+
+## D1 live-football observation — 2026-08-26
+
+Status: **blocked pending an eligible in-progress event**
+
+A bounded read-only request to the accepted ESPN college-football scoreboard
+route returned HTTP 200, 21,197 bytes, and 25 scheduled events at
+2026-08-26 12:48 EDT. No event was live, in progress, or at intermission; the
+nearest event was USC–SJSU scheduled for 2026-08-29 15:00 EDT. No scoring-play
+or leader shape was inferred, and no raw live payload was retained.
+
+Decision: leave D1 incomplete and retry only during the first actual eligible
+in-progress football event. Do not add an endpoint, raise response limits, or
+begin D2/D3 from scheduled-only evidence.
