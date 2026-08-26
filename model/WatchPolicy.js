@@ -77,8 +77,42 @@ function createWatch(game, createdAt, currentTime) {
   });
 }
 
+function gameIdFor(value) {
+  if (!isRecord(value)) return null;
+  var league = clean(value.league, 32);
+  var providerGameId = clean(value.providerGameId, 96);
+  if (!league || !providerGameId) return null;
+  return league.toLowerCase() + ":" + providerGameId.toLowerCase();
+}
+
+function findWatch(value, game) {
+  var gameId = gameIdFor(game);
+  if (!gameId || !Array.isArray(value)) return null;
+  for (var i = 0; i < value.length; i++) {
+    var entry = normalizeEntry(value[i]);
+    if (entry && entry.gameId === gameId) return entry;
+  }
+  return null;
+}
+
+function isActiveWatch(value, game, currentTime) {
+  var watch = findWatch(value, game);
+  return Boolean(watch && expiry(watch, currentTime) === "active");
+}
+
+function removeExpired(value, currentTime) {
+  var now = nowMs(currentTime);
+  if (!Array.isArray(value)) return [];
+  return value.filter(function(entry) {
+    var normalized = normalizeEntry(entry);
+    return normalized && expiry(normalized, now) === "active";
+  }).map(function(entry) { return normalizeEntry(entry); });
+}
+
 if (typeof module !== "undefined" && module.exports) module.exports = {
   MAX_WATCHES: MAX_WATCHES, HARD_MAX_AGE_MS: HARD_MAX_AGE_MS,
   TERMINAL_RECOVERY_MS: TERMINAL_RECOVERY_MS, normalizeEntry: normalizeEntry,
-  normalizeWatches: normalizeWatches, createWatch: createWatch, expiry: expiry
+  normalizeWatches: normalizeWatches, createWatch: createWatch, expiry: expiry,
+  gameIdFor: gameIdFor, findWatch: findWatch, isActiveWatch: isActiveWatch,
+  removeExpired: removeExpired
 };

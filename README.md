@@ -48,6 +48,8 @@ At a glance:
   request per league
 - Desktop notifications for favorite game starts, score changes, finals,
   optional 30-minute-window pregame reminders, and opt-in close-game alerts
+- Temporary one-game watches from score rows and game details, with bounded
+  expiry and the same deduplicated notification safety path as favorites
 - First-fetch suppression and bounded, restart-safe notification deduplication
 - Persistent league, favorite, and notification preferences
 - Theme-aware layout for top, bottom, left, and right bars
@@ -195,6 +197,14 @@ notification** in that destination to preview the Omarchy notification
 channel; the preview works even when alerts are disabled and does not change
 deduplication state. Escape or Back returns from a utility to the prior score
 view before closing the panel.
+
+Use **Watch** on a valid game row or in its local details view to add temporary
+notification interest without favoriting either team. Watches are canonical by
+`<league>:<providerGameId>`, capped at 32 records, and expire no later than 30
+days after creation. Watching never starts a provider request or changes league
+polling. A watch can be removed from the same action; malformed, expired,
+disabled-league, ended-game, unsupported-schema, and full-capacity cases remain
+unavailable with an explicit reason.
 
 Sportray stores bounded schema-1 JSON outside the plugin checkout at. It may
 include up to 32 normalized watched-game records; provider payloads and raw

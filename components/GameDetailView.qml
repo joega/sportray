@@ -10,6 +10,8 @@ Item {
   id: root
 
   property var game: null
+  property var settingsStore: null
+  property double currentTime: Date.now()
   property int cursorIndex: 0
   signal backRequested()
 
@@ -67,7 +69,7 @@ Item {
   readonly property var situationData: root.detail.situation
   readonly property var oddsData: root.detail.odds
   readonly property var extraLinks: root.detail.links || []
-  readonly property int linkCursorOffset: 1 + (root.sourceAvailable ? 1 : 0)
+  readonly property int linkCursorOffset: 2 + (root.sourceAvailable ? 1 : 0)
   readonly property int maxCursorIndex: root.linkCursorOffset + root.extraLinks.length - 1
 
   function openExternalUrl(url) {
@@ -146,7 +148,10 @@ Item {
       if (root.cursorIndex === 0) {
         target = backButton
         target.forceActiveFocus()
-      } else if (root.sourceAvailable && root.cursorIndex === 1) {
+      } else if (root.cursorIndex === 1) {
+        target = watchAction
+        target.focusAction()
+      } else if (root.sourceAvailable && root.cursorIndex === 2) {
         target = sourceLink
         target.focusAction()
       } else {
@@ -173,7 +178,8 @@ Item {
 
   function activateCursor() {
     if (root.cursorIndex === 0) root.backRequested()
-    else if (root.sourceAvailable && root.cursorIndex === 1) sourceLink.openSource()
+    else if (root.cursorIndex === 1) watchAction.activate()
+    else if (root.sourceAvailable && root.cursorIndex === 2) sourceLink.openSource()
     else {
       var link = root.extraLinks[root.cursorIndex - root.linkCursorOffset]
       if (link) root.openExternalUrl(link.url)
@@ -181,7 +187,8 @@ Item {
   }
 
   Accessible.name: "Game details for " + root.teamLabel(root.detail.participants[0])
-    + " at " + root.teamLabel(root.detail.participants[1])
+    + " at " + root.teamLabel(root.detail.participants[1]) + ". "
+    + (watchAction.active ? "Game is watched." : "Game is not watched.")
   Accessible.role: Accessible.StaticText
 
   Flickable {
@@ -701,6 +708,14 @@ Item {
           Row {
             id: actionsRow
             spacing: Style.spacing.xs
+
+            WatchAction {
+              id: watchAction
+              game: root.game
+              settingsStore: root.settingsStore
+              currentTime: root.currentTime
+              hasCursor: root.cursorIndex === 1
+            }
 
             SourceLinkButton {
               id: sourceLink

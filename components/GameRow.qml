@@ -8,13 +8,15 @@ Item {
   id: root
 
   required property var game
+  property var settingsStore: null
+  property double currentTime: Date.now()
   property bool stale: false
   property bool featured: false
   property bool selected: false
   // Calendar rows pass an explicit bounded local-time label; the scoreboard
   // route keeps its own computed local start text.
   property string startTimeTextOverride: ""
-  readonly property bool childActionPressed: sourceLink.pointerPressed
+  readonly property bool childActionPressed: sourceLink.pointerPressed || watchAction.pointerPressed
 
   signal primaryActionRequested()
 
@@ -71,6 +73,7 @@ Item {
     + (root.homeIsFavorite ? "Followed home team. " : "")
     + root.stateLabel + ". " + (root.venueName ? "At " + root.venueName + ". " : "")
     + (root.showLeagueContext ? root.leagueLabel + ". " : "")
+    + (watchAction.active ? "Game is watched. " : "Game is not watched. ")
     + (root.game && root.game.isValid === true ? "View game details. " : "")
     + (root.game.link ? "Open external game page." : "External game page unavailable.")
 
@@ -282,7 +285,7 @@ Item {
       Item {
         id: footer
         width: parent.width
-        implicitHeight: Math.max(footerDetails.implicitHeight, sourceLink.implicitHeight)
+        implicitHeight: Math.max(footerDetails.implicitHeight, actionsRow.implicitHeight)
         height: implicitHeight
 
         readonly property var footerGeometry: GameRowLayout.footerLayout(
@@ -290,7 +293,7 @@ Item {
           root.showLeagueContext && root.leagueLabel !== ""
             ? leagueContextText.implicitWidth : 0,
           root.favorite ? Style.space(14) : 0,
-          sourceLink.visible ? sourceLink.implicitWidth : 0,
+          actionsRow.implicitWidth,
           Style.spacing.xs,
           Style.space(1))
 
@@ -298,8 +301,8 @@ Item {
           id: footerContent
           anchors.left: parent.left
           anchors.top: parent.top
-          anchors.right: sourceLink.visible ? sourceLink.left : parent.right
-          anchors.rightMargin: sourceLink.visible ? Style.spacing.xs : 0
+          anchors.right: actionsRow.left
+          anchors.rightMargin: Style.spacing.xs
 
           Column {
             id: footerDetails
@@ -363,12 +366,24 @@ Item {
           }
         }
 
-        SourceLinkButton {
-          id: sourceLink
+        Row {
+          id: actionsRow
           anchors.right: parent.right
           anchors.verticalCenter: parent.verticalCenter
-          game: root.game
-          Accessible.name: root.game.link ? "Open " + sourceLink.sourceName + " game page" : "External game page unavailable"
+          spacing: Style.spacing.xs
+
+          WatchAction {
+            id: watchAction
+            game: root.game
+            settingsStore: root.settingsStore
+            currentTime: root.currentTime
+          }
+
+          SourceLinkButton {
+            id: sourceLink
+            game: root.game
+            Accessible.name: root.game.link ? "Open " + sourceLink.sourceName + " game page" : "External game page unavailable"
+          }
         }
       }
 

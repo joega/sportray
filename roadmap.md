@@ -4991,3 +4991,50 @@ checkout, W1 kept the existing schema-1 boundary rather than introducing a
 version upgrade or rewriting future state. W2 must reuse this projection and
 extend admission only through the existing normalized transition pipeline.
 No push, tag, release, Marketplace, or destructive host action occurred.
+
+## Latest handoff — 2026-08-25 W3 watch UI and runtime complete
+
+W3 is complete as one bounded UI/runtime unit. `components/WatchAction.qml` is
+the single semantic watch control shared by `GameRow.qml` and
+`GameDetailView.qml`. It derives active/inactive state from the canonical
+`WatchPolicy` projection, presents accessible names and explicit disabled
+reasons, and routes pointer, keyboard, and installed QtQuick
+`Accessible.onPressAction` activation through the existing semantic button.
+The detail cursor reserves one watch action before the source and extra-link
+actions; row nested-pointer suppression includes the watch control, so a watch
+press cannot also open local detail.
+
+`SettingsStore.toggleWatch(game)` is the only mutation owner. It rejects
+malformed games, blocks adds for disabled leagues, ended games, unsupported
+future-schema state, and the 32-record bound, prunes expired entries before
+adding, deduplicates by `<league>:<providerGameId>`, permits removal of an
+existing watch even if its league was later disabled, and uses the existing
+owner-only permission repair plus atomic state write. `WatchPolicy` now exposes
+pure identity, active lookup, and expired-pruning helpers. No provider request,
+polling timer, calendar owner, notification admission rule, or new notification
+type was added.
+
+Evidence: the deterministic suite passes with 251 tests, including W3
+malformed/expired/duplicate guards, schema-1 restart persistence, future-schema
+opacity, settings-store source guards, row/detail routing, accessibility
+convergence, and safe disabled-state coverage. `./tests/test-summon-helper.sh`,
+`git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+`qmllint` over every QML file pass. README documents the watch contract.
+
+Actual Omarchy 4.0.0-1 / Quickshell 0.3.0 was restarted through supported
+commands and left with exactly one shell. Discovery, shell ping, rescan, and
+bounded summon passed; `debugBarGeometry` showed Sportray in the right bar slot.
+Fresh instance logs contain normal startup/polling only, with no Sportray error,
+QML-load failure, exception, binding loop, late callback, or duplicate graph.
+The installed `/usr/bin/omarchy-notification-send` path was exercised with a
+temporary safe `notify-send` stub; the captured argv preserved the expected
+headline/description and helper options. This session has no pointer injector,
+and the summoned child panel did not expose an injectable input surface, so
+direct manual add/remove and visual watch-state claims are not made; those
+routes are source/fixture verified. No second shell, provider fetch, push,
+release, or Marketplace action occurred.
+
+Decision log: keep watch mutation provider-neutral and behind SettingsStore;
+allow active removal from disabled leagues without implicitly re-enabling them;
+keep future-schema files opaque; and treat UI watches as notification interest
+only. The next unit is L1 — followed/ordered league intent model.

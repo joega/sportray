@@ -19,6 +19,12 @@
       "route": "Accessible.onPressAction: root.activatePrimaryAction()"
     },
     {
+      "control": "GameDetailView watch action",
+      "source": "components/GameDetailView.qml",
+      "signal": "else if (root.cursorIndex === 1) watchAction.activate()",
+      "route": "else if (root.cursorIndex === 1) watchAction.activate()"
+    },
+    {
       "control": "NextGameCard whole row",
       "source": "components/NextGameCard.qml",
       "signal": "Accessible.onPressAction",

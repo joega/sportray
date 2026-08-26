@@ -525,11 +525,40 @@ was added.
 
 #### W3 — Watch UI and runtime
 
+Status: **complete — 2026-08-25**
+
 - Add one semantic action shared by rows and detail.
 - Provide active/inactive state, disabled reason, accessible name, and keyboard
   route.
 - Exercise persistence, duplicate suppression, removal, and one safe stubbed
   delivery path on actual Omarchy.
+
+Implemented evidence: `WatchAction.qml` is the shared bounded row/detail
+control. It projects canonical active state from `WatchPolicy`, exposes a
+disabled reason for loading, future-schema, disabled-league, ended-game, and
+capacity cases, and converges pointer, keyboard, and `Accessible` activation
+through `SemanticActionButton`. `SettingsStore.toggleWatch` is the sole
+mutation boundary: it prunes expired records, deduplicates by canonical game
+identity, preserves active removal even for disabled leagues, and persists
+through the existing permission/opaque-future-schema gate. No provider,
+polling, calendar, or notification admission ownership changed.
+
+Fixture/source coverage covers malformed and expired identity guards, duplicate
+suppression, schema-1 restart persistence, future-schema opacity, settings
+repair wiring, row/detail action convergence, accessible naming, and safe
+disabled reasons. The deterministic suite passes with 251 tests; summon-helper,
+diff check, plugin validation, and real-import-path QML lint pass.
+
+Actual Omarchy `4.0.0-1` / Quickshell `0.3.0` remained at one shell after a
+supported restart, rescan, and summon. The loaded widget is registered in the
+right bar slot; fresh logs show normal polling and no Sportray error,
+QML-load failure, exception, binding loop, or duplicate graph. The installed
+`omarchy-notification-send` boundary was exercised with a temporary safe
+`notify-send` stub and the expected argument array. This host session has no
+pointer injector and the summoned child panel did not expose an injectable
+input surface, so direct add/remove clicks and the visual watch state remain
+source/fixture verified rather than manually claimed. No second shell was
+started and no provider fetch was added for watches.
 
 ### Watch acceptance gate
 

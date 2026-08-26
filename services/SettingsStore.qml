@@ -139,6 +139,27 @@ Item {
     return root.writeSettings(next)
   }
 
+  // One bounded mutation boundary for the temporary game-watch intent. The
+  // UI never edits watchedGames directly; expired records are removed before
+  // an add so the 32-record cap cannot be consumed by dead state.
+  function toggleWatch(game) {
+    if (!root.ready || root.preservedRawStateText.length > 0 || !game)
+      return false
+    var now = Date.now()
+    var current = WatchPolicy.removeExpired(root.watchedGames, now)
+    var gameId = WatchPolicy.gameIdFor(game)
+    if (!gameId || !game.startTime) return false
+    var existing = WatchPolicy.findWatch(current, game)
+    var next = current.filter(function(entry) { return entry.gameId !== gameId })
+    if (existing) return root.writeState(root.settings, root.transitionDedupe, next)
+    if (!root.isLeagueEnabled(game.league)) return false
+    if (game.status === "final" || game.status === "canceled") return false
+    var created = WatchPolicy.createWatch(game, new Date(now).toISOString(), now)
+    if (!created || next.length >= WatchPolicy.MAX_WATCHES) return false
+    next.push(created)
+    return root.writeState(root.settings, root.transitionDedupe, next)
+  }
+
   function reloadSettings() {
     settingsFile.reload()
   }

@@ -1442,7 +1442,7 @@ test("game cards use a bounded home-team tint and expose venue text", () => {
   assert.match(source, /text: root\.venueLabel/);
   assert.match(source, /wrapMode: Text\.Wrap/);
   assert.match(source,
-    /implicitHeight: Math\.max\(footerDetails\.implicitHeight, sourceLink\.implicitHeight\)/);
+    /implicitHeight: Math\.max\(footerDetails\.implicitHeight, actionsRow\.implicitHeight\)/);
   assert.match(source, /anchors\.verticalCenter: parent\.verticalCenter/);
   assert.match(source, /root\.venueName \? "At " \+ root\.venueName/);
 });
@@ -3301,6 +3301,50 @@ test("W1 watches persist in schema 1 state without changing future-schema opacit
   assert.deepEqual(future.watchedGames, []);
 });
 
+test("W3 watch identity and mutation helpers fail closed and suppress duplicates", () => {
+  const fixture = readWatchFixture();
+  const game = games.normalizeGame({
+    league: "NHL", providerGameId: "watch-1",
+    startTime: fixture.valid.startTime, status: "scheduled"
+  });
+  const now = Date.parse(fixture.now);
+  assert.equal(watchPolicy.gameIdFor(game), "nhl:watch-1");
+  assert.equal(watchPolicy.isActiveWatch([fixture.valid], game, now), true);
+  assert.equal(watchPolicy.isActiveWatch([fixture.valid],
+    {...game, providerGameId: "missing"}, now), false);
+  assert.equal(watchPolicy.createWatch({...game, providerGameId: ""},
+    fixture.valid.createdAt, now), null);
+  const expired = {...fixture.valid, expiresAt: "2026-10-08T13:59:00Z"};
+  assert.deepEqual(watchPolicy.removeExpired([expired, fixture.valid], now), [
+    watchPolicy.normalizeEntry(fixture.valid)
+  ]);
+  const current = watchPolicy.normalizeWatches([fixture.valid, fixture.duplicate], now).watches;
+  assert.equal(current.length, 1);
+  assert.equal(current[0].createdAt, watchPolicy.normalizeEntry(fixture.duplicate).createdAt);
+});
+
+test("W3 wires one bounded watch action through rows, detail, and SettingsStore", () => {
+  const action = readSource("components/WatchAction.qml");
+  const row = readSource("components/GameRow.qml");
+  const detail = readSource("components/GameDetailView.qml");
+  const store = readSource("services/SettingsStore.qml");
+  const panel = readSource("Panel.qml");
+  assert.equal(action.includes("WatchPolicy.findWatch"), true);
+  assert.equal(action.includes("WatchPolicy.MAX_WATCHES"), true);
+  assert.equal(action.includes("Accessible.name: root.available"), true);
+  assert.equal(action.includes("enabled: root.available"), true);
+  assert.equal(action.includes("onClicked: root.activate()"), true);
+  assert.equal(row.includes("WatchAction {"), true);
+  assert.equal(row.includes("settingsStore: root.settingsStore"), true);
+  assert.equal(detail.includes("WatchAction {"), true);
+  assert.equal(detail.includes("root.cursorIndex === 1) watchAction.activate()"), true);
+  assert.equal(store.includes("function toggleWatch(game)"), true);
+  assert.equal(store.includes("WatchPolicy.removeExpired"), true);
+  assert.equal(store.includes("WatchPolicy.createWatch"), true);
+  assert.equal(store.includes("root.preservedRawStateText.length > 0"), true);
+  assert.equal(panel.includes("settingsStore: root.settingsStore"), true);
+});
+
 test("notification preferences persist through the schema-1 state serializer", () => {
   const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder", "closeGame"];
   let settings = settingsModel.createDefaults();
@@ -4115,7 +4159,7 @@ test("U3.4 reserves a reachable trailing source action in mixed Following rows",
 
   assert.match(source, /GameRowLayout\.footerLayout/);
   assert.match(source, /anchors\.right: parent\.right/);
-  assert.match(source, /anchors\.right: sourceLink\.visible \? sourceLink\.left : parent\.right/);
+  assert.match(source, /anchors\.right: actionsRow\.left/);
   assert.match(sourceButton, /focusable: true/);
 });
 

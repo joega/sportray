@@ -1341,6 +1341,8 @@ Panel {
                       height: visible ? implicitHeight : 0
                       visible: modelData && modelData.kind === "game"
                       game: gameValue
+                      settingsStore: root.settingsStore
+                      currentTime: root.ambientNowMs
                       stale: modelData && modelData.stale === true
                       startTimeTextOverride: modelData
                         && typeof modelData.timeLabel === "string"
@@ -1535,6 +1537,8 @@ Panel {
             anchors.fill: parent
             visible: root.detailOpen
             game: root.detailGame
+            settingsStore: root.settingsStore
+            currentTime: root.ambientNowMs
             onBackRequested: root.closeDetail()
           }
         }
