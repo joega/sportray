@@ -2,7 +2,7 @@
 
 Private implementation plan for `/home/joeg/Projects/sportray`.
 
-Status: **L2 complete; L3 runtime/documentation verification blocked on host input**
+Status: **S1 complete; L3 runtime/documentation verification blocked on host input**
 
 Owner direction recorded: **2026-08-25**
 
@@ -745,6 +745,8 @@ migration rather than weakening schema 1 or adding unversioned keys.
 
 ### S1 — Migration foundation work unit
 
+Status: **complete — 2026-08-26**
+
 - Upgrade pure settings defaults, normalization, persistence projection, and
   state composition without adding watch or followed-league UI.
 - Migrate schema 1 to schema 2 while preserving all compatible values.
@@ -792,6 +794,15 @@ Final field names may change during the schema unit, but these rules may not:
 Do not begin W1 or L1 until S1 has its own accepted commit and tests,
 unless the team proves a smaller durable-state design that preserves every
 future-schema and permissions guarantee above.
+
+Implemented evidence: `SettingsModel` and `StateModel` now use schema 2,
+accept schema 1 as a deterministic migration input, preserve all compatible
+settings/dedupe/watch values, and write normalized schema-2 projections.
+Missing or malformed fields still recover independently; schema versions above
+2 remain opaque and unwritable. Fixture coverage proves valid schema-1 and
+schema-2 reads, migration persistence projection, corrupt/missing recovery,
+future-schema opacity, bounded records, permission policy, and reload safety.
+The UI and provider/polling ownership were unchanged.
 
 ## Epic 4 — Scoring plays and leaders
 
@@ -1124,3 +1135,27 @@ escalation, or product workaround was attempted.
 Decision: keep the interaction gate blocked and move to the independent S1
 schema-2 migration foundation. Revisit L3 only when a supported host input
 injector becomes available.
+
+## S1 completion — 2026-08-26
+
+Schema 1 now migrates deterministically to schema 2 through the existing safe
+state-write path. Compatible enabled leagues, followed leagues, canonical
+favorite IDs, notification choices, transition-dedupe fingerprints, and
+watched-game records are preserved; normalized missing/invalid fields recover
+to bounded defaults. Schema versions above 2 remain opaque and unwritable.
+
+The complete JavaScript suite passes with 257 tests, including a complete
+schema-1 state migration/reload fixture. Summon-helper tests, diff check,
+actual-Omarchy plugin validation, and all-file real-import-path QML lint pass.
+On actual Omarchy 4.0.0-1 / Quickshell 0.3.0, a supported one-shell restart
+migrated the real 0600 schema-1 state to schema 2 and preserved all compatible
+values across a second restart; shell ping succeeded and fresh logs showed
+normal polling with no Sportray exception, binding loop, duplicate graph, or
+second shell. The known dropped FileView operation and desktop-portal warning
+remain unrelated host warnings.
+
+README now documents schema 2, schema-1 migration, future-schema opacity, and
+the one-way downgrade limitation. No UI, provider, polling, notification,
+calendar, hydration, cache, or host API was changed. S1 is accepted; the next
+bounded sprint unit is D1 live-football shape observation when the eligible
+window is actually live.

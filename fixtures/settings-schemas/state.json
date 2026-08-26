@@ -1,6 +1,6 @@
 {
-  "futureWithExtraFields": "  {\n    \"schemaVersion\": 2,\n    \"enabledLeagues\": [\"nhl\"],\n    \"favoriteTeamIds\": [\"nhl:6\"],\n    \"notifications\": {\"enabled\": true},\n    \"futurePreference\": {\"compact\": true}\n  }\n",
-  "futureMalformed": "{\n  \"schemaVersion\": 3,\n  \"enabledLeagues\": {\"not\": \"an array\"},\n  \"transitionDedupe\": [\"not\", \"a state object\"],\n  \"futurePayload\": null\n}\n",
+  "futureWithExtraFields": "  {\n    \"schemaVersion\": 3,\n    \"enabledLeagues\": [\"nhl\"],\n    \"favoriteTeamIds\": [\"nhl:6\"],\n    \"notifications\": {\"enabled\": true},\n    \"futurePreference\": {\"compact\": true}\n  }\n",
+  "futureMalformed": "{\n  \"schemaVersion\": 4,\n  \"enabledLeagues\": {\"not\": \"an array\"},\n  \"transitionDedupe\": [\"not\", \"a state object\"],\n  \"futurePayload\": null\n}\n",
   "schema1": "{\n  \"schemaVersion\": 1,\n  \"enabledLeagues\": [\"nhl\"],\n  \"favoriteTeamIds\": [],\n  \"notifications\": {\n    \"enabled\": false,\n    \"gameStart\": false,\n    \"scoreChange\": false,\n    \"gameFinal\": false,\n    \"pregameReminder\": false\n  },\n  \"transitionDedupe\": {\n    \"schemaVersion\": 1,\n    \"fingerprints\": []\n  }\n}\n",
   "corrupt": "{not-json"
 }

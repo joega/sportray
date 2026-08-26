@@ -162,9 +162,9 @@ The public branch and release tag now share one clean root commit:
   Premier League, and MLS.
 - No account, API key, Sportray backend, telemetry, database, or daemon.
 - Provider parsing stays in `providers/`; QML consumes normalized games.
-- Settings remain bounded schema-1 JSON with canonical
+- Settings remain bounded schema-2 JSON with canonical
   `<league>:<providerTeamId>` favorite identities.
-- Future settings schemas remain opaque: Sportray uses safe schema-1 defaults
+- Future settings schemas remain opaque: Sportray uses safe schema-2 defaults
   without rewriting the newer file, and persistence stays gated until a
   compatible state-file reload replaces it.
 - Polling owns at most one request per league, preserves last-good data, and
@@ -5308,3 +5308,30 @@ change, or product workaround was attempted.
 Decision log: preserve the existing product and host boundaries. Proceed with
 the independent shared schema-2 migration foundation (S1); revisit L3 only
 when a supported pointer/accessibility injector is available.
+
+## Latest handoff — 2026-08-26 S1 schema-2 migration complete
+
+S1 is complete. `SettingsModel` and `StateModel` now emit schema 2 and accept
+schema 1 as a deterministic migration input. Valid compatible enabled leagues,
+followed leagues, canonical favorites, notifications, transition-dedupe
+fingerprints, and watched-game records survive migration; missing or malformed
+fields recover to bounded defaults. Schema versions greater than 2 remain
+opaque, use safe schema-2 defaults, and are never rewritten until a compatible
+reload. README documents the schema-2 contract and that older releases must
+not downgrade-write it.
+
+Evidence: `./tests/run-js-tests.sh` passes with 257 deterministic tests,
+including complete schema-1 state migration and schema-2 reload coverage;
+summon-helper tests, `git diff --check`, `omarchy plugin validate "$PWD"`,
+and all-file `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` pass.
+On actual Omarchy 4.0.0-1 / Quickshell 0.3.0, one supported shell restart
+migrated the real 0600 schema-1 state to schema 2 and a second restart
+preserved all compatible values; shell ping succeeded. Fresh logs contain
+normal polling and no Sportray exception, QML-load failure, binding loop,
+duplicate graph, or second shell. The dropped FileView-operation and
+desktop-portal warnings are unrelated host warnings.
+
+No UI, provider, polling, notification, calendar, hydration, cache, or host
+API changed. Decision log: accept S1 and schedule D1 live-football shape
+observation for the next eligible in-progress event; keep L3 pointer and
+direct-Accessible claims blocked until a supported injector exists.

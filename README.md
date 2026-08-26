@@ -220,7 +220,7 @@ polling. A watch can be removed from the same action; malformed, expired,
 disabled-league, ended-game, unsupported-schema, and full-capacity cases remain
 unavailable with an explicit reason.
 
-Sportray stores bounded schema-1 JSON outside the plugin checkout at. It may
+Sportray stores bounded schema-2 JSON outside the plugin checkout at. It may
 include up to 32 normalized watched-game records; provider payloads and raw
 provider fields are never persisted:
 
@@ -240,8 +240,16 @@ persist new state until the permission boundary is healthy. This repair uses
 only the fixed system command paths `/usr/bin/mkdir`, `/usr/bin/chmod`, and
 `/usr/bin/test`; it never logs the settings contents.
 
-If the existing state file declares a schema version newer than 1, Sportray
-keeps that file opaque and unchanged for rollback. It uses safe schema-1
+Sportray migrates valid schema-1 state to schema 2 on the next safe write,
+preserving enabled leagues, followed leagues, canonical favorites,
+notifications, transition deduplication, and watched games. Schema 2 adds the
+bounded `watchedGames` state used by temporary game watches. If an older
+Sportray release sees a schema-2 file, it must not rewrite it; downgrade by
+restoring a schema-1 backup or removing the state file, understanding that
+removal resets preferences.
+
+If the existing state file declares a schema version newer than 2, Sportray
+keeps that file opaque and unchanged for rollback. It uses safe schema-2
 in-memory defaults so the panel remains available, skips startup recovery and
 later persistence writes, and resumes persistence only after a compatible
 state-file reload replaces the future-schema contents. No migration or raw

@@ -7,7 +7,8 @@ if (typeof require === "function") {
   WatchPolicy = require("./WatchPolicy.js");
 }
 
-var SCHEMA_VERSION = 1;
+var SCHEMA_VERSION = 2;
+var MIN_SUPPORTED_SCHEMA_VERSION = 1;
 var SETTINGS_FIELDS = ["schemaVersion", "enabledLeagues", "followedLeagueIds", "favoriteTeamIds", "notifications"];
 var STATE_FIELDS = SETTINGS_FIELDS.concat(["transitionDedupe", "watchedGames"]);
 
@@ -96,7 +97,8 @@ function parseStateText(raw, currentTime, settingsApi, dedupeApi, watchApi) {
     };
   }
 
-  if (!isRecord(value) || value.schemaVersion !== SCHEMA_VERSION) {
+  if (!isRecord(value)
+      || (value.schemaVersion !== SCHEMA_VERSION && value.schemaVersion !== MIN_SUPPORTED_SCHEMA_VERSION)) {
     var preserveFuture = isFutureSchema(value);
     var unsupported = createState(Settings.createDefaults(), Dedupe.createDefaults(), Settings, Dedupe, currentTime, [], Watches);
     return {
@@ -122,12 +124,14 @@ function parseStateText(raw, currentTime, settingsApi, dedupeApi, watchApi) {
   var state = createState(settingsResult.settings, dedupeResult.state, Settings, Dedupe, currentTime, watchResult.watches, Watches);
   var recovered = settingsResult.invalidFields.length > 0
     || settingsResult.missingFields.length > 0 || dedupeResult.recovered || watchResult.recovered;
-  var needsWrite = settingsResult.changed || dedupeResult.changed || watchResult.changed || unknownFields.length > 0;
+  var migrated = value.schemaVersion === MIN_SUPPORTED_SCHEMA_VERSION;
+  var needsWrite = migrated || settingsResult.changed || dedupeResult.changed || watchResult.changed
+    || unknownFields.length > 0;
   return {
     settings: copySettingsFields(state),
     transitionDedupe: state.transitionDedupe,
     watchedGames: state.watchedGames,
-    status: recovered ? "field-recovered" : (unknownFields.length ? "unknown-fields-dropped" : "valid"),
+    status: migrated && !recovered ? "migrated" : (recovered ? "field-recovered" : (unknownFields.length ? "unknown-fields-dropped" : "valid")),
     recovered: recovered,
     needsWrite: needsWrite,
     invalidFields: settingsResult.invalidFields,

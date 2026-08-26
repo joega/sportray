@@ -1,4 +1,5 @@
-var SCHEMA_VERSION = 1;
+var SCHEMA_VERSION = 2;
+var MIN_SUPPORTED_SCHEMA_VERSION = 1;
 var MAX_ENABLED_LEAGUES = 8;
 var MAX_FOLLOWED_LEAGUES = 8;
 var MAX_FAVORITE_TEAM_IDS = 32;
@@ -297,25 +298,26 @@ function parseSettingsText(raw) {
     };
   }
 
-  if (value.schemaVersion !== SCHEMA_VERSION) {
+  if (value.schemaVersion !== SCHEMA_VERSION && value.schemaVersion !== MIN_SUPPORTED_SCHEMA_VERSION) {
     var preserveFuture = isFutureSchema(value);
     return {
       settings: createDefaults(),
       status: "unsupported-schema",
       recovered: true,
       needsWrite: !preserveFuture,
-      error: "expected schema version " + SCHEMA_VERSION,
+      error: "expected schema version " + SCHEMA_VERSION + " or " + MIN_SUPPORTED_SCHEMA_VERSION,
       preservedRawText: preserveFuture ? originalText : ""
     };
   }
 
   var normalized = normalizeSettings(value);
   var recovered = normalized.invalidFields.length > 0 || normalized.missingFields.length > 0;
+  var migrated = value.schemaVersion === MIN_SUPPORTED_SCHEMA_VERSION;
   return {
     settings: normalized.settings,
-    status: recovered ? "field-recovered" : (normalized.unknownFields.length ? "unknown-fields-dropped" : "valid"),
+    status: migrated && !recovered ? "migrated" : (recovered ? "field-recovered" : (normalized.unknownFields.length ? "unknown-fields-dropped" : "valid")),
     recovered: recovered,
-    needsWrite: normalized.changed,
+    needsWrite: normalized.changed || value.schemaVersion !== SCHEMA_VERSION,
     error: null,
     invalidFields: normalized.invalidFields,
     missingFields: normalized.missingFields,

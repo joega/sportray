@@ -3113,7 +3113,7 @@ test("NHL provider drops malformed events without erasing valid siblings", () =>
 
 test("settings defaults are versioned and safe", () => {
   assert.deepEqual(settingsModel.createDefaults(), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     enabledLeagues: ["nhl"],
     followedLeagueIds: [],
     favoriteTeamIds: [],
@@ -3298,14 +3298,14 @@ test("W1 watch expiry covers clock skew, postponement, hard maximum, and termina
   assert.equal(watchPolicy.normalizeWatches([hard], now).watches[0].status, "expired");
 });
 
-test("W1 watches persist in schema 1 state without changing future-schema opacity", () => {
+test("W1 watches persist in schema 2 state without changing future-schema opacity", () => {
   const fixture = readWatchFixture();
   const state = stateModel.createState(settingsModel.createDefaults(), transitionDedupe.createDefaults(),
     settingsModel, transitionDedupe, Date.parse(fixture.now), [fixture.valid]);
   const loaded = stateModel.parseStateText(JSON.stringify(state), Date.parse(fixture.now), settingsModel, transitionDedupe);
   assert.equal(loaded.status, "valid");
   assert.deepEqual(loaded.watchedGames[0], watchPolicy.normalizeEntry(fixture.valid));
-  const future = stateModel.parseStateText(JSON.stringify({...state, schemaVersion: 2, future: {raw: true}}), Date.parse(fixture.now));
+  const future = stateModel.parseStateText(JSON.stringify({...state, schemaVersion: 3, future: {raw: true}}), Date.parse(fixture.now));
   assert.equal(future.needsWrite, false);
   assert.equal(future.preservedRawText.includes('"future"'), true);
   assert.deepEqual(future.watchedGames, []);
@@ -3355,7 +3355,7 @@ test("W3 wires one bounded watch action through rows, detail, and SettingsStore"
   assert.equal(panel.includes("settingsStore: root.settingsStore"), true);
 });
 
-test("notification preferences persist through the schema-1 state serializer", () => {
+test("notification preferences persist through the schema-2 state serializer", () => {
   const keys = ["enabled", "gameStart", "scoreChange", "gameFinal", "pregameReminder", "closeGame"];
   let settings = settingsModel.createDefaults();
   keys.forEach((key) => { settings = settingsModel.toggleNotification(settings, key); });
@@ -3393,12 +3393,41 @@ test("valid schema 1 settings round-trip without provider or raw response fields
     }
   };
   const result = settingsModel.parseSettingsText(JSON.stringify(input));
-  assert.equal(result.status, "valid");
+  assert.equal(result.status, "migrated");
   assert.equal(result.recovered, false);
-  assert.equal(result.needsWrite, false);
-  assert.deepEqual(result.settings, input);
+  assert.equal(result.needsWrite, true);
+  assert.deepEqual(result.settings, {...input, schemaVersion: 2});
   assert.equal(JSON.stringify(result.settings).includes("gameState"), false);
   assert.equal(JSON.stringify(result.settings).includes("games"), false);
+});
+
+test("S1 migrates a complete schema 1 state without losing compatible values", () => {
+  const input = {
+    schemaVersion: 1,
+    enabledLeagues: ["nhl", "nfl"],
+    followedLeagueIds: ["nfl"],
+    favoriteTeamIds: ["nhl:6", "nfl:12"],
+    notifications: {...settingsModel.createDefaults().notifications, enabled: true, gameFinal: true},
+    transitionDedupe: {schemaVersion: 1, fingerprints: [{fingerprint: "nhl:old", seenAt: 1700000000000}]},
+    watchedGames: []
+  };
+  const result = stateModel.parseStateText(JSON.stringify(input), 1700000001000,
+    settingsModel, transitionDedupe, watchPolicy);
+  assert.equal(result.status, "migrated");
+  assert.equal(result.needsWrite, true);
+  assert.equal(result.settings.schemaVersion, 2);
+  assert.deepEqual(result.settings.enabledLeagues, input.enabledLeagues);
+  assert.deepEqual(result.settings.followedLeagueIds, input.followedLeagueIds);
+  assert.deepEqual(result.settings.favoriteTeamIds, input.favoriteTeamIds);
+  assert.deepEqual(result.settings.notifications, input.notifications);
+  assert.deepEqual(result.transitionDedupe.fingerprints, input.transitionDedupe.fingerprints);
+  assert.deepEqual(result.watchedGames, []);
+
+  const persisted = stateModel.createState(result.settings, result.transitionDedupe,
+    settingsModel, transitionDedupe, 1700000001000, result.watchedGames, watchPolicy);
+  assert.equal(persisted.schemaVersion, 2);
+  assert.deepEqual(stateModel.parseStateText(JSON.stringify(persisted), 1700000002000,
+    settingsModel, transitionDedupe, watchPolicy).settings, result.settings);
 });
 
 test("L1 followed leagues migrate schema 1 to empty and enforce enabled canonical bounds", () => {
@@ -3552,7 +3581,7 @@ test("corrupt JSON and unsupported schema recover to defaults", () => {
   assert.equal(corrupt.status, "invalid-json");
   assert.deepEqual(corrupt.settings, settingsModel.createDefaults());
 
-  const future = settingsModel.parseSettingsText(JSON.stringify({schemaVersion: 2}));
+  const future = settingsModel.parseSettingsText(JSON.stringify({schemaVersion: 3}));
   assert.equal(future.status, "unsupported-schema");
   assert.equal(future.recovered, true);
   assert.equal(future.needsWrite, false);
@@ -3595,11 +3624,11 @@ test("invalid types and bounded values never escape the schema", () => {
   assert.equal(JSON.stringify(result.settings).includes("gameState"), false);
 });
 
-test("picker favorite updates preserve the exact schema-1 store shape", () => {
+test("picker favorite updates preserve the exact schema-2 store shape", () => {
   const base = settingsModel.createDefaults();
   const selected = settingsModel.toggleFavoriteTeam(base, "nhl:6");
   assert.deepEqual(selected, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     enabledLeagues: ["nhl"],
     followedLeagueIds: [],
     favoriteTeamIds: ["nhl:6"],
