@@ -140,6 +140,20 @@ Item {
     return root.writeSettings(next)
   }
 
+  function isLeagueFollowed(leagueId) {
+    return typeof leagueId === "string" && root.settings.followedLeagueIds.indexOf(leagueId.trim().toLowerCase()) !== -1
+  }
+
+  function toggleFollowedLeague(leagueId) {
+    var next = SettingsModel.toggleFollowedLeague(root.settings, leagueId)
+    return root.writeSettings(next)
+  }
+
+  function moveFollowedLeague(leagueId, direction) {
+    var next = SettingsModel.moveFollowedLeague(root.settings, leagueId, direction)
+    return root.writeSettings(next)
+  }
+
   // One bounded mutation boundary for the temporary game-watch intent. The
   // UI never edits watchedGames directly; expired records are removed before
   // an add so the 32-record cap cannot be consumed by dead state.

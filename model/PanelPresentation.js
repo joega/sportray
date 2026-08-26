@@ -144,7 +144,7 @@ function leagueView(state, favoriteIds, orderer, matcher) {
   };
 }
 
-function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds) {
+function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, revision) {
   var favorites = normalizeFavoriteIds(favoriteTeamIds);
   var leagueStates = composed && Array.isArray(composed.leagueStates)
     ? composed.leagueStates : [];

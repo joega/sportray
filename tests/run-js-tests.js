@@ -1226,7 +1226,7 @@ test("panel explicitly refreshes derived presentation on settings changes", () =
   assert.equal(source.includes("root.copyStringList(root.settingsStore"), true);
   assert.equal(source.includes("target: root.settingsStore"), true);
   assert.equal(source.includes("function onSettingsChanged()"), true);
-  assert.equal(source.includes("FavoritePresentation.isFavoriteGame, root.presentationRevision"), true);
+  assert.equal(source.includes("FavoritePresentation.isFavoriteGame, root.followedLeagueIds"), true);
 });
 
 test("panel keeps the host settings property and injects its distinct settings store", () => {
@@ -3430,6 +3430,32 @@ test("L1 presentation orders followed leagues and deduplicates games", () => {
   assert.deepEqual(model.following.games.map((game) => game.id), ["nhl:shared", "nfl:other"]);
   assert.deepEqual(panelPresentation.orderLeagueIds(["nhl", "nfl", "mlb"], ["mlb", "nhl", "mlb", "bad"]),
     ["mlb", "nhl", "nfl"]);
+});
+
+test("L2 keeps enabled and followed league intent distinct across UI routes", () => {
+  const labels = JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/settings/followed-league-ui.json"), "utf8"));
+  const sports = readSource("components/SportsSettings.qml");
+  const store = readSource("services/SettingsStore.qml");
+  const panel = readSource("Panel.qml");
+  assert.match(sports, /function isEnabled\(league\)/);
+  assert.match(sports, /function isFollowed\(league\)/);
+  assert.match(sports, /root\.settingsStore\.toggleLeague\(league\.id\)/);
+  assert.match(sports, /root\.settingsStore\.toggleFollowedLeague\(league\.id\)/);
+  assert.match(sports, /root\.settingsStore\.moveFollowedLeague\(league\.id, "up"\)/);
+  assert.match(sports, /root\.settingsStore\.moveFollowedLeague\(league\.id, "down"\)/);
+  labels.enabled.forEach((label) => assert.equal(sports.includes(`"${label}"`), true));
+  labels.followed.forEach((label) => assert.equal(sports.includes(`"${label}"`), true));
+  labels.ordering.forEach((label) => assert.equal(sports.includes(`text: "${label}"`), true));
+  assert.match(sports, /enabled: root\.isEnabled\(modelData\)/);
+  assert.match(sports, /enabled: root\.isFollowed\(modelData\) && root\.followedIndex\(modelData\) > 0/);
+  assert.match(sports, /Accessible\.role: Accessible\.Button/);
+  assert.match(store, /function toggleFollowedLeague\(leagueId\)/);
+  assert.match(store, /function moveFollowedLeague\(leagueId, direction\)/);
+  assert.match(panel, /FavoritePresentation\.isFavoriteGame, root\.followedLeagueIds, root\.presentationRevision/);
+  assert.match(panel, /PanelPresentation\.orderLeagueIds\(root\.enabledLeagues, root\.followedLeagueIds\)/);
+  assert.match(panel, /function onSettingsChanged\(\) \{\s*root\.presentationRevision\+\+/);
+  assert.match(sports, /var revision = root\.settingsRevision/);
 });
 
 test("schema 1 admits required leagues while keeping NHL as the default", () => {

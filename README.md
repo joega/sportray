@@ -23,6 +23,8 @@ At a glance:
 - Scheduled, live, intermediate, final, stale, empty, and unavailable states
 - Favorite-team selection with canonical league/team identities
 - A Following home for favorite-team games plus one stable destination per league
+- Separate enabled and followed-league intents, with bounded followed-first
+  navigation and reorder controls
 - Grouped standings on ESPN-backed and NHL league destinations, with missing
   provider fields shown as neutral blanks and one-click favorite-team toggles
 - A five-day date carousel with previous/next-day navigation and a Today reset
@@ -182,7 +184,12 @@ Marketplace submission are separate publication steps.
 ## Settings and state
 
 Open the panel's **Settings** action to choose **Sports & leagues**, **Favorite
-teams**, or **Notifications**. Favorite teams supports search, league filters,
+teams**, or **Notifications**. Sports & leagues keeps **Enable** separate from
+**Follow**: enabling admits a league to score fetching and destinations, while
+following promotes it on Following, the league chooser, and the calendar filter.
+Followed leagues can be reordered with bounded **Move up** and **Move down**
+actions; disabling a league removes it from the followed set atomically.
+Favorite teams supports search, league filters,
 selected-first ordering, resilient logo fallbacks, and keyboard navigation.
 Notification preferences control game starts, score changes, game finals,
 favorite-only pregame reminders, and favorite-only close-game alerts

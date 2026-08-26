@@ -1,0 +1,5 @@
+{
+  "enabled": ["Enable", "Disable"],
+  "followed": ["Follow", "Following"],
+  "ordering": ["Move up", "Move down"]
+}

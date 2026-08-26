@@ -2,7 +2,7 @@
 
 Private implementation plan for `/home/joeg/Projects/sportray`.
 
-Status: **W1 complete; remaining epics planned**
+Status: **L2 complete; L3 runtime/documentation handoff pending**
 
 Owner direction recorded: **2026-08-25**
 
@@ -647,14 +647,27 @@ followed sections, and duplicate game suppression.
 
 #### L2 — Settings and navigation UI
 
-- Add Enable, Follow, Move up, and Move down actions without nested-pointer or
-  inaccessible toggle regressions.
-- Apply followed order to Following, destinations, and calendar filter.
+Status: **complete — 2026-08-25**
+
+- Added distinct Enable/Disable and Follow/Following actions for every catalog
+  league. Follow is disabled until the league is enabled, and disabling uses
+  the existing atomic SettingsModel cleanup.
+- Added bounded keyboard cursor actions plus pointer and Qt Accessible routes
+  for follow and Move up/Move down controls through SemanticActionButton.
+- Applied normalized followed-first order to Following sections, destinations,
+  and the calendar league filter. Existing favorite-first game ordering and
+  canonical duplicate suppression remain unchanged.
+- Fixture/source evidence covers intent distinction, action convergence,
+  disabled guards, followed-first routes, settings revision refresh, and
+  existing Following deduplication.
 
 #### L3 — Runtime and documentation
 
-- Exercise enabling, following, reordering, disabling, persistence, restart,
-  and no-duplicate Following rows on Omarchy.
+- **pending:** exercise enabling, following, reordering, disabling, persistence,
+  restart, and no-duplicate Following rows on Omarchy. The 2026-08-25 shell
+  restart/rescan left one shell and normal Sportray polling, but the host
+  reported no live bar widget during summon, so direct UI interaction was not
+  honestly claimable.
 
 ### League acceptance gate
 

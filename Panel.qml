@@ -102,7 +102,7 @@ Panel {
   readonly property var normalizedGames: scoreboard.games
   readonly property var panelPresentation: PanelPresentation.build(
     scoreboard, root.favoriteTeamIds, FavoritePresentation.orderGames,
-    FavoritePresentation.isFavoriteGame, root.presentationRevision)
+    FavoritePresentation.isFavoriteGame, root.followedLeagueIds, root.presentationRevision)
   readonly property var tabItems: buildTabItems()
   readonly property var sportOptions: buildSportOptions()
   readonly property var activeView: viewForDestination(root.activeDestination)
@@ -184,6 +184,8 @@ Panel {
     return root.copyStringList(root.settingsStore && root.settingsStore.settings
       ? root.settingsStore.settings.enabledLeagues : [], ["nhl"])
   }
+  readonly property var followedLeagueIds: root.copyStringList(root.settingsStore && root.settingsStore.settings
+    ? root.settingsStore.settings.followedLeagueIds : [], [])
 
   function calendarLeagueLabel() {
     if (root.calendarLeagueId === "") return "All leagues"
@@ -261,7 +263,7 @@ Panel {
 
   function cycleCalendarLeague() {
     if (!root.calendarOpen) return
-    var ids = root.enabledLeagues.slice()
+    var ids = PanelPresentation.orderLeagueIds(root.enabledLeagues, root.followedLeagueIds)
     var options = [""]
     ids.forEach(function(id) { if (options.indexOf(id) === -1) options.push(id) })
     var index = options.indexOf(root.calendarLeagueId)

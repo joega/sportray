@@ -5075,3 +5075,46 @@ teams, and watched games; keep migration-to-followed behavior empty rather
 than implicitly following enabled leagues; and defer all user-facing actions
 and runtime wiring to L2/L3. Next bounded unit: **L2 — followed-league
 settings and navigation UI** only.
+
+## Latest handoff — 2026-08-25 L2 followed-league settings and navigation UI
+
+L2 implementation is complete. `SportsSettings.qml` now presents Enable and
+Follow as separate actions, with Follow unavailable until a league is enabled.
+Each catalog league has bounded Move up/Move down controls whose enabled state
+tracks its normalized followed position. Keyboard cursor activation, pointer
+press, and the shared Qt Accessible press route converge on the same
+`SettingsStore` mutation functions. Settings revision invalidation refreshes
+the action state after every write; disabling a followed league continues to
+use the existing atomic pure cleanup and cannot leave a ghost destination.
+
+`Panel.qml` now passes followed IDs into `PanelPresentation`, so Following
+sections and league destinations use normalized followed-first order while
+favorite games remain first and canonical game identities remain deduplicated.
+The calendar league-cycle options use the same followed-first order. No
+provider, polling, notification, watch, calendar-fetch, or new host boundary
+was added. README now documents the enabled-versus-followed distinction.
+
+Evidence: `./tests/run-js-tests.sh` passes with 254 deterministic tests,
+including fixture/source coverage for intent distinction, keyboard/pointer/
+Accessible convergence, disabled guards, followed-first destinations and
+calendar filtering, settings refresh, and Following deduplication.
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and real-import-path `qmllint` over all QML
+files pass; qmllint exits 0 with the established standalone host/import
+warnings.
+
+Actual Omarchy 4.0.0-1 / Quickshell 0.3.0 was restarted and rescan/summon was
+attempted. Exactly one `quickshell -n -p /usr/share/omarchy/shell` remained,
+Sportray stayed enabled, and shell ping returned `ok`. Fresh PID
+`1203375` logs show normal Sportray initialization and league cache/fetch
+activity with no Sportray QML error, exception, or binding-loop warning, but
+also report `summon: no live bar widget for: io.github.joega.sportray`.
+Therefore direct pointer, keyboard, Accessible, focus, and edge-placement
+interaction was not claimed. This is the remaining L3 runtime gate, not a new
+API assumption or a reason to weaken fixture/source acceptance.
+
+Decision log: preserve schema 1 and the empty legacy followed default; keep
+followed ordering presentation-only; route every UI action through the
+existing settings and semantic-control boundaries; and defer runtime
+enable/follow/reorder/restart persistence evidence to L3. No push, tag,
+release, Marketplace, or destructive host action occurred.
