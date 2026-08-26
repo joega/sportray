@@ -1,5 +1,6 @@
 import QtQuick
 import "../model/ScoreboardModel.js" as ScoreboardModel
+import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
 
 Item {
   id: root
@@ -20,6 +21,8 @@ Item {
   property int partialErrorCount: 0
   property string lastSuccessAt: ""
   property string lastAttemptAt: ""
+  property string calendarMonthKey: ""
+  readonly property var calendarScheduleState: calendarFetch.snapshot()
 
   function isLeagueEnabled(leagueId) {
     return Array.isArray(root.enabledLeagues) && root.enabledLeagues.indexOf(leagueId) !== -1
@@ -43,6 +46,15 @@ Item {
     return pollScheduler.requestRefresh(reason || "manual")
   }
 
+  function requestCalendarMonth(monthKey) {
+    root.calendarMonthKey = monthKey || ""
+    return calendarFetch.requestMonth(root.calendarMonthKey)
+  }
+
+  function cancelCalendarSchedule() {
+    calendarFetch.cancelSchedule()
+  }
+
   function buildLeagueStates() {
     if (!nhlFetch || !nflFetch || !mlbFetch || !nbaFetch || !ncaafFetch || !eplFetch || !mlsFetch || !ncaabFetch
         || typeof nhlFetch.snapshot !== "function") return []
@@ -53,7 +65,10 @@ Item {
   function buildCalendarStates() {
     if (!nhlFetch || !nflFetch || !mlbFetch || !nbaFetch || !ncaafFetch || !eplFetch || !mlsFetch || !ncaabFetch
         || typeof nhlFetch.calendarSnapshot !== "function") return []
-    return [nhlFetch.calendarSnapshot(), nflFetch.calendarSnapshot(), mlbFetch.calendarSnapshot(),
+    var liveNhl = nhlFetch.calendarSnapshot()
+    var scheduleNhl = calendarFetch.snapshot()
+    var mergedNhl = CalendarCachePolicy.mergeState(scheduleNhl, liveNhl)
+    return [mergedNhl, nflFetch.calendarSnapshot(), mlbFetch.calendarSnapshot(),
       nbaFetch.calendarSnapshot(), ncaafFetch.calendarSnapshot(), eplFetch.calendarSnapshot(),
       mlsFetch.calendarSnapshot(), ncaabFetch.calendarSnapshot()]
   }
@@ -87,6 +102,11 @@ Item {
   onSelectedDateKeyChanged: root.updateAggregateState()
 
   Component.onCompleted: root.updateAggregateState()
+
+  Connections {
+    target: calendarFetch
+    function onCurrentStateChanged() { root.updateAggregateState() }
+  }
 
   Connections {
     target: pollScheduler
@@ -236,6 +256,11 @@ Item {
     enabledLeagues: root.enabledLeagues
     selectedDateKey: root.selectedDateKey
     panelOpen: root.panelOpen
+  }
+
+  CalendarFetch {
+    id: calendarFetch
+    calendarEnabled: root.isLeagueEnabled("nhl")
   }
 
   LeagueFetch {

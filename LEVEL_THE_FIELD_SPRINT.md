@@ -322,11 +322,49 @@ Status: **complete — 2026-08-25**
 
 #### C3 — Low-frequency calendar fetch and cache
 
-- Add one focused calendar schedule owner and bounded cache.
-- Normalize provider responses outside QML.
-- Merge month summaries with current selected-day/live snapshots by canonical
-  identity and freshness rules.
-- Add cancellation, stale, partial, empty, and unavailable fixtures.
+Status: **complete — 2026-08-25**
+
+- `services/CalendarFetch.qml` owns one low-frequency NHL schedule process,
+  plans the visible 42-day grid through `ChunkPolicy`, caps the cache at three
+  windows, and keeps the existing live `LeagueFetch` processes unchanged.
+- `NhlProvider.parseCalendarScheduleResponse` emits bounded normalized day
+  buckets outside QML. `CalendarCachePolicy.js` merges canonical game IDs,
+  preserves 42-day/request bounds, applies six-hour future and 24-hour
+  historical freshness, and distinguishes loading, partial, stale, empty, and
+  unavailable coverage.
+- `FetchService` merges schedule and selected-day live snapshots for calendar
+  projection; no schedule result enters notification state or replaces live
+  polling ownership. Month open, navigation, and Today request only the
+  visible-month schedule owner.
+- Fixtures/source assertions cover provider normalization, missing-day partial
+  coverage, live identity merge, freshness/cache bounds, generation-safe
+  cancellation, one-process/zero-timer ownership, and no notification route.
+- Deterministic JavaScript suite passes with 242 tests; summon-helper,
+  `git diff --check`, actual Omarchy plugin validation, and full real-import-
+  path QML lint (exit 0 with established warnings) pass.
+- Actual Omarchy verification completed after the asynchronous widget-component
+  load settled: one Quickshell shell remained running, ping returned `ok`, and
+  rescan followed by the bounded summon helper produced a live Sportray slot
+  at `right` (27x26). A fresh shell restart loaded the checkout and the
+  changed Calendar route rendered a 42-cell September grid with unqueried
+  dates labeled `Unknown`; PageDown/PageUp month navigation and rapid
+  cancellation/replacement were exercised. Fresh logs contained normal
+  Sportray startup with no plugin-load exception, QML error, or binding loop;
+  only the unrelated pre-existing desktop-portal warning remained.
+
+The prior registration blocker was a readiness race in the supported rescan /
+summon sequence, not a broken manifest or a need to replace the symlink. No
+second shell or other host process was started, and no destructive host change
+was required. The registry's `active:false` field is not the live bar-instance
+signal for ordinary bar widgets; `debugBarGeometry` and successful summon are
+the relevant host evidence.
+- Actual Omarchy has one Quickshell shell, enabled discovery, shell ping, and
+  rescan success. The host's installed checkout is currently a symlink at
+  `~/.config/omarchy/plugins/io.github.joega.sportray`; the shell reports the
+  plugin `active:false`, and summon returns `no live bar widget`. Therefore
+  first-open month hydration, fresh runtime logs, and changed-behavior
+  exercise cannot be honestly claimed until the host plugin registration is
+  restored. No success commit is created while this gate is blocked.
 
 #### C4 — Calendar completion and polish
 
@@ -838,8 +876,10 @@ reconnaissance or separate test/log investigation.
 - A 42-day all-game range can exceed current byte/event limits, especially for
   MLB and college basketball. Chunking must be evidence-driven and request-
   bounded; raising limits is not the default answer.
-- NHL schedule pagination/continuation and historical coverage need current
-  verification before Calendar C3.
+- NHL schedule pagination/continuation was verified for C3 through the current
+  `gameWeek`/`nextStartDate` contract; historical/provider coverage remains a
+  bounded runtime risk and must not be treated as complete beyond admitted
+  windows.
 - Month density from partial providers must not be mistaken for complete data.
 - Settings schema 2 is a one-way feature upgrade unless downgrade behavior is
   explicitly implemented and tested.
@@ -858,8 +898,8 @@ reconnaissance or separate test/log investigation.
 
 ## Current handoff
 
-C1 — Month grid vertical slice is complete. Begin with **C2 — Provider range
-reconnaissance and chunk policy** only. Do not add visible-month hydration, a
-schedule fetch owner, runtime range requests, schema 2, watched games,
-followed leagues, scoring plays, leaders, or broadcasts in that unit. The
-self-contained prompt is maintained in NEXT_SESSION_PROMPT.md.
+C1, C2, and C3 are complete. Begin with **C4 — Calendar completion and
+polish** only. The C3 runtime gate was verified on actual Omarchy with one
+shell, one NHL calendar `Process`, bounded hydration, honest unknown/partial
+states, and generation-safe month replacement. The self-contained prompt is
+maintained in `NEXT_SESSION_PROMPT.md`.

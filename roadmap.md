@@ -4458,6 +4458,100 @@ populated leaders. If no game is live, record the missed window and stop; do
 not add provider fields or change catalogs, settings, polling, notifications,
 fixtures, QML, normalized fields, fallback behavior, or release state.
 
+## Latest handoff — 2026-08-25 live-football window not yet eligible
+
+Status: blocked pending the owner-defined live-football window. This unit was
+checked at 2026-08-25 17:52:56 EDT, before the first eligible CFB week-0 game
+from 2026-08-29 or NFL week-1 game from 2026-09-10. No ESPN NFL or
+college-football scoreboard payload was queried, so no non-live field shape was
+inspected or inferred and no raw payload was stored.
+
+Evidence: the working tree was clean on `main` at `ccfc099`, with committed
+MLB StatsAPI fallback `cb53ded` and the previously recorded 231-test baseline.
+Installed Omarchy 4.0.0-1 and Quickshell 0.3.0 remain the directly inspected
+host boundary: `KeyboardPanel` is still a `PanelWindow` with `screen`,
+`availableCardHeight`, and `fittedContentHeight`, and no material deviation
+from the documented repository contract was found. The required unchanged
+baseline passed: `./tests/run-js-tests.sh` (231 tests),
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
+(exit 0 with established standalone warnings).
+
+No provider, parsing, endpoint, polling, settings, notification, catalog,
+fixture, QML, normalized field, fallback, release, or team mapping changed.
+The unresolved ESPN/static MLB team-id drift and fixture-only live fallback
+selection remain unchanged. The absence of `MARKETPLACE_SUBMISSION.md`
+remains untouched and unstaged. No success commit was created for this
+blocked documentation-only handoff.
+
+Decision log: do not turn a pre-window clock check into football payload
+evidence. The next agent must wait for an actual NFL or college-football event
+with status state `in`, inspect only the bounded `details`, `weather`, and
+populated `leaders` shapes, and record a missed eligible window if no such
+event is present.
+
+Next bounded unit: during the first actual eligible live-football minutes from
+CFB week 0 on 2026-08-29 or NFL week 1 on 2026-09-10, query the documented ESPN
+NFL and college-football scoreboards read-only. Proceed only when at least one
+event has status state `in`; inspect bounded shape summaries for
+`competitions[].details`, `competitions[].weather`, and
+`competitions[].leaders` only when a group contains athlete entries. Do not
+store raw payloads or change any provider, model, fixture, QML, settings,
+polling, fallback, catalog, release, or team-mapping behavior. Run all five
+baseline gates afterward, update this handoff and `competition.md` if the
+observation changes the backlog evidence, replace `NEXT_SESSION_PROMPT.md`,
+and create no success commit for a pure observation.
+
+## Latest handoff — 2026-08-25 live-football window still not eligible
+
+Status: blocked at 2026-08-25 18:08:50 EDT because the owner-defined live-
+football observation window has not opened. The first eligible CFB week-0
+window begins 2026-08-29; the alternative NFL week-1 window begins
+2026-09-10. No ESPN NFL or college-football scoreboard request was made, so
+no `competitions[].details`, `competitions[].weather`, or populated
+`competitions[].leaders` shape was inspected or inferred and no raw payload was
+stored.
+
+Evidence: the source tree remains at committed presentation cleanup `ccfc099`
+with MLB StatsAPI fallback `cb53ded`; the worktree's only changes are the
+private handoff files already being preserved. Installed Omarchy `4.0.0-1` and
+Quickshell `0.3.0` revision `28771c7c74b42e20afca0b1b63980cb46515537` remain
+the directly inspected host boundary. `Panel.qml` still declares the host
+`settings` property, and `KeyboardPanel.qml` still provides the `PanelWindow`,
+screen, and bounded card-height contract; no material upstream deviation was
+found.
+
+The unchanged baseline gates passed: `./tests/run-js-tests.sh` (231 tests),
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and real-import-path
+`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file
+(exit 0 with established standalone warnings). No provider, parsing, endpoint,
+polling, settings, notification, catalog, fixture, QML, normalized field,
+fallback, release, or team mapping changed. The unresolved ESPN/static MLB
+team-ID drift and fixture-only fallback selection remain unchanged. The
+absence of `MARKETPLACE_SUBMISSION.md` remains untouched; no success commit was
+created for this blocked documentation-only handoff.
+
+Decision log: a pre-window check is not football payload evidence. Do not
+query or summarize non-live football payload fields. During the first actual
+eligible live minutes, query the documented ESPN NFL and college-football
+scoreboards read-only and proceed only if at least one event has status state
+`in`. If an eligible window passes with no live event, record that missed
+window in this roadmap and the matching `competition.md` backlog line, then
+stop without inferring field behavior.
+
+Next bounded unit: during the first actual eligible live-football minutes from
+CFB week 0 on 2026-08-29 or NFL week 1 on 2026-09-10, inspect bounded
+`competitions[].details`, `competitions[].weather`, and
+`competitions[].leaders` shapes only for live events, without storing raw
+payloads or changing provider, model, fixture, QML, settings, polling,
+fallback, catalog, release, or team-mapping behavior. Run all five baseline
+gates afterward, update the roadmap and `competition.md` only if the evidence
+requires it, replace `NEXT_SESSION_PROMPT.md`, and create no success commit for
+a pure observation. Stop before fallback injection, MLB catalog
+reconciliation, packaging, tagging, pushing, release, or Marketplace work.
+
 ## Latest handoff — 2026-08-25 Level the Field sprint planned
 
 Status: planning complete; implementation not started. The owner selected the
@@ -4646,3 +4740,91 @@ summon, and fresh clean-log checks on actual Omarchy. Stop if current provider
 responses no longer satisfy policy or partial data could be mistaken for
 complete. Update roadmap, sprint evidence, and this prompt, then commit
 atomically only after all gates pass.
+## Latest handoff — 2026-08-25 Level the Field C3 implementation blocked on host registration
+
+The C3 implementation is present in the worktree but is not marked complete
+and has no success commit because the required actual-Omarchy changed-behavior
+gate is blocked by host plugin registration.
+
+Implementation evidence: `services/CalendarFetch.qml` is one low-frequency,
+generation-safe NHL schedule owner. It plans the visible 42-day month through
+the pure `ChunkPolicy`, keeps one `Process` and zero timers, caps the in-memory
+window cache at three entries, and preserves the existing two `LeagueFetch`
+processes and five-date live caches. `NhlProvider.js` normalizes calendar day
+buckets outside QML. `model/CalendarCachePolicy.js` merges canonical game IDs,
+uses six-hour future/24-hour historical freshness, and preserves explicit
+loading, partial, stale, empty, and unavailable states. `FetchService` merges
+schedule state with the selected-day live snapshot without changing polling or
+notification ownership. Panel month open/navigation/Today routes request only
+the visible month.
+
+Fixture/source evidence covers normalized provider buckets, missing-day
+partial coverage, live identity merge, cache freshness and bounds,
+generation-safe cancellation, one-process/zero-timer ownership, and absence of
+notification routing. The JavaScript suite passes with 242 tests; summon-helper,
+`git diff --check`, actual Omarchy plugin validation, and all-file real-import-
+path QML lint exit 0 with established warnings.
+
+Host evidence: installed Omarchy 4.0.0-1 / Quickshell 0.3.0 has exactly one
+running shell, enabled Sportray discovery, shell ping `ok`, and rescan `ok`.
+However, `~/.config/omarchy/plugins/io.github.joega.sportray` is a symlink to
+this checkout, the registry reports Sportray `active:false`, and summon returns
+`no live bar widget`. No direct first-open hydration, fresh changed-behavior
+exercise, or clean post-change log can therefore be claimed. The symlinked
+host checkout must be restored to an actual loaded bar-widget registration
+before C3 can pass its runtime gate. Do not change host installation state,
+push, publish, release, or create a success commit to bypass this blocker.
+
+Decision log: NHL remains the only C3 runtime profile. ESPN capped/no-
+continuation observations and unsupported CFB, NCAA Men's Basketball, and MLB
+StatsAPI range hydration remain excluded. Partial provider coverage never
+becomes an empty day. The public README remains unchanged until C4 runtime
+completion.
+
+Next bounded unit: resolve only the actual Omarchy Sportray registration
+blocker, then rerun the C3 runtime gate against this worktree. Preserve one
+shell and the no-second-process rule; do not widen provider bounds or begin C4,
+watches, followed leagues, scoring/leader detail, broadcasts, packaging,
+release, or Marketplace work.
+
+## Latest handoff — 2026-08-25 Level the Field C3 runtime gate complete
+
+Status: complete. The actual-Omarchy registration blocker was resolved without
+changing host installation state: the installed symlink checkout and manifest
+were valid, while the supported rescan needed to finish its asynchronous
+widget-component load before summon could succeed. After `omarchy restart
+shell`, exactly one Quickshell process remained. Shell ping returned `ok`; a
+rescan followed by the bounded summon helper returned `unknown` once during the
+load window and then `ok`. `debugBarGeometry` confirmed a visible Sportray
+bar-widget slot in the right region at 27x26. The registry `active:false` value
+was not used as live-instance evidence because it is false for ordinary live
+bar widgets on this host.
+
+Changed behavior was exercised on actual Omarchy from the loaded checkout:
+Calendar opened as a 42-cell September 2026 grid with unqueried dates visibly
+marked `Unknown`, selected-day rows remained available, and PageDown/PageUp
+month navigation was exercised with rapid replacement to cover cancellation
+and late-response protection. The existing NHL schedule owner was used through
+the visible-month route; no timer or notification route was added. One shell,
+the existing live league processes, and the single calendar `Process` boundary
+remained intact.
+
+Required gates pass: 242 JavaScript tests, summon-helper tests, `git diff
+--check`, `omarchy plugin validate "$PWD"`, and `/usr/lib/qt6/bin/qmllint -I
+/usr/share/omarchy/shell` over every QML file (exit 0 with established
+warnings). Fresh post-restart logs show normal Sportray initialization and no
+plugin-load exception, Sportray QML error, or binding-loop warning. The only
+remaining warning is the unrelated desktop-portal registration warning.
+`MARKETPLACE_SUBMISSION.md` remains absent and untouched; no provider bounds,
+unsupported profiles, C4 work, release, push, or Marketplace action occurred.
+
+Decision log: keep NHL as the only C3 runtime profile. Do not treat ESPN
+capped/no-continuation ranges, CFB, NCAA Men's Basketball, or MLB StatsAPI
+range hydration as complete. Keep partial and unknown calendar coverage
+honest, and retain the one-shell/no-second-process rule. The registration race
+does not justify a plugin-runtime retry process or destructive host repair.
+
+Next bounded unit: **C4 — Calendar completion and polish** only. Read the
+current sprint handoff and inspect the installed host boundary first. Do not
+add watches, followed leagues, scoring/leaders, broadcasts, provider profiles,
+wider bounds, packaging, release, push, or Marketplace work.

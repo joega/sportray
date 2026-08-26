@@ -51,6 +51,7 @@ const closeGame = require(path.join(root, "model/CloseGamePolicy.js"));
 const calendarModel = require(path.join(root, "model/CalendarModel.js"));
 const providerFallback = require(path.join(root, "model/ProviderFallbackPolicy.js"));
 const chunkPolicy = require(path.join(root, "model/ChunkPolicy.js"));
+const calendarCachePolicy = require(path.join(root, "model/CalendarCachePolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -5221,7 +5222,9 @@ test("calendar flatten reuses scoreboard row vocabulary for the panel list", () 
   assert.equal(headerRows.length, 5);
   assert.equal(headerRows.every((row) => row.rowId.startsWith("section:calendar:")), true);
   const emptyRows = rows.filter((row) => row.kind === "empty" && row.text === "No games");
-  assert.equal(emptyRows.length, 2);
+  assert.equal(emptyRows.length, 0);
+  const uncheckedRows = rows.filter((row) => row.kind === "empty" && row.text === "Games not checked");
+  assert.equal(uncheckedRows.length, 2);
   const gameRows = rows.filter((row) => row.kind === "game");
   assert.equal(gameRows.length, 5);
   assert.equal(gameRows.every((row) => row.action.type === "open-detail"
@@ -5814,13 +5817,72 @@ test("C2 policy is pure and C1 runtime ownership remains unchanged", () => {
   const leagueFetch = readSource("services/LeagueFetch.qml");
   const fetchService = readSource("services/FetchService.qml");
   assert.equal(leagueFetch.includes("ChunkPolicy"), false);
-  assert.equal(fetchService.includes("CalendarFetch"), false);
+  assert.equal(fetchService.includes("CalendarFetch"), true);
   assert.equal((leagueFetch.match(/\bProcess\s*\{/g) || []).length, 2);
   assert.equal((leagueFetch.match(/\bTimer\s*\{/g) || []).length, 0);
   assert.equal((leagueFetch.match(/curl/g) || []).length, 2);
   assert.equal((leagueFetch.match(/--max-filesize/g) || []).length, 2);
   assert.match(leagueFetch, /readonly property int dateCacheLimit: 5/);
   assert.match(leagueFetch, /ResponsePolicy\.MAX_RESPONSE_BYTES/);
+});
+
+test("C3 NHL calendar schedule parsing keeps normalized day buckets", () => {
+  const raw = readRawFixture("scheduled");
+  const parsed = nhl.parseCalendarScheduleResponse({
+    gameWeek: [{date: "2026-09-29", games: raw.games}],
+    nextStartDate: "2026-10-06"
+  });
+  assert.deepEqual(parsed.errors, []);
+  assert.equal(parsed.nextDateKey, "2026-10-06");
+  assert.equal(parsed.days.length, 1);
+  assert.equal(parsed.days[0].dateKey, "2026-09-29");
+  assert.equal(parsed.days[0].games[0].id, "nhl:2026020003");
+  assert.equal(Object.prototype.hasOwnProperty.call(parsed.days[0].games[0], "gameWeek"), false);
+});
+
+test("C3 calendar cache marks missing coverage partial and merges live identity", () => {
+  const game = {id: "nhl:calendar-game", league: "nhl", isValid: true};
+  const parsed = {errors: [], days: [{dateKey: "2026-09-29", games: [game]}]};
+  const window = calendarCachePolicy.applyChunk(
+    calendarCachePolicy.createWindow("nhl", "2026-09-29", "2026-10-05", 100),
+    "2026-09-29", "2026-10-05", parsed, 100);
+  assert.equal(window.status, "partial");
+  assert.equal(window.days.length, 7);
+  assert.equal(window.days[0].complete, true);
+  assert.equal(window.days[1].state, "partial");
+  const merged = calendarCachePolicy.mergeState(window, {
+    leagueId: "nhl", days: [{dateKey: "2026-09-29", complete: true,
+      games: [{id: "nhl:calendar-game", league: "nhl", isValid: true, status: "live"}]}]
+  });
+  assert.equal(merged.days.find((day) => day.dateKey === "2026-09-29").games.length, 1);
+  assert.equal(merged.days.find((day) => day.dateKey === "2026-09-29").complete, true);
+});
+
+test("C3 calendar cache freshness and bounds stay low frequency", () => {
+  assert.equal(calendarCachePolicy.MAX_DAYS, 42);
+  assert.equal(calendarCachePolicy.MAX_REQUESTS, 8);
+  assert.equal(calendarCachePolicy.MAX_CACHE_WINDOWS, 3);
+  const future = calendarCachePolicy.createWindow("nhl", "2026-09-01", "2026-09-07", 1000);
+  future.status = "complete";
+  assert.equal(calendarCachePolicy.isFresh(future, 1000 + calendarCachePolicy.FUTURE_TTL_MS - 1,
+    "2026-08-25"), true);
+  assert.equal(calendarCachePolicy.isFresh(future, 1000 + calendarCachePolicy.FUTURE_TTL_MS,
+    "2026-08-25"), false);
+});
+
+test("C3 schedule owner is bounded, cancellable, and separate from live polling", () => {
+  const source = readSource("services/CalendarFetch.qml");
+  assert.match(source, /ChunkPolicy\.plan\("nhl"/);
+  assert.match(source, /CalendarCachePolicy\.MAX_CACHE_WINDOWS/);
+  assert.match(source, /root\.generation\+\+/);
+  assert.match(source, /requestGeneration !== root\.activeGeneration/);
+  assert.match(source, /--max-filesize/);
+  assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 1);
+  assert.equal((source.match(/\bTimer\s*\{/g) || []).length, 0);
+  assert.equal(source.includes("Notification"), false);
+  const fetchService = readSource("services/FetchService.qml");
+  assert.match(fetchService, /CalendarCachePolicy\.mergeState/);
+  assert.match(fetchService, /requestCalendarMonth/);
 });
 
 test("LeagueFetch admits through the fallback chain without new fetch ownership", () => {

@@ -302,6 +302,36 @@ function parseScheduleResponse(payload) {
   return result;
 }
 
+// Calendar owner projection. Keep the existing lookahead result stable while
+// exposing only bounded, normalized day buckets for the low-frequency owner.
+function parseCalendarScheduleResponse(payload) {
+  var result = {days: [], errors: [], nextDateKey: ""};
+  if (!isRecord(payload) || !Array.isArray(payload.gameWeek)) {
+    result.errors.push({index: null, code: "invalid-schedule-response"});
+    return result;
+  }
+
+  var parsed = parseScheduleResponse(payload);
+  result.errors = parsed.errors.slice();
+  result.nextDateKey = parsed.nextDateKey;
+  payload.gameWeek.forEach(function(day, dayIndex) {
+    if (!isRecord(day) || typeof day.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day.date)
+        || !Array.isArray(day.games)) return;
+    var games = [];
+    day.games.forEach(function(event, gameIndex) {
+      var game = parseGame(event);
+      if (!game || game.status === "malformed" || game.isValid !== true) {
+        // parseScheduleResponse owns the user-visible error count; preserve
+        // its bounded error semantics without duplicating raw provider data.
+        return;
+      }
+      games.push(game);
+    });
+    result.days.push({dateKey: day.date, games: games});
+  });
+  return result;
+}
+
 function standingsTeam(entry) {
   if (!isRecord(entry)) return null;
 
@@ -435,6 +465,7 @@ if (typeof module !== "undefined" && module.exports) {
     parseGame: parseGame,
     parseScoreResponse: parseScoreResponse,
     parseScheduleResponse: parseScheduleResponse,
+    parseCalendarScheduleResponse: parseCalendarScheduleResponse,
     normalizeStandingsEntry: normalizeStandingsEntry,
     parseStandingsResponse: parseStandingsResponse
   };

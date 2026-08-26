@@ -114,7 +114,7 @@ evidence.
    broader matches, the query is clamped at 48 characters, and non-empty
    search results are capped at 60 while unfiltered browsing stays complete.
    No new endpoint; canonical identities and schema-1 settings unchanged.
- 6. **Calendar and schedule context — C1 month-grid slice complete.** The
+ 6. **Calendar and schedule context — C3 low-frequency hydration complete.** The
     bounded calendar now renders a conventional 42-cell month grid with
     adjacent-month selection, month navigation, Today, favorite-only filtering,
     explicit unknown-versus-known-empty states, direct `G` date jumps within
@@ -124,8 +124,10 @@ evidence.
     without continuation (including observed 100-event caps for MLB, NBA, and
     MLS), NHL's seven-day `gameWeek` with `nextStartDate`, and an MLB StatsAPI
     42-day response exceeding the existing 2 MiB boundary. A pure chunk policy
-    is committed, but wider hydration remains provider-gated; CFB and NCAA
-    Men's Basketball stay unresolved/unsupported until in-season evidence.
+    is committed, and the admitted NHL profile now hydrates visible months with
+    bounded seven-day schedule chunks and explicit partial/unknown states.
+    ESPN capped/no-continuation ranges, CFB, NCAA Men's Basketball, and MLB
+    StatsAPI range hydration remain provider-gated and unsupported.
 
 ### P2 — specialist depth
 
@@ -151,8 +153,10 @@ evidence.
    NFL returned 16 `post` events and college football returned 25 `pre`
    events, with zero events in state `in`. No `details`, weather, or leaders
    fields were inspected and no raw payload was retained.
-   Retry during CFB week 0 (from Aug 29) or NFL week 1 (from Sep 10); see the
-   roadmap handoff.
+   A pre-window check at 17:52:56 EDT on 2026-08-25 did not query either
+   scoreboard because the next eligible live-football window had not opened;
+   no additional field evidence was collected. Retry during CFB week 0 (from
+   Aug 29) or NFL week 1 (from Sep 10); see the roadmap handoff.
 8. **Broadcast and event links — closed for the current payload boundary.**
    Completed 2026-08-24: the detail view renders at most two labeled links
    (ESPN **Highlights** video page, ESPN **Preview** article) admitted from the

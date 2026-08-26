@@ -119,8 +119,8 @@ Panel {
   }
   readonly property var standingsRows: StandingsRows.flatten(
     root.standingsState, root.favoriteTeamIds, root.standingsRevision)
-  // Calendar projects the already-fetched bounded date caches only; it never
-  // requests new data and owns no polling.
+  // Calendar projects the bounded schedule cache plus the selected-day live
+  // cache; schedule ownership remains in FetchService, not in this view.
   readonly property var calendarState: CalendarModel.monthGrid(
     root.fetchService ? root.fetchService.calendarStates : [], {
       enabledLeagues: root.enabledLeagues,
@@ -216,6 +216,8 @@ Panel {
 
   function openCalendar() {
     root.calendarMonthKey = CalendarModel.monthKey(root.selectedDateKey)
+    if (root.fetchService && typeof root.fetchService.requestCalendarMonth === "function")
+      root.fetchService.requestCalendarMonth(root.calendarMonthKey)
     root.calendarOpen = true
     root.standingsOpen = false
     root.selectedRowIndex = -1
@@ -227,6 +229,8 @@ Panel {
 
   function closeCalendar() {
     if (!root.calendarOpen) return
+    if (root.fetchService && typeof root.fetchService.cancelCalendarSchedule === "function")
+      root.fetchService.cancelCalendarSchedule()
     root.calendarOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""
@@ -253,6 +257,8 @@ Panel {
       || CalendarModel.monthKey(root.selectedDateKey), delta)
     if (!next) return
     root.calendarMonthKey = next
+    if (root.fetchService && typeof root.fetchService.requestCalendarMonth === "function")
+      root.fetchService.requestCalendarMonth(next)
     root.selectedRowIndex = -1
     root.selectedRowId = ""
     root.deferPanelCallback(function() { monthCalendar.focusSelected() })
@@ -581,6 +587,8 @@ Panel {
   onOpenedChanged: {
     root.syncSharedContext()
     if (!root.opened) {
+      if (root.fetchService && typeof root.fetchService.cancelCalendarSchedule === "function")
+        root.fetchService.cancelCalendarSchedule()
       root.detailOpen = false
       root.detailGame = null
       return
@@ -1157,6 +1165,8 @@ Panel {
                 onTodayRequested: function() {
                   root.selectDate(root.todayDateKey)
                   root.calendarMonthKey = CalendarModel.monthKey(root.todayDateKey)
+                  if (root.fetchService && typeof root.fetchService.requestCalendarMonth === "function")
+                    root.fetchService.requestCalendarMonth(root.calendarMonthKey)
                 }
               }
 

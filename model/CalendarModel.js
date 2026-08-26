@@ -246,6 +246,9 @@ function compose(leagueWindows, options) {
       label: shortDateLabel(dateKey),
       hasGames: false,
       known: false,
+      partial: false,
+      unavailable: false,
+      stale: false,
       completeLeagueCount: 0,
       games: []
     };
@@ -270,10 +273,14 @@ function compose(leagueWindows, options) {
       if (!isRecord(day) || !isDateKey(day.dateKey)) return;
       var target = byDate[day.dateKey];
       if (!target || !Array.isArray(day.games)) return;
-      if (day.complete === true && !completeByDate[day.dateKey][leagueId]) {
+      var legacyComplete = day.complete === undefined && !day.state;
+      if ((day.complete === true || legacyComplete) && !completeByDate[day.dateKey][leagueId]) {
         completeByDate[day.dateKey][leagueId] = true;
         target.completeLeagueCount++;
       }
+      target.partial = target.partial || day.state === "partial";
+      target.unavailable = target.unavailable || day.state === "unavailable";
+      target.stale = target.stale || day.stale === true;
       day.games.forEach(function(game) {
         if (!isRecord(game) || game.isValid !== true) return;
         if (normalizeLeagueId(game.league) !== leagueId) return;
@@ -302,7 +309,8 @@ function compose(leagueWindows, options) {
       });
     });
     if (day.hasGames) calendar.gameCount += day.games.length;
-    day.known = enabled.length > 0 && day.completeLeagueCount === enabled.length;
+    day.known = enabled.length > 0 && day.completeLeagueCount === enabled.length
+      && !day.partial && !day.unavailable;
     delete day.completeLeagueCount;
   });
   calendar.hasGames = calendar.gameCount > 0;
@@ -326,7 +334,10 @@ function monthGrid(leagueWindows, options) {
     var favorite = games.some(function(game) {
       return isRecord(game.presentation) && game.presentation.isFavorite === true;
     });
-    var state = day.known ? (games.length > 0 ? "known" : "empty") : "unknown";
+    var state = day.unavailable ? "unavailable"
+      : day.partial ? "partial"
+      : day.stale ? "stale"
+      : day.known ? (games.length > 0 ? "known" : "empty") : "unknown";
     return {
       dateKey: day.dateKey,
       dayOfMonth: dayOfMonthLabel(day.dateKey),
@@ -337,10 +348,11 @@ function monthGrid(leagueWindows, options) {
       isSelected: day.dateKey === selected,
       known: day.known === true,
       loading: day.dateKey === selected && config.selectedLoading === true,
-      partial: day.dateKey === selected && config.selectedPartial === true,
-      unavailable: day.dateKey === selected && config.selectedUnavailable === true,
-      stale: day.known === true && Array.isArray(config.staleDateKeys)
-        && config.staleDateKeys.indexOf(day.dateKey) !== -1,
+      partial: day.partial === true || (day.dateKey === selected && config.selectedPartial === true),
+      unavailable: day.unavailable === true
+        || (day.dateKey === selected && config.selectedUnavailable === true),
+      stale: day.stale === true || (day.known === true && Array.isArray(config.staleDateKeys)
+        && config.staleDateKeys.indexOf(day.dateKey) !== -1),
       state: state,
       gameCount: Math.min(MAX_GAMES_PER_DAY, games.length),
       hasGames: games.length > 0,
@@ -432,7 +444,10 @@ function appendDayRows(rows, day) {
   if (!isRecord(day) || !isDateKey(day.dateKey)) return;
   rows.push(sectionRow("calendar:" + day.dateKey, day.label || day.dateKey));
   if (day.hasGames !== true) {
-    rows.push(emptyDayRow(day.dateKey));
+    rows.push({kind: "empty", rowId: "unknown:calendar:" + day.dateKey,
+      text: day.known === true ? "No games" : (day.state === "unavailable"
+        ? "Schedule unavailable" : day.state === "partial" ? "Schedule incomplete" : "Games not checked"),
+      title: "", supportingText: "", action: null});
     return;
   }
   (Array.isArray(day.games) ? day.games : []).forEach(function(game) {
@@ -517,7 +532,8 @@ function daySummaries(calendar, options) {
       gameCount: games.length,
       hasGames: games.length > 0,
       known: day.known === true,
-      state: day.known === true ? (games.length > 0 ? "known" : "empty") : "unknown",
+      state: day.unavailable ? "unavailable" : day.partial ? "partial" : day.stale ? "stale"
+        : day.known === true ? (games.length > 0 ? "known" : "empty") : "unknown",
       leagueIds: leagueIds,
       hasFavoriteGames: favoriteCount > 0,
       isToday: today !== "" && day.dateKey === today,
