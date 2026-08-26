@@ -28,10 +28,30 @@ Item {
   property bool stoppingRequest: false
   property bool ownerDestroyed: false
   property string queuedMonthKey: ""
+  property bool calendarCacheReady: false
+  property string planKind: ""
+  property var backgroundDays: []
+  property int backgroundIndex: 0
 
   function windowKey(monthKey) { return "nhl:" + monthKey }
+  function backgroundWindowKey(window) {
+    return "nhl:rolling:" + window.startDate + ":" + window.endDate
+  }
 
   function snapshot() { return root.currentState }
+
+  function publishBackground(days) {
+    var merged = CalendarCachePolicy.mergeState(root.currentState, {
+      leagueId: "nhl", displayName: "NHL", days: days || []
+    })
+    root.backgroundDays = merged.days
+    root.currentState = {
+      leagueId: "nhl", displayName: "NHL", days: merged.days,
+      status: root.currentState.status || "unknown",
+      loading: root.currentState.loading === true, stale: root.currentState.stale === true,
+      errorCode: root.currentState.errorCode || ""
+    }
+  }
 
   function setState(status, days, errorCode, stale) {
     root.currentState = {
@@ -81,11 +101,20 @@ Item {
     root.pendingBody = ""
     root.bodyReceived = false
     root.responseTooLarge = false
+    root.planKind = ""
   }
 
   function cancelSchedule() {
     root.queuedMonthKey = ""
     root.cancel()
+  }
+
+  onCalendarEnabledChanged: {
+    if (!root.calendarEnabled) root.cancel()
+  }
+
+  onCalendarCacheReadyChanged: {
+    if (!root.calendarCacheReady && root.planKind === "background") root.cancel()
   }
 
   function requestMonth(monthKey) {
@@ -101,6 +130,7 @@ Item {
     root.queuedMonthKey = ""
     root.cancel()
     root.activeWindowKey = root.windowKey(requested)
+    root.planKind = "month"
     var nowMs = Date.now()
     var hit = root.cached(root.activeWindowKey, nowMs)
     if (hit) {
@@ -126,8 +156,30 @@ Item {
     return true
   }
 
+  function requestBackground() {
+    if (!root.calendarEnabled || !root.calendarCacheReady || root.ownerDestroyed
+        || calendarProcess.running || root.queuedMonthKey) return false
+    var today = DateModel.localDateKey(new Date())
+    var plan = ChunkPolicy.planRolling("nhl", today)
+    if (plan.kind !== "plan" || plan.requestCount > ChunkPolicy.MAX_REQUESTS) return false
+    root.cancel()
+    root.planKind = "background"
+    var index = root.backgroundIndex % plan.windows.length
+    root.planWindows = [plan.windows[index]]
+    root.planIndex = 0
+    root.activeDays = []
+    root.startNext()
+    return true
+  }
+
   function startNext() {
     if (root.ownerDestroyed || root.planIndex >= root.planWindows.length) {
+      if (root.planKind === "background") {
+        root.backgroundIndex = (root.backgroundIndex + 1) % 5
+        root.planKind = ""
+        root.activeDays = []
+        return
+      }
       var complete = root.activeDays.every(function(day) { return day.complete === true })
       var entry = {providerId: "nhl", startDate: root.planWindows.length
         ? root.planWindows[0].startDate : "", endDate: root.planWindows.length
@@ -173,6 +225,19 @@ Item {
     root.startNext()
   }
 
+  function applyBackgroundResponse(window, payload) {
+    var parsed = null
+    try { parsed = NhlProvider.parseCalendarScheduleResponse(payload) } catch (error) { parsed = null }
+    var next = CalendarCachePolicy.applyChunk(
+      CalendarCachePolicy.createWindow("nhl", window.startDate, window.endDate, Date.now()),
+      window.startDate, window.endDate, parsed, Date.now())
+    root.activeWindowKey = root.backgroundWindowKey(window)
+    root.remember(next)
+    root.publishBackground(next.days)
+    root.planIndex++
+    root.startNext()
+  }
+
   Component.onDestruction: {
     root.ownerDestroyed = true
     root.cancel()
@@ -214,6 +279,11 @@ Item {
         return
       }
       if (exitCode !== 0 || !payload) {
+        if (root.planKind === "background") {
+          root.planIndex = root.planWindows.length
+          root.startNext()
+          return
+        }
         root.planIndex = root.planWindows.length
         var stale = root.windows[root.activeWindowKey]
         if (stale) {
@@ -222,7 +292,16 @@ Item {
         } else root.setState("unavailable", root.activeDays, "unavailable", false)
         return
       }
-      root.applyResponse(window, payload)
+      if (root.planKind === "background") root.applyBackgroundResponse(window, payload)
+      else root.applyResponse(window, payload)
     }
+  }
+
+  Timer {
+    id: backgroundTimer
+    interval: ChunkPolicy.ROLLING_INTERVAL_MS
+    repeat: true
+    running: root.calendarEnabled && root.calendarCacheReady && !root.ownerDestroyed
+    onTriggered: root.requestBackground()
   }
 }

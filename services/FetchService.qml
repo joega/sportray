@@ -272,6 +272,7 @@ Item {
   CalendarFetch {
     id: calendarFetch
     calendarEnabled: root.isLeagueEnabled("nhl")
+    calendarCacheReady: calendarDiskCache.ready
   }
 
   CalendarDiskCache { id: calendarDiskCache }

@@ -407,6 +407,39 @@ QML-load failure, exception, binding loop, late callback, duplicate graph, or
 registration failure; the unrelated desktop-portal registration warning
 remains.
 
+#### C5 — Bounded background calendar hydration
+
+Status: **complete — 2026-08-26 NHL-only partial coverage accepted**
+
+The existing evidence does not support a complete documented 30-day
+background hydration path across the enabled league catalog. NHL is the only
+provider with a verified schedule continuation contract (`gameWeek` plus
+`nextStartDate`) suitable for bounded range work. ESPN range responses were
+observed without continuation and with provider event caps; MLB ESPN is
+conservatively one-day only, and NCAA Men's Basketball returned 404 during
+the range observation. The owner-accepted MLB StatsAPI range exceeded the
+existing 2 MiB admission boundary before inspection.
+
+The owner explicitly accepted NHL-only partial coverage. `ChunkPolicy.planRolling`
+admits only NHL and plans a 30-day rolling window in seven-day chunks, while
+retaining the existing eight-request, one-concurrent, 2 MiB, and 256-event
+limits. `CalendarFetch.qml` uses its existing Process owner with one
+15-minute Timer, starts only after durable cache readiness, gives visible-month
+requests priority, admits exactly one rolling chunk per tick, and cancels
+obsolete background work through the existing generation path. Partial or
+failed chunks never become complete or empty.
+Unsupported leagues remain unknown to this background path. No notifications,
+live polling, provider fallback, host API, settings schema, or second fetch
+owner changed.
+
+Fixture/source gates pass with 256 JavaScript tests, summon-helper tests,
+diff-check, actual-Omarchy plugin validation, and real-import-path QML lint.
+Actual Omarchy was restarted with one supported shell; discovery, summon, and
+shell ping succeeded. Fresh logs showed normal NHL live polling and no QML
+exception, binding loop, duplicate graph, or second shell. The 15-minute
+hydration cadence and single-owner topology are source verified; a full timer
+interval was not waited out during this bounded check.
+
 ### Calendar acceptance gate
 
 - A first-time Calendar open visibly renders a 42-cell current month.
@@ -1060,3 +1093,9 @@ shell, bounded FileView hydration, honest unknown/partial states, and
 generation-safe month replacement. The remaining L3 interaction gate is still
 blocked on unsupported pointer/accessibility injection. The self-contained
 next calendar prompt is maintained in `NEXT_SESSION_PROMPT.md`.
+
+## C5 completion — 2026-08-26 NHL-only partial coverage
+
+The owner accepted the reduced scope and C5 is complete. Broader league
+hydration remains unsupported pending new provider evidence and is not implied
+by this unit.

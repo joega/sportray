@@ -6198,16 +6198,38 @@ test("persistent calendar cache is a separate sequential FileView owner", () => 
 test("C3 schedule owner is bounded, cancellable, and separate from live polling", () => {
   const source = readSource("services/CalendarFetch.qml");
   assert.match(source, /ChunkPolicy\.plan\("nhl"/);
+  assert.match(source, /ChunkPolicy\.planRolling\("nhl"/);
+  assert.match(source, /calendarCacheReady/);
+  assert.match(source, /ChunkPolicy\.ROLLING_INTERVAL_MS/);
+  assert.match(source, /root\.backgroundIndex/);
+  assert.match(source, /root\.planWindows = \[plan\.windows\[index\]\]/);
   assert.match(source, /CalendarCachePolicy\.MAX_CACHE_WINDOWS/);
   assert.match(source, /root\.generation\+\+/);
   assert.match(source, /requestGeneration !== root\.activeGeneration/);
   assert.match(source, /--max-filesize/);
   assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 1);
-  assert.equal((source.match(/\bTimer\s*\{/g) || []).length, 0);
+  assert.equal((source.match(/\bTimer\s*\{/g) || []).length, 1);
   assert.equal(source.includes("Notification"), false);
   const fetchService = readSource("services/FetchService.qml");
   assert.match(fetchService, /CalendarCachePolicy\.mergeState/);
   assert.match(fetchService, /requestCalendarMonth/);
+});
+
+test("C5 NHL rolling plan is bounded and unsupported leagues stay rejected", () => {
+  const plan = chunkPolicy.planRolling("nhl", "2026-08-25");
+  assert.equal(plan.kind, "plan");
+  assert.equal(plan.startDate, "2026-08-25");
+  assert.equal(plan.endDate, "2026-09-23");
+  assert.equal(plan.requestCount, 5);
+  assert.equal(plan.maxConcurrency, chunkPolicy.MAX_CONCURRENCY);
+  assert.equal(plan.windows[0].spanDays, 7);
+  assert.equal(plan.windows.at(-1).spanDays, 2);
+  assert.equal(chunkPolicy.ROLLING_DAYS, 30);
+  assert.equal(chunkPolicy.ROLLING_INTERVAL_MS, 15 * 60 * 1000);
+  assert.equal(chunkPolicy.planRolling("espn-nfl", "2026-08-25").reason,
+    "unsupported-background-provider");
+  assert.equal(chunkPolicy.planRolling("espn-ncaab", "2026-08-25").reason,
+    "unsupported-background-provider");
 });
 
 test("LeagueFetch admits through the fallback chain without new fetch ownership", () => {

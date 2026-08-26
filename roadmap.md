@@ -5208,3 +5208,82 @@ Decision: persistence is now durable across Quickshell crash/restart and host
 reboot insofar as the user cache survives; broad 30-day background hydration
 remains a separate next unit and must not invent a provider range endpoint or
 second fetch owner. No success commit has been created yet for this worktree.
+
+## Latest handoff — 2026-08-26 background hydration provider gate blocked
+
+Status: blocked; no implementation or success commit was created. The C5
+background 30-day hydration review rechecked the current provider evidence
+and the installed/current Omarchy 4.0.0-1 / Quickshell 0.3.0 boundaries.
+
+Only NHL has a verified range-compatible schedule continuation: bounded
+`gameWeek` pages expose `nextStartDate`, and the existing `CalendarFetch.qml`
+owner already admits that contract through `ChunkPolicy`. ESPN range
+responses were observed without continuation and with 100-event caps; ESPN
+MLB is conservatively one-day only, ESPN NCAA Men's Basketball returned 404,
+and the accepted MLB StatsAPI range exceeded the existing 2 MiB response
+boundary before inspection. There is therefore no verified provider-safe path
+for a complete 30-day background hydration across the documented catalog.
+
+The stop condition was honored: no speculative endpoint, response-limit
+increase, second fetch owner, live-polling reuse, timer burst, provider parser,
+host API, or cache/schema change was introduced. Unsupported and partial days
+remain honest unknown/partial states. The durable per-day cache and visible
+month NHL schedule owner are unchanged. No source gates were rerun because
+the blocked unit made no source or runtime changes; no actual-Omarchy
+hydration behavior is claimed. The upstream boundary inspection found no
+material deviation and `docs/upstream-contract.md` remains intentionally
+absent.
+
+Decision log: a future C5 attempt must be explicitly scoped to the verified
+NHL continuation path (with other leagues remaining unknown) or wait for new
+provider evidence/owner direction. Do not claim broad 30-day hydration from
+the existing ESPN or MLB observations.
+
+## Latest handoff — 2026-08-26 C5 owner-scope decision still absent
+
+The C5 decision was rechecked. The current request makes NHL-only partial
+coverage conditional on explicit owner acceptance, but does not state that the
+owner accepts the reduced scope. Since this would change the product contract,
+acceptance was not inferred. C5 therefore remains blocked and no source or
+runtime behavior changed.
+
+The verified boundary remains unchanged: only NHL's bounded `gameWeek` /
+`nextStartDate` continuation is admitted for rolling hydration. ESPN and MLB
+range limitations remain documented, and unsupported leagues must remain
+explicitly unknown. No repository or actual-Omarchy gates were rerun because
+this blocked recheck made no source changes; no success commit was created.
+
+Decision log: resume only after explicit owner acceptance of NHL-only partial
+coverage or new provider evidence. If accepted, implement one low-frequency
+path through the existing `CalendarFetch.qml` owner and `ChunkPolicy`,
+preserving all bounds, cache readiness, polling, notification, cancellation,
+and provider ownership. Otherwise keep the blocker documented and stop.
+
+## Latest handoff — 2026-08-26 C5 NHL-only rolling hydration complete
+
+Status: complete for the explicitly accepted NHL-only partial-coverage scope.
+`ChunkPolicy.planRolling` admits only `nhl`, plans 30 days in five bounded
+seven-day-or-shorter windows, and retains the existing eight-request,
+one-concurrent, 2 MiB, and 256-event limits. `CalendarFetch.qml` remains the
+sole schedule owner and Process; a single 15-minute Timer starts one rolling
+chunk only after `CalendarDiskCache.ready`, gives visible-month requests
+priority, and uses the existing generation/cancellation path. Normalized
+successful chunks merge into the existing state and durable day-cache flow;
+partial or failed chunks never become complete or empty. Unsupported leagues
+remain unknown to background hydration.
+
+The implementation adds no endpoint, provider parser, response-limit change,
+live-polling reuse, notification route, host API, settings/schema change, or
+second owner. The README now documents the accepted partial product scope.
+The complete JavaScript suite passes with 256 tests, summon-helper tests,
+`git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+QML lint. Actual Omarchy 4.0.0-1 / Quickshell 0.3.0 was restarted with one
+shell; plugin discovery, summon, and shell ping succeeded. Fresh logs showed
+normal NHL polling with no QML exception, binding loop, duplicate graph, or
+second shell. The timer cadence is source-verified; the full 15-minute
+interval was not waited out. The existing L3 pointer/accessibility gate
+remains blocked by the host input limitation.
+
+Decision log: NHL-only partial coverage is accepted for C5. Do not extend
+background crawling to ESPN or MLB without new provider evidence and an
+independent bounded work unit.

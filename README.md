@@ -79,6 +79,13 @@ explicit local-time label, open the same local detail drill-down, and Escape
 returns from detail,
 settings, and calendar before closing the panel.
 
+Calendar background hydration is deliberately partial: after the durable day
+cache is ready, Sportray hydrates only NHL's verified rolling 30-day schedule
+window in bounded seven-day requests at low frequency through the existing
+calendar owner. Other leagues remain explicitly unknown until their existing
+selected-day or live paths verify a date; they are not crawled by the
+background schedule path.
+
 When an enabled league has no games on the selected day, Sportray searches the
 next bounded schedule window and shows the first upcoming game below the empty
 state. Select **View day** to jump directly to that league day. The lookahead

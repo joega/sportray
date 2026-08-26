@@ -15,6 +15,8 @@ var MAX_RANGE_DAYS = 42;
 var MAX_RESPONSE_BYTES = ResponsePolicy ? ResponsePolicy.MAX_RESPONSE_BYTES : 2 * 1024 * 1024;
 var MAX_EVENTS = ResponsePolicy ? ResponsePolicy.MAX_EVENTS : 256;
 var OBSERVED_ESPN_EVENT_CAP = 100;
+var ROLLING_DAYS = 30;
+var ROLLING_INTERVAL_MS = 15 * 60 * 1000;
 
 // These are evidence-gated profiles, not provider request configuration. A
 // false profile remains an honest unsupported result until new observations
@@ -69,6 +71,20 @@ function plan(providerId, startDate, endDate) {
     requestCount: windows.length, maxConcurrency: MAX_CONCURRENCY};
 }
 
+function planRolling(providerId, startDate) {
+  if (providerId !== "nhl") return {kind: "reject", reason: "unsupported-background-provider"};
+  if (!validDate(startDate)) return {kind: "reject", reason: "invalid-date"};
+  var endDate = addDays(startDate, ROLLING_DAYS - 1);
+  if (!endDate) return {kind: "reject", reason: "date-span"};
+  var result = plan(providerId, startDate, endDate);
+  if (result.kind !== "plan") return result;
+  return {
+    kind: "plan", providerId: providerId, startDate: startDate, endDate: endDate,
+    windows: result.windows, requestCount: result.requestCount,
+    maxConcurrency: result.maxConcurrency
+  };
+}
+
 function admit(providerId, observation) {
   var profile = profileFor(providerId);
   if (!profile || profile.supported === false) return {kind: "reject", reason: "unsupported-provider"};
@@ -96,8 +112,11 @@ if (typeof module !== "undefined" && module.exports) {
     MAX_RESPONSE_BYTES: MAX_RESPONSE_BYTES,
     MAX_EVENTS: MAX_EVENTS,
     OBSERVED_ESPN_EVENT_CAP: OBSERVED_ESPN_EVENT_CAP,
+    ROLLING_DAYS: ROLLING_DAYS,
+    ROLLING_INTERVAL_MS: ROLLING_INTERVAL_MS,
     profileFor: profileFor,
     plan: plan,
+    planRolling: planRolling,
     admit: admit
   };
 }
