@@ -5454,3 +5454,29 @@ NHL-only rolling background policy. The next eligible check is a supported
 live-widget interaction confirming known multi-day cells appear immediately
 after Calendar opens and both list edges recenter without overflow; do not
 claim that manual runtime gate from source tests alone.
+
+## Latest handoff — 2026-08-26 calendar-open trigger correction
+
+The real machine's persistent cache showed only selected-day files after the
+previous summon, so the calendar range owner was not demonstrably receiving a
+month-open request. The trigger is now synchronized through
+`FetchService.calendarOpen`, with `Panel.qml` mirroring the actual Calendar
+route state. The service derives the selected month from its shared selected
+date and calls the existing bounded `CalendarFetch` owner; closing the route
+cancels it. Month navigation continues to use the same owner and range
+profiles.
+
+Evidence: JavaScript fixtures, summon-helper tests, diff check, plugin
+validation, and real-import-path QML lint pass. Actual Omarchy 4.0.0-1 /
+Quickshell 0.3.0 restarted and summoned the linked plugin successfully with
+no Sportray exception, binding loop, duplicate graph, or second shell. The
+remaining manual calendar interaction could not be driven from this agent
+session because the layer-shell popup did not retain keyboard focus and the
+host has no supported pointer injector; no claim is made that visible calendar
+cells were manually confirmed here.
+
+Decision log: the calendar range path is implemented and now has an explicit
+service lifecycle trigger. The next check should open Calendar through a real
+pointer/focused interaction, confirm month cache files and visible known game
+or empty cells, then scroll to both edges. Do not broaden unsupported MLB or
+NCAA range hydration.

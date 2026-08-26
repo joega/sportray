@@ -53,3 +53,10 @@ edge callbacks until its three-page list is recentered. These fixes pass all
 source gates, but the actual pointer/scroll interaction gate is still blocked
 on this host because the summoned panel did not receive keyboard focus and no
 supported pointer injector is installed.
+
+The latest correction also synchronizes `Panel.calendarOpen` into the shared
+`FetchService.calendarOpen` lifecycle. The service derives the selected month
+and starts the existing `CalendarFetch` owner when that route opens, and
+cancels it when the route closes. This was added after the actual cache showed
+only selected-day files, proving that the earlier view-only trigger had not
+been observed in runtime.

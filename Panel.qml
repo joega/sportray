@@ -82,6 +82,9 @@ Panel {
   property int standingsRevision: 0
   readonly property var barIdentity: hostWidget || root
 
+  onCalendarOpenChanged: if (root.fetchService)
+    root.fetchService.calendarOpen = root.calendarOpen
+
   function copyStringList(value, fallback) {
     var result = []
     if (!value || typeof value.length !== "number")
@@ -239,8 +242,7 @@ Panel {
   function openCalendar() {
     root.calendarMonthKey = CalendarModel.monthKey(root.selectedDateKey)
     root.calendarOpen = true
-    if (root.fetchService && typeof root.fetchService.requestCalendarMonth === "function")
-      root.fetchService.requestCalendarMonth(root.calendarMonthKey)
+    if (root.fetchService) root.fetchService.calendarOpen = true
     root.standingsOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""
@@ -251,8 +253,7 @@ Panel {
 
   function closeCalendar() {
     if (!root.calendarOpen) return
-    if (root.fetchService && typeof root.fetchService.cancelCalendarSchedule === "function")
-      root.fetchService.cancelCalendarSchedule()
+    if (root.fetchService) root.fetchService.calendarOpen = false
     root.calendarOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""

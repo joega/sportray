@@ -1,6 +1,7 @@
 import QtQuick
 import "../model/ScoreboardModel.js" as ScoreboardModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
+import "../model/DateModel.js" as DateModel
 
 Item {
   id: root
@@ -10,6 +11,7 @@ Item {
   property string selectedDateKey: ""
   property string lookaheadLeagueId: ""
   property bool panelOpen: false
+  property bool calendarOpen: false
   property var leagueStates: []
   property var calendarStates: []
   property var games: []
@@ -49,6 +51,17 @@ Item {
   function requestCalendarMonth(monthKey) {
     root.calendarMonthKey = monthKey || ""
     return calendarFetch.requestMonth(root.calendarMonthKey)
+  }
+
+  function syncCalendarOpen() {
+    if (!root.calendarOpen) {
+      calendarFetch.cancelSchedule()
+      return
+    }
+    var monthKey = DateModel.monthKey(root.selectedDateKey)
+    if (!monthKey) return
+    root.calendarMonthKey = monthKey
+    calendarFetch.requestMonth(monthKey)
   }
 
   function cancelCalendarSchedule() {
@@ -108,6 +121,8 @@ Item {
   }
 
   onSelectedDateKeyChanged: root.updateAggregateState()
+
+  onCalendarOpenChanged: root.syncCalendarOpen()
 
   Component.onCompleted: root.updateAggregateState()
 
