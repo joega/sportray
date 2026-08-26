@@ -1,0 +1,28 @@
+{
+  "today": "2026-08-25",
+  "valid": {
+    "leagueId": "nhl",
+    "dateKey": "2026-08-25",
+    "games": [{
+      "id": "nhl:cached",
+      "league": "nhl",
+      "providerGameId": "cached",
+      "status": "scheduled",
+      "isValid": true,
+      "awayTeam": {"id": "nhl:6"},
+      "homeTeam": {"id": "nhl:10"}
+    }],
+    "updatedAtMs": 1787690000000
+  },
+  "malformedProviderFields": {
+    "id": "nhl:cached",
+    "league": "nhl",
+    "providerGameId": "cached",
+    "status": "scheduled",
+    "isValid": true,
+    "rawResponse": "must not persist",
+    "awayTeam": {"id": "nhl:6"},
+    "homeTeam": {"id": "nhl:10"}
+  },
+  "manifest": {"cacheVersion": 1, "keys": ["mlb:2026-08-25", "nhl:2026-08-25"]}
+}

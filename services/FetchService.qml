@@ -67,16 +67,22 @@ Item {
         || typeof nhlFetch.calendarSnapshot !== "function") return []
     var liveNhl = nhlFetch.calendarSnapshot()
     var scheduleNhl = calendarFetch.snapshot()
-    var mergedNhl = CalendarCachePolicy.mergeState(scheduleNhl, liveNhl)
-    return [mergedNhl, nflFetch.calendarSnapshot(), mlbFetch.calendarSnapshot(),
+    var mergedNhl = CalendarCachePolicy.mergeState(
+      CalendarCachePolicy.mergeState(liveNhl, scheduleNhl), calendarDiskCache.snapshotFor("nhl"))
+    var liveStates = [mergedNhl, nflFetch.calendarSnapshot(), mlbFetch.calendarSnapshot(),
       nbaFetch.calendarSnapshot(), ncaafFetch.calendarSnapshot(), eplFetch.calendarSnapshot(),
       mlsFetch.calendarSnapshot(), ncaabFetch.calendarSnapshot()]
+    return liveStates.map(function(state) {
+      return state.leagueId === "nhl" ? state
+        : CalendarCachePolicy.mergeState(state, calendarDiskCache.snapshotFor(state.leagueId))
+    })
   }
 
   function updateAggregateState() {
     var states = root.buildLeagueStates()
     root.leagueStates = states
     root.calendarStates = root.buildCalendarStates()
+    calendarDiskCache.persistStates(root.calendarStates)
     var composed = ScoreboardModel.compose(states, root.enabledLeagues, [], null, root.selectedDateKey)
     root.games = composed.games
     root.hasData = composed.hasData
@@ -106,6 +112,11 @@ Item {
   Connections {
     target: calendarFetch
     function onCurrentStateChanged() { root.updateAggregateState() }
+  }
+
+  Connections {
+    target: calendarDiskCache
+    function onReadyChanged() { root.updateAggregateState() }
   }
 
   Connections {
@@ -262,6 +273,8 @@ Item {
     id: calendarFetch
     calendarEnabled: root.isLeagueEnabled("nhl")
   }
+
+  CalendarDiskCache { id: calendarDiskCache }
 
   LeagueFetch {
     id: nhlFetch

@@ -17,6 +17,7 @@ Item {
   property bool permissionsReady: false
   property bool loadStarted: false
   property bool writePending: false
+  property var pendingWrite: null
   property string permissionStage: "idle"
   property var settings: SettingsModel.createDefaults()
   property var transitionDedupe: TransitionDedupe.createDefaults()
@@ -53,7 +54,15 @@ Item {
 
   function writeState(candidateSettings, candidateDedupe, candidateWatches) {
     if (root.preservedRawStateText.length > 0) return false
-    if (!root.permissionsReady || permissionProcess.running) return false
+    if (!root.permissionsReady || permissionProcess.running) {
+      root.pendingWrite = {
+        settings: candidateSettings,
+        transitionDedupe: candidateDedupe,
+        watchedGames: candidateWatches || root.watchedGames
+      }
+      root.writePending = true
+      return false
+    }
     var state = StateModel.createState(candidateSettings, candidateDedupe, SettingsModel, TransitionDedupe,
       Date.now(), candidateWatches || root.watchedGames, WatchPolicy)
     if (candidateSettings !== root.settings) {
@@ -69,8 +78,17 @@ Item {
     root.watchedGames = state.watchedGames
     root.permissionsReady = false
     root.writePending = true
+    root.pendingWrite = null
     settingsFile.setText(JSON.stringify(state, null, 2) + "\n")
     return true
+  }
+
+  function flushPendingWrite() {
+    if (!root.pendingWrite || !root.permissionsReady || permissionProcess.running
+        || root.preservedRawStateText.length > 0) return
+    var pending = root.pendingWrite
+    root.pendingWrite = null
+    root.writeState(pending.settings, pending.transitionDedupe, pending.watchedGames)
   }
 
   function failPermissionRepair(stage) {
@@ -83,6 +101,7 @@ Item {
     root.permissionsReady = true
     root.permissionStage = "ready"
     if (!root.loadStarted) root.loadStarted = true
+    root.flushPendingWrite()
   }
 
   function beginPermissionRepair() {
@@ -246,6 +265,7 @@ Item {
         if (SettingsPermissionPolicy.writeResult(exitCode)) {
           root.permissionsReady = true
           root.permissionStage = "ready"
+          root.flushPendingWrite()
         } else {
           root.failPermissionRepair("harden-written-file")
         }

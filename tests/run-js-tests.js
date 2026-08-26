@@ -53,6 +53,7 @@ const calendarModel = require(path.join(root, "model/CalendarModel.js"));
 const providerFallback = require(path.join(root, "model/ProviderFallbackPolicy.js"));
 const chunkPolicy = require(path.join(root, "model/ChunkPolicy.js"));
 const calendarCachePolicy = require(path.join(root, "model/CalendarCachePolicy.js"));
+const calendarDiskCachePolicy = require(path.join(root, "model/CalendarDiskCachePolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -211,6 +212,11 @@ function readCalendarFixture() {
 function readMonthCalendarFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/calendar/month-grid.json"), "utf8"));
+}
+
+function readCalendarDiskCacheFixture() {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/calendar/disk-cache.json"), "utf8"));
 }
 
 function readProviderFallbackFixture() {
@@ -3166,7 +3172,10 @@ test("SettingsStore gates FileView writes on permission repair and hardens saved
   const source = readSource("services/SettingsStore.qml");
   assert.equal(source.includes("SettingsPermissionPolicy.js"), true);
   assert.equal(source.includes("path: root.loadStarted ? root.statePath : \"\""), true);
-  assert.equal(source.includes("if (!root.permissionsReady || permissionProcess.running) return false"), true);
+  assert.equal(source.includes("if (!root.permissionsReady || permissionProcess.running) {"), true);
+  assert.equal(source.includes("root.pendingWrite = {"), true);
+  assert.equal(source.includes("function flushPendingWrite()"), true);
+  assert.equal(source.includes("root.flushPendingWrite()"), true);
   assert.equal(source.includes("permissionProcess.exec(commands.makeDirectory)"), true);
   assert.equal(source.includes("permissionProcess.exec(commands.hardenDirectory)"), true);
   assert.equal(source.includes("permissionProcess.exec(commands.hardenFile)"), true);
@@ -6138,6 +6147,52 @@ test("C3 calendar cache freshness and bounds stay low frequency", () => {
     "2026-08-25"), true);
   assert.equal(calendarCachePolicy.isFresh(future, 1000 + calendarCachePolicy.FUTURE_TTL_MS,
     "2026-08-25"), false);
+});
+
+test("persistent calendar day files are normalized, bounded, and restart-readable", () => {
+  const fixture = readCalendarDiskCacheFixture();
+  const entry = calendarDiskCachePolicy.createDay(
+    fixture.valid.leagueId, fixture.valid.dateKey, [fixture.malformedProviderFields],
+    fixture.valid.updatedAtMs);
+  assert.equal(entry.cacheVersion, calendarDiskCachePolicy.CACHE_VERSION);
+  assert.equal(entry.games.length, 1);
+  assert.equal(Object.prototype.hasOwnProperty.call(entry.games[0], "rawResponse"), false);
+  const raw = JSON.stringify(entry);
+  const restored = calendarDiskCachePolicy.parseDayText(
+    raw, "nhl", fixture.valid.dateKey, fixture.today);
+  assert.equal(restored.games[0].id, "nhl:cached");
+  assert.equal(calendarDiskCachePolicy.fileName("NHL", fixture.valid.dateKey),
+    "nhl:2026-08-25.json");
+  assert.equal(calendarDiskCachePolicy.inWindow("2026-07-26", fixture.today), true);
+  assert.equal(calendarDiskCachePolicy.inWindow("2026-07-25", fixture.today), false);
+  const old = calendarDiskCachePolicy.createDay("nhl", "2026-07-25", [], 20);
+  const current = calendarDiskCachePolicy.createDay("nhl", fixture.today, [], 10);
+  const kept = calendarDiskCachePolicy.prune({
+    [calendarDiskCachePolicy.key("nhl", old.dateKey)]: old,
+    [calendarDiskCachePolicy.key("nhl", current.dateKey)]: current
+  }, fixture.today);
+  assert.deepEqual(Object.keys(kept), ["nhl:2026-08-25"]);
+  const mlb = calendarDiskCachePolicy.createDay("mlb", fixture.today, [], 11);
+  assert.deepEqual(calendarDiskCachePolicy.manifest({
+    [calendarDiskCachePolicy.key("nhl", current.dateKey)]: current,
+    [calendarDiskCachePolicy.key("mlb", mlb.dateKey)]: mlb
+  }, fixture.today), fixture.manifest);
+});
+
+test("persistent calendar cache is a separate sequential FileView owner", () => {
+  const source = readSource("services/CalendarDiskCache.qml");
+  const fetchService = readSource("services/FetchService.qml");
+  assert.match(source, /readonly property string cacheRoot/);
+  assert.match(source, /CachePolicy\.prune/);
+  assert.match(source, /atomicWrites: true/);
+  assert.match(source, /CachePolicy\.parseDayText/);
+  assert.match(source, /CachePolicy\.manifest/);
+  assert.match(source, /function persistStates\(states\)/);
+  assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 2);
+  assert.equal((source.match(/\bFileView\s*\{/g) || []).length, 3);
+  assert.match(fetchService, /CalendarDiskCache \{ id: calendarDiskCache \}/);
+  assert.match(fetchService, /calendarDiskCache\.persistStates/);
+  assert.equal(fetchService.includes("calendarDiskCache.*curl"), false);
 });
 
 test("C3 schedule owner is bounded, cancellable, and separate from live polling", () => {

@@ -2,7 +2,7 @@
 
 Private implementation plan for `/home/joeg/Projects/sportray`.
 
-Status: **L2 complete; L3 runtime/documentation handoff pending**
+Status: **L2 complete; L3 runtime/documentation verification blocked on host input**
 
 Owner direction recorded: **2026-08-25**
 
@@ -663,11 +663,38 @@ Status: **complete — 2026-08-25**
 
 #### L3 — Runtime and documentation
 
-- **pending:** exercise enabling, following, reordering, disabling, persistence,
-  restart, and no-duplicate Following rows on Omarchy. The 2026-08-25 shell
-  restart/rescan left one shell and normal Sportray polling, but the host
-  reported no live bar widget during summon, so direct UI interaction was not
-  honestly claimable.
+- **blocked — 2026-08-25:** the initial fresh supported `omarchy restart shell`,
+  `rescanPlugins`, and bounded summon produced exactly one Omarchy Quickshell
+  process and a visible 27x26 Sportray bar slot in the right section. The live
+  panel opened and screenshots showed the real Settings surface, keyboard
+  focus/cursor treatment, separate Enable/Follow controls, and the Calendar
+  surface. Keyboard activation of NCAA Football changed the live model and
+  started its isolated fetch, but the persisted state file remained unchanged
+  (`enabledLeagues` stayed at the original six and `followedLeagueIds` stayed
+  empty). A supported shell restart restored the original state, proving the
+  attempted mutation did not persist before the readiness fix. Follow, reorder,
+  disable-cleanup, duplicate Following rows, pointer, and direct Accessible
+  activation remain unverified; no UI success is claimed
+  for those paths. Source/fixture coverage still verifies pointer, keyboard,
+  Accessible convergence, ordering, cleanup, and bounds.
+
+  The readiness fix was exercised on actual Omarchy: the live keyboard Enable
+  action added `college-football` to the state file, and the next supported
+  restart restored it. Keyboard Disable then restored the original six
+  enabled leagues and zero followed leagues. Pointer and direct Accessible
+  activation remain blocked because this environment has no supported pointer
+  injector or accessibility-event injector; those routes are not claimed.
+
+  Deterministic and repository gates passed: JavaScript suite, summon-helper,
+  `git diff --check`, `omarchy plugin validate`, and all-file QML lint with the
+  real `/usr/share/omarchy/shell` import path (exit 0 with established
+  warnings). The fresh post-restart log contains normal Sportray startup and
+  fetch activity with no Sportray exception, QML-load failure, binding loop,
+  duplicate graph, or registration failure; the unrelated desktop-portal
+  registration warning remains. The installed registration boundary supports
+  a live widget, so the next attempt should diagnose the existing
+  host input coverage only. Do not widen APIs or change provider, polling, notification,
+  watch, calendar-fetch, or schema ownership.
 
 ### League acceptance gate
 
@@ -1027,8 +1054,9 @@ reconnaissance or separate test/log investigation.
 
 ## Current handoff
 
-C1, C2, and C3 are complete. Begin with **C4 — Calendar completion and
-polish** only. The C3 runtime gate was verified on actual Omarchy with one
-shell, one NHL calendar `Process`, bounded hydration, honest unknown/partial
-states, and generation-safe month replacement. The self-contained prompt is
-maintained in `NEXT_SESSION_PROMPT.md`.
+C1, C2, C3, and C4 persistent day-cache storage are complete. The C3 runtime
+gate and C4 restart-read evidence were verified on actual Omarchy with one
+shell, bounded FileView hydration, honest unknown/partial states, and
+generation-safe month replacement. The remaining L3 interaction gate is still
+blocked on unsupported pointer/accessibility injection. The self-contained
+next calendar prompt is maintained in `NEXT_SESSION_PROMPT.md`.

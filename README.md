@@ -306,7 +306,16 @@ providers, sports, and leagues.
 
 Each score request retrieves one enabled league's complete slate for one date;
 Sportray never requests each game separately. Successful league/date snapshots
-are retained in a bounded five-date in-memory cache. A scheduled slate is not
+are retained in a bounded five-date in-memory cache and in a durable normalized
+per-league/per-day calendar cache under `~/.cache/sportray/calendar/`. The
+durable cache keeps only the rolling 30 days before through 30 days after
+today, at most 488 day files, and at most 8 MiB of serialized data. Writes are
+atomic; a manifest makes startup reads bounded, malformed files are ignored,
+and expired manifest entries are removed. A shell restart therefore reuses
+already-fetched calendar days instead of hydrating them from the network. The
+durable cache contains only successfully fetched complete day snapshots; it
+does not create a new provider or background range-fetch owner. A scheduled
+slate is not
 requested again until ten minutes before its earliest game (with a 12-hour
 maximum revalidation window for more distant schedules). Empty and completed
 slates use six-hour windows, and historical slates use 24 hours. Opening the

@@ -5118,3 +5118,93 @@ followed ordering presentation-only; route every UI action through the
 existing settings and semantic-control boundaries; and defer runtime
 enable/follow/reorder/restart persistence evidence to L3. No push, tag,
 release, Marketplace, or destructive host action occurred.
+
+## Latest handoff — 2026-08-25 L3 followed-league runtime verification blocked
+
+Status: blocked; no success commit created. A fresh supported `omarchy restart
+shell`, shell ping, rescan, and bounded summon completed on Omarchy 4.0.0-1 /
+Quickshell 0.3.0 with exactly one `quickshell -n -p /usr/share/omarchy/shell`
+process. `debugBarGeometry` showed one visible Sportray slot in the right
+section at 27x26, so live-widget evidence was established and the panel was
+opened from the loaded widget.
+
+Runtime evidence: screenshots showed the live score panel, Calendar route,
+Settings route, separate Enable/Follow controls, keyboard cursor focus, and
+the real panel edge placement on the current top bar. Keyboard activation of
+NCAA Football changed the live settings model and emitted the expected
+isolated college-football fetch. The state file immediately before and after
+the action remained unchanged: the original six enabled league IDs and an
+empty `followedLeagueIds` array. Restarting through supported Omarchy commands
+restored that original state. Therefore persistence across restart failed in
+this runtime attempt; Follow, Move up/down, disable cleanup, followed-first
+Following/destination/calendar ordering, duplicate-row absence, pointer, and
+direct Accessible activation are not claimed as manually exercised. No
+`no-live-widget` result was treated as UI success.
+
+Repository evidence: `./tests/run-js-tests.sh`,
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and `/usr/lib/qt6/bin/qmllint -I
+/usr/share/omarchy/shell` over every QML file all passed. The fresh post-
+restart Quickshell log contains normal Sportray startup and fetch activity
+with no Sportray exception, QML-load failure, binding loop, duplicate graph,
+or registration failure. The unrelated desktop-portal registration warning
+remains.
+
+Decision: preserve the source and schema unchanged and diagnose the existing
+SettingsStore/FileView permission/write-readiness boundary before another L3
+runtime pass. The supported lifecycle restored the temporary runtime state;
+no host config, provider, polling, notification, watch, calendar-fetch, schema,
+release, push, or Marketplace change was made.
+
+## Latest handoff — 2026-08-25 L3 persistence readiness fixed; host-input gate blocked
+
+The existing SettingsStore/FileView readiness race is fixed in the current
+worktree. `SettingsStore` retains the latest normalized settings,
+transition-dedupe, and watch projection when a mutation arrives while the
+existing permission repair or asynchronous FileView write is in flight, then
+flushes it after the supported repair/saved boundary completes. Schema and
+ownership boundaries are unchanged.
+
+Actual Omarchy 4.0.0-1 / Quickshell 0.3.0: after supported restart/rescan/
+summon established one visible 27x26 Sportray slot, keyboard Enable added
+`college-football` to the state file and a second supported restart restored
+it. Keyboard Disable restored the original six enabled leagues and zero
+followed leagues. The file remained `0600`. Fresh PID `1217539` logs show
+normal startup and isolated college-football fetch activity with no QML
+exception, binding loop, duplicate graph, or FileView save failure. One early
+bounded summon logged the known registration race before the visible slot was
+confirmed; the desktop-portal warning is unrelated.
+
+The full L3 gate remains blocked because this environment provides keyboard
+injection but no supported pointer injector or direct accessibility-event
+injector. Pointer, Accessible, Follow/reorder, followed-first runtime ordering,
+and edge-placement interaction claims remain unverified. Repository gates pass:
+`./tests/run-js-tests.sh` (254 tests), `./tests/test-summon-helper.sh`,
+`git diff --check`, `omarchy plugin validate "$PWD"`, and real-import-path
+QML lint (exit 0 with established warnings). No success commit was created.
+
+## Latest handoff — 2026-08-26 persistent calendar day cache complete
+
+Status: complete for this bounded calendar persistence unit. Added
+`CalendarDiskCache` as a separate cache-state owner. It stores only normalized,
+complete fetched league/date snapshots as one atomic JSON file per league/date,
+with a versioned manifest, sequential read/write FileViews, malformed-input
+recovery, explicit file cleanup, and a rolling 30-days-past/30-days-future
+window. The policy caps storage at 488 day files and 8 MiB serialized data.
+Live snapshots take precedence over disk fallback, so cached scores cannot mask
+fresh provider data. Provider parsing, polling, notifications, watches,
+calendar-fetch ownership, settings schema, and host APIs are unchanged.
+
+Validation: JavaScript fixtures (including restart-readable normalization and
+bounds), summon-helper, diff check, plugin validation, and all-file QML lint
+with `/usr/share/omarchy/shell` imports pass. On actual Omarchy 4.0.0-1 /
+Quickshell 0.3.0, a clean supported shell restart created matching per-league
+day files and a manifest; a second supported restart retained the files and
+manifest. Fresh PID `1248293` logs show normal startup and no cache FileView
+drop, QML exception, binding loop, or duplicate graph. The unrelated desktop
+portal warning and one pre-existing non-cache FileView warning remain.
+
+Decision: persistence is now durable across Quickshell crash/restart and host
+reboot insofar as the user cache survives; broad 30-day background hydration
+remains a separate next unit and must not invent a provider range endpoint or
+second fetch owner. No success commit has been created yet for this worktree.
