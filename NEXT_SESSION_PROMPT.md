@@ -66,3 +66,10 @@ all enabled leagues' cached games, but only leagues admitted by
 `CalendarFetch.eligibleLeagues()` are required to certify a date as known.
 This prevents enabled selected-day-only MLB/NCAA leagues from making all
 hydrated ESPN/NHL dates appear Unknown.
+
+The trigger callback was subsequently hardened to an explicit closure:
+`onCalendarOpenChanged: Qt.callLater(function() { root.syncCalendarOpen() })`.
+The previous method-reference form was not trusted to preserve the QML root
+context. The shell was restarted after this correction. Confirm the next live
+Calendar click by checking for month-range cache files and visible known game
+or empty cells before changing any more provider or projection code.

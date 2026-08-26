@@ -5503,3 +5503,18 @@ confirmation still requires reopening Calendar in the live widget.
 Decision log: preserve provider admission boundaries and use known-state
 certification only for `CalendarFetch.eligibleLeagues()`; do not infer MLB or
 NCAA multi-day completeness.
+
+## Latest handoff — 2026-08-26 deferred calendar trigger correction
+
+Owner runtime evidence showed the calendar UI opening while the durable cache
+still contained only selected-day files. The shared service trigger used
+`Qt.callLater(root.syncCalendarOpen)`, which did not guarantee the QML method
+would execute with the service root as its context. It now uses an explicit
+closure, `Qt.callLater(function() { root.syncCalendarOpen() })`, so Calendar
+opening reliably reaches `CalendarFetch.requestMonth()` after bindings settle.
+
+The compact header action mode remains in place for narrow panels. Tests,
+summon-helper checks, diff check, plugin validation, and real-import-path QML
+lint pass. Actual Omarchy was restarted after the correction; a fresh visible
+Calendar click is the remaining runtime confirmation that month files are
+created and range-populated cells replace Unknown states.

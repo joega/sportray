@@ -5839,7 +5839,7 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.match(calendarFetch, /root\.requestedMonthKey = requested/);
   assert.match(calendarFetch, /Qt\.callLater\(function\(\) \{ root\.requestMonth\(root\.requestedMonthKey\) \}\)/);
   const fetchServiceSource = readSource("services/FetchService.qml");
-  assert.match(fetchServiceSource, /onCalendarOpenChanged: Qt\.callLater\(root\.syncCalendarOpen\)/);
+  assert.match(fetchServiceSource, /onCalendarOpenChanged: Qt\.callLater\(function\(\) \{ root\.syncCalendarOpen\(\) \}\)/);
   assert.match(fetchServiceSource, /calendarFetch\.requestMonth\(monthKey\)/);
   assert.match(fetchServiceSource, /function calendarKnownLeagueIds\(\)/);
   assert.match(panel, /knownLeagueIds:/);
