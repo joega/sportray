@@ -1004,6 +1004,7 @@ Panel {
           id: header
           width: parent.width
           spacing: Style.spacing.sm
+          property bool compactActions: width < Style.space(900)
 
           Text {
             id: headerTitle
@@ -1037,7 +1038,8 @@ Panel {
             visible: !root.settingsOpen && !root.detailOpen
               && root.selectedDateKey !== root.todayDateKey
             iconName: ""
-            text: "Show Today"
+            text: header.compactActions ? "" : "Show Today"
+            fallbackText: "T"
             textBold: true
             textFontSize: Style.font.caption
             textVerticalPadding: Style.spacing.controlPaddingY / 2
@@ -1055,7 +1057,7 @@ Panel {
             iconName: root.standingsOpen ? "scores" : "list"
             fallbackText: root.standingsOpen ? "S" : "T"
             tooltipText: root.standingsOpen ? "Show scores" : "Show standings"
-            text: root.standingsOpen ? "Scores" : "Table"
+            text: header.compactActions ? "" : (root.standingsOpen ? "Scores" : "Table")
             textFontSize: Style.font.caption
             textBold: true
             textVerticalPadding: Style.spacing.controlPaddingY / 2
@@ -1073,7 +1075,7 @@ Panel {
             iconName: root.calendarOpen ? "scores" : "calendar"
             fallbackText: root.calendarOpen ? "S" : "C"
             tooltipText: root.calendarOpen ? "Show scores" : "Show calendar"
-            text: root.calendarOpen ? "Scores" : "Calendar"
+            text: header.compactActions ? "" : (root.calendarOpen ? "Scores" : "Calendar")
             textFontSize: Style.font.caption
             textBold: true
             textVerticalPadding: Style.spacing.controlPaddingY / 2
@@ -1089,10 +1091,10 @@ Panel {
             id: calendarFilterButton
             visible: root.calendarOpen && !root.settingsOpen && !root.detailOpen
             iconName: ""
-            fallbackText: ""
+            fallbackText: "A"
             tooltipText: root.calendarFavoritesOnly
               ? "Show every enabled league (F)" : "Show only favorite games (F)"
-            text: root.calendarFavoritesOnly ? "Favorites" : "All games"
+            text: header.compactActions ? "" : (root.calendarFavoritesOnly ? "Favorites" : "All games")
             textFontSize: Style.font.caption
             textBold: true
             textVerticalPadding: Style.spacing.controlPaddingY / 2
@@ -1108,10 +1110,10 @@ Panel {
             id: calendarLeagueButton
             visible: root.calendarOpen && !root.settingsOpen && !root.detailOpen
             iconName: ""
-            fallbackText: ""
+            fallbackText: "L"
             tooltipText: root.calendarLeagueId === ""
               ? "Filter calendar by league (L)" : "Show all enabled leagues (L)"
-            text: root.calendarLeagueLabel()
+            text: header.compactActions ? "" : root.calendarLeagueLabel()
             textFontSize: Style.font.caption
             textBold: true
             textVerticalPadding: Style.spacing.controlPaddingY / 2

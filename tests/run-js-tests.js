@@ -1386,7 +1386,7 @@ test("date navigation stays provider-neutral and refresh controls live in the he
   assert.equal(carousel.includes('signal dateSelected(string dateKey)'), true);
   assert.equal(panel.includes('id: todayButton'), true);
   assert.equal(panel.includes('visible: !root.settingsOpen && !root.detailOpen'), true);
-  assert.equal(panel.includes('text: "Show Today"'), true);
+  assert.equal(panel.includes('text: header.compactActions ? "" : "Show Today"'), true);
   assert.equal(panel.includes('iconName: ""'), true);
   assert.equal(panel.includes('textBold: true'), true);
   assert.equal(panel.includes('textFontSize: Style.font.caption'), true);
@@ -5839,13 +5839,15 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.match(calendarFetch, /root\.requestedMonthKey = requested/);
   assert.match(calendarFetch, /Qt\.callLater\(function\(\) \{ root\.requestMonth\(root\.requestedMonthKey\) \}\)/);
   const fetchServiceSource = readSource("services/FetchService.qml");
-  assert.match(fetchServiceSource, /onCalendarOpenChanged: root\.syncCalendarOpen\(\)/);
+  assert.match(fetchServiceSource, /onCalendarOpenChanged: Qt\.callLater\(root\.syncCalendarOpen\)/);
   assert.match(fetchServiceSource, /calendarFetch\.requestMonth\(monthKey\)/);
   assert.match(fetchServiceSource, /function calendarKnownLeagueIds\(\)/);
   assert.match(panel, /knownLeagueIds:/);
   assert.match(panel, /scoreContent[\s\S]*clip: true/);
   assert.match(panel, /root\.fetchService\.calendarOpen = true/);
   assert.match(panel, /root\.fetchService\.calendarOpen = false/);
+  assert.match(panel, /property bool compactActions/);
+  assert.match(panel, /header\.compactActions/);
   assert.equal(fs.existsSync(path.join(root, "components/CalendarWeekStrip.qml")), false);
 });
 

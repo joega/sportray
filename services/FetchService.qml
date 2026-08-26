@@ -126,7 +126,7 @@ Item {
 
   onSelectedDateKeyChanged: root.updateAggregateState()
 
-  onCalendarOpenChanged: root.syncCalendarOpen()
+  onCalendarOpenChanged: Qt.callLater(root.syncCalendarOpen)
 
   Component.onCompleted: root.updateAggregateState()
 
