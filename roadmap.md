@@ -5287,3 +5287,24 @@ remains blocked by the host input limitation.
 Decision log: NHL-only partial coverage is accepted for C5. Do not extend
 background crawling to ESPN or MLB without new provider evidence and an
 independent bounded work unit.
+
+## Latest handoff — 2026-08-26 L3 host-input verification blocked
+
+The remaining L3 interaction gate was rechecked on the actual host and remains
+blocked. The session is Wayland/Hyprland 0.56.2 on Omarchy 4.0.0-1 /
+Quickshell 0.3.0. `wtype` is available for keyboard injection, but no
+supported pointer injector (`ydotool`, `dotool`, `xdotool`, or equivalent) is
+installed. The session accessibility bus reports `IsEnabled=false`; no
+AT-SPI event-driving client is installed. `/dev/uinput` is `0600 root:root`,
+and Hyprland's dispatch surface has no click-injection operation, so neither is
+a supported user-level fallback.
+
+No source or runtime behavior changed. Existing actual-Omarchy evidence still
+covers the live widget, Calendar, settings, keyboard focus, and persistence;
+pointer, direct Accessible activation, and the remaining L3 interaction claims
+remain unverified. No second shell, privilege escalation, host configuration
+change, or product workaround was attempted.
+
+Decision log: preserve the existing product and host boundaries. Proceed with
+the independent shared schema-2 migration foundation (S1); revisit L3 only
+when a supported pointer/accessibility injector is available.

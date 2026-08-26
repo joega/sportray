@@ -1099,3 +1099,28 @@ next calendar prompt is maintained in `NEXT_SESSION_PROMPT.md`.
 The owner accepted the reduced scope and C5 is complete. Broader league
 hydration remains unsupported pending new provider evidence and is not implied
 by this unit.
+
+## L3 host-input verification — 2026-08-26
+
+Status: **blocked; no supported pointer or direct accessibility-event injector
+is available on this host**
+
+The installed/current boundary was rechecked without changing the plugin. The
+session is Wayland on Hyprland 0.56.2 with Omarchy 4.0.0-1 / Quickshell 0.3.0.
+`wtype` is installed and provides keyboard injection, but no supported pointer
+injector (`ydotool`, `dotool`, `xdotool`, or equivalent) is installed. The
+session accessibility bus is present but reports `IsEnabled=false`, and no
+AT-SPI event-driving client is installed. `/dev/uinput` is `0600 root:root`,
+so it is not a supported user-level fallback; the compositor dispatch surface
+does not provide a click injector.
+
+Existing source/fixture convergence remains the evidence for pointer and
+Accessible routes. Actual-Omarchy screenshots and keyboard checks already
+verified the live panel, Calendar, settings, and persistence paths. Pointer,
+direct Accessible activation, and the remaining L3 interaction claims are not
+claimed manually. No second shell, host configuration change, privilege
+escalation, or product workaround was attempted.
+
+Decision: keep the interaction gate blocked and move to the independent S1
+schema-2 migration foundation. Revisit L3 only when a supported host input
+injector becomes available.
