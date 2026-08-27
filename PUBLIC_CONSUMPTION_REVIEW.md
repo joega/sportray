@@ -646,3 +646,13 @@ validation, real-import-path QML lint with established warnings, and
 `git diff --check`. The installed checkout was intentionally not changed, so
 no live visual screenshot or shell-log result is claimed for this source-only
 review.
+
+## Latest runtime panel check -- 2026-08-27
+
+After the installed plugin was refreshed with the borderless override, the
+shell was restarted and Sportray was resummoned. One Quickshell instance
+remained healthy, shell ping returned `ok`, and fresh logs contained no
+Sportray error, exception, binding-loop, or QML-load warning. A live screenshot
+confirmed that the panel card has no outer popup outline; the remaining orange
+lines belong to tiled terminal-window borders, and the inner game-row outline
+is an intentional control border.

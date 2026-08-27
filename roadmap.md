@@ -5808,3 +5808,29 @@ The next bounded unit remains that direct edge check when a supported input
 path becomes available. Do not delete or replay the healthy cache, use
 unsupported input injection, or change provider, settings, packaging, or
 remote state.
+
+## Latest handoff -- 2026-08-27 runtime restart and visual check
+
+The owner requested a live restart after the borderless panel change was not
+visible. The normal installed plugin checkout was confirmed at `58a4d05` with
+the earlier local `BarWidget.qml` and `Panel.qml` geometry edits; only the
+missing `borderSpec: Border.none()` override was added there, preserving those
+local edits. `omarchy dev link` was attempted but correctly refused because
+this plugin checkout is not an Omarchy source tree, so no dev-link state was
+changed.
+
+Installed plugin validation passed. `omarchy restart shell`,
+`omarchy-shell shell rescanPlugins`, and the bounded summon helper succeeded.
+The fresh shell has one Quickshell instance (`lftvc11gkt`), shell ping returned
+`ok`, and the fresh log shows normal Sportray initialization and provider/cache
+activity with no Sportray error, exception, binding-loop, or QML-load warning.
+The known transient `summon: no live bar widget` warning appeared during
+post-rescan registration; the unrelated desktop-portal warning remains.
+
+An actual `grim` screenshot of the open panel confirms that the panel card has
+no outer popup outline and meets the bar surface. The visible bright orange
+lines are Hyprland borders around the tiled terminal windows, not the
+Sportray layer-shell panel. The inner game-row outline is an intentional
+Sportray control border and remains unchanged. The panel was left open for
+owner inspection. No provider, cache, settings, remote, or source-checkout
+state was changed by the restart operation.

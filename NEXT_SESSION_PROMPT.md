@@ -20,8 +20,13 @@ Verified current state:
 - Source gates pass with 260 deterministic tests, summon-helper tests, plugin
   validation, real-import-path QML lint with established warnings, and
   `git diff --check`. The installed normal Git checkout remains at product
-  commit `58a4d05f405b9fa29c924a0c264c0b431f9bde35`; no live visual screenshot
-  has been claimed for the source layout treatment.
+  commit `58a4d05f405b9fa29c924a0c264c0b431f9bde35`; its local geometry copy
+  now also contains the borderless override for runtime inspection.
+- The live panel was restarted and resummoned after the source change. One
+  Quickshell instance remained healthy, shell ping returned `ok`, and a `grim`
+  screenshot confirmed no outer panel outline. Bright orange lines visible in
+  that screenshot are tiled terminal-window borders; the inner game-row border
+  is an intentional control border. The panel was left open for inspection.
 - Actual Omarchy cache-hit evidence remains valid: Calendar opened with known
   game/empty cells, close/reopen produced no calendar range curl, the selected
   day remained usable, one Quickshell process remained, and shell ping returned
@@ -51,8 +56,7 @@ supported edge route. Preserve the known transient post-rescan summon race and
 unrelated desktop-portal warning in the evidence.
 
 Known risks: no supported pointer/axis injector may be installed;
-`wtype` cannot establish ListView-edge evidence; the borderless/layout source
-changes still need a separate live visual check; pre-fix cache orphans remain
+`wtype` cannot establish ListView-edge evidence; pre-fix cache orphans remain
 outside the manifest; live selected-day polling can update the projection while
 Calendar is open; and ESPN remains an undocumented API. Request subagents only
 for independent read-only source or log inspection that materially benefits
