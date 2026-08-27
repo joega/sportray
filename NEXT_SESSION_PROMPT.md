@@ -34,7 +34,7 @@ Verified current state:
 - Actual Omarchy remains healthy with one Quickshell instance and shell ping
   `ok`. Fresh logs show normal provider/cache activity, no Sportray error,
   exception, binding-loop, or QML-load warning, and retained calendar coverage
-  of `205/205`. The installed normal Git checkout is at `58a4d05` with local
+  of `305/305`. The installed normal Git checkout is at `58a4d05` with local
   geometry edits plus the prior calendar logic; it has not been changed for
   this source unit. Do not overwrite those local geometry edits.
 - The current calendar cache is healthy. Existing pre-fix orphan files outside
