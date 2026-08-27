@@ -47,6 +47,87 @@ function inWindow(dateKey, todayDateKey) {
     && dateKey <= addDays(todayDateKey, FUTURE_DAYS);
 }
 
+function dateDistance(left, right) {
+  if (!validDate(left) || !validDate(right)) return NaN;
+  var leftParts = left.split("-").map(Number);
+  var rightParts = right.split("-").map(Number);
+  return Math.round((Date.UTC(leftParts[0], leftParts[1] - 1, leftParts[2])
+    - Date.UTC(rightParts[0], rightParts[1] - 1, rightParts[2])) / 86400000);
+}
+
+function windowDateKeys(todayDateKey) {
+  if (!validDate(todayDateKey)) return [];
+  var keys = [];
+  for (var offset = -PAST_DAYS; offset <= FUTURE_DAYS; offset++) {
+    var dateKey = addDays(todayDateKey, offset);
+    if (validDate(dateKey)) keys.push(dateKey);
+  }
+  return keys;
+}
+
+function missingDateKeys(entries, leagueId, dateKeys, todayDateKey) {
+  var league = typeof leagueId === "string" ? leagueId.trim().toLowerCase() : "";
+  if (!/^[a-z0-9.]{1,32}$/.test(league)) return [];
+  var missing = [];
+  (Array.isArray(dateKeys) ? dateKeys : []).forEach(function(value) {
+    if (!validDate(value) || !inWindow(value, todayDateKey) || missing.indexOf(value) !== -1)
+      return;
+    var id = key(league, value);
+    if (id && !(entries && entries[id])) missing.push(value);
+  });
+  return missing;
+}
+
+function compactRanges(dateKeys, maxRangeDays) {
+  var dates = [];
+  (Array.isArray(dateKeys) ? dateKeys : []).forEach(function(value) {
+    if (validDate(value) && dates.indexOf(value) === -1) dates.push(value);
+  });
+  dates.sort();
+  var limit = Number(maxRangeDays);
+  if (!isFinite(limit) || limit < 1) limit = PAST_DAYS + FUTURE_DAYS + 1;
+  var ranges = [];
+  var start = "";
+  var end = "";
+  dates.forEach(function(dateKey) {
+    if (!start) {
+      start = dateKey;
+      end = dateKey;
+      return;
+    }
+    if (addDays(end, 1) === dateKey && dateDistance(dateKey, start) + 1 <= limit) {
+      end = dateKey;
+      return;
+    }
+    ranges.push({startDate: start, endDate: end});
+    start = dateKey;
+    end = dateKey;
+  });
+  if (start) ranges.push({startDate: start, endDate: end});
+  return ranges;
+}
+
+function hydrationRanges(entries, leagueIds, dateKeys, todayDateKey, maxRangeDays) {
+  var leagues = [];
+  (Array.isArray(leagueIds) ? leagueIds : []).forEach(function(value) {
+    var league = typeof value === "string" ? value.trim().toLowerCase() : "";
+    if (/^[a-z0-9.]{1,32}$/.test(league) && leagues.indexOf(league) === -1)
+      leagues.push(league);
+  });
+  var result = [];
+  leagues.forEach(function(leagueId) {
+    compactRanges(missingDateKeys(entries, leagueId, dateKeys, todayDateKey), maxRangeDays)
+      .forEach(function(range) {
+        result.push({
+          leagueId: leagueId,
+          startDate: range.startDate,
+          endDate: range.endDate
+        });
+      });
+  });
+  return result;
+}
+
 function safeGame(game) {
   if (!game || typeof game !== "object" || game.isValid !== true
       || typeof game.id !== "string" || !game.id) return null;
@@ -167,7 +248,7 @@ function shouldRequestRange(coverage, cacheReady) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {CACHE_VERSION, PAST_DAYS, FUTURE_DAYS, MAX_FILES, MAX_BYTES,
-    MAX_GAMES_PER_DAY, key, fileName, inWindow, sanitizeGames, createDay,
-    createRetainedDay, parseDayText, prune, manifest, keyParts, coverage,
-    shouldRequestRange};
+    MAX_GAMES_PER_DAY, key, fileName, inWindow, windowDateKeys, missingDateKeys,
+    compactRanges, hydrationRanges, sanitizeGames, createDay, createRetainedDay,
+    parseDayText, prune, manifest, keyParts, coverage, shouldRequestRange};
 }

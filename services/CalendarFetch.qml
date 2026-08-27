@@ -39,6 +39,7 @@ Item {
   property int backgroundIndex: 0
   property var scheduleStates: ({})
   property string activeLeagueId: ""
+  property string activeRangeStart: ""
   property var diskCache: null
   property string rehydrationStatus: "idle"
   property string rehydrationMonthKey: ""
@@ -114,7 +115,10 @@ Item {
 
   function finishActiveLeague() {
     if (!root.activeLeagueId || !root.planWindows.length) return
-    var first = root.planWindows.filter(function(item) { return item.leagueId === root.activeLeagueId })[0]
+    var first = root.planWindows.filter(function(item) {
+      return item.leagueId === root.activeLeagueId
+        && item.monthStart === root.activeRangeStart
+    })[0]
     if (!first) return
     var complete = root.activeDays.length > 0
       && root.activeDays.every(function(day) { return day.complete === true })
@@ -178,6 +182,7 @@ Item {
     root.planIndex = 0
     root.activeDays = []
     root.activeLeagueId = ""
+    root.activeRangeStart = ""
     root.pendingBody = ""
     root.bodyReceived = false
     root.responseTooLarge = false
@@ -266,12 +271,49 @@ Item {
     return root.beginMonthPlan(requested, "rehydration")
   }
 
+  function appendPlanWindows(leagueId, monthKey, startDate, endDate) {
+    var providerId = root.providerIdFor(leagueId)
+    var plan = ChunkPolicy.plan(providerId, startDate, endDate)
+    if (plan.kind !== "plan" || plan.requestCount > ChunkPolicy.MAX_REQUESTS) return
+    plan.windows.forEach(function(window) {
+      root.planWindows.push({leagueId: leagueId, providerId: providerId,
+        monthKey: monthKey, monthStart: startDate, monthEnd: endDate,
+        startDate: window.startDate, endDate: window.endDate, spanDays: window.spanDays})
+    })
+  }
+
+  function beginWindowHydration(requested) {
+    var dates = root.diskCache && typeof root.diskCache.windowDateKeys === "function"
+      ? root.diskCache.windowDateKeys() : []
+    root.planWindows = []
+    if (dates.length && root.diskCache && typeof root.diskCache.hydrationRanges === "function") {
+      root.diskCache.hydrationRanges(root.eligibleLeagues(), dates, ChunkPolicy.MAX_RANGE_DAYS)
+        .forEach(function(range) {
+          root.appendPlanWindows(range.leagueId, requested, range.startDate, range.endDate)
+        })
+    }
+    if (root.planWindows.length === 0) {
+      root.rehydrationStatus = "complete"
+      console.log("Sportray calendar rehydration complete", requested, 0)
+      root.planKind = ""
+      return true
+    }
+    root.rehydrationTotal = root.planWindows.length
+    console.log("Sportray calendar rehydration started", requested, root.rehydrationTotal)
+    root.planIndex = 0
+    root.activeLeagueId = ""
+    root.activeRangeStart = ""
+    root.startNext()
+    return true
+  }
+
   function beginMonthPlan(requested, kind) {
     root.queuedMonthKey = ""
     root.queuedPlanKind = ""
     root.cancel()
     root.planKind = kind === "rehydration" ? "rehydration" : "month"
     root.planFailureCount = 0
+    if (root.planKind === "rehydration") return root.beginWindowHydration(requested)
     var nowMs = Date.now()
     var dates = CalendarModel.monthDateKeys(requested)
     if (!dates || dates.length !== 42) {
@@ -288,29 +330,15 @@ Item {
         return
       }
       if (root.leagueCovered(leagueId, dates)) return
-      var plan = ChunkPolicy.plan(root.providerIdFor(leagueId), dates[0], dates[dates.length - 1])
-      if (plan.kind !== "plan" || plan.requestCount > ChunkPolicy.MAX_REQUESTS) return
-      plan.windows.forEach(function(window) {
-        root.planWindows.push({leagueId: leagueId, providerId: root.providerIdFor(leagueId),
-          monthKey: requested, monthStart: dates[0], monthEnd: dates[dates.length - 1],
-          startDate: window.startDate, endDate: window.endDate, spanDays: window.spanDays})
-      })
+      root.appendPlanWindows(leagueId, requested, dates[0], dates[dates.length - 1])
     })
     if (root.planWindows.length === 0) {
-      if (root.planKind === "rehydration") {
-        root.rehydrationStatus = "complete"
-        console.log("Sportray calendar rehydration complete", requested, 0)
-      }
       root.planKind = ""
       return true
     }
-    if (root.planKind === "rehydration") {
-      root.rehydrationTotal = root.planWindows.length
-      console.log("Sportray calendar rehydration started", requested,
-        root.rehydrationTotal)
-    }
     root.planIndex = 0
     root.activeLeagueId = ""
+    root.activeRangeStart = ""
     root.startNext()
     return true
   }
@@ -360,9 +388,11 @@ Item {
       return
     }
     var window = root.planWindows[root.planIndex]
-    if (window.leagueId !== root.activeLeagueId) {
+    if (window.leagueId !== root.activeLeagueId
+        || window.monthStart !== root.activeRangeStart) {
       root.finishActiveLeague()
       root.activeLeagueId = window.leagueId
+      root.activeRangeStart = window.monthStart
       root.activeWindowKey = root.windowKey(window.leagueId, window.monthKey)
       root.activeDays = CalendarCachePolicy.createWindow(window.providerId,
         window.monthStart, window.monthEnd, Date.now()).days

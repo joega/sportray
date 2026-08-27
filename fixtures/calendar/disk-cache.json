@@ -37,5 +37,15 @@
     "retainedLeagueCount": 2,
     "retainedDateCount": 3,
     "requiredCount": 6
+  },
+  "windowHydration": {
+    "today": "2026-08-25",
+    "windowStart": "2026-07-26",
+    "windowEnd": "2026-09-24",
+    "windowCount": 61,
+    "monthKey": "2026-08-01",
+    "outsideMonth": ["2026-07-26", "2026-09-07", "2026-09-24"],
+    "splitEnd": "2026-09-05",
+    "splitNext": "2026-09-06"
   }
 }

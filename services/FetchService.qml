@@ -81,11 +81,11 @@ Item {
   function maybeStartCalendarRehydration() {
     if (!root.settingsReady || !calendarDiskCache.ready || root.enabledLeagues.length === 0)
       return false
-    var monthKey = DateModel.monthKey(root.selectedDateKey)
-    var dates = CalendarModel.monthDateKeys(monthKey)
+    var dates = calendarDiskCache.windowDateKeys()
     var leagues = calendarFetch.eligibleLeagues()
-    if (!monthKey || dates.length !== 42 || leagues.length === 0) return false
-    var signature = monthKey + "|" + leagues.slice().sort().join(",")
+    if (!dates.length || leagues.length === 0) return false
+    var monthKey = DateModel.monthKey(dates[Math.floor(dates.length / 2)] || dates[0])
+    var signature = dates[0] + ":" + dates[dates.length - 1] + "|" + leagues.slice().sort().join(",")
     if (root.rehydrationAttemptedKey === signature) return false
     var coverage = calendarDiskCache.coverageFor(leagues, dates)
     console.log("Sportray calendar rehydration coverage", signature,
@@ -95,7 +95,7 @@ Item {
       root.rehydrationAttemptedKey = signature
       return false
     }
-    if (!calendarFetch.requestRehydration(monthKey)) return false
+    if (!monthKey || !calendarFetch.requestRehydration(monthKey)) return false
     root.rehydrationAttemptedKey = signature
     return true
   }

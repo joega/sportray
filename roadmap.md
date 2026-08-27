@@ -5889,3 +5889,53 @@ Next bounded unit: verify the direct physical `MonthCalendar.weekList`
 beginning and end transitions on actual Omarchy if a supported pointer/axis or
 equivalent focused input route becomes available. Stop without a success
 commit when that input route is unavailable.
+
+## Latest handoff -- 2026-08-27 rolling calendar-window prehydration
+
+Status: complete for the requested missing-window prehydration unit. Startup
+rehydration now checks the durable cache's full retained window, 30 days before
+through 30 days after today, rather than only the selected month's 42 cells.
+`CalendarDiskCachePolicy` computes missing dates and compacts only contiguous
+uncached dates into bounded ranges. `CalendarFetch` submits those ranges through
+the existing single sequential calendar owner; each range remains within the
+42-day and eight-request planner limits, so a full empty 61-day provider window
+becomes a 42-day range followed by a 19-day range for each admitted league.
+Already-cached days are not requested. Selected-day-only leagues remain outside
+the admitted range set, and the existing NHL rolling background owner is
+unchanged.
+
+The normalized day cache, live polling, provider parsers, response limits,
+settings, notifications, and panel ownership remain unchanged. A range switch
+now finalizes the prior active range before accumulating the next one, so
+multi-range rehydration cannot overwrite its active in-memory accumulation
+before durable persistence.
+
+Evidence: the deterministic JavaScript suite passes with 261 tests, including
+fixture-backed 61-day window bounds, missing-date detection, contiguous range
+compaction, cached-day exclusion, 42/19-day splitting, and the require-free QML
+policy path. `./tests/test-summon-helper.sh`, `git diff --check`, source
+`omarchy plugin validate "$PWD"`, and all-file real-import-path QML lint pass
+with the established standalone warnings. No cache files were deleted or
+replayed. The feature patch was loaded temporarily into the separate installed
+checkout and exercised through a supported shell restart/rescan: one
+Quickshell remained running, shell ping returned `ok`, and the fresh log
+reported `305/305` admitted snapshots with no rehydration range requests or
+Sportray error. The complete cache-hit path was verified; a deliberately
+incomplete-cache burst was not run. Direct physical `MonthCalendar.weekList`
+edge interaction remains blocked by the host's lack of a supported
+pointer/axis injector.
+
+Decision log: the user-requested +/- window means the documented durable
+30-day-past/30-day-future retention window. Hydrate only provider-admitted
+leagues and only missing contiguous ranges through the existing owner; do not
+raise per-range limits or create a second fetch path. Keep the old cache files
+and manifest intact.
+
+No push, tag, release, Marketplace, or remote-state action occurred. Known
+risks are the untested incomplete-cache live burst, provider availability, and
+the blocked direct ListView-edge interaction.
+
+Next bounded unit: verify the direct physical `MonthCalendar.weekList`
+beginning and end transitions on actual Omarchy if a supported pointer/axis or
+equivalent focused input route becomes available. Stop without a success
+commit when that input route is unavailable.

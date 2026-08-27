@@ -46,6 +46,15 @@ Item {
     return CachePolicy.coverage(root.entries, leagueIds, dateKeys, root.todayDateKey)
   }
 
+  function windowDateKeys() {
+    return CachePolicy.windowDateKeys(root.todayDateKey)
+  }
+
+  function hydrationRanges(leagueIds, dateKeys, maxRangeDays) {
+    return CachePolicy.hydrationRanges(root.entries, leagueIds, dateKeys,
+      root.todayDateKey, maxRangeDays)
+  }
+
   function shouldRequestMonth(leagueIds, dateKeys) {
     return CachePolicy.shouldRequestRange(root.coverageFor(leagueIds, dateKeys), root.ready)
   }

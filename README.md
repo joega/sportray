@@ -93,13 +93,14 @@ is not yet admitted by the provider safety policy. NHL also retains its
 low-frequency rolling 30-day background hydration.
 
 After settings and the durable calendar cache finish loading, Sportray checks
-the retained current-month coverage for those same admitted leagues. If it is
-incomplete, one bounded sequential rehydration pass fills the missing calendar
-state in the background and persists normalized day snapshots. The pass keeps
-running if the panel or Calendar view closes, does not start a second fetch
-owner, and is skipped after restart when coverage is already complete. While
-it runs, the tray tooltip and Calendar show bounded progress; failed or partial
-chunks leave unknown days honest and produce an incomplete-refresh notice.
+the retained rolling 30-days-past through 30-days-future coverage for those
+same admitted leagues. If any of those days are missing, one bounded sequential
+rehydration pass fetches only the uncached ranges and persists normalized day
+snapshots. Already-cached days are not requested again. The pass keeps running
+if the panel or Calendar view closes, does not start a second fetch owner, and
+is skipped after restart when coverage is already complete. While it runs, the
+tray tooltip and Calendar show bounded progress; failed or partial chunks leave
+unknown days honest and produce an incomplete-refresh notice.
 
 When a selected-day-only league is enabled alongside hydrated leagues, its
 missing non-selected dates do not make the hydrated calendar dates Unknown.

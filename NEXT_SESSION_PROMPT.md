@@ -18,10 +18,14 @@ Verified current state:
   `MonthCalendar.qml` shows `Loading...` while the durable cache is not ready,
   retains the existing rehydration progress notice, and reserves `Unknown`
   for dates not verified after loading or a partial refresh.
-- No second fetch owner, provider parser, range request path, timer, or cache
-  policy was added. Provider admission, selected-day-only leagues, durable
-  cache bounds, and notification/settings ownership are unchanged.
-- The deterministic JavaScript suite passes with 260 tests. The notification
+- No second fetch owner, provider parser, timer, or cache owner was added. The
+  existing range request path now computes the durable 30-days-past through
+  30-days-future window, excludes cached dates, and submits only missing
+  contiguous ranges. A completely empty 61-day window is split into 42 and 19
+  days before the existing seven-day provider chunking. Provider admission,
+  selected-day-only leagues, durable cache bounds, and notification/settings
+  ownership are unchanged.
+- The deterministic JavaScript suite passes with 261 tests. The notification
   helper test now stubs the installed helper's direct `busctl` dependency;
   this is test-boundary maintenance only and does not change plugin runtime
   behavior. Summon-helper tests, `git diff --check`, source and installed
@@ -31,8 +35,8 @@ Verified current state:
   `ok`. Fresh logs show normal provider/cache activity, no Sportray error,
   exception, binding-loop, or QML-load warning, and retained calendar coverage
   of `205/205`. The installed normal Git checkout is at `58a4d05` with local
-  geometry edits plus the current calendar logic; do not overwrite those
-  local geometry edits.
+  geometry edits plus the prior calendar logic; it has not been changed for
+  this source unit. Do not overwrite those local geometry edits.
 - The current calendar cache is healthy. Existing pre-fix orphan files outside
   the manifest remain intentionally preserved and must not be deleted, cleared,
   or replayed.
@@ -59,10 +63,11 @@ supported edge route. Preserve the known transient post-rescan summon race
 and unrelated desktop-portal warning in the evidence.
 
 Known risks: no supported pointer/axis injector may be installed; the healthy
-cache contains pre-fix orphan files outside the manifest; live selected-day
-polling can update the projection while Calendar is open; and ESPN remains an
-undocumented API. Request subagents only for independent read-only source or
-log inspection that materially benefits from parallelism.
+cache contains pre-fix orphan files outside the manifest; the deliberately
+incomplete-cache live burst has not been run; live selected-day polling can
+update the projection while Calendar is open; and ESPN remains an undocumented
+API. Request subagents only for independent read-only source or log inspection
+that materially benefits from parallelism.
 
 When the gate passes, update `roadmap.md` with milestone status, evidence,
 decision log, and a dated handoff; replace this prompt with the next
