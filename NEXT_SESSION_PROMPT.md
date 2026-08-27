@@ -1,4 +1,4 @@
-Work in `/home/joeg/Projects/sportray` on exactly one bounded work unit:
+Work in `/home/joeg/Projects/sportray` on exactly one bounded roadmap unit:
 runtime-verify the hydrated Calendar presentation and vertical month-edge
 interaction without changing the completed rehydration implementation.
 
@@ -20,10 +20,16 @@ Verified current state:
 - The cache-reader FileView boundary and QML no-`require` date fallbacks are
   fixture-tested. The complete suite has 259 tests; helper, diff, production
   validator, and real-import-path QML lint pass.
-- The final live shell has one Quickshell process, ping and summon return `ok`,
-  one 27x26 Sportray slot is visible, and fresh logs have no Sportray
-  exception, binding loop, duplicate graph, load failure, or dropped cache
-  FileView operation.
+- The installed Sportray root is now a normal Git checkout rather than a
+  development symlink. Its verified product commit is
+  `7ace7dd4b9838897cf3179176beca0e079341078`, its GitHub origin is preserved,
+  and the exact Omarchy plugin-update path passes validation. The source branch
+  has only the required planning-doc handoff commit beyond that product commit.
+  Confirm the runtime-file trees still match before making any runtime claim.
+- The live shell has one Quickshell process and ping returns `ok`. Post-repair
+  logs show a normal Sportray reload with no Sportray exception, binding loop,
+  duplicate graph, or load failure. An unrelated `crmne.hyprmoncfg` filename-
+  case warning remains outside this unit.
 
 Bounded outcome: on actual Omarchy, use a supported pointer or focused input
 path to open Sportray and Calendar. Confirm that current-month known game and
@@ -36,18 +42,22 @@ profiles, hydration/cache ownership, endpoints, response limits, polling,
 notifications, settings, packaging, release, or remote state.
 
 Required checks: `./tests/run-js-tests.sh`, `./tests/test-summon-helper.sh`,
-`git diff --check`, `omarchy plugin validate "$PWD"`, and
-`/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` over every QML file.
-If no supported pointer/focused interaction path is available, record that
-blocker and stop without weakening the gate or creating a success commit. If
-the interaction exposes a concrete defect, fix only that defect and repeat the
-gate. When the unit passes, update `roadmap.md` and its dated handoff, replace
-this file with the next single-unit prompt, and create one atomic Conventional
-Commit.
+`git diff --check`, `omarchy plugin validate "$PWD"`, production validation of
+the installed checkout, and `/usr/lib/qt6/bin/qmllint -I
+/usr/share/omarchy/shell` over every QML file. If a concrete defect requires a
+source fix, implement only that defect, commit it after the gate passes, then
+fast-forward the installed checkout from the local source without changing its
+configured GitHub origin and rescan before repeating the runtime check.
+
+Stop if no supported pointer/focused interaction path is available; record the
+blocker without weakening the gate or creating a success commit. When the unit
+passes, update `roadmap.md` and its dated handoff, replace this file with the
+next single-unit prompt, and create one atomic Conventional Commit.
 
 Known risks: this Wayland host previously lacked a supported pointer or AT-SPI
 injector; widget registration can race immediately after rescan; the healthy
 cache makes the active progress banner transient/unavailable without a genuine
-future coverage gap; and ESPN remains an undocumented API. Request subagents
-only for independent read-only source or log inspection that materially
-benefits from parallelism.
+future coverage gap; the installed checkout no longer hot-reloads uncommitted
+source-tree edits; and ESPN remains an undocumented API. Request subagents only
+for independent read-only source or log inspection that materially benefits
+from parallelism.

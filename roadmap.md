@@ -5561,3 +5561,40 @@ visibility. Preserve require-free runtime coverage for pure policies used from
 QML. Remaining risk is visual interaction only: this host still lacks a
 supported pointer/accessibility injector, so direct scrolling to both month
 edges and the progress banner's on-screen appearance were not claimed.
+
+## Latest handoff — 2026-08-27 installed plugin symlink repair
+
+The `omarchy plugin update` validation failure is fixed on the actual Omarchy
+host. The installed plugin root had been a development symlink from
+`~/.config/omarchy/plugins/io.github.joega.sportray` to this repository. The
+installed Omarchy 4.0.0-1 updater treats a symlinked checkout as git-managed
+because `<plugin>/.git` resolves through the link, but its validator rejects
+the plugin-root symlink under the no-symlink trust boundary after updating.
+This is an installed-layout mismatch, not a symlink committed by Sportray; the
+repository contains no tracked symlinks.
+
+The linked root was replaced atomically with a real Git checkout at the same
+product commit, `7ace7dd4b9838897cf3179176beca0e079341078`, with `origin` set to
+`https://github.com/joega/sportray.git`. The source checkout, schema-2 settings,
+calendar cache, enabled state, and bar placement were preserved. The exact
+`omarchy plugin update io.github.joega.sportray --yes` path now prints
+`Updated io.github.joega.sportray.` and both the installed checkout and source
+checkout pass the production validator. The temporary backup symlink was
+removed after the verified replacement.
+
+Evidence: all 259 deterministic JavaScript tests and the summon-helper tests
+pass; `git diff --check` passes; all-file real-import-path QML lint exits 0
+with the established standalone import and unqualified-access warnings; shell
+ping returns `ok`; exactly one Quickshell process is running; and post-rescan
+logs show the Sportray reload with no Sportray exception, binding loop, or load
+failure. The `crmne.hyprmoncfg` case-mismatch warning in the same host log is
+unrelated to Sportray. The required handoff commit after this repair changes
+only `roadmap.md` and `NEXT_SESSION_PROMPT.md`; the installed runtime remains at
+the verified product commit.
+
+Decision log: keep the installed plugin as a normal checkout so the supported
+updater and validator agree. It is now independent of the development source
+checkout, so future source commits must be fast-forwarded into the installed
+checkout and rescanned before live runtime claims. Do not recreate the root
+symlink when validating `omarchy plugin update`. The next bounded unit remains
+the supported live Calendar presentation and two-edge scroll verification.
