@@ -46,6 +46,10 @@ Item {
     return CachePolicy.coverage(root.entries, leagueIds, dateKeys, root.todayDateKey)
   }
 
+  function shouldRequestMonth(leagueIds, dateKeys) {
+    return CachePolicy.shouldRequestRange(root.coverageFor(leagueIds, dateKeys), root.ready)
+  }
+
   function enqueueReads(keys) {
     root.readQueue = []
     keys.forEach(function(value) {

@@ -5812,7 +5812,7 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.equal(panel.includes("readonly property var calendarDayRows: CalendarModel.flattenDay("), true);
   assert.equal(panel.includes("root.calendarOpen ? root.calendarDayRows : root.resultRows"), true);
   assert.equal(panel.includes("root.fetchService ? root.fetchService.calendarStates : []"), true);
-  assert.equal(panel.includes("readonly property var calendarPages: [-1, 0, 1].map"), true);
+  assert.equal(panel.includes("readonly property var calendarPages: !root.calendarOpen ? [] : [-1, 0, 1].map"), true);
   assert.equal(panel.includes("pages: root.calendarPages"), true);
   assert.equal(panel.includes("root.calendarOpen = true"), true);
   assert.match(panel, /monthCalendar\.implicitHeight \+ Style\.spacing\.md \* 2/);
@@ -5833,6 +5833,9 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.equal(monthCalendar.includes("onAtYEndChanged"), true);
   assert.equal(monthCalendar.includes("edgeRequestsSuppressed"), true);
   assert.match(monthCalendar, /!root\.edgeRequestsSuppressed/);
+  assert.match(monthCalendar, /property string positionedMonthKey/);
+  assert.match(monthCalendar, /model: root\.weekRowCount/);
+  assert.match(monthCalendar, /monthKey === root\.positionedMonthKey/);
   assert.equal(monthCalendar.includes("new Date"), false);
   assert.equal(monthCalendar.includes("Process"), false);
   assert.equal(monthCalendar.includes("JSON.parse"), false);
@@ -5840,8 +5843,12 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.match(calendarFetch, /root\.requestedMonthKey = requested/);
   assert.match(calendarFetch, /Qt\.callLater\(function\(\) \{ root\.requestMonth\(root\.requestedMonthKey\) \}\)/);
   const fetchServiceSource = readSource("services/FetchService.qml");
-  assert.match(fetchServiceSource, /onCalendarOpenChanged: Qt\.callLater\(function\(\) \{ root\.syncCalendarOpen\(\) \}\)/);
-  assert.match(fetchServiceSource, /calendarFetch\.requestMonth\(monthKey\)/);
+  assert.match(fetchServiceSource, /onCalendarOpenChanged:/);
+  assert.match(fetchServiceSource, /Qt\.callLater\(function\(\) \{ root\.syncCalendarOpen\(\) \}\)/);
+  assert.match(fetchServiceSource, /function monthNeedsHydration\(monthKey\)/);
+  assert.match(fetchServiceSource, /calendarDiskCache\.shouldRequestMonth/);
+  assert.match(fetchServiceSource, /calendarFetch\.requestMonth\(requested\)/);
+  assert.match(fetchServiceSource, /root\.requestCalendarMonth\(monthKey\)/);
   assert.match(fetchServiceSource, /function calendarKnownLeagueIds\(\)/);
   assert.match(panel, /knownLeagueIds:/);
   assert.match(panel, /scoreContent[\s\S]*clip: true/);
@@ -6240,7 +6247,7 @@ test("C3 calendar cache marks missing coverage partial and merges live identity"
 test("C3 calendar cache freshness and bounds stay low frequency", () => {
   assert.equal(calendarCachePolicy.MAX_DAYS, 42);
   assert.equal(calendarCachePolicy.MAX_REQUESTS, 8);
-  assert.equal(calendarCachePolicy.MAX_CACHE_WINDOWS, 3);
+  assert.equal(calendarCachePolicy.MAX_CACHE_WINDOWS, 24);
   const future = calendarCachePolicy.createWindow("nhl", "2026-09-01", "2026-09-07", 1000);
   future.status = "complete";
   assert.equal(calendarCachePolicy.isFresh(future, 1000 + calendarCachePolicy.FUTURE_TTL_MS - 1,
@@ -6312,6 +6319,10 @@ test("persistent calendar day files are normalized, bounded, and restart-readabl
     coverageFixture.leagueIds, coverageFixture.dateKeys, fixture.today).needsHydration, false);
   assert.equal(calendarDiskCachePolicy.coverage({}, [], coverageFixture.dateKeys,
     fixture.today).needsHydration, false);
+  assert.equal(calendarDiskCachePolicy.shouldRequestRange(partialCoverage, true), true);
+  assert.equal(calendarDiskCachePolicy.shouldRequestRange(partialCoverage, false), false);
+  assert.equal(calendarDiskCachePolicy.shouldRequestRange({needsHydration: false}, true), false);
+  assert.equal(calendarDiskCachePolicy.shouldRequestRange(null, true), false);
 });
 
 test("persistent calendar cache is a separate sequential FileView owner", () => {
@@ -6325,17 +6336,25 @@ test("persistent calendar cache is a separate sequential FileView owner", () => 
   assert.match(source, /function persistStates\(states\)/);
   assert.match(source, /CachePolicy\.createRetainedDay\(state\.leagueId, day\.dateKey,/);
   assert.match(source, /function coverageFor\(leagueIds, dateKeys\)/);
+  assert.match(source, /function shouldRequestMonth\(leagueIds, dateKeys\)/);
+  assert.match(source, /CachePolicy\.shouldRequestRange/);
   assert.equal((source.match(/Qt\.callLater\([^\n]*root\.readNext/g) || []).length, 3);
   assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 2);
   assert.equal((source.match(/\bFileView\s*\{/g) || []).length, 3);
   assert.match(fetchService, /CalendarDiskCache \{ id: calendarDiskCache \}/);
-  assert.match(fetchService, /calendarDiskCache\.persistStates/);
+  assert.match(fetchService, /function refreshCalendarStates\(persist\)/);
+  assert.match(fetchService, /if \(persist === true\) calendarDiskCache\.persistStates/);
+  assert.match(fetchService, /function calendarProjectionActive\(\)/);
+  assert.equal(fetchService.includes("root.calendarStates = root.buildCalendarStates()\n    calendarDiskCache.persistStates"), false);
   assert.match(fetchService, /calendarDiskCache\.coverageFor/);
   assert.equal(fetchService.includes("calendarDiskCache.*curl"), false);
 });
 
 test("C3 schedule owner hydrates eligible leagues through bounded range chunks", () => {
   const source = readSource("services/CalendarFetch.qml");
+  assert.match(source, /function leagueCovered\(leagueId, dates\)/);
+  assert.match(source, /if \(root\.leagueCovered\(leagueId, dates\)\) return/);
+  assert.match(source, /property var diskCache/);
   assert.match(source, /ChunkPolicy\.plan\(root\.providerIdFor\(leagueId\)/);
   assert.match(source, /ChunkPolicy\.planRolling\("nhl"/);
   assert.match(source, /EspnProvider\.buildNextGamesUrl/);
@@ -6357,6 +6376,8 @@ test("C3 schedule owner hydrates eligible leagues through bounded range chunks",
   const fetchService = readSource("services/FetchService.qml");
   assert.match(fetchService, /CalendarCachePolicy\.mergeState/);
   assert.match(fetchService, /requestCalendarMonth/);
+  assert.match(fetchService, /diskCache: calendarDiskCache/);
+  assert.match(fetchService, /if \(!requested \|\| !root\.monthNeedsHydration\(requested\)\) return false/);
   assert.match(fetchService, /calendarFetch\.snapshotFor\(state\.leagueId\)/);
   assert.match(fetchService, /function maybeStartCalendarRehydration\(\)/);
   assert.match(fetchService, /calendarFetch\.requestRehydration\(monthKey\)/);
@@ -6372,6 +6393,33 @@ test("C3 schedule owner hydrates eligible leagues through bounded range chunks",
   assert.match(monthCalendar, /Rehydrating calendar/);
   assert.match(monthCalendar, /Calendar refresh incomplete/);
   assert.match(monthCalendar, /root\.rehydrating \? "Loading…" : "Unknown"/);
+});
+
+test("calendar open uses retained coverage instead of refetching a complete month", () => {
+  const diskPolicy = {};
+  vm.runInNewContext(readSource("model/CalendarDiskCachePolicy.js"), diskPolicy);
+  assert.equal(diskPolicy.shouldRequestRange({needsHydration: true}, true), true);
+  assert.equal(diskPolicy.shouldRequestRange({needsHydration: true}, false), false);
+  assert.equal(diskPolicy.shouldRequestRange({needsHydration: false}, true), false);
+  const fetchService = readSource("services/FetchService.qml");
+  const calendarFetch = readSource("services/CalendarFetch.qml");
+  const monthCalendar = readSource("components/MonthCalendar.qml");
+  const panel = readSource("Panel.qml");
+  assert.match(fetchService, /function monthNeedsHydration\(monthKey\)/);
+  assert.match(fetchService, /calendarDiskCache\.shouldRequestMonth\(leagues, dates\)/);
+  assert.match(fetchService, /if \(calendarFetch\.rehydrating && calendarFetch\.rehydrationMonthKey === requested\)/);
+  assert.match(fetchService, /root\.requestCalendarMonth\(monthKey\)/);
+  assert.match(fetchService, /if \(persist === true\) calendarDiskCache\.persistStates/);
+  assert.match(fetchService, /function calendarProjectionActive\(\)/);
+  assert.match(fetchService, /if \(root\.calendarOpen\) root\.refreshCalendarStates\(false\)/);
+  assert.match(calendarFetch, /function leagueCovered\(leagueId, dates\)/);
+  assert.match(calendarFetch, /if \(root\.leagueCovered\(leagueId, dates\)\) return/);
+  assert.equal(calendarCachePolicy.MAX_CACHE_WINDOWS >= 15, true);
+  assert.match(monthCalendar, /model: root\.weekRowCount/);
+  assert.match(monthCalendar, /required property int index/);
+  assert.match(monthCalendar, /monthKey === root\.positionedMonthKey/);
+  assert.match(panel, /readonly property var calendarState: !root\.calendarOpen/);
+  assert.match(panel, /readonly property var calendarPages: !root\.calendarOpen \? \[\]/);
 });
 
 test("C5 NHL rolling plan is bounded and unsupported leagues stay rejected", () => {

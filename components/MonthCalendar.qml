@@ -15,6 +15,7 @@ Item {
   property int focusedIndex: -1
   property bool edgeRequestPending: false
   property bool edgeRequestsSuppressed: true
+  property string positionedMonthKey: ""
   property bool rehydrating: false
   property string rehydrationStatus: "idle"
   property int rehydrationCompleted: 0
@@ -28,6 +29,7 @@ Item {
   readonly property int rowCount: 6
   readonly property real cellHeight: Style.space(46)
   readonly property var weekRows: root.buildWeekRows()
+  readonly property int weekRowCount: root.weekRows.length
   implicitHeight: controls.height + (hydrationNotice.visible
       ? Style.spacing.xs + hydrationNotice.height : 0)
     + Style.spacing.xs + weekdays.height
@@ -102,8 +104,20 @@ Item {
       + (cell.hasFavoriteGames ? ", includes favorites" : "")
   }
 
-  onGridStateChanged: root.focusSelected()
+  function centerMonthKey() {
+    if (Array.isArray(root.pages) && root.pages.length > 1 && root.pages[1]
+        && typeof root.pages[1].monthKey === "string")
+      return root.pages[1].monthKey
+    return root.gridState && typeof root.gridState.monthKey === "string"
+      ? root.gridState.monthKey : ""
+  }
+
+  onGridStateChanged: if (root.focusedIndex < 0) root.focusSelected()
   onPagesChanged: {
+    var monthKey = root.centerMonthKey()
+    if (monthKey !== "" && monthKey === root.positionedMonthKey && weekList && weekList.count > 0)
+      return
+    root.positionedMonthKey = monthKey
     root.edgeRequestsSuppressed = true
     root.edgeRequestPending = false
     if (weekList && weekList.count > 0) weekList.positionViewAtIndex(weekList.count > 6 ? 6 : 0,
@@ -203,11 +217,11 @@ Item {
       }
     }
 
-    ListView {
+      ListView {
       id: weekList
       width: parent.width
       height: root.cellHeight * 6 + Style.spacing.xxs * 5
-      model: root.weekRows
+      model: root.weekRowCount
       spacing: Style.spacing.xxs
       clip: true
       interactive: contentHeight > height
@@ -227,14 +241,16 @@ Item {
 
       delegate: Row {
           id: weekRow
-          required property var modelData
+          required property int index
+          readonly property var rowData: root.weekRows[weekRow.index]
+            || {monthKey: "", monthLabel: "", cells: []}
           property var cellHosts: []
           width: weekList.width
           height: root.cellHeight
           spacing: Style.spacing.xxs
 
           Repeater {
-            model: weekRow.modelData ? weekRow.modelData.cells : []
+            model: weekRow.rowData.cells
             delegate: Item {
               id: cellHost
               required property var modelData

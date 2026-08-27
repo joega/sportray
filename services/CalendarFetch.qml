@@ -39,6 +39,7 @@ Item {
   property int backgroundIndex: 0
   property var scheduleStates: ({})
   property string activeLeagueId: ""
+  property var diskCache: null
   property string rehydrationStatus: "idle"
   property string rehydrationMonthKey: ""
   property int rehydrationCompleted: 0
@@ -102,6 +103,13 @@ Item {
       if (root.providerIdFor(id) && result.indexOf(id) === -1) result.push(id)
     })
     return result
+  }
+
+  function leagueCovered(leagueId, dates) {
+    if (!root.diskCache || root.diskCache.ready !== true
+        || typeof root.diskCache.coverageFor !== "function") return false
+    var coverage = root.diskCache.coverageFor([leagueId], dates)
+    return coverage && coverage.needsHydration !== true
   }
 
   function finishActiveLeague() {
@@ -279,6 +287,7 @@ Item {
           hit.status === "unavailable" ? "unavailable" : "", hit.stale === true)
         return
       }
+      if (root.leagueCovered(leagueId, dates)) return
       var plan = ChunkPolicy.plan(root.providerIdFor(leagueId), dates[0], dates[dates.length - 1])
       if (plan.kind !== "plan" || plan.requestCount > ChunkPolicy.MAX_REQUESTS) return
       plan.windows.forEach(function(window) {

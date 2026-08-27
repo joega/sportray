@@ -80,9 +80,11 @@ explicit local-time label, open the same local detail drill-down, and Escape
 returns from detail,
 settings, and calendar before closing the panel.
 
-Calendar hydration is bounded by provider evidence: when Calendar opens,
-Sportray hydrates the visible month for NHL plus the verified ESPN NFL, NBA,
-Premier League, and MLS range profiles through one cancellable calendar owner.
+Calendar hydration is bounded by provider evidence: when Calendar opens with
+incomplete retained coverage, Sportray hydrates the visible month for NHL plus
+the verified ESPN NFL, NBA, Premier League, and MLS range profiles through one
+cancellable calendar owner. Complete retained coverage is a cache hit: opening
+Calendar or returning to a covered month does not start another range fetch.
 Each provider range is split into bounded seven-day requests and normalized
 into complete local-date buckets, so known empty days do not require a click.
 MLB and the NCAA leagues remain selected-day-only because their range behavior

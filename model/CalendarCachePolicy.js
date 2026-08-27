@@ -5,7 +5,7 @@
 var DateModel = null;
 if (typeof require === "function") DateModel = require("./DateModel.js");
 
-var MAX_CACHE_WINDOWS = 3;
+var MAX_CACHE_WINDOWS = 24;
 var MAX_DAYS = 42;
 var MAX_REQUESTS = 8;
 var HISTORICAL_TTL_MS = 24 * 60 * 60 * 1000;

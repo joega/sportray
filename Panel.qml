@@ -151,13 +151,14 @@ Panel {
   }
   // Calendar projects the bounded schedule cache plus the selected-day live
   // cache; schedule ownership remains in FetchService, not in this view.
-  readonly property var calendarState: CalendarModel.monthGrid(
+  readonly property var calendarState: !root.calendarOpen ? {cells: [], monthLabel: ""}
+    : CalendarModel.monthGrid(
     root.fetchService ? root.fetchService.calendarStates : [],
     root.calendarProjectionOptions(root.calendarMonthKey || CalendarModel.monthKey(root.selectedDateKey)))
   // Keep one month on either side in the bounded view window. Scrolling to an
   // edge advances the center month, so the calendar never requires paging
   // buttons while still avoiding an unbounded model or provider crawl.
-  readonly property var calendarPages: [-1, 0, 1].map(function(delta) {
+  readonly property var calendarPages: !root.calendarOpen ? [] : [-1, 0, 1].map(function(delta) {
     return CalendarModel.monthGrid(root.fetchService ? root.fetchService.calendarStates : [],
       root.calendarProjectionOptions(CalendarModel.addMonths(
         root.calendarMonthKey || CalendarModel.monthKey(root.selectedDateKey), delta)))

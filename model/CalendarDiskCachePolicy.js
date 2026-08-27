@@ -161,8 +161,13 @@ function coverage(entries, leagueIds, dateKeys, todayDateKey) {
   };
 }
 
+function shouldRequestRange(coverage, cacheReady) {
+  return cacheReady === true && !!coverage && coverage.needsHydration === true;
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {CACHE_VERSION, PAST_DAYS, FUTURE_DAYS, MAX_FILES, MAX_BYTES,
     MAX_GAMES_PER_DAY, key, fileName, inWindow, sanitizeGames, createDay,
-    createRetainedDay, parseDayText, prune, manifest, keyParts, coverage};
+    createRetainedDay, parseDayText, prune, manifest, keyParts, coverage,
+    shouldRequestRange};
 }

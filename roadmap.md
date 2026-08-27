@@ -1,6 +1,6 @@
 # Sportray private roadmap
 
-Last reviewed: 2026-08-26
+Last reviewed: 2026-08-27
 
 ## Competitive scan — 2026-08-23
 
@@ -5598,3 +5598,99 @@ checkout, so future source commits must be fast-forwarded into the installed
 checkout and rescanned before live runtime claims. Do not recreate the root
 symlink when validating `omarchy plugin update`. The next bounded unit remains
 the supported live Calendar presentation and two-edge scroll verification.
+
+## Latest handoff — 2026-08-27 Calendar presentation verified; ListView edges blocked
+
+Status: blocked on the direct vertical ListView interaction gate. The supported
+keyboard-summoned panel route opened Sportray and Calendar on actual Omarchy,
+but this host still has no supported pointer/axis injector and AT-SPI reports
+`IsEnabled=false`. `wtype` supplies virtual keyboard input only. The installed
+`PanelKeyCatcher` and Sportray `Panel.qml` intercept PageUp/PageDown and call
+`changeCalendarMonth()` directly, so those keys verify bounded month replacement
+but do not reach `MonthCalendar.weekList`'s `atYBeginning`/`atYEnd` callbacks.
+Direct six-week stream scrolling and one physical hit at each list edge are
+therefore not claimed, and this work unit is not marked complete.
+
+Verified runtime presentation:
+
+- Before the exercise, the source and installed runtime trees matched at
+  `7ace7dd4b9838897cf3179176beca0e079341078`; only the private roadmap and
+  next-session prompt differed in the source checkout. Installed Omarchy
+  remains `4.0.0-1`, Quickshell remains `0.3.0.r20.g28771c7-2`, and the
+  current `KeyboardPanel` focus-prime, bar-widget summon, and
+  `PanelKeyCatcher` contracts show no material upstream deviation.
+- The focused `wtype` route opened the August 2026 Calendar without a date
+  click. Screenshots showed known-game cells (including Aug 22 with 28 games
+  and Aug 27 with 11 games), known-complete empty cells, and the selected-day
+  agenda. MLB appeared in that agenda while the admitted hydrated leagues
+  continued to certify the rest of the month; the selected-day-only MLB/NCAA
+  profiles did not force admitted August dates to Unknown.
+- One direct PageDown/PageUp round-trip rendered bounded September and August
+  replacement months. After each bounded plan settled, all 42 cells showed
+  known game or empty state. No request remained in flight, one Quickshell
+  process remained, and shell ping returned `ok`. This is partial focused-input
+  evidence only; it is not substituted for the two ListView-edge callbacks.
+
+One concrete defect was found and fixed during that round-trip. The old
+`CalendarDiskCache.persistStates()` created and queued complete day writes even
+when `retain()` immediately pruned the date outside the documented rolling
+30-day window. Writer and cleanup owners then raced: the first pass logged a
+fresh `FileView` write failure for `eng.1:2026-07-27.json` and left ignored
+out-of-window files beside the manifest. Commit `6730a18` adds the pure
+`createRetainedDay()` admission guard and fixture coverage so out-of-window
+days never enter either queue. This changes only durable-cache admission; the
+completed rehydration owner, profiles, endpoints, limits, polling, and
+notifications are unchanged.
+
+The source fix passed all 259 JavaScript tests, summon-helper tests,
+`git diff --check`, source plugin validation, and all-file real-import-path QML
+lint (exit 0 with established warnings). It was committed atomically, then the
+normal installed checkout was fast-forwarded from the local source without
+changing its GitHub `origin`. Installed validation passed. A supported shell
+restart plus rescan/summon loaded commit `6730a18` into one Quickshell process
+(PID 1425786), with a visible 27x26 Sportray slot and ping `ok`. Repeating the
+focused September/August round-trip produced no fresh journal entry, did not
+change the probed out-of-window file mtimes, and left no curl process. The
+pre-fix orphan files are outside the manifest and were not deleted; do not
+damage the healthy retained cache to remove them or replay progress.
+
+Decision log: accept the isolated cache-admission fix but keep the interaction
+unit blocked. Resume only when a supported pointer/axis injector or a focused
+input path that actually scrolls `MonthCalendar.weekList` is available. Do not
+count PageUp/PageDown as edge evidence, add a plugin test hook, synthesize
+unsupported `/dev/uinput` events, enable new provider profiles, or replay the
+healthy current-month rehydration burst. No push, tag, release, Marketplace,
+settings, packaging, or remote-state action occurred. The unrelated
+`crmne.hyprmoncfg` filename-case warning remains outside Sportray.
+
+## Latest handoff — 2026-08-27 calendar open cache-hit and UI stall fix
+
+Status: complete for the owner-requested calendar performance unit. Opening
+Calendar with complete retained coverage no longer starts a month range fetch.
+`FetchService.requestCalendarMonth()` consults disk coverage first;
+`CalendarFetch.beginMonthPlan()` also skips per-league network when that league
+is already retained. Incomplete coverage still uses the existing one-owner
+sequential plan. Same-month requests do not preempt an in-flight rehydration.
+
+Live polling no longer persists calendar days or rebuilds the month grid unless
+Calendar is open or a calendar plan is active. Persist stays on the calendar
+owner's `currentState` path. `MonthCalendar` uses a stable integer ListView
+model and recenters only when the center `monthKey` changes, so live score
+updates cannot steal scroll position or focus. In-memory schedule windows now
+admit 24 entries so five hydrated leagues plus adjacent months and NHL rolling
+windows are not evicted mid-session.
+
+Evidence: 260 deterministic JavaScript tests pass, including fixture-backed
+`shouldRequestRange` cases and source assertions for the skip, persist, and
+ListView guards; summon-helper tests, `git diff --check`, source plugin
+validation, and all-file real-import-path QML lint pass (exit 0 with established
+warnings). Provider profiles, MLB/NCAA admission, rehydration ownership,
+endpoints, response limits, polling cadence, and notifications are unchanged.
+The healthy retained cache was not deleted.
+
+Decision log: treat durable coverage as the calendar-open cache hit; do not
+refetch a complete month on every open or after in-memory TTL expiry. Keep
+startup rehydration one-shot. Live Omarchy confirmation that a second Calendar
+open starts zero range curls remains the next unit; do not claim it from source
+tests. The ListView-edge interaction gate stays blocked on supported pointer
+input. No push, tag, release, Marketplace, or remote-state action occurred.

@@ -55,9 +55,21 @@ Item {
     return pollScheduler.requestRefresh(reason || "manual")
   }
 
+  function monthNeedsHydration(monthKey) {
+    var requested = DateModel.monthKey(monthKey)
+    var dates = CalendarModel.monthDateKeys(requested)
+    var leagues = calendarFetch.eligibleLeagues()
+    if (!requested || dates.length !== 42 || leagues.length === 0) return false
+    return calendarDiskCache.shouldRequestMonth(leagues, dates)
+  }
+
   function requestCalendarMonth(monthKey) {
-    root.calendarMonthKey = monthKey || ""
-    return calendarFetch.requestMonth(root.calendarMonthKey)
+    var requested = DateModel.monthKey(monthKey)
+    root.calendarMonthKey = requested
+    if (!requested || !root.monthNeedsHydration(requested)) return false
+    if (calendarFetch.rehydrating && calendarFetch.rehydrationMonthKey === requested)
+      return false
+    return calendarFetch.requestMonth(requested)
   }
 
   function calendarKnownLeagueIds() {
@@ -93,8 +105,16 @@ Item {
     }
     var monthKey = DateModel.monthKey(root.selectedDateKey)
     if (!monthKey) return
-    root.calendarMonthKey = monthKey
-    calendarFetch.requestMonth(monthKey)
+    root.requestCalendarMonth(monthKey)
+  }
+
+  function refreshCalendarStates(persist) {
+    root.calendarStates = root.buildCalendarStates()
+    if (persist === true) calendarDiskCache.persistStates(root.calendarStates)
+  }
+
+  function calendarProjectionActive() {
+    return root.calendarOpen || calendarFetch.rehydrating || calendarFetch.planKind !== ""
   }
 
   function cancelCalendarSchedule() {
@@ -129,8 +149,7 @@ Item {
   function updateAggregateState() {
     var states = root.buildLeagueStates()
     root.leagueStates = states
-    root.calendarStates = root.buildCalendarStates()
-    calendarDiskCache.persistStates(root.calendarStates)
+    if (root.calendarProjectionActive()) root.refreshCalendarStates(false)
     var composed = ScoreboardModel.compose(states, root.enabledLeagues, [], null, root.selectedDateKey)
     root.games = composed.games
     root.hasData = composed.hasData
@@ -151,6 +170,7 @@ Item {
 
   onEnabledLeaguesChanged: {
     root.updateAggregateState()
+    root.refreshCalendarStates(false)
     Qt.callLater(function() { root.maybeStartCalendarRehydration() })
   }
 
@@ -159,23 +179,32 @@ Item {
 
   onSelectedDateKeyChanged: root.updateAggregateState()
 
-  onCalendarOpenChanged: Qt.callLater(function() { root.syncCalendarOpen() })
+  onCalendarOpenChanged: {
+    if (root.calendarOpen) root.refreshCalendarStates(false)
+    Qt.callLater(function() { root.syncCalendarOpen() })
+  }
 
   Component.onCompleted: {
     root.updateAggregateState()
+    root.refreshCalendarStates(false)
     Qt.callLater(function() { root.maybeStartCalendarRehydration() })
   }
 
   Connections {
     target: calendarFetch
-    function onCurrentStateChanged() { root.updateAggregateState() }
+    function onCurrentStateChanged() {
+      root.updateAggregateState()
+      root.refreshCalendarStates(true)
+    }
   }
 
   Connections {
     target: calendarDiskCache
     function onReadyChanged() {
       root.updateAggregateState()
+      root.refreshCalendarStates(false)
       Qt.callLater(function() { root.maybeStartCalendarRehydration() })
+      if (root.calendarOpen) Qt.callLater(function() { root.syncCalendarOpen() })
     }
   }
 
@@ -334,6 +363,7 @@ Item {
     calendarEnabled: root.enabledLeagues.length > 0
     enabledLeagues: root.enabledLeagues
     calendarCacheReady: calendarDiskCache.ready
+    diskCache: calendarDiskCache
   }
 
   CalendarDiskCache { id: calendarDiskCache }
