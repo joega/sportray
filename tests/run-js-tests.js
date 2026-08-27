@@ -4107,6 +4107,7 @@ test("overlay opens directly below the configured bar region with no gap", () =>
   assert.equal(panel.includes("centerOnBar: root.barRegion === \"center\""), true);
   assert.equal(panel.includes("margin: 0"), true);
   assert.equal(panel.includes("gap: 0"), true);
+  assert.equal(panel.includes("borderSpec: Border.none()"), true);
 });
 
 test("horizontal overlay anchors to its button and clamps at the screen edge", () => {
@@ -4119,12 +4120,18 @@ test("horizontal overlay anchors to its button and clamps at the screen edge", (
   assert.equal(widget.includes("slot.moduleName === root.moduleName"), true);
   assert.equal(widget.includes("function onModuleSlotsChanged()"), true);
   assert.equal(widget.includes(
-    "readonly property var panelAnchorItem: root.fullMode ? fullButton : compactButton"), true);
-  assert.equal(widget.includes("panelEdgeAnchor"), false);
+    "readonly property var panelAnchorItem: root.barRegion === \"right\""), true);
+  assert.equal(widget.includes("id: rightEdgeAnchor"), true);
+  assert.equal(widget.includes("id: panelAnchorWatcher"), true);
   assert.equal(widget.includes("root.mapFromItem(root.bar, edgeX, edgeY)"), false);
   assert.equal(widget.includes("target.barRegion = root.barRegion"), true);
   assert.equal(widget.includes("target.anchorItem = root.panelAnchorItem"), true);
   assert.equal(panel.includes("centerOnBar: root.barRegion === \"center\""), true);
+  assert.equal(panel.includes("id: headerActions"), true);
+  assert.equal(panel.includes("anchors.right: parent.right"), true);
+  assert.equal(panel.includes("function measuredPanelContentRequest()"), true);
+  assert.equal(panel.includes("resultList.contentHeight"), true);
+  assert.equal(panel.includes("height: visible ? sportsPicker.implicitHeight : 0"), true);
 });
 
 test("U2.2 groups every normalized game state into a provider-neutral slate", () => {
@@ -5815,7 +5822,9 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.equal(panel.includes("readonly property var calendarPages: !root.calendarOpen ? [] : [-1, 0, 1].map"), true);
   assert.equal(panel.includes("pages: root.calendarPages"), true);
   assert.equal(panel.includes("root.calendarOpen = true"), true);
-  assert.match(panel, /monthCalendar\.implicitHeight \+ Style\.spacing\.md \* 2/);
+  assert.match(panel, /function measuredPanelContentRequest\(\)/);
+  assert.match(panel, /scoreChrome\.implicitHeight \+ Style\.spacing\.md/);
+  assert.match(panel, /resultList\.contentHeight/);
   assert.match(panel, /height: root\.calendarOpen \? implicitHeight : 0/);
   assert.equal(panel.includes(": root.calendarOpen ? root.closeCalendar() : root.close()"), true);
   assert.equal(panel.includes('root.toggleCalendar()'), true);

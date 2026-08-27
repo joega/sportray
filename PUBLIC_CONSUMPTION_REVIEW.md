@@ -631,3 +631,18 @@ Omarchy validation, real-import-path QML lint, and `git diff --check` pass.
 No issue, package, tag, push, GitHub Release, Marketplace submission, or new
 preview-rights decision occurred. The remaining gate is explicit owner review
 and approval of the complete title and body.
+
+## Latest panel-surface review -- 2026-08-27
+
+The attached Sportray panel now uses the installed Omarchy `KeyboardPanel`'s
+supported `borderSpec` property with `Border.none()`. This removes the popup
+outline while retaining the themed fill, rounded card shape, zero-gap bar
+attachment, host screen clamp, focus handling, and inner control borders. The
+change is a surface-spec override, not a compositor window-rule change, and no
+upstream API deviation was introduced.
+
+The source checks pass: 260 deterministic tests, summon-helper tests, plugin
+validation, real-import-path QML lint with established warnings, and
+`git diff --check`. The installed checkout was intentionally not changed, so
+no live visual screenshot or shell-log result is claimed for this source-only
+review.

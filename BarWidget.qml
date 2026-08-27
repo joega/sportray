@@ -90,7 +90,12 @@ BarWidget {
     root.barRegion = moduleFallback
   }
   readonly property string barPosition: root.bar ? String(root.bar.position || "") : ""
-  readonly property var panelAnchorItem: root.fullMode ? fullButton : compactButton
+  // A wide panel opened from the right bar section should use the screen edge
+  // as its horizontal anchor, rather than the first icon in that section.
+  // Keep the normal trigger anchor for left/center sections and vertical bars.
+  readonly property var panelAnchorItem: root.barRegion === "right"
+    && root.bar && root.bar.vertical !== true
+    ? rightEdgeAnchor : (root.fullMode ? fullButton : compactButton)
 
   function injectPanel() {
     var target = panelLoader.item
@@ -135,6 +140,29 @@ BarWidget {
     function onModuleSlotsChanged() {
       root.resolveBarRegion()
       root.injectPanel()
+    }
+  }
+
+  TransformWatcher {
+    id: panelAnchorWatcher
+    a: fullButton.QsWindow.window ? fullButton.QsWindow.window.contentItem : null
+    b: fullButton
+  }
+
+  // KeyboardPanel positions the card from the supplied item's center. This
+  // one-pixel proxy at the bar window's right edge makes its existing clamp
+  // produce a flush right edge without a host-specific alignment property.
+  Item {
+    id: rightEdgeAnchor
+    visible: false
+    width: 1
+    height: root.height
+    x: {
+      panelAnchorWatcher.transform
+      var window = fullButton.QsWindow.window
+      if (!window || !window.contentItem) return root.width
+      var position = fullButton.mapToItem(window.contentItem, 0, 0)
+      return window.width - position.x
     }
   }
 

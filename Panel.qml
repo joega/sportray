@@ -230,7 +230,10 @@ Panel {
     root.selectedRowId = ""
     root.standingsService.load(root.activeDestination, false)
     root.recalculatePanelHeight()
-    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+    root.deferPanelCallback(function() {
+      root.recalculatePanelHeight()
+      keyCatcher.forceActiveFocus()
+    })
   }
 
   function toggleStandings() {
@@ -251,7 +254,10 @@ Panel {
     root.selectedRowId = ""
     root.tabStripFocused = false
     root.recalculatePanelHeight()
-    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+    root.deferPanelCallback(function() {
+      root.recalculatePanelHeight()
+      keyCatcher.forceActiveFocus()
+    })
   }
 
   function closeCalendar() {
@@ -262,7 +268,10 @@ Panel {
     root.selectedRowId = ""
     root.tabStripFocused = true
     root.recalculatePanelHeight()
-    root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+    root.deferPanelCallback(function() {
+      root.recalculatePanelHeight()
+      keyCatcher.forceActiveFocus()
+    })
   }
 
   function toggleCalendar() {
@@ -366,8 +375,11 @@ Panel {
         })
       return
     }
-    var contentRequest = PanelLayout.contentRequest(root.displayRows,
-      root.settingsDestination, root.settingsOpen, {
+    root.panelContentHeightRequest = root.measuredPanelContentRequest()
+  }
+
+  function measuredPanelContentRequest() {
+    var tokens = {
         compactMinimum: Style.space(280),
         maximum: Style.space(640),
         scoreChrome: Style.space(112),
@@ -382,15 +394,23 @@ Panel {
         settings: Style.space(440),
         teams: Style.space(640),
         notifications: Style.space(520)
-      })
-    // The calendar owns a six-week viewport in scoreChrome. The normal score
-    // sizing token assumes a much shorter date header, so it can leave the
-    // calendar taller than the fitted panel and expose its last row below the
-    // card. Reserve the real calendar chrome plus the result viewport margin.
-    if (root.calendarOpen && monthCalendar)
-      contentRequest = Math.max(contentRequest,
-        monthCalendar.implicitHeight + Style.spacing.md * 2)
-    root.panelContentHeightRequest = contentRequest
+    }
+    if (!header || !contentColumn)
+      return PanelLayout.contentRequest(root.displayRows, root.settingsDestination,
+        root.settingsOpen, tokens)
+
+    var bodyHeight = 0
+    if (root.settingsOpen && utilityColumn) {
+      bodyHeight = utilityColumn.implicitHeight
+    } else if (scoreChrome && resultList) {
+      // Use the actual laid-out delegates. The host still applies the bounded
+      // fitted height, so dense result lists remain scrollable instead of
+      // forcing the popup beyond the available screen.
+      bodyHeight = scoreChrome.implicitHeight + Style.spacing.md
+        + Math.max(0, Number(resultList.contentHeight) || 0)
+    }
+    return PanelLayout.clamp(header.height + contentColumn.spacing + bodyHeight,
+      tokens.compactMinimum, tokens.maximum)
   }
 
   function deferPanelCallback(callback) {
@@ -654,6 +674,7 @@ Panel {
     root.deferPanelCallback(function() {
       root.restoreResultPosition()
       keyCatcher.forceActiveFocus()
+      root.recalculatePanelHeight()
     })
   }
 
@@ -914,6 +935,9 @@ Panel {
     centerOnBar: root.barRegion === "center"
     margin: 0
     gap: 0
+    // The card is the panel surface itself, not a floating window frame. Keep
+    // its fill and rounded shape while removing the popup outline at the bar.
+    borderSpec: Border.none()
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(400))
     contentHeight: panel.fittedContentHeight(root.panelContentHeightRequest, Style.space(640))
@@ -1005,14 +1029,19 @@ Panel {
         // The card is intentionally bounded even when the result model is
         // dense. The body below uses the actual fitted card height.
 
-        Row {
+        Item {
           id: header
           width: parent.width
-          spacing: Style.spacing.sm
+          property real spacing: Style.spacing.sm
           property bool compactActions: width < Style.space(900)
+          height: Math.max(headerTitle.implicitHeight, headerActions.implicitHeight)
 
           Text {
             id: headerTitle
+            anchors.left: parent.left
+            anchors.right: headerActions.left
+            anchors.rightMargin: header.spacing
+            height: parent.height
             text: (Iconography.displayText(
               root.settingsOpen ? "settings" : root.detailOpen ? "scores" : "calendar",
               Style.font.family) || "S")
@@ -1024,21 +1053,17 @@ Panel {
             font.pixelSize: Style.font.title
             color: Color.accent
             font.bold: true
+            elide: Text.ElideRight
+            verticalAlignment: Text.AlignVCenter
           }
 
-          Item {
-            width: Math.max(0, header.width - headerTitle.implicitWidth
-              - (todayButton.visible ? todayButton.implicitWidth : 0)
-              - (standingsButton.visible ? standingsButton.implicitWidth : 0)
-              - (calendarButton.visible ? calendarButton.implicitWidth : 0)
-              - (calendarFilterButton.visible ? calendarFilterButton.implicitWidth : 0)
-              - (calendarLeagueButton.visible ? calendarLeagueButton.implicitWidth : 0)
-              - (refreshButton.visible ? refreshButton.implicitWidth : 0)
-              - settingsButton.implicitWidth - header.spacing * 6)
-            height: 1
-          }
+          Row {
+            id: headerActions
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: header.spacing
 
-          SemanticActionButton {
+            SemanticActionButton {
             id: todayButton
             visible: !root.settingsOpen && !root.detailOpen
               && root.selectedDateKey !== root.todayDateKey
@@ -1054,9 +1079,9 @@ Panel {
             onClicked: root.selectDate(root.todayDateKey)
             Accessible.name: "Show today"
             Accessible.role: Accessible.Button
-          }
+            }
 
-          SemanticActionButton {
+            SemanticActionButton {
             id: standingsButton
             visible: !root.settingsOpen && !root.detailOpen && root.activeLeagueSupportsStandings
             iconName: root.standingsOpen ? "scores" : "list"
@@ -1072,9 +1097,9 @@ Panel {
             onClicked: root.toggleStandings()
             Accessible.name: root.standingsOpen ? "Show scores" : "Show standings"
             Accessible.role: Accessible.Button
-          }
+            }
 
-          SemanticActionButton {
+            SemanticActionButton {
             id: calendarButton
             visible: !root.settingsOpen && !root.detailOpen
             iconName: root.calendarOpen ? "scores" : "calendar"
@@ -1090,9 +1115,9 @@ Panel {
             onClicked: root.toggleCalendar()
             Accessible.name: root.calendarOpen ? "Show scores" : "Show calendar"
             Accessible.role: Accessible.Button
-          }
+            }
 
-          SemanticActionButton {
+            SemanticActionButton {
             id: calendarFilterButton
             visible: root.calendarOpen && !root.settingsOpen && !root.detailOpen
             iconName: ""
@@ -1109,9 +1134,9 @@ Panel {
             Accessible.name: root.calendarFavoritesOnly
               ? "Show every enabled league (F)" : "Show only favorite games (F)"
             Accessible.role: Accessible.Button
-          }
+            }
 
-          SemanticActionButton {
+            SemanticActionButton {
             id: calendarLeagueButton
             visible: root.calendarOpen && !root.settingsOpen && !root.detailOpen
             iconName: ""
@@ -1128,9 +1153,9 @@ Panel {
             Accessible.name: root.calendarLeagueId === ""
               ? "Filter calendar by league" : "Show all enabled leagues"
             Accessible.role: Accessible.Button
-          }
+            }
 
-          SemanticActionButton {
+            SemanticActionButton {
             id: refreshButton
             visible: !root.settingsOpen && !root.detailOpen
             iconName: "refresh"
@@ -1141,9 +1166,9 @@ Panel {
             onClicked: root.refresh()
             Accessible.name: fetchService.loading ? "Refreshing scores" : "Refresh scores"
             Accessible.role: Accessible.Button
-          }
+            }
 
-          SemanticActionButton {
+            SemanticActionButton {
             id: settingsButton
             visible: !root.detailOpen
             iconName: root.settingsOpen ? "close" : "settings"
@@ -1153,6 +1178,7 @@ Panel {
             onClicked: root.toggleSettings()
             Accessible.name: root.settingsOpen ? "Close settings" : "Sportray settings"
             Accessible.role: Accessible.Button
+            }
           }
         }
 
@@ -1259,7 +1285,7 @@ Panel {
               Item {
                 id: tabStrip
                 width: parent.width
-                height: sportsPicker.implicitHeight
+                height: visible ? sportsPicker.implicitHeight : 0
                 visible: !root.calendarOpen
 
                 Item {

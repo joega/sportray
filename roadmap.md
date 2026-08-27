@@ -5736,3 +5736,75 @@ polling, notifications, settings, packaging, and remote state unchanged. The
 next unit is only the blocked direct ListView-edge interaction when a supported
 host input path becomes available. No push, tag, release, Marketplace, or
 healthy-cache cleanup occurred.
+
+## Latest handoff -- 2026-08-27 screenshot geometry follow-up
+
+The owner supplied a Calendar screenshot showing three presentation defects:
+the attached card retained too much empty height, the header actions overflowed
+the card surface, and a right-section trigger left a large gap between the card
+and the screen's right edge. The source checkout now contains a small layout
+follow-up, but it remains uncommitted because the direct physical ListView edge
+gate is still blocked and the installed checkout was not changed for an
+unverified visual pass.
+
+`Panel.qml` measures the laid-out header, score chrome, utility content, and
+result-list content for its dynamic height request, while retaining the host's
+bounded fitted-height cap for dense views. Hidden calendar tab-strip geometry no
+longer contributes to the score chrome. Header actions are in a right-anchored
+action row and the title elides into the remaining space, so actions cannot be
+pushed outside the card by the old spacer calculation. `BarWidget.qml` supplies
+a reactive one-pixel right-edge anchor proxy for horizontal right-section
+panels; the installed `KeyboardPanel` clamp therefore places that card flush to
+the right screen edge without adding a host API or changing vertical-bar
+placement.
+
+The changed source passes `./tests/run-js-tests.sh`,
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and all-file real-import-path `qmllint`.
+The source-driven tests cover the measured sizing path, right-anchored header
+actions, hidden tab-strip sizing, and right-edge anchor proxy. No installed
+rescan, shell restart, visual geometry exercise, cache operation, provider
+request, or runtime log claim was made; the installed runtime remains at
+`58a4d05`.
+
+The direct edge gate remains blocked exactly as before: this host has no
+supported pointer/axis injector, AT-SPI is disabled, and `wtype` only injects
+keyboard input. PageUp/PageDown remain month commands and are not ListView-edge
+evidence. Do not delete or replay the healthy cache, use unsupported input
+injection, or create a success commit while that blocker remains. The next
+bounded unit is still the direct physical `MonthCalendar.weekList` edge check
+when a supported host input path becomes available; it must first review the
+uncommitted screenshot-layout changes before any installed visual claim.
+
+## Latest handoff -- 2026-08-27 borderless attached panel
+
+The panel-surface follow-up is complete in the source checkout. The installed
+Omarchy `4.0.0-1` `KeyboardPanel` and `Border` sources were inspected: the
+supported `KeyboardPanel.borderSpec` property controls the visible
+`BorderSurface` outline, while `Border.none()` returns a zero-width spec. This
+is not a compositor window-border change and introduces no upstream API
+deviation.
+
+`Panel.qml` now sets `borderSpec: Border.none()` on the existing bar-attached
+`KeyboardPanel`. The themed popup fill, rounded shape, focus handling, zero
+margin/gap attachment, screen clamp, and all inner control borders remain
+unchanged. The source regression check confirms the borderless override beside
+the existing attachment and geometry checks. The README now explains the
+borderless card behavior and the host boundary.
+
+The complete deterministic suite passes with 260 tests, as do
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and all-file real-import-path `qmllint` with
+the established standalone warnings. No installed rescan, shell restart,
+visual screenshot exercise, cache operation, provider request, or runtime log
+claim was made; the installed checkout remains at `58a4d05`.
+
+Decision log: use the installed host's existing `borderSpec` contract rather
+than replacing `KeyboardPanel`, changing compositor rules, or removing the
+panel fill. The direct physical `MonthCalendar.weekList` edge gate remains
+blocked because this host has no supported pointer/axis injector; `wtype`
+keyboard input and PageUp/PageDown month commands do not establish that gate.
+The next bounded unit remains that direct edge check when a supported input
+path becomes available. Do not delete or replay the healthy cache, use
+unsupported input injection, or change provider, settings, packaging, or
+remote state.

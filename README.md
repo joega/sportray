@@ -55,8 +55,9 @@ At a glance:
 - First-fetch suppression and bounded, restart-safe notification deduplication
 - Persistent league, favorite, and notification preferences
 - Theme-aware layout for top, bottom, left, and right bars
-- The panel anchors to its tray button and the host clamps it to the available
-  screen edge, while center placement remains centered
+- The panel uses a borderless card surface that meets the bar, anchors to its
+  tray button, and is clamped by the host to the available screen edge, while
+  center placement remains centered
 - Keyboard navigation, visible focus, Escape-to-close, and bounded dense panels
 - No account, API key, Sportray server, or background daemon
 
@@ -403,10 +404,13 @@ its nested panel; there is no second Quickshell process. Provider adapters
 normalize responses before QML sees them, and pure JavaScript behavior is
 covered by sanitized fixtures. The panel preserves Omarchy's installed
 `KeyboardPanel` overlay contract while reading the host's current bar region and
-anchoring horizontal edge placements to the actual tray button. The host's
-screen clamp keeps the card on-screen beneath that trigger. The installed host
-currently supplies a short opacity fade; a consumer-configurable slide and card
-surface-color API are not part of that contract.
+anchoring horizontal edge placements to the actual tray button. It uses the
+host's supported `borderSpec` property to remove the popup outline while
+retaining the themed card fill and rounded shape; the zero gap makes the card
+meet the bar. The host's screen clamp keeps the card on-screen beneath that
+trigger. The installed host currently supplies a short opacity fade; a
+consumer-configurable slide and card surface-color API are not part of that
+contract.
 
 From a checkout, run the deterministic suite and repository checks:
 
