@@ -6265,6 +6265,15 @@ test("persistent calendar day files are normalized, bounded, and restart-readabl
     "nhl:2026-08-25.json");
   assert.equal(calendarDiskCachePolicy.inWindow("2026-07-26", fixture.today), true);
   assert.equal(calendarDiskCachePolicy.inWindow("2026-07-25", fixture.today), false);
+  const retention = fixture.retentionAdmission;
+  assert.ok(calendarDiskCachePolicy.createRetainedDay("nhl", retention.pastEdge,
+    [], 1, fixture.today));
+  assert.ok(calendarDiskCachePolicy.createRetainedDay("nhl", retention.futureEdge,
+    [], 1, fixture.today));
+  assert.equal(calendarDiskCachePolicy.createRetainedDay("nhl", retention.pastOutside,
+    [], 1, fixture.today), null);
+  assert.equal(calendarDiskCachePolicy.createRetainedDay("nhl", retention.futureOutside,
+    [], 1, fixture.today), null);
   const old = calendarDiskCachePolicy.createDay("nhl", "2026-07-25", [], 20);
   const current = calendarDiskCachePolicy.createDay("nhl", fixture.today, [], 10);
   const kept = calendarDiskCachePolicy.prune({
@@ -6314,6 +6323,7 @@ test("persistent calendar cache is a separate sequential FileView owner", () => 
   assert.match(source, /CachePolicy\.parseDayText/);
   assert.match(source, /CachePolicy\.manifest/);
   assert.match(source, /function persistStates\(states\)/);
+  assert.match(source, /CachePolicy\.createRetainedDay\(state\.leagueId, day\.dateKey,/);
   assert.match(source, /function coverageFor\(leagueIds, dateKeys\)/);
   assert.equal((source.match(/Qt\.callLater\([^\n]*root\.readNext/g) || []).length, 3);
   assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 2);

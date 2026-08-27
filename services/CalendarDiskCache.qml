@@ -111,7 +111,12 @@ Item {
       if (!state || typeof state.leagueId !== "string" || !Array.isArray(state.days)) return
       state.days.forEach(function(day) {
         if (!day || day.complete !== true || !DateModel.isDateKey(day.dateKey)) return
-        var entry = CachePolicy.createDay(state.leagueId, day.dateKey, day.games, Date.now())
+        // Month pages include adjacent dates beyond the durable +/-30-day
+        // retention window. Reject them before they enter either the writer
+        // or cleanup queue; enqueueing both races the two FileView boundaries
+        // and can leave an orphaned out-of-window file.
+        var entry = CachePolicy.createRetainedDay(state.leagueId, day.dateKey,
+          day.games, Date.now(), root.todayDateKey)
         if (!entry) return
         var id = CachePolicy.key(entry.leagueId, entry.dateKey)
         var existing = root.entries[id]

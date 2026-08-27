@@ -25,6 +25,12 @@
     "homeTeam": {"id": "nhl:10"}
   },
   "manifest": {"cacheVersion": 1, "keys": ["mlb:2026-08-25", "nhl:2026-08-25"]},
+  "retentionAdmission": {
+    "pastEdge": "2026-07-26",
+    "futureEdge": "2026-09-24",
+    "pastOutside": "2026-07-25",
+    "futureOutside": "2026-09-25"
+  },
   "rehydrationCoverage": {
     "leagueIds": ["nhl", "nfl", "NHL", "unsupported value"],
     "dateKeys": ["2026-08-24", "2026-08-25", "2026-08-26", "2026-09-25"],

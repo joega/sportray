@@ -84,6 +84,11 @@ function createDay(leagueId, dateKey, games, updatedAtMs) {
   };
 }
 
+function createRetainedDay(leagueId, dateKey, games, updatedAtMs, todayDateKey) {
+  if (!inWindow(dateKey, todayDateKey)) return null;
+  return createDay(leagueId, dateKey, games, updatedAtMs);
+}
+
 function parseDayText(raw, leagueId, dateKey, todayDateKey) {
   if (typeof raw !== "string" || !raw || !inWindow(dateKey, todayDateKey)) return null;
   try {
@@ -159,5 +164,5 @@ function coverage(entries, leagueIds, dateKeys, todayDateKey) {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {CACHE_VERSION, PAST_DAYS, FUTURE_DAYS, MAX_FILES, MAX_BYTES,
     MAX_GAMES_PER_DAY, key, fileName, inWindow, sanitizeGames, createDay,
-    parseDayText, prune, manifest, keyParts, coverage};
+    createRetainedDay, parseDayText, prune, manifest, keyParts, coverage};
 }
