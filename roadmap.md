@@ -5694,3 +5694,45 @@ startup rehydration one-shot. Live Omarchy confirmation that a second Calendar
 open starts zero range curls remains the next unit; do not claim it from source
 tests. The ListView-edge interaction gate stays blocked on supported pointer
 input. No push, tag, release, Marketplace, or remote-state action occurred.
+
+## Latest handoff — 2026-08-27 calendar open cache-hit runtime verification
+
+Status: complete for the requested actual-Omarchy cache-hit check. The installed
+normal Git checkout at `~/.config/omarchy/plugins/io.github.joega.sportray` was
+fast-forwarded from `6730a18` to `58a4d05f405b9fa29c924a0c264c0b431f9bde35`
+using the local source checkout. Its GitHub `origin` remained
+`https://github.com/joega/sportray.git`; source and installed trees matched at
+the performance commit.
+
+After `omarchy restart shell`, the new shell had one Quickshell process, shell
+ping returned `ok`, the supported `rescanPlugins` call completed, and the
+bounded summon helper returned `ok`. Focused `wtype c` opened Calendar on the
+actual bar-widget route. The rendered August 2026 grid showed retained known
+game/empty cells, including visible one-game and no-game cells, while the
+selected-day agenda remained usable. A close/reopen cycle was exercised once.
+
+Evidence for zero calendar range fetches: exact live process sampling during
+the initial open and close/reopen observed no `dates=YYYYMMDD-YYYYMMDD` curl;
+the only observed curl was the ordinary selected-day MLB request for
+`dates=20260827`. Fresh Quickshell logs contained no calendar rehydration start,
+range URL, Sportray exception, binding-loop warning, or QML load failure. The
+post-exercise cache manifest/tree hashes and 389-file count matched the
+pre-restart baseline, so no new out-of-window write occurred. The 80 existing
+manifest-orphan files were not deleted, and the healthy retained cache was not
+cleared or replayed.
+
+Required checks passed before runtime verification: 260 deterministic
+JavaScript tests, summon-helper tests, `git diff --check`, source and installed
+`omarchy plugin validate`, and all-file real-import-path `qmllint`. The expected
+transient `summon: no live bar widget` warning appeared during asynchronous
+post-rescan registration before the helper succeeded; the unrelated desktop
+portal warning remains. The direct physical `MonthCalendar.weekList` edge
+callbacks remain unverified because this host still lacks a supported pointer/
+axis injector; PageUp/PageDown must not be counted as ListView-edge evidence.
+
+Decision log: accept the durable-cache open/reopen runtime gate at `58a4d05`.
+Keep the provider admission, rehydration ownership, endpoints, limits,
+polling, notifications, settings, packaging, and remote state unchanged. The
+next unit is only the blocked direct ListView-edge interaction when a supported
+host input path becomes available. No push, tag, release, Marketplace, or
+healthy-cache cleanup occurred.
