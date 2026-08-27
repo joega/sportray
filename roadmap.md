@@ -5834,3 +5834,58 @@ Sportray layer-shell panel. The inner game-row outline is an intentional
 Sportray control border and remains unchanged. The panel was left open for
 owner inspection. No provider, cache, settings, remote, or source-checkout
 state was changed by the restart operation.
+
+## Latest handoff -- 2026-08-27 calendar startup projection rehydration
+
+Status: complete for the calendar startup and pre-open projection unit. The
+calendar projection now has an explicit `calendarStatesRevision` dependency,
+so durable cache readiness and rehydration state rebuild the existing QML
+projection instead of leaving a panel-created-before-cache-ready instance
+stuck with sparse `Unknown` cells. Opening Calendar also refreshes the
+existing derived state after marking the shared calendar owner open; it does
+not create a fetch owner or request a second provider range. While the disk
+cache is not ready, unknown cells render `Loading...` and the calendar shows a
+bounded saved-calendar loading notice. Honest `Unknown` remains for dates not
+verified after loading or a partial refresh.
+
+Evidence:
+
+- `FetchService.qml` increments the projection revision on every existing
+  `refreshCalendarStates()` call and exposes the existing disk cache's
+  readiness state.
+- `Panel.qml` consumes that revision, refreshes the existing projection on
+  Calendar open, and passes cache-loading state to `MonthCalendar.qml`.
+- `MonthCalendar.qml` keeps the existing rehydration and partial-refresh
+  behavior while distinguishing cache loading from verified unknown dates.
+- The deterministic suite passes with 260 tests. The notification-helper
+  boundary assertion was updated to stub the installed Omarchy helper's
+  current direct `busctl` dependency rather than the obsolete `notify-send`
+  dependency; plugin runtime behavior is unchanged.
+- `./tests/test-summon-helper.sh`, `git diff --check`, source
+  `omarchy plugin validate "$PWD"`, and all-file real-import-path
+  `/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell` pass with the
+  established standalone warnings.
+- Actual Omarchy remains healthy with one Quickshell instance and shell ping
+  `ok`. Fresh logs show normal provider/cache activity and retained calendar
+  coverage of `205/205`, with no Sportray error, exception, binding-loop, or
+  QML-load warning. The installed checkout contains the same calendar logic
+  alongside its separately preserved local geometry edits.
+
+Decision log: use the existing cache-ready signal, projection binding
+dependency, and calendar-open refresh rather than adding a second cache read,
+range request, timer, or provider path. Keep the direct physical
+`MonthCalendar.weekList` edge gate blocked: this host has no supported
+pointer/axis injector, AT-SPI is disabled, and `wtype` keyboard input does not
+reach the ListView edge callbacks. Do not substitute PageUp/PageDown, use
+unsupported `/dev/uinput`, add a test hook, delete cache orphans, or replay a
+healthy rehydration burst. No push, tag, release, Marketplace, or remote-state
+action occurred.
+
+Known risks remain the blocked direct ListView-edge interaction, pre-fix
+cache-orphan files outside the manifest, live selected-day polling updating
+the calendar projection, and ESPN's undocumented API.
+
+Next bounded unit: verify the direct physical `MonthCalendar.weekList`
+beginning and end transitions on actual Omarchy if a supported pointer/axis or
+equivalent focused input route becomes available. Stop without a success
+commit when that input route is unavailable.

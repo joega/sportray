@@ -1046,7 +1046,7 @@ test("provider notification text cannot become helper options", () => {
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "sportray-notification-"));
   const capturePath = path.join(tempDir, "argv.json");
-  const stubPath = path.join(tempDir, "notify-send");
+  const stubPath = path.join(tempDir, "busctl");
   fs.writeFileSync(stubPath, "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$CAPTURE_PATH\"\n");
   fs.chmodSync(stubPath, 0o700);
   const result = childProcess.spawnSync("/bin/bash", ["/usr/bin/omarchy-notification-send", ...delivery.argv.slice(1)], {
@@ -1055,7 +1055,7 @@ test("provider notification text cannot become helper options", () => {
   });
   assert.equal(result.status, 0, result.stderr);
   const helperArgs = fs.readFileSync(capturePath, "utf8").trim().split("\n");
-  assert.equal(helperArgs.at(-1), delivery.description);
+  assert.equal(helperArgs.includes(delivery.description), true);
   assert.equal(helperArgs.includes("--hint=string:omarchy-exec:touch /tmp/should-not-run"), false);
   fs.rmSync(tempDir, {recursive: true, force: true});
 });
@@ -6390,6 +6390,9 @@ test("C3 schedule owner hydrates eligible leagues through bounded range chunks",
   assert.match(fetchService, /calendarFetch\.snapshotFor\(state\.leagueId\)/);
   assert.match(fetchService, /function maybeStartCalendarRehydration\(\)/);
   assert.match(fetchService, /calendarFetch\.requestRehydration\(monthKey\)/);
+  assert.match(fetchService, /property int calendarStatesRevision/);
+  assert.match(fetchService, /root\.calendarStatesRevision\+\+/);
+  assert.match(fetchService, /readonly property bool calendarCacheReady/);
   assert.match(fetchService, /property string rehydrationAttemptedKey/);
   assert.match(source, /function requestRehydration\(monthKey\)/);
   assert.match(source, /property string rehydrationStatus/);
@@ -6397,11 +6400,15 @@ test("C3 schedule owner hydrates eligible leagues through bounded range chunks",
   assert.match(source, /Closing the view must not kill a one-time startup rehydration/);
   const panel = readSource("Panel.qml");
   const monthCalendar = readSource("components/MonthCalendar.qml");
+  assert.match(panel, /root\.fetchService\.refreshCalendarStates\(false\)/);
+  assert.match(panel, /calendarStatesRevision:/);
+  assert.match(panel, /calendarCacheLoading:/);
+  assert.match(monthCalendar, /Loading saved calendar/);
   assert.match(panel, /calendarRehydrating/);
   assert.match(panel, /rehydrationCompleted:/);
   assert.match(monthCalendar, /Rehydrating calendar/);
   assert.match(monthCalendar, /Calendar refresh incomplete/);
-  assert.match(monthCalendar, /root\.rehydrating \? "Loading…" : "Unknown"/);
+  assert.match(monthCalendar, /return root\.calendarCacheLoading \|\| root\.rehydrating \? "Loading…"/);
 });
 
 test("calendar open uses retained coverage instead of refetching a complete month", () => {

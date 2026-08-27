@@ -16,6 +16,7 @@ Item {
   property bool edgeRequestPending: false
   property bool edgeRequestsSuppressed: true
   property string positionedMonthKey: ""
+  property bool calendarCacheLoading: false
   property bool rehydrating: false
   property string rehydrationStatus: "idle"
   property int rehydrationCompleted: 0
@@ -92,7 +93,8 @@ Item {
   }
 
   function countLine(cell) {
-    if (!cell || cell.state === "unknown") return root.rehydrating ? "Loading…" : "Unknown"
+    if (!cell || cell.state === "unknown")
+      return root.calendarCacheLoading || root.rehydrating ? "Loading…" : "Unknown"
     if (cell.state === "empty") return "No games"
     return cell.gameCount === 1 ? "1 game" : cell.gameCount + " games"
   }
@@ -165,7 +167,8 @@ Item {
       height: visible ? Style.space(28) : 0
       radius: Style.cornerRadius
       color: Color.popups.background
-      visible: root.rehydrating || root.rehydrationStatus === "partial"
+      visible: root.calendarCacheLoading || root.rehydrating
+        || root.rehydrationStatus === "partial"
 
       BusyIndicator {
         id: hydrationSpinner
@@ -184,7 +187,9 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: Style.spacing.sm
         anchors.verticalCenter: parent.verticalCenter
-        text: root.rehydrating
+        text: root.calendarCacheLoading
+          ? "Loading saved calendar..."
+          : root.rehydrating
           ? "Rehydrating calendar · " + root.rehydrationCompleted + " of "
             + root.rehydrationTotal
           : "Calendar refresh incomplete · unknown days remain"

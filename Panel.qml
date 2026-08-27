@@ -146,7 +146,9 @@ Panel {
         return PanelPresentation.annotate(game, root.favoriteTeamIds, false,
           FavoritePresentation.isFavoriteGame, leagueMeta, true)
       },
-      revision: root.presentationRevision
+      revision: root.presentationRevision,
+      calendarStatesRevision: root.fetchService
+        ? root.fetchService.calendarStatesRevision : 0
     }
   }
   // Calendar projects the bounded schedule cache plus the selected-day live
@@ -248,7 +250,13 @@ Panel {
   function openCalendar() {
     root.calendarMonthKey = CalendarModel.monthKey(root.selectedDateKey)
     root.calendarOpen = true
-    if (root.fetchService) root.fetchService.calendarOpen = true
+    if (root.fetchService) {
+      root.fetchService.calendarOpen = true
+      // Rebuild after the cache-read boundary so a panel created before the
+      // durable cache became ready cannot retain a sparse calendar projection.
+      if (typeof root.fetchService.refreshCalendarStates === "function")
+        root.fetchService.refreshCalendarStates(false)
+    }
     root.standingsOpen = false
     root.selectedRowIndex = -1
     root.selectedRowId = ""
@@ -1262,6 +1270,8 @@ Panel {
                 gridState: root.calendarState
                 pages: root.calendarPages
                 selectedDateKey: root.selectedDateKey
+                calendarCacheLoading: root.fetchService
+                  ? !root.fetchService.calendarCacheReady : true
                 rehydrating: root.fetchService && root.fetchService.calendarRehydrating
                 rehydrationStatus: root.fetchService
                   ? root.fetchService.calendarRehydrationStatus : "idle"

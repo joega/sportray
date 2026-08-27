@@ -26,8 +26,10 @@ Item {
   property string lastSuccessAt: ""
   property string lastAttemptAt: ""
   property string calendarMonthKey: ""
+  property int calendarStatesRevision: 0
   property string rehydrationAttemptedKey: ""
   readonly property var calendarScheduleState: calendarFetch.snapshotFor("nhl")
+  readonly property bool calendarCacheReady: calendarDiskCache.ready
   readonly property bool calendarRehydrating: calendarFetch.rehydrating
   readonly property string calendarRehydrationStatus: calendarFetch.rehydrationStatus
   readonly property int calendarRehydrationCompleted: calendarFetch.rehydrationCompleted
@@ -110,6 +112,7 @@ Item {
 
   function refreshCalendarStates(persist) {
     root.calendarStates = root.buildCalendarStates()
+    root.calendarStatesRevision++
     if (persist === true) calendarDiskCache.persistStates(root.calendarStates)
   }
 
