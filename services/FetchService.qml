@@ -14,6 +14,7 @@ Item {
   property string lookaheadLeagueId: ""
   property bool panelOpen: false
   property bool calendarOpen: false
+  property bool calendarFeatureEnabled: false
   property var leagueStates: []
   property var calendarStates: []
   property var games: []
@@ -58,6 +59,7 @@ Item {
   }
 
   function monthNeedsHydration(monthKey) {
+    if (!root.calendarFeatureEnabled) return false
     var requested = DateModel.monthKey(monthKey)
     var dates = CalendarModel.monthDateKeys(requested)
     var leagues = calendarFetch.eligibleLeagues()
@@ -66,6 +68,7 @@ Item {
   }
 
   function requestCalendarMonth(monthKey) {
+    if (!root.calendarFeatureEnabled) return false
     var requested = DateModel.monthKey(monthKey)
     root.calendarMonthKey = requested
     if (!requested || !root.monthNeedsHydration(requested)) return false
@@ -79,7 +82,8 @@ Item {
   }
 
   function maybeStartCalendarRehydration() {
-    if (!root.settingsReady || !calendarDiskCache.ready || root.enabledLeagues.length === 0)
+    if (!root.calendarFeatureEnabled || !root.settingsReady || !calendarDiskCache.ready
+        || root.enabledLeagues.length === 0)
       return false
     var dates = calendarDiskCache.windowDateKeys()
     var leagues = calendarFetch.eligibleLeagues()
@@ -101,7 +105,7 @@ Item {
   }
 
   function syncCalendarOpen() {
-    if (!root.calendarOpen) {
+    if (!root.calendarFeatureEnabled || !root.calendarOpen) {
       calendarFetch.cancelSchedule()
       return
     }
@@ -117,7 +121,8 @@ Item {
   }
 
   function calendarProjectionActive() {
-    return root.calendarOpen || calendarFetch.rehydrating || calendarFetch.planKind !== ""
+    return root.calendarFeatureEnabled
+      && (root.calendarOpen || calendarFetch.rehydrating || calendarFetch.planKind !== "")
   }
 
   function cancelCalendarSchedule() {
@@ -363,7 +368,8 @@ Item {
 
   CalendarFetch {
     id: calendarFetch
-    calendarEnabled: root.enabledLeagues.length > 0
+    calendarEnabled: root.calendarFeatureEnabled && root.enabledLeagues.length > 0
+    calendarFeatureEnabled: root.calendarFeatureEnabled
     enabledLeagues: root.enabledLeagues
     calendarCacheReady: calendarDiskCache.ready
     diskCache: calendarDiskCache

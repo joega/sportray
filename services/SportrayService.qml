@@ -13,6 +13,8 @@ Item {
   property string selectedDateKey: DateModel.localDateKey(new Date())
   property string todayDateKey: DateModel.localDateKey(new Date())
   property double nowMs: Date.now()
+  // Calendar remains in-tree for later rework but is not a production route.
+  readonly property bool calendarFeatureEnabled: false
   property int nextPanelToken: 0
   property var panelContexts: MonitorOwnership.emptyContexts()
   readonly property bool panelOpen: MonitorOwnership.anyPanelOpen(root.panelContexts)
@@ -51,6 +53,7 @@ Item {
 
   FetchService {
     id: fetchService
+    calendarFeatureEnabled: root.calendarFeatureEnabled
     settingsReady: settingsStore.ready
     enabledLeagues: settingsStore.settings ? settingsStore.settings.enabledLeagues : ["nhl"]
     favoriteTeamIds: settingsStore.settings ? settingsStore.settings.favoriteTeamIds : []

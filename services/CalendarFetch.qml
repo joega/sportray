@@ -13,6 +13,7 @@ Item {
   id: root
 
   property bool calendarEnabled: false
+  property bool calendarFeatureEnabled: false
   property var enabledLeagues: ["nhl"]
   property string requestedMonthKey: ""
   property var windows: ({})
@@ -234,7 +235,7 @@ Item {
     var requested = DateModel.monthKey(monthKey)
     if (!requested) return false
     root.requestedMonthKey = requested
-    if (!root.calendarEnabled || root.ownerDestroyed) return false
+    if (!root.calendarFeatureEnabled || !root.calendarEnabled || root.ownerDestroyed) return false
     if (calendarProcess.running) {
       if (root.planKind === "rehydration") {
         // The shared repair keeps its sequential request slot. A visible
@@ -255,7 +256,8 @@ Item {
 
   function requestRehydration(monthKey) {
     var requested = DateModel.monthKey(monthKey)
-    if (!requested || !root.calendarEnabled || root.ownerDestroyed) return false
+    if (!requested || !root.calendarFeatureEnabled || !root.calendarEnabled || root.ownerDestroyed)
+      return false
     if (root.rehydrationStatus === "loading" && root.rehydrationMonthKey === requested)
       return true
     root.rehydrationMonthKey = requested
@@ -344,7 +346,8 @@ Item {
   }
 
   function requestBackground() {
-    if (!root.calendarEnabled || !root.calendarCacheReady || root.ownerDestroyed
+    if (!root.calendarFeatureEnabled || !root.calendarEnabled || !root.calendarCacheReady
+        || root.ownerDestroyed
         || calendarProcess.running || root.queuedMonthKey
         || root.eligibleLeagues().indexOf("nhl") === -1) return false
     var today = DateModel.localDateKey(new Date())

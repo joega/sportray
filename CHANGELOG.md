@@ -34,6 +34,9 @@ All notable changes to Sportray are documented here.
 - Added a **Send test notification** action under Settings → Notifications so
   users can preview the Omarchy alert channel without changing preferences or
   notification deduplication state.
+- Temporarily disabled the experimental Calendar route and its background
+  schedule hydration in production while multi-day cache behavior is reworked;
+  daily favorite-team score tracking remains unchanged.
 
 ## 1.0.0-rc.7
 

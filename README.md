@@ -28,10 +28,8 @@ At a glance:
 - Grouped standings on ESPN-backed and NHL league destinations, with missing
   provider fields shown as neutral blanks and one-click favorite-team toggles
 - A five-day date carousel with previous/next-day navigation and a Today reset
-- A bounded calendar view behind the panel header that renders a vertically
-  scrolling week stream with adjacent-month dates, Today, bounded game counts,
-  favorite markers, and explicit unknown-versus-known-empty states; reaching
-  either edge advances the month window automatically
+- Calendar view is temporarily disabled in production while its multi-day
+  hydration and cache behavior are reworked
 - Empty league days keep their empty message and offer the next scheduled game
   as a one-click jump to that league day
 - Loaded game rows open a local game-details drill-down from whole-row
@@ -66,47 +64,9 @@ back to completed slates or forward to upcoming games; each fetch and result
 model is scoped to the selected local date. Closing the panel returns the
 ambient bar indicator to the current date. `[` and `]` move one day while `T`
 returns to today. On an ESPN-backed league destination, `S` toggles the
-standings view. `C` toggles the calendar view: a vertically scrolling stream
-of calendar weeks with adjacent-month dates, Today, bounded cached counts,
-favorite markers, and neutral unknown days for dates not verified by a complete
-cached snapshot. The stream keeps one month before and after the current month
-in memory and loads the next month automatically at either edge. Select any cell to use the existing
-selected-date fetch path; the selected day's games are listed below. The
-month grid is built only from date caches already fetched, with an All
-games/Favorites filter and `No games` only for known-complete empty days.
-`F` toggles that filter while the calendar is open. `G` jumps directly to
-the next cached day that has games without leaving the cache window. Calendar
-game rows show an
-explicit local-time label, open the same local detail drill-down, and Escape
-returns from detail,
-settings, and calendar before closing the panel.
-
-Calendar hydration is bounded by provider evidence: when Calendar opens with
-incomplete retained coverage, Sportray hydrates the visible month for NHL plus
-the verified ESPN NFL, NBA, Premier League, and MLS range profiles through one
-cancellable calendar owner. Complete retained coverage is a cache hit: opening
-Calendar or returning to a covered month does not start another range fetch.
-Each provider range is split into bounded seven-day requests and normalized
-into complete local-date buckets, so known empty days do not require a click.
-MLB and the NCAA leagues remain selected-day-only because their range behavior
-is not yet admitted by the provider safety policy. NHL also retains its
-low-frequency rolling 30-day background hydration.
-
-After settings and the durable calendar cache finish loading, Sportray checks
-the retained rolling 30-days-past through 30-days-future coverage for those
-same admitted leagues. If any of those days are missing, one bounded sequential
-rehydration pass fetches only the uncached ranges and persists normalized day
-snapshots. Already-cached days are not requested again. The pass keeps running
-if the panel or Calendar view closes, does not start a second fetch owner, and
-is skipped after restart when coverage is already complete. While it runs, the
-tray tooltip and Calendar show bounded progress; failed or partial chunks leave
-unknown days honest and produce an incomplete-refresh notice.
-
-When a selected-day-only league is enabled alongside hydrated leagues, its
-missing non-selected dates do not make the hydrated calendar dates Unknown.
-Calendar completeness is certified by the enabled leagues with admitted range
-profiles; selected-day-only leagues still contribute games for dates already
-present in their normal date cache.
+standings view. Calendar is temporarily unavailable in production while
+multi-day schedule hydration and cache behavior are reworked; the daily date
+carousel remains the supported way to browse other score slates.
 
 When an enabled league has no games on the selected day, Sportray searches the
 next bounded schedule window and shows the first upcoming game below the empty

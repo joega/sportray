@@ -5868,6 +5868,28 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.equal(fs.existsSync(path.join(root, "components/CalendarWeekStrip.qml")), false);
 });
 
+test("production disables Calendar UI and schedule work without disabling daily scores", () => {
+  const service = readSource("services/SportrayService.qml");
+  const fetchService = readSource("services/FetchService.qml");
+  const calendarFetch = readSource("services/CalendarFetch.qml");
+  const panel = readSource("Panel.qml");
+
+  assert.match(service, /readonly property bool calendarFeatureEnabled: false/);
+  assert.match(service, /calendarFeatureEnabled: root\.calendarFeatureEnabled/);
+  assert.match(fetchService, /property bool calendarFeatureEnabled: false/);
+  assert.match(fetchService, /if \(!root\.calendarFeatureEnabled\) return false/);
+  assert.match(fetchService, /calendarEnabled: root\.calendarFeatureEnabled &&/);
+  assert.match(fetchService, /return root\.calendarFeatureEnabled\n\s+&& \(root\.calendarOpen/);
+  assert.match(fetchService, /started = nhlFetch\.refresh\(refreshReason\)/);
+  assert.match(calendarFetch, /property bool calendarFeatureEnabled: false/);
+  assert.match(calendarFetch, /!root\.calendarFeatureEnabled \|\| !root\.calendarEnabled/);
+  assert.match(panel, /readonly property bool calendarFeatureEnabled: root\.service/);
+  assert.match(panel, /if \(!root\.calendarFeatureEnabled\) return/);
+  assert.match(panel, /visible: root\.calendarFeatureEnabled && !root\.settingsOpen && !root\.detailOpen/);
+  assert.match(panel, /root\.calendarFeatureEnabled && \(text === "c" \|\| text === "C"\)/);
+  assert.match(panel, /root\.fetchService\.calendarOpen = root\.calendarFeatureEnabled && root\.calendarOpen/);
+});
+
 test("provider fallback retains a healthy primary for its league chain", () => {
   const fixture = readProviderFallbackFixture();
   const result = providerFallback.evaluate({

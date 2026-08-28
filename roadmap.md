@@ -5890,6 +5890,86 @@ beginning and end transitions on actual Omarchy if a supported pointer/axis or
 equivalent focused input route becomes available. Stop without a success
 commit when that input route is unavailable.
 
+## Latest handoff -- 2026-08-27 production Calendar disabled
+
+Status: complete for the owner-requested production-safety unit. The Calendar
+route is now explicitly disabled by the shared `SportrayService` production
+flag. Panel header and keyboard entry points are hidden/guarded, and the
+shared `FetchService`/`CalendarFetch` owners reject month, rehydration, and
+rolling-background work while the flag is false. The daily date carousel,
+favorite-team score polling, standings, notifications, settings, and selected-
+day lookahead remain unchanged.
+
+The Calendar implementation, policies, and durable cache files remain in the
+tree for a future redesign. Disabling the route does not delete or clear the
+existing cache. `calendarProjectionActive` is also gated, so normal per-day
+polling does not persist calendar projections or rebuild calendar state while
+the feature is disabled.
+
+README and CHANGELOG now state that Calendar is temporarily unavailable in
+production. Fixture/source coverage proves the shared flag is false, the
+Calendar UI and `C` route are guarded, schedule work is disabled, and daily
+refresh still runs. The complete deterministic suite passes with 262 tests;
+summon-helper tests, `git diff --check`, source plugin validation, and
+real-import-path QML lint pass with the established warnings.
+
+Actual Omarchy runtime verification is still required after the source change:
+load the disabled production route, confirm one shell and ping `ok`, verify
+the Calendar action is absent and daily scores remain available, and inspect
+fresh logs for no calendar range/rehydration work or Sportray errors. Do not
+delete the healthy cache or re-enable Calendar during that check.
+
+Decision log: hide and disable Calendar rather than ship a visibly unreliable
+multi-day experience. Keep the source dormant behind one shared flag so a
+future re-enable is deliberate and can be gated by a new provider/cache and UI
+acceptance unit. Do not add a second calendar implementation or silently
+reinterpret unknown days in the meantime.
+
+Known risks are the deferred Calendar redesign, the existing provider/API
+limitations documented in prior handoffs, and any stale installed checkout
+that has not loaded this source commit. No push, tag, release, Marketplace, or
+remote-state action occurred.
+
+Next bounded unit: perform the actual Omarchy disabled-route smoke check above.
+If the installed checkout cannot be safely updated without overwriting its
+known local geometry edits, record that blocker and stop without a success
+commit. Otherwise confirm the disabled UI, unchanged daily score behavior,
+single-shell health, and clean fresh logs before updating the handoff.
+
+## Latest handoff -- 2026-08-28 production Calendar disable runtime check
+
+Status: complete. The disabled production gate was loaded temporarily into the
+separate installed checkout without overwriting its known local geometry
+edits. Installed plugin validation passed, `omarchy restart shell`, rescan,
+and the bounded summon helper completed, one Quickshell process remained, and
+shell ping returned `ok`.
+
+Fresh logs show normal NHL, NFL, MLB, NBA, Premier League, and MLS daily
+score refreshes. They contain no Calendar rehydration coverage, range request,
+or rolling calendar activity, and no Sportray exception, QML-load failure, or
+binding-loop warning. The known transient `summon: no live bar widget` warning
+and unrelated desktop-portal warning remain host behavior. A reliable focused
+widget input route was not established, so direct visual absence of the hidden
+Calendar button and `C` behavior remains source/test verified rather than a
+manual UI claim. The installed checkout was restored exactly to its previous
+local modifications afterward.
+
+The complete deterministic suite passes with 262 tests, including the
+production-disable regression. Summon-helper tests, diff check, source and
+installed plugin validation, and all-file real-import-path QML lint pass. No
+cache files were deleted or changed, and no push, tag, release, Marketplace,
+or remote-state action occurred.
+
+Decision log: production remains daily-score/favorite focused. Calendar source
+is retained but dormant behind the one shared false flag. Re-enabling it
+requires a separately accepted provider/cache and interaction design with new
+acceptance evidence; do not flip the flag opportunistically.
+
+Next bounded unit: wait for explicit owner direction before any Calendar
+re-enable or redesign work. If no direction is supplied, take an unrelated
+product unit and leave all Calendar source, cache, and production gating
+unchanged.
+
 ## Latest handoff -- 2026-08-27 rolling calendar-window prehydration
 
 Status: complete for the requested missing-window prehydration unit. Startup

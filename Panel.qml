@@ -57,6 +57,8 @@ Panel {
   // QML object first.
   readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
   readonly property var fetchService: root.service ? root.service.fetchService : null
+  readonly property bool calendarFeatureEnabled: root.service
+    ? root.service.calendarFeatureEnabled === true : false
   readonly property double ambientNowMs: root.service && typeof root.service.nowMs === "number"
     ? root.service.nowMs : root.nowMs
   readonly property string ambientTodayDateKey: root.service
@@ -82,8 +84,11 @@ Panel {
   property int standingsRevision: 0
   readonly property var barIdentity: hostWidget || root
 
-  onCalendarOpenChanged: if (root.fetchService)
-    root.fetchService.calendarOpen = root.calendarOpen
+  onCalendarOpenChanged: {
+    if (!root.calendarFeatureEnabled && root.calendarOpen) root.calendarOpen = false
+    if (root.fetchService)
+      root.fetchService.calendarOpen = root.calendarFeatureEnabled && root.calendarOpen
+  }
 
   function copyStringList(value, fallback) {
     var result = []
@@ -248,6 +253,7 @@ Panel {
   }
 
   function openCalendar() {
+    if (!root.calendarFeatureEnabled) return
     root.calendarMonthKey = CalendarModel.monthKey(root.selectedDateKey)
     root.calendarOpen = true
     if (root.fetchService) {
@@ -283,6 +289,7 @@ Panel {
   }
 
   function toggleCalendar() {
+    if (!root.calendarFeatureEnabled) return
     root.calendarOpen ? root.closeCalendar() : root.openCalendar()
   }
 
@@ -984,7 +991,8 @@ Panel {
         if (root.detailOpen) return
         if (text === "r" || text === "R") root.refresh()
         if (text === "n" || text === "N") root.openSettings()
-        if ((text === "c" || text === "C") && !root.settingsOpen && !root.detailOpen)
+        if (root.calendarFeatureEnabled && (text === "c" || text === "C")
+            && !root.settingsOpen && !root.detailOpen)
           root.toggleCalendar()
         if (KeyboardRoutingPolicy.calendarFilterAction(text, root.calendarOpen,
             root.settingsOpen, root.detailOpen) === "toggle-calendar-filter")
@@ -1109,7 +1117,7 @@ Panel {
 
             SemanticActionButton {
             id: calendarButton
-            visible: !root.settingsOpen && !root.detailOpen
+            visible: root.calendarFeatureEnabled && !root.settingsOpen && !root.detailOpen
             iconName: root.calendarOpen ? "scores" : "calendar"
             fallbackText: root.calendarOpen ? "S" : "C"
             tooltipText: root.calendarOpen ? "Show scores" : "Show calendar"
