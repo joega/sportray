@@ -6019,3 +6019,25 @@ Next bounded unit: verify the direct physical `MonthCalendar.weekList`
 beginning and end transitions on actual Omarchy if a supported pointer/axis or
 equivalent focused input route becomes available. Stop without a success
 commit when that input route is unavailable.
+
+## Latest handoff -- 2026-08-28 production Calendar disable runtime active
+
+The production-disable gate is now active in the installed normal Git checkout
+alongside its preserved local geometry edits. Only the four disable-gate QML
+hunks were applied there; no unrelated installed changes were overwritten.
+Installed plugin validation passed, the shell was restarted and rescanned, the
+bounded summon helper completed, one Quickshell process remained, and shell
+ping returned `ok`.
+
+Fresh logs show normal daily NHL, NFL, MLB, NBA, Premier League, and MLS score
+refreshes with no Calendar rehydration, range, or rolling-background activity.
+No Sportray exception, QML-load failure, or binding-loop warning appeared. The
+known transient summon race and unrelated desktop-portal warning remain host
+warnings. Direct visual button absence and `C` handling remain source/test
+verified because this host did not provide a reliable focused widget input
+route. The source checkout is clean at the production-disable commit; no push,
+tag, release, Marketplace, or remote-state action occurred.
+
+Calendar remains dormant in production and its source/cache implementation is
+retained for a future owner-authorized redesign. The next unit is blocked on
+explicit owner direction for any Calendar re-enable work.
