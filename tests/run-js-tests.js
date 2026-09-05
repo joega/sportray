@@ -4141,6 +4141,8 @@ test("ticker presentation is integrated into the shared bar widget", () => {
   assert.match(strip, /source: gameItem\.modelData\.homeLogoUrl/);
   assert.match(strip, /text: "\|  " \+ gameItem\.modelData\.detail[\s\S]*opacity: 0\.82/);
   assert.match(strip, /id: gameRow[\s\S]*spacing: Style\.spacing\.sm/);
+  assert.match(strip, /width: Style\.space\(56\)[\s\S]*gameItem\.index > 0 && gameItem\.modelData\.groupStart/);
+  assert.match(strip, /: "   •   "/);
   assert.match(service, /readonly property var ambientGames/);
   assert.match(service, /readonly property string ambientTickerState/);
 });

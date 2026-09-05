@@ -83,14 +83,21 @@ Item {
         delegate: Row {
           id: gameItem
           required property var modelData
+          required property int index
           height: root.height
           spacing: Style.spacing.xs
+
+          Item {
+            width: Style.space(56)
+            height: 1
+            visible: gameItem.index > 0 && gameItem.modelData.groupStart
+          }
 
           Text {
             anchors.verticalCenter: parent.verticalCenter
             text: gameItem.modelData.groupStart
               ? gameItem.modelData.leagueEmoji + "  " + gameItem.modelData.leagueLabel + "  |"
-              : "•"
+              : "   •   "
             color: Color.accent
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall

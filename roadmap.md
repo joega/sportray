@@ -1,5 +1,33 @@
 # Sportray private roadmap
 
+## Latest handoff - 2026-09-05 ticker group spacing
+
+Owner review found both the orange same-league game separator and transitions
+between league groups too compressed. `TicketStrip.qml` now gives each padded
+bullet three explicit spaces on both sides and inserts a separate 56-pixel gap
+before every non-initial league heading. This is approximately eight ticker
+characters at the active monospace size. Spacing inside a matchup remains on the
+compact token, so logos, names, scores, and status still read as one game.
+
+All 165 deterministic JavaScript tests pass, including source assertions that
+the large spacer is group-only and that the bullet carries its own padding. The
+summon-helper test, `git diff --check`, plugin validation, and `qmllint` with the
+installed shell import path pass; lint retains the established project warnings.
+
+Actual Matte Black Omarchy instance `kov6ravwkt` ran as the sole Quickshell
+process. The screenshot at
+`/tmp/opencode/sportray-ticker-group-spacing.png` showed padded orange bullets
+between MLB games and a visibly larger gap before the MLS heading. The ticker
+remained logical 1920x32 at the bottom edge, monitor reservations remained
+`[0,26,0,32]`, and the normal score panel coexisted with it. Logs showed normal
+Sportray fetching and only the established portal/XKB host warnings.
+
+Next bounded unit: with explicit owner consent before changing their desktop
+theme, perform one actual light-theme visual pass of the ticker and restore the
+original theme afterward. Make at most one theme-adaptive presentation fix if a
+defect is reproduced. Stop before provider, selection, animation, release,
+push, tag, or Marketplace work.
+
 ## Latest handoff - 2026-09-05 bottom-edge scrolling ticker
 
 The floating top ticket was rejected in actual use because it obscured tiled

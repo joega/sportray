@@ -71,6 +71,8 @@ favorites break ties inside each group. Sport emoji and friendly league names
 introduce each consecutive league group without repeating provider identifiers
 on every score. Available normalized team logos render at a compact size before
 each team name; missing or failed logos collapse without leaving an empty slot.
+League-group transitions receive an additional eight-character-equivalent gap,
+while the bullet between games in the same group has three spaces on each side.
 Older finals, past-due schedules, and malformed states are omitted. The score
 panel remains the only `KeyboardPanel`, and the ticker adds no provider request
 or second Quickshell process.
