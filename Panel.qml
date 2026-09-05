@@ -56,6 +56,7 @@ Panel {
   // a deferred closure can reject itself without dereferencing a destroyed
   // QML object first.
   readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
+  readonly property var resultListLifecycle: LifecyclePolicy.createOwnerState()
   readonly property var fetchService: root.service ? root.service.fetchService : null
   readonly property bool calendarFeatureEnabled: root.service
     ? root.service.calendarFeatureEnabled === true : false
@@ -221,6 +222,8 @@ Panel {
   readonly property string barScoreText: buildBarScoreText()
   readonly property string barTooltipText: buildBarTooltipText()
   readonly property var verticalScoreLines: buildVerticalScoreLines()
+  readonly property var ticketGame: root.service ? root.service.ambientGame : null
+  readonly property string ticketState: root.service ? root.service.ambientTicketState : "empty"
   readonly property string todayDateKey: DateModel.localDateKey(new Date(root.nowMs))
   readonly property string selectedDateLabel: DateModel.displayLabel(
     root.selectedDateKey, root.todayDateKey)
@@ -442,12 +445,13 @@ Panel {
     if (typeof callback !== "function" || !resultList) return
     var panelOwner = root.callbackOwner
     var list = resultList
-    var listOwner = list.callbackOwner
+    var listLifecycle = root.resultListLifecycle
     var panelGeneration = LifecyclePolicy.captureGeneration(panelOwner)
-    var listGeneration = LifecyclePolicy.captureGeneration(listOwner)
+    var listGeneration = LifecyclePolicy.captureGeneration(listLifecycle)
     Qt.callLater(function() {
       if (!LifecyclePolicy.canRun(panelOwner, panelGeneration)
-          || !LifecyclePolicy.canRun(listOwner, listGeneration)) return
+          || !LifecyclePolicy.canRun(listLifecycle, listGeneration)
+          || resultList !== list) return
       callback(list)
     })
   }
@@ -916,6 +920,7 @@ Panel {
 
   Component.onDestruction: {
     LifecyclePolicy.invalidate(root.callbackOwner)
+    LifecyclePolicy.invalidate(root.resultListLifecycle)
     panelHeightSettleTimer.stop()
     panelClockTimer.stop()
     if (root.service && root.panelToken) root.service.unregisterPanel(root.panelToken)
@@ -956,6 +961,19 @@ Panel {
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(400))
     contentHeight: panel.fittedContentHeight(root.panelContentHeightRequest, Style.space(640))
+
+    TicketStrip {
+      anchors.fill: parent
+      visible: !root.opened
+      leagueId: root.ticketGame && root.ticketGame.league
+        ? String(root.ticketGame.league) : "following"
+      game: root.ticketGame
+      ticketState: root.ticketState
+      label: root.barScoreText
+      errorCode: root.fetchService ? root.fetchService.errorCode : ""
+      compact: true
+      onPrimaryActionRequested: root.open()
+    }
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -1045,7 +1063,7 @@ Panel {
         // The card is intentionally bounded even when the result model is
         // dense. The body below uses the actual fitted card height.
 
-        Item {
+      Item {
           id: header
           width: parent.width
           property real spacing: Style.spacing.sm
@@ -1238,12 +1256,12 @@ Panel {
           }
 
             Item {
-              id: scoreContent
+        id: scoreContent
               anchors.fill: parent
               visible: !root.settingsOpen && !root.detailOpen
-              clip: true
+        clip: true
 
-            SportAtmosphere {
+        SportAtmosphere {
               id: sportAtmosphere
               anchors.left: parent.left
               anchors.right: parent.right
@@ -1352,7 +1370,6 @@ Panel {
 
               ListView {
                 id: resultList
-                readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
                 anchors.fill: parent
                 model: root.displayRows
                 currentIndex: root.selectedRowIndex
@@ -1366,8 +1383,6 @@ Panel {
                   root.deferResultListCallback(function(list) {
                     list.positionViewAtIndex(currentIndex, ListView.Contain)
                   })
-
-                Component.onDestruction: LifecyclePolicy.invalidate(callbackOwner)
 
                 delegate: Item {
                   required property var modelData

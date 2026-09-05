@@ -1,5 +1,53 @@
 # Sportray private roadmap
 
+## Latest handoff - 2026-09-05 ticket panel integration
+
+The ticket-functionality unit is complete. Existing `TicketStrip.qml` and its
+game card are integrated into the existing `Panel.qml` `KeyboardPanel` surface
+as the closed-state ambient ticket. Its primary action opens the normal panel;
+the separate `TicketOverlay.qml` instance was not used, avoiding a second
+focus/popout owner. `BarWidget.qml` continues to inject the shared singleton
+`SportrayService`, and the service remains the sole owner of ambient game and
+ticket state. Existing keyboard routes, Escape/focus behavior, lifecycle
+guards, accessibility actions, and vertical-bar fallback remain unchanged.
+
+Calendar remains disabled by the shared readonly feature flag and no Calendar
+provider, cache, or settings behavior changed. Deterministic JS tests, summon
+helper tests, diff check, plugin validation, and real-import-path QML lint pass.
+On actual Omarchy, the plugin was rescanned, the shell restarted, one
+Quickshell instance remained healthy, shell ping and summon IPC returned `ok`,
+and the fresh log showed normal Sportray polling without errors, exceptions, or
+binding-loop warnings. The only warning was the pre-existing desktop portal
+registration warning.
+
+No upstream API deviation, push, tag, release, or Marketplace action was
+performed.
+
+## Latest handoff - 2026-09-05 deferred result-list lifecycle admission
+
+The reported runtime failure is fixed in the current worktree. `Panel.qml`
+previously captured `resultList.callbackOwner` inside a `Qt.callLater` closure;
+when the list was replaced or destroyed, that QML object could become dangling
+before `LifecyclePolicy.canRun` converted it. The panel now owns a plain-JS
+result-list lifecycle token, invalidates it with the panel, and admits deferred
+callbacks only when the token generation is live and `resultList === list`.
+The panel owner guard remains in place, and all unrelated ticket/calendar edits
+were preserved.
+
+The deterministic JavaScript suite passes, including source coverage for the
+plain-JS token, current-list identity check, and destruction invalidation.
+`git diff --check`, `omarchy plugin validate "$PWD"`, summon-helper tests, and
+real-import-path QML lint pass with the established warnings. On actual Omarchy
+4.0.2-1 with Quickshell 0.3.1, the linked plugin was rescanned, the shell was
+restarted, one Quickshell instance remained healthy, shell ping returned `ok`,
+toggle/hide IPC succeeded, and the fresh log showed normal Sportray polling
+without the reported null conversion, exception, or binding-loop warning. The
+only warning was the pre-existing desktop portal registration warning.
+
+No upstream API deviation was introduced. No push, tag, release, or
+Marketplace action was performed. Unrelated in-progress work remains
+uncommitted and must not be overwritten.
+
 Last reviewed: 2026-08-27
 
 ## Competitive scan — 2026-08-23

@@ -5,7 +5,6 @@ import qs.Ui
 import "model/BarPresentation.js" as BarPresentation
 import "model/CountdownProjectionPolicy.js" as CountdownProjectionPolicy
 import "model/Iconography.js" as Iconography
-import "model/LifecyclePolicy.js" as LifecyclePolicy
 import "services" as Services
 
 BarWidget {
@@ -58,17 +57,9 @@ BarWidget {
   // real button, whose item tree lets KeyboardPanel resolve the correct screen
   // and overlay layer.
   property string barRegion: ""
-  readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
-
-  function deferCallback(callback) {
-    if (typeof callback !== "function") return
-    var owner = root.callbackOwner
-    var generation = LifecyclePolicy.captureGeneration(owner)
-    Qt.callLater(function() {
-      if (!LifecyclePolicy.canRun(owner, generation)) return
-      callback()
-    })
-  }
+  readonly property var ticketGame: root.sharedService ? root.sharedService.ambientGame : null
+  readonly property string ticketState: root.sharedService
+    ? root.sharedService.ambientTicketState : "empty"
 
   function resolveBarRegion() {
     var slots = root.bar && root.bar.moduleSlots ? root.bar.moduleSlots : []
@@ -168,13 +159,9 @@ BarWidget {
 
   Component.onCompleted: {
     resolveBarRegion()
-    root.deferCallback(function() {
-      root.resolveBarRegion()
-      root.injectPanel()
-    })
+    root.resolveBarRegion()
+    root.injectPanel()
   }
-
-  Component.onDestruction: LifecyclePolicy.invalidate(root.callbackOwner)
 
   Loader {
     id: panelLoader
@@ -183,7 +170,6 @@ BarWidget {
     visible: false
     onLoaded: {
       root.injectPanel()
-      root.deferCallback(root.injectPanel)
     }
   }
 

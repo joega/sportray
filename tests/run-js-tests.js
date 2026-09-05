@@ -55,6 +55,8 @@ const providerFallback = require(path.join(root, "model/ProviderFallbackPolicy.j
 const chunkPolicy = require(path.join(root, "model/ChunkPolicy.js"));
 const calendarCachePolicy = require(path.join(root, "model/CalendarCachePolicy.js"));
 const calendarDiskCachePolicy = require(path.join(root, "model/CalendarDiskCachePolicy.js"));
+const ticketPresentation = require(path.join(root, "model/TicketPresentation.js"));
+const ticketLayout = require(path.join(root, "model/TicketLayout.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -244,6 +246,31 @@ function readTeamPickerDiscoveryFixture() {
   return JSON.parse(fs.readFileSync(
     path.join(root, "fixtures/team-picker/discovery.json"), "utf8"));
 }
+
+function readTicketPresentationFixture() {
+  return JSON.parse(fs.readFileSync(path.join(root, "fixtures/bar-presentation/ticket-strip.json"), "utf8"));
+}
+
+function readTicketLayoutFixture() {
+  return JSON.parse(fs.readFileSync(path.join(root, "fixtures/layout/ticket-strip.json"), "utf8"));
+}
+
+test("ticket presentation is provider-neutral and bounded", () => {
+  readTicketPresentationFixture().cases.forEach((entry) => {
+    const result = ticketPresentation.project(entry.input);
+    Object.keys(entry.expected).forEach((key) => assert.equal(result[key], entry.expected[key], entry.name + ": " + key));
+  });
+  assert.equal(ticketPresentation.project({game: {awayTeam: {name: "A".repeat(100)}}}).label.length <= ticketPresentation.MAX_TEXT_LENGTH, true);
+});
+
+test("ticket layout keeps columns bounded and non-overlapping", () => {
+  const fixture = readTicketLayoutFixture();
+  fixture.widths.forEach((entry) => {
+    const result = ticketLayout.layout({...fixture.defaults, width: entry.width});
+    assert.equal(result.nonOverlapping, true);
+    assert.equal(result.trailingReachable, true);
+  });
+});
 
 function normalizeFixtureGames(fixture) {
   return fixture.games.map((game) => games.normalizeGame(game));
@@ -4053,13 +4080,27 @@ test("deferred callbacks run for live owners and reject destroyed owners", () =>
   const picker = readSource("components/TeamPicker.qml");
   assert.match(panel, /function deferPanelCallback\(callback\)/);
   assert.match(panel, /function deferResultListCallback\(callback\)/);
+  assert.match(panel, /readonly property var resultListLifecycle: LifecyclePolicy\.createOwnerState\(\)/);
+  assert.match(panel, /var listLifecycle = root\.resultListLifecycle/);
+  assert.match(panel, /resultList !== list/);
   assert.match(panel, /LifecyclePolicy\.invalidate\(root\.callbackOwner\)/);
-  assert.match(panel, /Component\.onDestruction: LifecyclePolicy\.invalidate\(callbackOwner\)/);
+  assert.match(panel, /LifecyclePolicy\.invalidate\(root\.resultListLifecycle\)/);
   assert.match(panel, /panelHeightSettleTimer\.stop\(\)/);
-  assert.match(widget, /function deferCallback\(callback\)/);
-  assert.match(widget, /Component\.onDestruction: LifecyclePolicy\.invalidate\(root\.callbackOwner\)/);
   assert.match(hub, /root\.deferCallback\(root\.focusContent\)/);
   assert.match(picker, /root\.deferCallback\(root\.ensureCursorVisible\)/);
+});
+
+test("ticket presentation is integrated into the shared bar panel", () => {
+  const widget = readSource("BarWidget.qml");
+  const panel = readSource("Panel.qml");
+  const service = readSource("services/SportrayService.qml");
+  assert.match(widget, /readonly property var sharedService: Services\.SportrayService/);
+  assert.doesNotMatch(widget, /TicketOverlay/);
+  assert.match(panel, /TicketStrip/);
+  assert.match(panel, /visible: !root\.opened/);
+  assert.match(panel, /onPrimaryActionRequested: root\.open\(\)/);
+  assert.match(service, /readonly property var ambientGame/);
+  assert.match(service, /readonly property string ambientTicketState/);
 });
 
 test("U2.1 result row identity stays canonical and Panel uses one virtualized result list", () => {

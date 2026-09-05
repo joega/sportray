@@ -1,0 +1,7 @@
+{
+  "cases": [
+    {"name":"live favorite","input":{"kind":"live","league":"nhl","game":{"status":"live","awayTeam":{"abbreviation":"BOS"},"homeTeam":{"abbreviation":"TOR"},"awayScore":3,"homeScore":2}},"expected":{"kind":"live","away":"BOS","home":"TOR","score":"3–2"}},
+    {"name":"scheduled","input":{"game":{"status":"scheduled","awayTeam":{"name":"Boston Bruins"},"homeTeam":{"name":"Toronto Maple Leafs"}}},"expected":{"kind":"scheduled","score":"VS"}},
+    {"name":"offline","input":{"errorCode":"unavailable"},"expected":{"kind":"offline"}}
+  ]
+}

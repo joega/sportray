@@ -1,0 +1,7 @@
+{
+  "cases": [
+    {"name":"top", "input":{"position":"top","screenWidth":1920,"screenHeight":1080,"barHeight":40,"width":640,"height":500,"margin":0,"gap":0,"x":640}, "expected":{"x":640,"y":40,"flush":true}},
+    {"name":"bottom", "input":{"position":"bottom","screenWidth":1920,"screenHeight":1080,"barHeight":40,"width":640,"height":500,"margin":0,"gap":0,"x":640}, "expected":{"x":640,"y":540,"flush":true}},
+    {"name":"top clamped", "input":{"position":"top","screenWidth":800,"screenHeight":600,"barHeight":32,"width":500,"height":300,"margin":12,"gap":0,"x":500}, "expected":{"x":288,"y":32,"flush":true}}
+  ]
+}
