@@ -76,12 +76,6 @@ function positiveIntegerOrNull(value) {
   return result !== null && result > 0 ? result : null;
 }
 
-function safeUrl(value) {
-  var url = cleanString(value);
-  if (!url || !/^https?:\/\//i.test(url)) return null;
-  return url;
-}
-
 function safeLogoUrl(value) {
   if (AssetUrlPolicy) return AssetUrlPolicy.safeLogoUrl(value);
 

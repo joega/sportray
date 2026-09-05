@@ -948,14 +948,11 @@ Panel {
     // opening as a centered dashboard. Zero margin/gap makes its top edge meet
     // the top bar directly; KeyboardPanel keeps it on the Overlay layer above
     // tiled application windows. The host component owns the card surface and
-    // transition; its default popup/bar backgrounds are identical in Omarchy's
-    // current theme.
+    // transition; the default popup border frames the card like other Omarchy
+    // popups and matches the ticker's accent edge.
     centerOnBar: root.barRegion === "center"
     margin: 0
     gap: 0
-    // The card is the panel surface itself, not a floating window frame. Keep
-    // its fill and rounded shape while removing the popup outline at the bar.
-    borderSpec: Border.none()
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(400))
     contentHeight: panel.fittedContentHeight(root.panelContentHeightRequest, Style.space(640))

@@ -56,11 +56,6 @@ function integerOrNull(value) {
   return value;
 }
 
-function safeUrl(value) {
-  var url = cleanString(value);
-  return url && /^https?:\/\//i.test(url) ? url : null;
-}
-
 function safeLogoUrl(value) {
   if (AssetUrlPolicy) return AssetUrlPolicy.safeLogoUrl(value);
 
@@ -191,7 +186,7 @@ function teamLink(team) {
   if (!Array.isArray(links)) return null;
   for (var i = 0; i < links.length; i++) {
     if (!isRecord(links[i])) continue;
-    var href = safeUrl(links[i].href);
+    var href = safeGameUrl(links[i].href);
     if (href) return href;
   }
   return null;

@@ -64,14 +64,30 @@ function teamIsFavorite(team, favoriteIds) {
   return normalizeFavoriteIds(favoriteIds).indexOf(team.id.trim().toLowerCase()) !== -1;
 }
 
+function teamIsFavoriteNormalized(team, favorites) {
+  if (!isRecord(team) || typeof team.id !== "string" || !Array.isArray(favorites)) return false;
+  return favorites.indexOf(team.id.trim().toLowerCase()) !== -1;
+}
+
+function isFavoriteGameNormalized(game, favorites) {
+  if (FavoritePresentation && FavoritePresentation.isFavoriteGameNormalized)
+    return FavoritePresentation.isFavoriteGameNormalized(game, favorites);
+  if (!isRecord(game)) return false;
+  var normalized = Array.isArray(favorites) ? favorites : normalizeFavoriteIds(favorites);
+  return teamIsFavoriteNormalized(game.awayTeam, normalized)
+    || teamIsFavoriteNormalized(game.homeTeam, normalized);
+}
+
 function annotate(game, favoriteIds, pinned, matcher, leagueMeta, showLeagueContext) {
-  var favorite = isFavoriteGame(game, favoriteIds, matcher);
+  var favorites = normalizeFavoriteIds(favoriteIds);
+  var favorite = typeof matcher === "function" ? matcher(game, favorites)
+    : isFavoriteGameNormalized(game, favorites);
   var live = game.status === "live" || game.status === "intermission";
   return Object.assign({}, game, {
     presentation: {
       isFavorite: favorite,
-      awayIsFavorite: teamIsFavorite(game.awayTeam, favoriteIds),
-      homeIsFavorite: teamIsFavorite(game.homeTeam, favoriteIds),
+      awayIsFavorite: teamIsFavoriteNormalized(game.awayTeam, favorites),
+      homeIsFavorite: teamIsFavoriteNormalized(game.homeTeam, favorites),
       isLive: live,
       isPinned: pinned === true,
       leagueLabel: leagueMeta && leagueMeta.displayName ? leagueMeta.displayName : "",

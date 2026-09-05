@@ -4,6 +4,15 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Restored the default popup border on the main scores panel so it reads as a
+  framed card like other Omarchy popups; bar attachment, zero margin/gap, and
+  the ticker's accent edge are unchanged.
+- Hardened external game-page links with an HTTPS and provider-host check at
+  the open action, and restricted ESPN team links to the reviewed ESPN game
+  host.
+- Rendered provider-derived score text as plain text, decoded team logos at a
+  bounded size with caching, coalesced per-league update bursts into one
+  aggregate recompose, and normalized favorite identities once per sort pass.
 - Omit the clock from ticker live status for untimed baseball games (inning
   only); timed sports keep their clock.
 - Refreshed `preview.png` with a current 1280×720 capture of the desktop, scores panel, and ticker.

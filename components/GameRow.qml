@@ -138,6 +138,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             source: root.game.awayTeam && root.game.awayTeam.logoUrl
               ? root.game.awayTeam.logoUrl : ""
+            sourceSize: Qt.size(root.logoSize * 2, root.logoSize * 2)
+            cache: true
             fillMode: Image.PreserveAspectFit
             asynchronous: true
             visible: status === Image.Ready
@@ -179,6 +181,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: root.awayLabel
+            textFormat: Text.PlainText
             color: Formatters.isWinningTeam(root.game, "away")
               ? Color.accent : Color.popups.text
             font.family: Style.font.family
@@ -218,6 +221,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             source: root.game.homeTeam && root.game.homeTeam.logoUrl
               ? root.game.homeTeam.logoUrl : ""
+            sourceSize: Qt.size(root.logoSize * 2, root.logoSize * 2)
+            cache: true
             fillMode: Image.PreserveAspectFit
             asynchronous: true
             visible: status === Image.Ready
@@ -259,6 +264,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: root.homeLabel
+            textFormat: Text.PlainText
             color: Formatters.isWinningTeam(root.game, "home")
               ? Color.accent : Color.popups.text
             font.family: Style.font.family
@@ -321,6 +327,7 @@ Item {
                 width: footer.footerGeometry.contextWidth
                 text: root.showLeagueContext && root.leagueLabel !== ""
                   ? root.leagueLabel + " ·" : ""
+                textFormat: Text.PlainText
                 color: Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
@@ -341,6 +348,7 @@ Item {
                 id: detailText
                 width: footer.footerGeometry.detailWidth
                 text: root.detailLabel
+                textFormat: Text.PlainText
                 color: root.unavailable || root.stale || root.live
                   || root.game.status === "postponed" || root.game.status === "canceled"
                   ? Color.urgent : Color.muted
@@ -355,6 +363,7 @@ Item {
               id: venueText
               width: parent.width
               text: root.venueLabel
+              textFormat: Text.PlainText
               visible: root.venueLabel !== ""
               color: Color.muted
               font.family: Style.font.family

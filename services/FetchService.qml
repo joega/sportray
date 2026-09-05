@@ -29,6 +29,19 @@ Item {
   property string calendarMonthKey: ""
   property int calendarStatesRevision: 0
   property string rehydrationAttemptedKey: ""
+  // One league fetch completion fires several property signals in sequence
+  // (games, loading, stale, error, timestamps). Coalesce those bursts into a
+  // single aggregate recompose per event loop turn.
+  property bool aggregateUpdatePending: false
+
+  function requestAggregateUpdate() {
+    if (root.aggregateUpdatePending) return
+    root.aggregateUpdatePending = true
+    Qt.callLater(function() {
+      root.aggregateUpdatePending = false
+      root.updateAggregateState()
+    })
+  }
   readonly property var calendarScheduleState: calendarFetch.snapshotFor("nhl")
   readonly property bool calendarCacheReady: calendarDiskCache.ready
   readonly property bool calendarRehydrating: calendarFetch.rehydrating
@@ -224,137 +237,137 @@ Item {
   Connections {
     target: nhlFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   Connections {
     target: nflFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   Connections {
     target: mlbFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   Connections {
     target: nbaFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   Connections {
     target: ncaafFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   Connections {
     target: eplFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   Connections {
     target: mlsFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   Connections {
     target: ncaabFetch
     function onRetryRequested(delayMs) { pollScheduler.scheduleRetry(delayMs) }
-    function onLeagueEnabledChanged() { root.updateAggregateState() }
-    function onGamesChanged() { root.updateAggregateState() }
-    function onLoadingChanged() { root.updateAggregateState() }
-    function onStaleChanged() { root.updateAggregateState() }
-    function onErrorCodeChanged() { root.updateAggregateState() }
-    function onPartialErrorCountChanged() { root.updateAggregateState() }
-    function onLastSuccessAtChanged() { root.updateAggregateState() }
-    function onLastAttemptAtChanged() { root.updateAggregateState() }
-    function onErrorSummaryChanged() { root.updateAggregateState() }
-    function onNextGameChanged() { root.updateAggregateState() }
-    function onNextGameDateKeyChanged() { root.updateAggregateState() }
-    function onNextGameStatusChanged() { root.updateAggregateState() }
+    function onLeagueEnabledChanged() { root.requestAggregateUpdate() }
+    function onGamesChanged() { root.requestAggregateUpdate() }
+    function onLoadingChanged() { root.requestAggregateUpdate() }
+    function onStaleChanged() { root.requestAggregateUpdate() }
+    function onErrorCodeChanged() { root.requestAggregateUpdate() }
+    function onPartialErrorCountChanged() { root.requestAggregateUpdate() }
+    function onLastSuccessAtChanged() { root.requestAggregateUpdate() }
+    function onLastAttemptAtChanged() { root.requestAggregateUpdate() }
+    function onErrorSummaryChanged() { root.requestAggregateUpdate() }
+    function onNextGameChanged() { root.requestAggregateUpdate() }
+    function onNextGameDateKeyChanged() { root.requestAggregateUpdate() }
+    function onNextGameStatusChanged() { root.requestAggregateUpdate() }
   }
 
   PollScheduler {

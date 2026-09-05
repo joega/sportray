@@ -119,6 +119,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: gameItem.modelData.away + (gameItem.modelData.awayScore
               ? " " + gameItem.modelData.awayScore : "")
+            textFormat: Text.PlainText
             color: Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -128,6 +129,7 @@ Item {
           Text {
             anchors.verticalCenter: parent.verticalCenter
             text: gameItem.modelData.divider
+            textFormat: Text.PlainText
             color: Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -149,6 +151,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: gameItem.modelData.home + (gameItem.modelData.homeScore
               ? " " + gameItem.modelData.homeScore : "")
+            textFormat: Text.PlainText
             color: Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -158,6 +161,7 @@ Item {
           Text {
             anchors.verticalCenter: parent.verticalCenter
             text: "|  " + gameItem.modelData.detail
+            textFormat: Text.PlainText
             color: Color.foreground
             opacity: 0.82
             font.family: Style.font.family

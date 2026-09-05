@@ -26,7 +26,10 @@ Item {
   readonly property bool pointerPressed: action.pointerPressed
 
   function openSource() {
-    if (root.sourceUrl === "") return
+    if (typeof root.sourceUrl !== "string" || root.sourceUrl.indexOf("https://") !== 0) return
+    var lowered = root.sourceUrl.toLowerCase()
+    if (lowered.indexOf("espn.com") === -1 && lowered.indexOf("nhl.com") === -1
+        && lowered.indexOf("mlb.com") === -1) return
     Quickshell.execDetached(["omarchy-launch-browser", root.sourceUrl])
   }
 

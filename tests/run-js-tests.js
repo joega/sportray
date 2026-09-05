@@ -4216,7 +4216,7 @@ test("overlay opens directly below the configured bar region with no gap", () =>
   assert.equal(panel.includes("centerOnBar: root.barRegion === \"center\""), true);
   assert.equal(panel.includes("margin: 0"), true);
   assert.equal(panel.includes("gap: 0"), true);
-  assert.equal(panel.includes("borderSpec: Border.none()"), true);
+  assert.equal(panel.includes("borderSpec: Border.none()"), false);
 });
 
 test("horizontal overlay anchors to its button and clamps at the screen edge", () => {
@@ -6680,6 +6680,48 @@ test("LeagueFetch admits through the fallback chain without new fetch ownership"
   assert.equal((leagueFetch.match(/\bTimer\s*\{/g) || []).length, 0);
   assert.equal((leagueFetch.match(/curl/g) || []).length, 2);
   assert.equal((leagueFetch.match(/JSON\.parse/g) || []).length, 2);
+});
+
+test("source links, logos, aggregate updates, and favorite checks stay bounded", () => {
+  const sourceButton = readSource("components/SourceLinkButton.qml");
+  assert.match(sourceButton, /indexOf\("https:\/\/".*\) !== 0.*return/);
+  assert.match(sourceButton, /espn\.com/);
+  assert.match(sourceButton, /nhl\.com/);
+  assert.match(sourceButton, /mlb\.com/);
+
+  const espn = readSource("providers/EspnProvider.js");
+  assert.equal(espn.includes("var href = safeUrl(links[i].href);"), false);
+  assert.match(espn, /function teamLink\(team\)[\s\S]*?safeGameUrl\(links\[i\]\.href\)/);
+
+  const gameRow = readSource("components/GameRow.qml");
+  assert.equal((gameRow.match(/sourceSize:/g) || []).length >= 2, true);
+  assert.equal((gameRow.match(/cache: true/g) || []).length >= 2, true);
+  assert.equal(gameRow.includes("text: root.awayLabel\n            textFormat: Text.PlainText"), true);
+  assert.equal(gameRow.includes("text: root.homeLabel\n            textFormat: Text.PlainText"), true);
+  assert.equal(gameRow.includes("text: root.detailLabel\n                textFormat: Text.PlainText"), true);
+
+  const strip = readSource("components/TicketStrip.qml");
+  assert.equal((strip.match(/textFormat: Text\.PlainText/g) || []).length >= 5, true);
+
+  const fetchService = readSource("services/FetchService.qml");
+  assert.match(fetchService, /property bool aggregateUpdatePending/);
+  assert.match(fetchService, /function requestAggregateUpdate\(\)/);
+  assert.match(fetchService, /function onGamesChanged\(\) \{ root\.requestAggregateUpdate\(\) \}/);
+
+  const favorites = require("../model/FavoritePresentation.js");
+  assert.equal(typeof favorites.isFavoriteGameNormalized, "function");
+  var normed = favorites.normalizeFavoriteIds(["NHL:123", "nfl:456"]);
+  assert.deepEqual(normed, ["nhl:123", "nfl:456"]);
+  assert.equal(favorites.isFavoriteGameNormalized({awayTeam: {id: "nhl:123"}, homeTeam: {id: "nhl:999"}}, normed), true);
+  assert.equal(favorites.isFavoriteGameNormalized({awayTeam: {id: "nhl:111"}, homeTeam: {id: "nhl:999"}}, normed), false);
+  var ordered = favorites.orderGames([
+    {id: "nhl:2", status: "final", startTime: "2026-09-05T19:00:00.000Z", awayTeam: {id: "nhl:111"}, homeTeam: {id: "nhl:999"}},
+    {id: "nhl:1", status: "live", startTime: "2026-09-05T19:00:00.000Z", awayTeam: {id: "nhl:123"}, homeTeam: {id: "nhl:999"}}
+  ], ["nhl:123"]);
+  assert.deepEqual(ordered.map((game) => game.id), ["nhl:1", "nhl:2"]);
+
+  const panel = readSource("Panel.qml");
+  assert.equal(panel.includes("borderSpec: Border.none()"), false);
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

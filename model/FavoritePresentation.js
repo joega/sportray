@@ -39,6 +39,11 @@ function isScheduledGame(game) {
 function isFavoriteGame(game, favoriteIds) {
   if (!isRecord(game)) return false;
   var favorites = normalizeFavoriteIds(favoriteIds);
+  return isFavoriteGameNormalized(game, favorites);
+}
+
+function isFavoriteGameNormalized(game, favorites) {
+  if (!isRecord(game) || !Array.isArray(favorites)) return false;
   return favorites.indexOf(teamId(game.awayTeam)) !== -1
     || favorites.indexOf(teamId(game.homeTeam)) !== -1;
 }
@@ -67,9 +72,35 @@ function category(game, favoriteIds) {
   return 5;
 }
 
+function categoryNormalized(game, favorites) {
+  var favorite = isFavoriteGameNormalized(game, favorites);
+  if (favorite && isLiveGame(game)) return 0;
+  if (favorite) return 1;
+  if (isLiveGame(game)) return 2;
+  if (isScheduledGame(game)) return 3;
+  if (isRecord(game) && game.status === "final") return 4;
+  return 5;
+}
+
 function compareEntries(left, right, favoriteIds) {
   var leftCategory = category(left.game, favoriteIds);
   var rightCategory = category(right.game, favoriteIds);
+  if (leftCategory !== rightCategory) return leftCategory - rightCategory;
+
+  var leftTime = timestamp(left.game.startTime);
+  var rightTime = timestamp(right.game.startTime);
+  if (leftTime !== rightTime) return leftTime - rightTime;
+
+  var leftIdentity = identity(left.game);
+  var rightIdentity = identity(right.game);
+  if (leftIdentity < rightIdentity) return -1;
+  if (leftIdentity > rightIdentity) return 1;
+  return left.index - right.index;
+}
+
+function compareEntriesNormalized(left, right, favorites) {
+  var leftCategory = categoryNormalized(left.game, favorites);
+  var rightCategory = categoryNormalized(right.game, favorites);
   if (leftCategory !== rightCategory) return leftCategory - rightCategory;
 
   var leftTime = timestamp(left.game.startTime);
@@ -92,7 +123,7 @@ function orderGames(games, favoriteIds) {
 
   var favorites = normalizeFavoriteIds(favoriteIds);
   entries.sort(function(left, right) {
-    return compareEntries(left, right, favorites);
+    return compareEntriesNormalized(left, right, favorites);
   });
   return entries.map(function(entry) { return entry.game; });
 }
@@ -141,12 +172,13 @@ function isStartingSoon(game, now) {
 
 function selectFavoriteUpcoming(games, favoriteIds, now) {
   var values = Array.isArray(games) ? games : [];
+  var favorites = normalizeFavoriteIds(favoriteIds);
   var currentTime = nowTimestamp(now);
   var candidates = [];
   for (var i = 0; i < values.length; i++) {
     var game = values[i];
     var start = timestamp(game && game.startTime);
-    if (!isScheduledGame(game) || !isFavoriteGame(game, favoriteIds)
+    if (!isScheduledGame(game) || !isFavoriteGameNormalized(game, favorites)
         || start === Number.POSITIVE_INFINITY || start < currentTime) continue;
     candidates.push({game: game, index: i});
   }
@@ -167,7 +199,7 @@ function selectBarState(games, favoriteIds, now) {
   var favorites = normalizeFavoriteIds(favoriteIds);
   var ordered = orderGames(games, favorites);
   var liveFavorites = ordered.filter(function(game) {
-    return isLiveGame(game) && isFavoriteGame(game, favorites);
+    return isLiveGame(game) && isFavoriteGameNormalized(game, favorites);
   });
 
   if (liveFavorites.length > 1) {
@@ -179,7 +211,7 @@ function selectBarState(games, favoriteIds, now) {
 
   var currentTime = nowTimestamp(now);
   var soon = ordered.filter(function(game) {
-    return isFavoriteGame(game, favorites) && isStartingSoon(game, currentTime);
+    return isFavoriteGameNormalized(game, favorites) && isStartingSoon(game, currentTime);
   });
   if (soon.length > 0) {
     return {kind: "favorite-starting-soon", game: soon[0], count: 1};
@@ -204,6 +236,7 @@ if (typeof module !== "undefined" && module.exports) {
     BAR_SOON_WINDOW_MS: BAR_SOON_WINDOW_MS,
     normalizeFavoriteIds: normalizeFavoriteIds,
     isFavoriteGame: isFavoriteGame,
+    isFavoriteGameNormalized: isFavoriteGameNormalized,
     gameIdentity: identity,
     orderGames: orderGames,
     selectBarState: selectBarState,
