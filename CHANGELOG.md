@@ -4,6 +4,8 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Omit the clock from ticker live status for untimed baseball games (inning
+  only); timed sports keep their clock.
 - Refreshed `preview.png` with a current 1280×720 capture of the desktop, scores panel, and ticker.
 - Replaced the floating ambient game card with a 32-pixel bottom-edge ticker
   that reserves screen space and continuously scrolls the current slate. Live

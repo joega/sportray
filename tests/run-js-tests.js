@@ -300,6 +300,30 @@ test("ticker bounds stale finals and degrades without provider details", () => {
   assert.equal(bounded.entries[0].game.id, "late-live");
 });
 
+test("ticker omits the clock for untimed baseball games but keeps it for timed sports", () => {
+  const leagues = {
+    mlb: {label: "MLB", sport: "baseball"},
+    nhl: {label: "NHL", sport: "hockey"}
+  };
+  const buildFor = (games) => ticketPresentation.build({
+    games: games,
+    nowMs: Date.parse("2026-09-05T17:00:00Z"),
+    leagueInfo: (id) => leagues[id]
+  });
+  const baseball = buildFor([{id: "live-mlb", league: "mlb", status: "live",
+    startTime: "2026-09-05T16:00:00Z", periodLabel: "Top 6th", clock: "0:00",
+    awayTeam: {abbreviation: "CHC"}, homeTeam: {abbreviation: "MIA"},
+    awayScore: 5, homeScore: 4}]);
+  assert.equal(baseball.state, "ready");
+  assert.equal(baseball.text.includes("Top 6th"), true);
+  assert.equal(baseball.text.includes("0:00"), false);
+  const hockey = buildFor([{id: "live-nhl", league: "nhl", status: "live",
+    startTime: "2026-09-05T16:00:00Z", periodLabel: "2nd", clock: "04:12",
+    awayTeam: {abbreviation: "BOS"}, homeTeam: {abbreviation: "TOR"},
+    awayScore: 3, homeScore: 2}]);
+  assert.equal(hockey.text.includes("2nd 04:12"), true);
+});
+
 function normalizeFixtureGames(fixture) {
   return fixture.games.map((game) => games.normalizeGame(game));
 }

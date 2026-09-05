@@ -64,13 +64,14 @@ function compare(left, right) {
   return left.index - right.index;
 }
 
-function liveStatus(game) {
+function liveStatus(game, sport) {
+  var fields = [game && game.periodLabel, game && game.statusDetail];
+  if (text(sport, "").toLowerCase() !== "baseball") fields.push(game && game.clock);
   var details = [];
-  [game && game.periodLabel, game && game.statusDetail, game && game.clock]
-    .forEach(function(value) {
-      var label = cap(value, 24);
-      if (label && details.indexOf(label) === -1) details.push(label);
-    });
+  fields.forEach(function(value) {
+    var label = cap(value, 24);
+    if (label && details.indexOf(label) === -1) details.push(label);
+  });
   return details.length > 0 ? details.join(" ") : "LIVE";
 }
 
@@ -93,11 +94,12 @@ function leagueContext(game, describeLeague) {
     id: leagueId,
     label: cap(description && description.label, 24).toUpperCase()
       || leagueId.toUpperCase(),
-    emoji: sportEmoji(description && description.sport)
+    emoji: sportEmoji(description && description.sport),
+    sport: text(description && description.sport, "").toLowerCase()
   };
 }
 
-function segment(entry, formatStartTime) {
+function segment(entry, formatStartTime, sport) {
   var game = entry.game;
   var away = teamLabel(game.awayTeam);
   var home = teamLabel(game.homeTeam);
@@ -112,7 +114,7 @@ function segment(entry, formatStartTime) {
     var awayScore = typeof game.awayScore === "number" ? String(game.awayScore) : "-";
     var homeScore = typeof game.homeScore === "number" ? String(game.homeScore) : "-";
     matchup = away + " " + awayScore + "-" + homeScore + " " + home;
-    detail = status === "final" ? "FINAL" : liveStatus(game);
+    detail = status === "final" ? "FINAL" : liveStatus(game, sport);
   }
   return {
     away: away,
@@ -163,7 +165,7 @@ function build(input) {
     var prefix = !groupStart ? "   •   "
       : (segments.length > 0 ? "     " : "")
         + league.emoji + "  " + league.label + "  |  ";
-    var game = segment(entry, source.formatStartTime);
+    var game = segment(entry, source.formatStartTime, league.sport);
     segments.push(prefix + game.text);
     game.groupStart = groupStart;
     game.leagueEmoji = league.emoji;
