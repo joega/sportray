@@ -44,6 +44,10 @@ At a glance:
 - Favorite-aware bar priority and pinned favorite games in league views
 - Automatic ambient bar modes: compact icon presentation on horizontal and
   vertical bars, with a color status indicator and score details on hover
+- Closed-state ambient ticket: an always-mapped, non-focus-owning overlay shows
+  a bounded ticket for the selected ambient game, with loading, offline, empty,
+  scheduled, live, and completed states; activating the ticket opens the normal
+  scores panel, while its labeled source action opens the provider game page
 - Provider-friendly adaptive polling, bounded date caches, and one in-flight
   request per league
 - Desktop notifications for favorite game starts, score changes, finals,
@@ -58,6 +62,13 @@ At a glance:
   center placement remains centered
 - Keyboard navigation, visible focus, Escape-to-close, and bounded dense panels
 - No account, API key, Sportray server, or background daemon
+
+The closed-state ticket is rendered by an always-mapped, non-focus-owning
+`PanelWindow`; the score panel remains the only `KeyboardPanel` surface. Sportray
+does not create a second focus owner or Quickshell process for it. The ticket is
+a compact ambient presentation of the service's already selected game and does
+not issue an additional provider request. Its source action is available only
+when the normalized game has a safe provider link.
 
 The score panel opens on the local current date. Use the date carousel to move
 back to completed slates or forward to upcoming games; each fetch and result

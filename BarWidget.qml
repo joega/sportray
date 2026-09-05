@@ -6,6 +6,7 @@ import "model/BarPresentation.js" as BarPresentation
 import "model/CountdownProjectionPolicy.js" as CountdownProjectionPolicy
 import "model/Iconography.js" as Iconography
 import "services" as Services
+import "components"
 
 BarWidget {
   id: root
@@ -60,6 +61,20 @@ BarWidget {
   readonly property var ticketGame: root.sharedService ? root.sharedService.ambientGame : null
   readonly property string ticketState: root.sharedService
     ? root.sharedService.ambientTicketState : "empty"
+
+  TicketOverlay {
+    id: ticketOverlay
+    bar: root.bar
+    targetScreen: fullButton.QsWindow.window ? fullButton.QsWindow.window.screen : null
+    hostWidget: root
+    panelOpen: root.opened
+    position: root.barPosition
+    ticketGame: root.ticketGame
+    ticketState: root.ticketState
+    label: root.barLabelText
+    errorCode: panelLoader.item && panelLoader.item.fetchService
+      ? panelLoader.item.fetchService.errorCode : ""
+  }
 
   function resolveBarRegion() {
     var slots = root.bar && root.bar.moduleSlots ? root.bar.moduleSlots : []

@@ -13,12 +13,16 @@ function geometry(input) {
   var margin = Math.max(0, finite(source.margin, 0));
   var gap = Math.max(0, finite(source.gap, 0));
   var x = finite(source.x, 0);
-  var position = source.position === "bottom" ? "bottom" : "top";
+  var position = source.position === "bottom" ? "bottom"
+    : source.position === "left" || source.position === "right" ? source.position : "top";
   var y = position === "bottom"
     ? screenHeight - barHeight - height - gap
-    : barHeight + gap;
+    : position === "top" ? barHeight + gap : (screenHeight - height) / 2;
+  var parallelX = position === "right"
+    ? screenWidth - width - barHeight - gap
+    : position === "left" ? barHeight + gap : x;
   return {
-    x: Math.round(Math.max(margin, Math.min(x, screenWidth - width - margin))),
+    x: Math.round(Math.max(margin, Math.min(parallelX, screenWidth - width - margin))),
     y: Math.round(Math.max(margin, Math.min(y, screenHeight - height - margin))),
     position: position,
     flush: gap === 0,

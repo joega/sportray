@@ -962,19 +962,6 @@ Panel {
     contentWidth: panel.fittedContentWidth(Style.space(400))
     contentHeight: panel.fittedContentHeight(root.panelContentHeightRequest, Style.space(640))
 
-    TicketStrip {
-      anchors.fill: parent
-      visible: !root.opened
-      leagueId: root.ticketGame && root.ticketGame.league
-        ? String(root.ticketGame.league) : "following"
-      game: root.ticketGame
-      ticketState: root.ticketState
-      label: root.barScoreText
-      errorCode: root.fetchService ? root.fetchService.errorCode : ""
-      compact: true
-      onPrimaryActionRequested: root.open()
-    }
-
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent

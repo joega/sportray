@@ -1,5 +1,58 @@
 # Sportray private roadmap
 
+## Latest handoff - 2026-09-05 visible closed-state ticket
+
+The missing ticket was traced to two concrete runtime boundaries. First, the
+committed `TicketStrip` was placed inside `KeyboardPanel`, whose installed host
+implementation maps only while `open` is true or its card is fading out; content
+with `visible: !root.opened` therefore could never render in the closed state.
+Second, `~/.config/omarchy/plugins` contained a non-hidden backup directory with
+the same `io.github.joega.sportray` manifest ID. Omarchy's sorted scan loaded the
+linked checkout and then silently replaced it with that backup, so shell
+restarts continued to run old QML. The preserved backup is now hidden as
+`.io.github.joega.sportray.backup-20260905-170100`, which the installed registry
+explicitly excludes from discovery.
+
+The production ticket now uses `TicketOverlay.qml`, a full-screen transparent
+`PanelWindow` bound to the bar widget's actual screen. Its input mask is limited
+to the visible ticket card, its layer-shell keyboard focus is `None`, and it is
+mapped only while the normal score panel is closed. `SportrayService` remains
+the sole data/fetch owner; the overlay adds no provider request, focus owner, or
+Quickshell process. Its primary action retains the normal panel route and its
+source action retains the normalized safe-link route. The invalid
+`BarWidget.barScoreText` binding found in the first live run was corrected to
+the existing bounded `barLabelText` presentation.
+
+Actual Omarchy evidence after removing the duplicate discovery path: one shell
+instance ran, `hyprctl layers -j` listed
+`io.github.joega.sportray-ticket` on the Overlay layer, and a screenshot showed
+the closed ticket directly below the top bar with the normalized `BOU vs NEW`
+final score. Toggle IPC replaced that namespace with exactly one
+`omarchy-keyboard-panel` surface and the normal scores panel rendered; the
+ticket did not overlap it. Empty/offline presentation and direct pointer
+activation of the ticket and source actions were not manually forced.
+
+Repository gates pass: 165 deterministic JavaScript tests, the summon-helper
+suite, `git diff --check`, checkout plugin validation, and real-import-path QML
+lint with the established standalone host/import and unqualified-access
+warnings. The installed plugin path is a development symlink to this checkout;
+validation of the real target passes, while passing the symlink itself to the
+validator is rejected by its general no-symlink safety rule. Final shell
+instance `9oj66xtwkt` logged normal Sportray fetch activity with no Sportray
+error, exception, binding-loop warning, or invalid ticket binding; only the
+pre-existing desktop portal registration warning remained.
+
+Calendar remains disabled by the shared readonly feature flag. No Calendar or
+provider behavior changed. No push, tag, release, or Marketplace action was
+performed.
+
+Next bounded unit: manually exercise the closed ticket's primary and safe-source
+pointer actions plus feasible empty/offline states, then make only a presentation
+or interaction correction justified by observed behavior. Preserve the
+non-focus-owning overlay, single shared service, score-panel keyboard/lifecycle
+behavior, and disabled Calendar flag. Stop before provider, Calendar, release,
+packaging, push, tag, or Marketplace work.
+
 ## Latest handoff - 2026-09-05 ticket panel integration
 
 The ticket-functionality unit is complete. Existing `TicketStrip.qml` and its

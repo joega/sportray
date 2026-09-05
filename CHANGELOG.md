@@ -4,6 +4,10 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Added a bounded, non-focus-owning ambient ticket overlay for loading, offline,
+  empty, scheduled, live, and completed states. The ticket yields to the normal
+  scores panel when it opens; its primary action opens that panel and its source
+  action opens the safe provider game link.
 - Assigned the local next release candidate as `1.0.0-rc.8` after the
   post-`1.0.0-rc.7` hardening work. The tree remains unreleased and untagged;
   no release date is asserted.

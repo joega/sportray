@@ -57,6 +57,7 @@ const calendarCachePolicy = require(path.join(root, "model/CalendarCachePolicy.j
 const calendarDiskCachePolicy = require(path.join(root, "model/CalendarDiskCachePolicy.js"));
 const ticketPresentation = require(path.join(root, "model/TicketPresentation.js"));
 const ticketLayout = require(path.join(root, "model/TicketLayout.js"));
+const ticketOverlay = require(path.join(root, "model/TicketOverlayPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -270,6 +271,17 @@ test("ticket layout keeps columns bounded and non-overlapping", () => {
     assert.equal(result.nonOverlapping, true);
     assert.equal(result.trailingReachable, true);
   });
+});
+
+test("ticket overlay geometry maps top, bottom, and side bars inside the screen", () => {
+  const input = {screenWidth: 1920, screenHeight: 1080, barHeight: 40,
+    width: 640, height: 96, margin: 0, gap: 0, x: 640};
+  assert.deepEqual(ticketOverlay.geometry({...input, position: "top"}),
+    {x: 640, y: 40, position: "top", flush: true, withinScreen: true});
+  assert.deepEqual(ticketOverlay.geometry({...input, position: "bottom"}),
+    {x: 640, y: 944, position: "bottom", flush: true, withinScreen: true});
+  assert.equal(ticketOverlay.geometry({...input, position: "left"}).x, 40);
+  assert.equal(ticketOverlay.geometry({...input, position: "right"}).x, 1240);
 });
 
 function normalizeFixtureGames(fixture) {
@@ -4095,10 +4107,17 @@ test("ticket presentation is integrated into the shared bar panel", () => {
   const panel = readSource("Panel.qml");
   const service = readSource("services/SportrayService.qml");
   assert.match(widget, /readonly property var sharedService: Services\.SportrayService/);
-  assert.doesNotMatch(widget, /TicketOverlay/);
-  assert.match(panel, /TicketStrip/);
-  assert.match(panel, /visible: !root\.opened/);
-  assert.match(panel, /onPrimaryActionRequested: root\.open\(\)/);
+  assert.match(widget, /TicketOverlay/);
+  assert.match(widget, /readonly property var sharedService: Services\.SportrayService/);
+  assert.match(widget, /hostWidget: root/);
+  assert.match(widget, /panelOpen: root\.opened/);
+  assert.match(widget, /targetScreen:/);
+  assert.doesNotMatch(panel, /TicketStrip/);
+  const overlay = readSource("components/TicketOverlay.qml");
+  assert.match(overlay, /screen: root\.targetScreen/);
+  assert.match(overlay, /visible: !!root\.targetScreen && !root\.panelOpen/);
+  assert.match(overlay, /WlrKeyboardFocus\.None/);
+  assert.match(overlay, /mask: Region \{ item: card \}/);
   assert.match(service, /readonly property var ambientGame/);
   assert.match(service, /readonly property string ambientTicketState/);
 });
