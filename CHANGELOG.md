@@ -4,6 +4,12 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Made individual bottom-ticker games activatable with explicit owner
+  confirmation: selecting a game with a safe provider link opens its provider
+  game page (ESPN gamecast, MLB.com gameday, or NHL.com gamecenter) through
+  the guarded HTTPS and provider-host source route, while other ticker chrome
+  keeps the panel-open action. Games without a safe link stay neutral and
+  non-activatable.
 - Restored the default popup border on the main scores panel so it reads as a
   framed card like other Omarchy popups; bar attachment, zero margin/gap, and
   the ticker's accent edge are unchanged.

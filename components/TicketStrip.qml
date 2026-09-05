@@ -1,8 +1,10 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import qs.Commons
 import "../model/TicketPresentation.js" as TicketPresentation
+import "../model/PointerInteractionPolicy.js" as PointerInteractionPolicy
 import "../providers/LeagueCatalog.js" as LeagueCatalog
 
 Item {
@@ -13,8 +15,21 @@ Item {
   property string tickerState: "empty"
   property double nowMs: Date.now()
   property bool reducedMotion: false
+  // Tracks an in-progress per-game pointer press so the full-strip chrome
+  // handler yields to the nested game target, mirroring the GameRow pattern.
+  property bool gameActionPressed: false
 
   signal primaryActionRequested()
+
+  // Guarded per-game source route: same HTTPS + provider-host allowlist as
+  // SourceLinkButton.openSource over the GameModel.safeGameUrl hosts.
+  function openTickerSource(url) {
+    if (typeof url !== "string" || url.indexOf("https://") !== 0) return
+    var lowered = url.toLowerCase()
+    if (lowered.indexOf("espn.com") === -1 && lowered.indexOf("nhl.com") === -1
+        && lowered.indexOf("mlb.com") === -1) return
+    Quickshell.execDetached(["omarchy-launch-browser", url])
+  }
 
   readonly property var ticker: TicketPresentation.build({
     games: root.games,
@@ -52,6 +67,19 @@ Item {
     color: Color.accent
   }
 
+  // Declared before the scrolling content so it sits below the per-game
+  // targets in stacking order; game presses are grabbed above while
+  // unhandled chrome clicks fall through here and keep the panel action.
+  MouseArea {
+    id: stripMouse
+    anchors.fill: parent
+    cursorShape: Qt.PointingHandCursor
+    onClicked: {
+      if (!PointerInteractionPolicy.allowsRowActivation(root.gameActionPressed)) return
+      root.primaryActionRequested()
+    }
+  }
+
   Item {
     id: tickerContent
     anchors.verticalCenter: parent.verticalCenter
@@ -87,6 +115,10 @@ Item {
           height: root.height
           spacing: Style.spacing.xs
 
+          readonly property string gameSourceUrl: typeof gameItem.modelData.sourceUrl === "string"
+            ? gameItem.modelData.sourceUrl : ""
+          readonly property bool hasGameSource: gameItem.gameSourceUrl !== ""
+
           Item {
             width: Style.space(56)
             height: 1
@@ -104,69 +136,102 @@ Item {
             font.bold: true
           }
 
-          Image {
-            width: Style.space(18)
-            height: width
-            anchors.verticalCenter: parent.verticalCenter
-            source: gameItem.modelData.awayLogoUrl
-            sourceSize: Qt.size(Style.space(36), Style.space(36))
-            fillMode: Image.PreserveAspectFit
-            asynchronous: true
-            visible: status === Image.Ready
-          }
+          Row {
+            id: gameHit
+            height: root.height
+            spacing: Style.spacing.xs
 
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: gameItem.modelData.away + (gameItem.modelData.awayScore
-              ? " " + gameItem.modelData.awayScore : "")
-            textFormat: Text.PlainText
-            color: Color.foreground
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            font.bold: true
-          }
+            Image {
+              width: Style.space(18)
+              height: width
+              anchors.verticalCenter: parent.verticalCenter
+              source: gameItem.modelData.awayLogoUrl
+              sourceSize: Qt.size(Style.space(36), Style.space(36))
+              fillMode: Image.PreserveAspectFit
+              asynchronous: true
+              visible: status === Image.Ready
+            }
 
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: gameItem.modelData.divider
-            textFormat: Text.PlainText
-            color: Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            font.bold: true
-          }
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: gameItem.modelData.away + (gameItem.modelData.awayScore
+                ? " " + gameItem.modelData.awayScore : "")
+              textFormat: Text.PlainText
+              color: Color.foreground
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
 
-          Image {
-            width: Style.space(18)
-            height: width
-            anchors.verticalCenter: parent.verticalCenter
-            source: gameItem.modelData.homeLogoUrl
-            sourceSize: Qt.size(Style.space(36), Style.space(36))
-            fillMode: Image.PreserveAspectFit
-            asynchronous: true
-            visible: status === Image.Ready
-          }
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: gameItem.modelData.divider
+              textFormat: Text.PlainText
+              color: Color.muted
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
 
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: gameItem.modelData.home + (gameItem.modelData.homeScore
-              ? " " + gameItem.modelData.homeScore : "")
-            textFormat: Text.PlainText
-            color: Color.foreground
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            font.bold: true
-          }
+            Image {
+              width: Style.space(18)
+              height: width
+              anchors.verticalCenter: parent.verticalCenter
+              source: gameItem.modelData.homeLogoUrl
+              sourceSize: Qt.size(Style.space(36), Style.space(36))
+              fillMode: Image.PreserveAspectFit
+              asynchronous: true
+              visible: status === Image.Ready
+            }
 
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: gameItem.modelData.detail
-            textFormat: Text.PlainText
-            color: Color.foreground
-            opacity: 0.82
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            font.bold: true
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: gameItem.modelData.home + (gameItem.modelData.homeScore
+                ? " " + gameItem.modelData.homeScore : "")
+              textFormat: Text.PlainText
+              color: Color.foreground
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: gameItem.modelData.detail
+              textFormat: Text.PlainText
+              color: Color.foreground
+              opacity: 0.82
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
+
+            // Per-game pointer target. Enabled only for games with a safe
+            // provider URL so unsafe games stay neutral and fall through to
+            // the full-strip panel action like other ticker chrome.
+            MouseArea {
+              id: gameMouse
+              anchors.fill: parent
+              enabled: gameItem.hasGameSource
+              hoverEnabled: true
+              cursorShape: gameItem.hasGameSource ? Qt.PointingHandCursor : Qt.ArrowCursor
+              onPressed: root.gameActionPressed = true
+              onReleased: root.gameActionPressed = false
+              onCanceled: root.gameActionPressed = false
+              onClicked: {
+                root.gameActionPressed = false
+                if (gameItem.hasGameSource) root.openTickerSource(gameItem.gameSourceUrl)
+              }
+            }
+
+            Accessible.role: gameItem.hasGameSource ? Accessible.Button : Accessible.StaticText
+            Accessible.name: gameItem.modelData.text
+              + (gameItem.hasGameSource
+                ? ". Open provider game page."
+                : ". External game page unavailable.")
+            Accessible.onPressAction: {
+              if (gameItem.hasGameSource) root.openTickerSource(gameItem.gameSourceUrl)
+            }
           }
         }
       }
@@ -180,12 +245,6 @@ Item {
       to: -tickerContent.width
       easing.type: Easing.Linear
     }
-  }
-
-  MouseArea {
-    anchors.fill: parent
-    cursorShape: Qt.PointingHandCursor
-    onClicked: root.primaryActionRequested()
   }
 
   Accessible.name: root.ticker.text

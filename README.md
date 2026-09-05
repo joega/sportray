@@ -85,8 +85,10 @@ completed slates or forward to upcoming games.
 
 The bar widget shows a compact favorite-aware indicator with score details on
 hover. The thin ticker across the bottom of the screen scrolls current live
-scores, upcoming games, and recent finals; selecting it opens the normal
-scores panel.
+scores, upcoming games, and recent finals; selecting a game opens its
+provider game page (ESPN gamecast, MLB.com gameday, or NHL.com gamecenter),
+while selecting elsewhere on the strip opens the normal scores panel. Games
+without a provider link stay neutral and keep the panel-open action.
 
 ## Settings
 

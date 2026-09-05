@@ -75,6 +75,18 @@ function liveStatus(game, sport) {
   return details.length > 0 ? details.join(" ") : "LIVE";
 }
 
+function safeGameUrl(value) {
+  if (typeof value !== "string") return "";
+  var url = value.trim();
+  if (!url || !/^https:\/\//i.test(url)) return "";
+  var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(url);
+  if (!match) return "";
+  var host = match[1].toLowerCase();
+  return host === "espn.com" || host === "www.espn.com"
+    || host === "nhl.com" || host === "www.nhl.com"
+    || host === "mlb.com" || host === "www.mlb.com" ? url : "";
+}
+
 function sportEmoji(sport) {
   switch (text(sport, "").toLowerCase()) {
   case "baseball": return "⚾";
@@ -125,6 +137,7 @@ function segment(entry, formatStartTime, sport) {
     homeScore: status === "scheduled" ? "" : homeScore,
     divider: status === "scheduled" ? "@" : "-",
     detail: detail,
+    sourceUrl: safeGameUrl(game.link),
     text: cap(matchup + "   " + detail)
   };
 }
@@ -187,5 +200,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = {
   SCHEDULE_GRACE_MS: SCHEDULE_GRACE_MS,
   build: build,
   cap: cap,
+  safeGameUrl: safeGameUrl,
   teamLabel: teamLabel
 };

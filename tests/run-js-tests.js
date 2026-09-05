@@ -328,6 +328,65 @@ test("ticker omits the clock for untimed baseball games but keeps it for timed s
   assert.equal(hockey.text.includes("2nd 04:12"), true);
 });
 
+test("ticker keeps safe per-game provider URLs and neutralizes unsafe games", () => {
+  const fixture = readTicketPresentationFixture();
+  const leagues = {
+    nhl: {label: "NHL", sport: "hockey"},
+    "usa.1": {label: "MLS", sport: "soccer"},
+    "eng.1": {label: "Premier League", sport: "soccer"}
+  };
+  const result = ticketPresentation.build({
+    games: fixture.games,
+    nowMs: Date.parse(fixture.now),
+    formatStartTime: () => "8:00 PM",
+    leagueInfo: (id) => leagues[id]
+  });
+  const sourceById = {};
+  result.entries.forEach((entry, position) => {
+    sourceById[entry.game.id] = result.items[position].sourceUrl;
+  });
+  assert.equal(sourceById.live, "https://www.espn.com/nhl/game/_/gameId/401123456");
+  assert.equal(sourceById.scheduled, "https://www.espn.com/soccer/game/_/gameId/789");
+  assert.equal(sourceById["scheduled-two"], "https://www.espn.com/soccer/game/_/gameId/790");
+  assert.equal(sourceById["recent-final"], "");
+  const unlinked = ticketPresentation.build({
+    games: [{id: "no-link", league: "nhl", status: "live",
+      startTime: fixture.now, awayScore: 1, homeScore: 0}],
+    nowMs: Date.parse(fixture.now)
+  });
+  assert.equal(unlinked.items[0].sourceUrl, "");
+  assert.equal(ticketPresentation.safeGameUrl("https://www.nhl.com/gamecenter/1"), "https://www.nhl.com/gamecenter/1");
+  assert.equal(ticketPresentation.safeGameUrl("https://www.mlb.com/gameday/1"), "https://www.mlb.com/gameday/1");
+  assert.equal(ticketPresentation.safeGameUrl("http://evil.example.com/game"), "");
+  assert.equal(ticketPresentation.safeGameUrl("https://evil.example.com/game"), "");
+  assert.equal(ticketPresentation.safeGameUrl("not a url"), "");
+  assert.equal(ticketPresentation.safeGameUrl(null), "");
+});
+
+test("ticker strip opens per-game provider pages through the guarded source route", () => {
+  const strip = readSource("components/TicketStrip.qml");
+  assert.match(strip, /import Quickshell/);
+  assert.match(strip, /PointerInteractionPolicy/);
+  assert.match(strip, /function openTickerSource\(url\)/);
+  assert.match(strip, /indexOf\("https:\/\/".*\) !== 0/);
+  assert.match(strip, /espn\.com/);
+  assert.match(strip, /nhl\.com/);
+  assert.match(strip, /mlb\.com/);
+  assert.match(strip, /omarchy-launch-browser/);
+  assert.match(strip, /id: gameMouse/);
+  assert.match(strip, /enabled: gameItem\.hasGameSource/);
+  assert.match(strip, /onPressed: root\.gameActionPressed = true/);
+  assert.match(strip, /onClicked: \{\s+root\.gameActionPressed = false\s+if \(gameItem\.hasGameSource\) root\.openTickerSource\(gameItem\.gameSourceUrl\)/);
+  assert.match(strip, /allowsRowActivation\(root\.gameActionPressed\)/);
+  assert.match(strip, /Accessible\.onPressAction: \{\s+if \(gameItem\.hasGameSource\) root\.openTickerSource\(gameItem\.gameSourceUrl\)/);
+  assert.match(strip, /gameItem\.hasGameSource \? Accessible\.Button : Accessible\.StaticText/);
+  assert.ok(strip.indexOf("id: stripMouse") < strip.indexOf("id: tickerContent"));
+  assert.match(strip, /root\.primaryActionRequested\(\)/);
+  assert.match(strip, /height: Style\.space\(32\)/);
+  assert.match(strip, /width: Style\.space\(56\)/);
+  assert.match(strip, /separatorEmoji/);
+});
+
 function normalizeFixtureGames(fixture) {
   return fixture.games.map((game) => games.normalizeGame(game));
 }
