@@ -22,8 +22,8 @@ All notable changes to Sportray are documented here.
   activating the strip opens the normal scores panel. Sport emoji and friendly
   league headings group adjacent scores without repeating provider IDs, and
   compact team logos precede team names when available. League transitions use
-  a larger visual gap than games within the same group, whose bullet separators
-  have three spaces on each side.
+  a larger visual gap than games within the same group, whose separators reuse
+  the next game's sport emoji with three spaces on each side.
 - Assigned the local next release candidate as `1.0.0-rc.8` after the
   post-`1.0.0-rc.7` hardening work. The tree remains unreleased and untagged;
   no release date is asserted.

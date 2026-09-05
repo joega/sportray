@@ -9,9 +9,9 @@
   ],
   "expectedOrder": ["live", "scheduled-two", "scheduled", "recent-final"],
   "expectedSegments": [
-    "🏒  NHL  |  BOS 3-2 TOR  |  2nd 04:12",
-    "⚽  MLS  |  MIN @ POR  |  8:00 PM",
-    "•   LAFC @ RSL  |  8:00 PM",
-    "⚽  PREMIER LEAGUE  |  BOU 2-2 NEW  |  FINAL"
+    "🏒  NHL   BOS 3-2 TOR   2nd 04:12",
+    "⚽  MLS   MIN @ POR   8:00 PM",
+    "⚽   LAFC @ RSL   8:00 PM",
+    "⚽  PREMIER LEAGUE   BOU 2-2 NEW   FINAL"
   ]
 }

@@ -96,8 +96,8 @@ Item {
           Text {
             anchors.verticalCenter: parent.verticalCenter
             text: gameItem.modelData.groupStart
-              ? gameItem.modelData.leagueEmoji + "  " + gameItem.modelData.leagueLabel + "  |"
-              : "   •   "
+              ? gameItem.modelData.leagueEmoji + "  " + gameItem.modelData.leagueLabel
+              : "   " + (gameItem.modelData.separatorEmoji || gameItem.modelData.leagueEmoji || "•") + "   "
             color: Color.accent
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -160,7 +160,7 @@ Item {
 
           Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: "|  " + gameItem.modelData.detail
+            text: gameItem.modelData.detail
             textFormat: Text.PlainText
             color: Color.foreground
             opacity: 0.82

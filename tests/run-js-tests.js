@@ -271,6 +271,10 @@ test("ticker orders live and upcoming games ahead of recent finals", () => {
   assert.equal((result.text.match(/MLS/g) || []).length, 1);
   assert.equal(result.text.includes("///"), false);
   const scheduledItem = result.items.find((item) => item.away === "LAFC");
+  assert.equal(scheduledItem.separatorEmoji, "⚽");
+  assert.equal(scheduledItem.groupStart, false);
+  assert.equal(result.text.includes("•"), false);
+  assert.equal(result.text.includes("|"), false);
   assert.equal(scheduledItem.awayLogoUrl, "https://a.espncdn.com/lafc.png");
   assert.equal(scheduledItem.homeLogoUrl, "https://a.espncdn.com/rsl.png");
   assert.equal(scheduledItem.divider, "@");
@@ -4163,10 +4167,13 @@ test("ticker presentation is integrated into the shared bar widget", () => {
   assert.match(strip, /loops: Animation\.Infinite/);
   assert.match(strip, /source: gameItem\.modelData\.awayLogoUrl/);
   assert.match(strip, /source: gameItem\.modelData\.homeLogoUrl/);
-  assert.match(strip, /text: "\|  " \+ gameItem\.modelData\.detail[\s\S]*opacity: 0\.82/);
+  assert.match(strip, /text: gameItem\.modelData\.detail[\s\S]*opacity: 0\.82/);
+  assert.doesNotMatch(strip, /leagueLabel \+ "  \|"/);
+  assert.doesNotMatch(strip, /"\|  " \+ gameItem\.modelData\.detail/);
   assert.match(strip, /id: gameRow[\s\S]*spacing: Style\.spacing\.sm/);
   assert.match(strip, /width: Style\.space\(56\)[\s\S]*gameItem\.index > 0 && gameItem\.modelData\.groupStart/);
-  assert.match(strip, /: "   •   "/);
+  assert.match(strip, /separatorEmoji/);
+  assert.doesNotMatch(strip, /: "   •   "/);
   assert.match(service, /readonly property var ambientGames/);
   assert.match(service, /readonly property string ambientTickerState/);
 });

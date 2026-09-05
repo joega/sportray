@@ -125,7 +125,7 @@ function segment(entry, formatStartTime, sport) {
     homeScore: status === "scheduled" ? "" : homeScore,
     divider: status === "scheduled" ? "@" : "-",
     detail: detail,
-    text: cap(matchup + "  |  " + detail)
+    text: cap(matchup + "   " + detail)
   };
 }
 
@@ -162,14 +162,15 @@ function build(input) {
   entries.forEach(function(entry) {
     var league = leagueContext(entry.game, source.leagueInfo);
     var groupStart = league.id !== previousLeague;
-    var prefix = !groupStart ? "   •   "
+    var prefix = !groupStart ? "   " + league.emoji + "   "
       : (segments.length > 0 ? "     " : "")
-        + league.emoji + "  " + league.label + "  |  ";
+        + league.emoji + "  " + league.label + "   ";
     var game = segment(entry, source.formatStartTime, league.sport);
     segments.push(prefix + game.text);
     game.groupStart = groupStart;
     game.leagueEmoji = league.emoji;
     game.leagueLabel = league.label;
+    game.separatorEmoji = league.emoji;
     items.push(game);
     previousLeague = league.id;
   });
