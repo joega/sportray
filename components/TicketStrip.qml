@@ -1,83 +1,183 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import Quickshell
 import qs.Commons
-import qs.Ui
 import "../model/TicketPresentation.js" as TicketPresentation
-import "../model/TicketLayout.js" as TicketLayout
+import "../providers/LeagueCatalog.js" as LeagueCatalog
 
 Item {
   id: root
 
-  property string leagueId: "following"
-  property var game: null
-  property string ticketState: ""
-  property string label: ""
-  property string errorCode: ""
-  property bool compact: false
+  property var games: []
+  property var favoriteTeamIds: []
+  property string tickerState: "empty"
+  property double nowMs: Date.now()
   property bool reducedMotion: false
 
   signal primaryActionRequested()
 
-  readonly property var ticket: TicketPresentation.project({
-    game: root.game,
-    state: root.ticketState,
-    league: root.leagueId,
-    label: root.label,
-    errorCode: root.errorCode
-  })
-  readonly property var ticketGeometry: TicketLayout.layout({
-    width: root.width,
-    padding: Style.spacing.md,
-    gap: Style.spacing.sm,
-    leading: Style.space(24),
-    trailing: sourceButton.implicitWidth
+  readonly property var ticker: TicketPresentation.build({
+    games: root.games,
+    favoriteTeamIds: root.favoriteTeamIds,
+    state: root.tickerState,
+    nowMs: root.nowMs,
+    formatStartTime: function(value) {
+      var date = new Date(value)
+      return isNaN(date.getTime()) ? "UPCOMING" : Qt.formatTime(date, "h:mm AP")
+    },
+    leagueInfo: function(value) {
+      var league = LeagueCatalog.getLeague(value)
+      return league ? {
+        label: league.displayName,
+        sport: league.sport || (league.id === "nhl" ? "hockey" : "")
+      } : null
+    }
   })
 
-  width: parent ? parent.width : Style.space(640)
-  height: Style.space(96)
+  width: parent ? parent.width : 0
+  height: Style.space(32)
   implicitHeight: height
   clip: true
 
-  SportAtmosphere {
+  Rectangle {
     anchors.fill: parent
-    leagueId: root.leagueId
-    reducedMotion: root.reducedMotion
+    color: Color.background
   }
 
-  Row {
-    anchors.fill: parent
-    anchors.margins: Style.spacing.md
-    spacing: Style.spacing.sm
+  Rectangle {
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: parent.top
+    height: Style.space(1)
+    color: Color.accent
+  }
 
-    SemanticIcon {
-      width: Style.space(24)
-      height: width
+  Item {
+    id: tickerContent
+    anchors.verticalCenter: parent.verticalCenter
+    width: gameRow.visible ? gameRow.implicitWidth : statusText.implicitWidth
+    height: root.height
+    x: root.reducedMotion ? Style.spacing.md : root.width
+
+    Text {
+      id: statusText
       anchors.verticalCenter: parent.verticalCenter
-      iconName: "neutral"
-      fontSize: Style.font.subtitle
-      color: Color.accent
-      decorative: true
+      visible: !gameRow.visible
+      text: root.ticker.text
+      textFormat: Text.PlainText
+      color: root.ticker.state === "offline" ? Color.urgent : Color.foreground
+      font.family: Style.font.family
+      font.pixelSize: Style.font.bodySmall
+      font.bold: true
     }
 
-    TicketGameCard {
-      width: Math.max(0, parent.width - sourceButton.implicitWidth - parent.spacing - Style.space(24))
-      height: parent.height
-      ticket: root.ticket
-      compact: root.compact
-      onPrimaryActionRequested: root.primaryActionRequested()
+    Row {
+      id: gameRow
+      anchors.verticalCenter: parent.verticalCenter
+      visible: Boolean(root.ticker.items && root.ticker.items.length > 0)
+      spacing: Style.spacing.sm
+
+      Repeater {
+        model: root.ticker.items || []
+
+        delegate: Row {
+          id: gameItem
+          required property var modelData
+          height: root.height
+          spacing: Style.spacing.xs
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: gameItem.modelData.groupStart
+              ? gameItem.modelData.leagueEmoji + "  " + gameItem.modelData.leagueLabel + "  |"
+              : "•"
+            color: Color.accent
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+          }
+
+          Image {
+            width: Style.space(18)
+            height: width
+            anchors.verticalCenter: parent.verticalCenter
+            source: gameItem.modelData.awayLogoUrl
+            sourceSize: Qt.size(Style.space(36), Style.space(36))
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            visible: status === Image.Ready
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: gameItem.modelData.away + (gameItem.modelData.awayScore
+              ? " " + gameItem.modelData.awayScore : "")
+            color: Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: gameItem.modelData.divider
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+          }
+
+          Image {
+            width: Style.space(18)
+            height: width
+            anchors.verticalCenter: parent.verticalCenter
+            source: gameItem.modelData.homeLogoUrl
+            sourceSize: Qt.size(Style.space(36), Style.space(36))
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            visible: status === Image.Ready
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: gameItem.modelData.home + (gameItem.modelData.homeScore
+              ? " " + gameItem.modelData.homeScore : "")
+            color: Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "|  " + gameItem.modelData.detail
+            color: Color.foreground
+            opacity: 0.82
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+          }
+        }
+      }
     }
 
-    SemanticActionButton {
-      id: sourceButton
-      anchors.verticalCenter: parent.verticalCenter
-      text: "Open"
-      tooltipText: "Open game page"
-      textFontSize: Style.font.bodySmall
-      textHorizontalPadding: Style.spacing.xs
-      textVerticalPadding: Style.spacing.xs
-      focusable: true
-      enabled: root.ticket && root.ticket.game && root.ticket.game.link
-      onClicked: if (enabled) Quickshell.execDetached(["omarchy-launch-browser", root.ticket.game.link])
+    NumberAnimation on x {
+      running: root.visible && !root.reducedMotion && tickerContent.width > 0
+      loops: Animation.Infinite
+      duration: Math.max(12000, (root.width + tickerContent.width) * 24)
+      from: root.width
+      to: -tickerContent.width
+      easing.type: Easing.Linear
     }
   }
+
+  MouseArea {
+    anchors.fill: parent
+    cursorShape: Qt.PointingHandCursor
+    onClicked: root.primaryActionRequested()
+  }
+
+  Accessible.name: root.ticker.text
+  Accessible.role: Accessible.Button
+  Accessible.onPressAction: root.primaryActionRequested()
 }

@@ -58,22 +58,19 @@ BarWidget {
   // real button, whose item tree lets KeyboardPanel resolve the correct screen
   // and overlay layer.
   property string barRegion: ""
-  readonly property var ticketGame: root.sharedService ? root.sharedService.ambientGame : null
-  readonly property string ticketState: root.sharedService
-    ? root.sharedService.ambientTicketState : "empty"
+  readonly property var tickerGames: root.sharedService ? root.sharedService.ambientGames : []
+  readonly property string tickerState: root.sharedService
+    ? root.sharedService.ambientTickerState : "empty"
 
   TicketOverlay {
     id: ticketOverlay
     bar: root.bar
     targetScreen: fullButton.QsWindow.window ? fullButton.QsWindow.window.screen : null
     hostWidget: root
-    panelOpen: root.opened
-    position: root.barPosition
-    ticketGame: root.ticketGame
-    ticketState: root.ticketState
-    label: root.barLabelText
-    errorCode: panelLoader.item && panelLoader.item.fetchService
-      ? panelLoader.item.fetchService.errorCode : ""
+    games: root.tickerGames
+    favoriteTeamIds: panelLoader.item ? panelLoader.item.favoriteTeamIds : []
+    tickerState: root.tickerState
+    nowMs: root.sharedService ? root.sharedService.nowMs : Date.now()
   }
 
   function resolveBarRegion() {

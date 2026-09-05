@@ -1,7 +1,17 @@
 {
-  "cases": [
-    {"name":"live favorite","input":{"kind":"live","league":"nhl","game":{"status":"live","awayTeam":{"abbreviation":"BOS"},"homeTeam":{"abbreviation":"TOR"},"awayScore":3,"homeScore":2}},"expected":{"kind":"live","away":"BOS","home":"TOR","score":"3–2"}},
-    {"name":"scheduled","input":{"game":{"status":"scheduled","awayTeam":{"name":"Boston Bruins"},"homeTeam":{"name":"Toronto Maple Leafs"}}},"expected":{"kind":"scheduled","score":"VS"}},
-    {"name":"offline","input":{"errorCode":"unavailable"},"expected":{"kind":"offline"}}
+  "now": "2026-09-05T17:00:00Z",
+  "games": [
+    {"id":"old-final","league":"mlb","status":"final","startTime":"2026-09-04T23:00:00Z","endTime":"2026-09-05T04:00:00Z","awayTeam":{"id":"mlb:1","abbreviation":"CHC"},"homeTeam":{"id":"mlb:2","abbreviation":"MIA"},"awayScore":3,"homeScore":0},
+    {"id":"recent-final","league":"eng.1","status":"final","startTime":"2026-09-05T10:00:00Z","endTime":"2026-09-05T12:00:00Z","awayTeam":{"id":"eng.1:1","abbreviation":"BOU"},"homeTeam":{"id":"eng.1:2","abbreviation":"NEW"},"awayScore":2,"homeScore":2},
+    {"id":"scheduled","league":"usa.1","status":"scheduled","startTime":"2026-09-05T20:00:00Z","awayTeam":{"id":"usa.1:1","abbreviation":"LAFC","logoUrl":"https://a.espncdn.com/lafc.png"},"homeTeam":{"id":"usa.1:2","abbreviation":"RSL","logoUrl":"https://a.espncdn.com/rsl.png"},"awayScore":null,"homeScore":null},
+    {"id":"scheduled-two","league":"usa.1","status":"scheduled","startTime":"2026-09-05T21:00:00Z","awayTeam":{"id":"usa.1:3","abbreviation":"MIN"},"homeTeam":{"id":"usa.1:4","abbreviation":"POR"},"awayScore":null,"homeScore":null},
+    {"id":"live","league":"nhl","status":"live","startTime":"2026-09-05T16:00:00Z","periodLabel":"2nd","clock":"04:12","awayTeam":{"id":"nhl:1","abbreviation":"BOS"},"homeTeam":{"id":"nhl:2","abbreviation":"TOR"},"awayScore":3,"homeScore":2}
+  ],
+  "expectedOrder": ["live", "scheduled-two", "scheduled", "recent-final"],
+  "expectedSegments": [
+    "🏒  NHL  |  BOS 3-2 TOR  |  2nd 04:12",
+    "⚽  MLS  |  MIN @ POR  |  8:00 PM",
+    "•   LAFC @ RSL  |  8:00 PM",
+    "⚽  PREMIER LEAGUE  |  BOU 2-2 NEW  |  FINAL"
   ]
 }

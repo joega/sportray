@@ -1,4 +1,0 @@
-{
-  "defaults":{"padding":12,"gap":8,"leading":24,"trailing":72},
-  "widths":[{"name":"compact","width":640},{"name":"wide","width":1200}]
-}

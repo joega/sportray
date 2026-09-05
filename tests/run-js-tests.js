@@ -56,8 +56,6 @@ const chunkPolicy = require(path.join(root, "model/ChunkPolicy.js"));
 const calendarCachePolicy = require(path.join(root, "model/CalendarCachePolicy.js"));
 const calendarDiskCachePolicy = require(path.join(root, "model/CalendarDiskCachePolicy.js"));
 const ticketPresentation = require(path.join(root, "model/TicketPresentation.js"));
-const ticketLayout = require(path.join(root, "model/TicketLayout.js"));
-const ticketOverlay = require(path.join(root, "model/TicketOverlayPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -252,36 +250,54 @@ function readTicketPresentationFixture() {
   return JSON.parse(fs.readFileSync(path.join(root, "fixtures/bar-presentation/ticket-strip.json"), "utf8"));
 }
 
-function readTicketLayoutFixture() {
-  return JSON.parse(fs.readFileSync(path.join(root, "fixtures/layout/ticket-strip.json"), "utf8"));
-}
-
-test("ticket presentation is provider-neutral and bounded", () => {
-  readTicketPresentationFixture().cases.forEach((entry) => {
-    const result = ticketPresentation.project(entry.input);
-    Object.keys(entry.expected).forEach((key) => assert.equal(result[key], entry.expected[key], entry.name + ": " + key));
+test("ticker orders live and upcoming games ahead of recent finals", () => {
+  const fixture = readTicketPresentationFixture();
+  const leagues = {
+    nhl: {label: "NHL", sport: "hockey"},
+    "usa.1": {label: "MLS", sport: "soccer"},
+    "eng.1": {label: "Premier League", sport: "soccer"}
+  };
+  const result = ticketPresentation.build({
+    games: fixture.games,
+    favoriteTeamIds: ["usa.1:3"],
+    nowMs: Date.parse(fixture.now),
+    formatStartTime: () => "8:00 PM",
+    leagueInfo: (id) => leagues[id]
   });
-  assert.equal(ticketPresentation.project({game: {awayTeam: {name: "A".repeat(100)}}}).label.length <= ticketPresentation.MAX_TEXT_LENGTH, true);
+  assert.deepEqual(result.entries.map((entry) => entry.game.id), fixture.expectedOrder);
+  fixture.expectedSegments.forEach((segment) => assert.equal(result.text.includes(segment), true));
+  assert.equal(result.text.includes("CHC"), false);
+  assert.equal(result.text.includes("SPORTRAY"), false);
+  assert.equal((result.text.match(/MLS/g) || []).length, 1);
+  assert.equal(result.text.includes("///"), false);
+  const scheduledItem = result.items.find((item) => item.away === "LAFC");
+  assert.equal(scheduledItem.awayLogoUrl, "https://a.espncdn.com/lafc.png");
+  assert.equal(scheduledItem.homeLogoUrl, "https://a.espncdn.com/rsl.png");
+  assert.equal(scheduledItem.divider, "@");
+  assert.equal(result.state, "ready");
 });
 
-test("ticket layout keeps columns bounded and non-overlapping", () => {
-  const fixture = readTicketLayoutFixture();
-  fixture.widths.forEach((entry) => {
-    const result = ticketLayout.layout({...fixture.defaults, width: entry.width});
-    assert.equal(result.nonOverlapping, true);
-    assert.equal(result.trailingReachable, true);
-  });
-});
-
-test("ticket overlay geometry maps top, bottom, and side bars inside the screen", () => {
-  const input = {screenWidth: 1920, screenHeight: 1080, barHeight: 40,
-    width: 640, height: 96, margin: 0, gap: 0, x: 640};
-  assert.deepEqual(ticketOverlay.geometry({...input, position: "top"}),
-    {x: 640, y: 40, position: "top", flush: true, withinScreen: true});
-  assert.deepEqual(ticketOverlay.geometry({...input, position: "bottom"}),
-    {x: 640, y: 944, position: "bottom", flush: true, withinScreen: true});
-  assert.equal(ticketOverlay.geometry({...input, position: "left"}).x, 40);
-  assert.equal(ticketOverlay.geometry({...input, position: "right"}).x, 1240);
+test("ticker bounds stale finals and degrades without provider details", () => {
+  const fixture = readTicketPresentationFixture();
+  const oldFinal = fixture.games.find((game) => game.id === "old-final");
+  assert.equal(ticketPresentation.build({games: [oldFinal], nowMs: Date.parse(fixture.now)}).state,
+    "empty");
+  assert.equal(ticketPresentation.build({state: "loading"}).text.includes("UPDATING"), true);
+  assert.equal(ticketPresentation.build({state: "offline"}).text.includes("UNAVAILABLE"), true);
+  const long = ticketPresentation.build({games: [{id: "long", league: "nhl", status: "live",
+    startTime: fixture.now, awayScore: 1, homeScore: 2,
+    awayTeam: {name: "A".repeat(200)}, homeTeam: {name: "B".repeat(200)}}],
+    nowMs: Date.parse(fixture.now)});
+  assert.ok(long.text.length <= ticketPresentation.MAX_SEGMENT_LENGTH + 14);
+  const crowded = Array.from({length: ticketPresentation.MAX_GAMES}, (_, index) => ({
+    id: `scheduled-${index}`, league: "mlb", status: "scheduled",
+    startTime: "2026-09-05T20:00:00Z"
+  }));
+  crowded.push({id: "late-live", league: "nhl", status: "live",
+    startTime: fixture.now, awayScore: 1, homeScore: 0});
+  const bounded = ticketPresentation.build({games: crowded, nowMs: Date.parse(fixture.now)});
+  assert.equal(bounded.entries.length, ticketPresentation.MAX_GAMES);
+  assert.equal(bounded.entries[0].game.id, "late-live");
 });
 
 function normalizeFixtureGames(fixture) {
@@ -4102,24 +4118,31 @@ test("deferred callbacks run for live owners and reject destroyed owners", () =>
   assert.match(picker, /root\.deferCallback\(root\.ensureCursorVisible\)/);
 });
 
-test("ticket presentation is integrated into the shared bar panel", () => {
+test("ticker presentation is integrated into the shared bar widget", () => {
   const widget = readSource("BarWidget.qml");
   const panel = readSource("Panel.qml");
   const service = readSource("services/SportrayService.qml");
   assert.match(widget, /readonly property var sharedService: Services\.SportrayService/);
   assert.match(widget, /TicketOverlay/);
-  assert.match(widget, /readonly property var sharedService: Services\.SportrayService/);
   assert.match(widget, /hostWidget: root/);
-  assert.match(widget, /panelOpen: root\.opened/);
   assert.match(widget, /targetScreen:/);
   assert.doesNotMatch(panel, /TicketStrip/);
   const overlay = readSource("components/TicketOverlay.qml");
   assert.match(overlay, /screen: root\.targetScreen/);
-  assert.match(overlay, /visible: !!root\.targetScreen && !root\.panelOpen/);
+  assert.match(overlay, /anchors \{ bottom: true; left: true; right: true \}/);
+  assert.match(overlay, /implicitHeight: root\.tickerHeight/);
+  assert.match(overlay, /exclusionMode: ExclusionMode\.Auto/);
+  assert.match(overlay, /WlrLayer\.Top/);
   assert.match(overlay, /WlrKeyboardFocus\.None/);
-  assert.match(overlay, /mask: Region \{ item: card \}/);
-  assert.match(service, /readonly property var ambientGame/);
-  assert.match(service, /readonly property string ambientTicketState/);
+  const strip = readSource("components/TicketStrip.qml");
+  assert.match(strip, /NumberAnimation on x/);
+  assert.match(strip, /loops: Animation\.Infinite/);
+  assert.match(strip, /source: gameItem\.modelData\.awayLogoUrl/);
+  assert.match(strip, /source: gameItem\.modelData\.homeLogoUrl/);
+  assert.match(strip, /text: "\|  " \+ gameItem\.modelData\.detail[\s\S]*opacity: 0\.82/);
+  assert.match(strip, /id: gameRow[\s\S]*spacing: Style\.spacing\.sm/);
+  assert.match(service, /readonly property var ambientGames/);
+  assert.match(service, /readonly property string ambientTickerState/);
 });
 
 test("U2.1 result row identity stays canonical and Panel uses one virtualized result list", () => {

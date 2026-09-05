@@ -4,10 +4,12 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
-- Added a bounded, non-focus-owning ambient ticket overlay for loading, offline,
-  empty, scheduled, live, and completed states. The ticket yields to the normal
-  scores panel when it opens; its primary action opens that panel and its source
-  action opens the safe provider game link.
+- Replaced the floating ambient game card with a 32-pixel bottom-edge ticker
+  that reserves screen space and continuously scrolls the current slate. Live
+  games lead future schedules, only finals from the last 12 hours remain, and
+  activating the strip opens the normal scores panel. Sport emoji and friendly
+  league headings group adjacent scores without repeating provider IDs, and
+  compact team logos precede team names when available.
 - Assigned the local next release candidate as `1.0.0-rc.8` after the
   post-`1.0.0-rc.7` hardening work. The tree remains unreleased and untagged;
   no release date is asserted.

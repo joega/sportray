@@ -1,5 +1,68 @@
 # Sportray private roadmap
 
+## Latest handoff - 2026-09-05 bottom-edge scrolling ticker
+
+The floating top ticket was rejected in actual use because it obscured tiled
+windows, looked like a persistent popup, did not scroll, and selected only
+`fetchService.games[0]`, which could pin an old final while current games were
+available. The Scrollr reference was inspected and confirmed the intended form:
+one thin edge-pinned line with multiple live widgets moving horizontally.
+
+Sportray now maps a 32-pixel `PanelWindow` across the bottom edge on the Top
+layer with `ExclusionMode.Auto` and keyboard focus `None`. Hyprland reserves the
+strip rather than placing tiled windows behind it. `TicketStrip.qml` is now a
+single clipped text line with a constant-speed infinite horizontal animation;
+clicking anywhere on it opens the existing scores panel. The ticker remains
+visible while that panel is open, so the reserved work area stays stable.
+
+`TicketPresentation.js` builds a provider-neutral feed of at most 24 already
+loaded current-date games. It orders live/intermission games first, future
+schedules second, and finals completed within the last 12 hours last, with
+favorites first inside each group. Sport emoji and catalog-backed friendly
+league names introduce each consecutive league group; later games in the same
+group use a compact bullet instead of repeating labels such as `USA.1`. The
+product-name prefix and slash separators were removed after owner review.
+The marquee uses mixed image/text delegates so available normalized team logos
+render at 18 pixels before their team names; unavailable images collapse rather
+than reserving blank space. Live status detail remains secondary but uses the
+foreground color at 82% opacity after owner feedback found the muted token too
+dark at ticker size. Matte Black, Tokyo Night, Catppuccin Latte, Flexoki Light,
+and White all calculate to at least 4.5:1 against their theme backgrounds.
+Inter-game spacing uses the small theme spacing token while logo, team, score,
+and status spacing remains compact.
+Scheduled games more than 15 minutes past their start, older finals, and
+unsupported states are omitted. The old card, column-layout policy,
+centered-overlay geometry policy, and their fixture were removed. No provider,
+cache, polling, notification, Calendar, or settings behavior changed.
+
+Actual Omarchy instance `tlt6u2vwkt` showed the animated ticker at logical
+geometry 1920x32 on the bottom edge. `hyprctl monitors -j` reported reserved
+edges `[0,26,0,32]`, proving the top bar and bottom ticker both reserve their own
+space. The screenshot showed the rendered baseball and soccer emoji, friendly
+`MLB` and `MLS` headings, and correctly scaled Cubs, Marlins, Giants, Mets,
+Revolution, and Galaxy logos before team names. The normal scores
+`KeyboardPanel` was open at the same time without displacing or hiding the
+ticker. A transient undefined-bool warning found during this exercise was fixed
+at the loading-state boundary. The remaining shell log showed normal Sportray
+fetching and only the pre-existing portal and XKB warnings.
+
+Matte Black received the final live visual pass. Light-theme verification did
+not change the owner's persisted theme: contrast was calculated from installed
+Catppuccin Latte, Flexoki Light, and White palettes, so a live light-theme visual
+pass remains available for a later sustained-use review.
+
+Fixture coverage proves live/upcoming/recent-final ordering, favorite tie
+priority, exclusion of a final older than 12 hours, bounded labels, normalized
+logo projection, and safe loading/offline/empty copy. Calendar remains disabled.
+No push, tag, release, or Marketplace action was performed.
+
+Next bounded unit: collect owner feedback from sustained use of the bottom
+ticker and make at most one focused presentation adjustment, such as speed,
+density, separators, or contrast. Preserve bottom-edge reserved space,
+status-aware bounded ordering, shared service ownership, the existing scores
+panel, and disabled Calendar behavior. Stop before provider, cache, polling,
+release, push, tag, or Marketplace work.
+
 ## Latest handoff - 2026-09-05 visible closed-state ticket
 
 The missing ticket was traced to two concrete runtime boundaries. First, the

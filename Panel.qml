@@ -222,8 +222,6 @@ Panel {
   readonly property string barScoreText: buildBarScoreText()
   readonly property string barTooltipText: buildBarTooltipText()
   readonly property var verticalScoreLines: buildVerticalScoreLines()
-  readonly property var ticketGame: root.service ? root.service.ambientGame : null
-  readonly property string ticketState: root.service ? root.service.ambientTicketState : "empty"
   readonly property string todayDateKey: DateModel.localDateKey(new Date(root.nowMs))
   readonly property string selectedDateLabel: DateModel.displayLabel(
     root.selectedDateKey, root.todayDateKey)

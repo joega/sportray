@@ -23,13 +23,10 @@ Item {
   readonly property var fetchService: fetchService
   readonly property var standingsService: standingsService
   readonly property var notificationService: notificationServiceImpl
-  readonly property var ambientGame: {
-    var games = fetchService ? fetchService.games : []
-    return games && games.length > 0 ? games[0] : null
-  }
-  readonly property string ambientTicketState: fetchService && fetchService.loading && !fetchService.hasData
+  readonly property var ambientGames: fetchService ? fetchService.games : []
+  readonly property string ambientTickerState: fetchService && fetchService.loading && !fetchService.hasData
     ? "loading" : fetchService && fetchService.errorCode !== "" && !fetchService.hasData
-      ? "offline" : ambientGame ? String(ambientGame.status || "scheduled") : "empty"
+      ? "offline" : ambientGames.length > 0 ? "ready" : "empty"
 
   function registerPanel() {
     root.nextPanelToken += 1

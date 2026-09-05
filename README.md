@@ -44,10 +44,9 @@ At a glance:
 - Favorite-aware bar priority and pinned favorite games in league views
 - Automatic ambient bar modes: compact icon presentation on horizontal and
   vertical bars, with a color status indicator and score details on hover
-- Closed-state ambient ticket: an always-mapped, non-focus-owning overlay shows
-  a bounded ticket for the selected ambient game, with loading, offline, empty,
-  scheduled, live, and completed states; activating the ticket opens the normal
-  scores panel, while its labeled source action opens the provider game page
+- Persistent bottom ticker: a thin, non-focus-owning strip scrolls live scores,
+  upcoming schedules, and recent finals across the screen; activating the strip
+  opens the normal scores panel
 - Provider-friendly adaptive polling, bounded date caches, and one in-flight
   request per league
 - Desktop notifications for favorite game starts, score changes, finals,
@@ -63,12 +62,18 @@ At a glance:
 - Keyboard navigation, visible focus, Escape-to-close, and bounded dense panels
 - No account, API key, Sportray server, or background daemon
 
-The closed-state ticket is rendered by an always-mapped, non-focus-owning
-`PanelWindow`; the score panel remains the only `KeyboardPanel` surface. Sportray
-does not create a second focus owner or Quickshell process for it. The ticket is
-a compact ambient presentation of the service's already selected game and does
-not issue an additional provider request. Its source action is available only
-when the normalized game has a safe provider link.
+The ticker is a 32-pixel `PanelWindow` anchored across the bottom screen edge.
+It reserves that space through layer shell instead of floating over tiled
+windows, never requests keyboard focus, and remains visible while the separate
+score panel is open. It scrolls at most 24 games from the already-loaded current
+slate, ordered live, upcoming, then finals completed within the last 12 hours;
+favorites break ties inside each group. Sport emoji and friendly league names
+introduce each consecutive league group without repeating provider identifiers
+on every score. Available normalized team logos render at a compact size before
+each team name; missing or failed logos collapse without leaving an empty slot.
+Older finals, past-due schedules, and malformed states are omitted. The score
+panel remains the only `KeyboardPanel`, and the ticker adds no provider request
+or second Quickshell process.
 
 The score panel opens on the local current date. Use the date carousel to move
 back to completed slates or forward to upcoming games; each fetch and result
