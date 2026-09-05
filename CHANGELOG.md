@@ -4,6 +4,7 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Refreshed `preview.png` with a current 1280×720 capture of the desktop, scores panel, and ticker.
 - Replaced the floating ambient game card with a 32-pixel bottom-edge ticker
   that reserves screen space and continuously scrolls the current slate. Live
   games lead future schedules, only finals from the last 12 hours remain, and

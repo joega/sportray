@@ -4475,22 +4475,25 @@ test("U3.3 keeps sparse states compact while dense and utility views stay bounde
   assert.equal(panel.includes("root.resultRows.some(function(row) { return row.kind === \"game\" })"), true);
 });
 
-test("U3.5 release assets and listing copy describe the current candidate", () => {
+test("U3.5 release assets and visitor README describe the current candidate", () => {
   function pngSize(relativePath) {
     const bytes = fs.readFileSync(path.join(root, relativePath));
     assert.equal(bytes.toString("ascii", 1, 4), "PNG");
     return [bytes.readUInt32BE(16), bytes.readUInt32BE(20)];
   }
 
-  assert.deepEqual(pngSize("preview.png"), [834, 962]);
+  assert.deepEqual(pngSize("preview.png"), [1280, 720]);
   const readme = readSource("README.md");
   const manifest = JSON.parse(readSource("manifest.json"));
   const changelog = readSource("CHANGELOG.md");
   assert.equal(readme.includes("**Favorite-first**"), true);
   assert.equal(readme.includes("**Eight leagues**"), true);
   assert.equal(readme.includes("**No account or API key**"), true);
-  assert.equal(readme.includes("Select **View day**"), true);
-  assert.equal(readme.includes("Proposed category: **Widgets**"), true);
+  assert.equal(readme.includes("**View day**"), true);
+  assert.equal(readme.includes("Marketplace listing"), false);
+  assert.equal(readme.includes("Proposed category"), false);
+  assert.equal(readme.includes("## Install"), true);
+  assert.equal(readme.includes("## License"), true);
   assert.equal(readme.includes("View <date>"), false);
   assert.equal(manifest.version, "1.0.0-rc.8");
   assert.match(manifest.description, /favorite teams.*daily schedules.*alerts/);
