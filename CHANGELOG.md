@@ -4,6 +4,10 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Fixed the bottom ticker rendering only league headings after games became
+  activatable: the pointer target no longer sits inside the game Row (its
+  fill anchor broke Row layout and collapsed the game text), and league
+  headings keep trim-proof trailing breathing room ahead of the first game.
 - Made individual bottom-ticker games activatable with explicit owner
   confirmation: selecting a game with a safe provider link opens its provider
   game page (ESPN gamecast, MLB.com gameday, or NHL.com gamecenter) through

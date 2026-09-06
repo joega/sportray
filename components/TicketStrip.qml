@@ -125,10 +125,14 @@ Item {
             visible: gameItem.index > 0 && gameItem.modelData.groupStart
           }
 
+          // League headings keep trailing breathing room after the pipe
+          // cleanup removed the old "  |" suffix: three non-breaking spaces
+          // match the separator convention and cannot be trimmed from the
+          // measured text width.
           Text {
             anchors.verticalCenter: parent.verticalCenter
             text: gameItem.modelData.groupStart
-              ? gameItem.modelData.leagueEmoji + "  " + gameItem.modelData.leagueLabel
+              ? gameItem.modelData.leagueEmoji + "  " + gameItem.modelData.leagueLabel + "\u00A0\u00A0\u00A0"
               : "   " + (gameItem.modelData.separatorEmoji || gameItem.modelData.leagueEmoji || "•") + "   "
             color: Color.accent
             font.family: Style.font.family
@@ -136,10 +140,19 @@ Item {
             font.bold: true
           }
 
-          Row {
+          // Per-game hit target. A plain Item wraps the content Row so the
+          // pointer target can fill the segment without becoming a Row
+          // child: horizontal anchors (such as anchors.fill) on a Row child
+          // break Row layout and collapse the game text.
+          Item {
             id: gameHit
+            width: gameHitRow.implicitWidth
             height: root.height
-            spacing: Style.spacing.xs
+
+            Row {
+              id: gameHitRow
+              height: parent.height
+              spacing: Style.spacing.xs
 
             Image {
               width: Style.space(18)
@@ -206,9 +219,13 @@ Item {
               font.bold: true
             }
 
+            }
+
             // Per-game pointer target. Enabled only for games with a safe
             // provider URL so unsafe games stay neutral and fall through to
-            // the full-strip panel action like other ticker chrome.
+            // the full-strip panel action like other ticker chrome. It fills
+            // the wrapping Item as a sibling of the content Row, so no
+            // horizontal anchor ever lands on a Row child.
             MouseArea {
               id: gameMouse
               anchors.fill: parent

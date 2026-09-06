@@ -380,6 +380,10 @@ test("ticker strip opens per-game provider pages through the guarded source rout
   assert.match(strip, /allowsRowActivation\(root\.gameActionPressed\)/);
   assert.match(strip, /Accessible\.onPressAction: \{\s+if \(gameItem\.hasGameSource\) root\.openTickerSource\(gameItem\.gameSourceUrl\)/);
   assert.match(strip, /gameItem\.hasGameSource \? Accessible\.Button : Accessible\.StaticText/);
+  assert.match(strip, /Item \{\s+id: gameHit/);
+  assert.match(strip, /id: gameHitRow/);
+  assert.match(strip, /width: gameHitRow\.implicitWidth/);
+  assert.match(strip, /leagueLabel \+ "\\u00A0\\u00A0\\u00A0"/);
   assert.ok(strip.indexOf("id: stripMouse") < strip.indexOf("id: tickerContent"));
   assert.match(strip, /root\.primaryActionRequested\(\)/);
   assert.match(strip, /height: Style\.space\(32\)/);
