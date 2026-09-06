@@ -6646,14 +6646,18 @@ test("calendar rehydration plans only uncached days in the rolling window", () =
   assert.equal(qmlWindow.at(-1), fixture.windowEnd);
 });
 
-test("persistent calendar cache is a separate sequential FileView owner", () => {
+test("persistent calendar cache is a separate sequential descriptor-helper owner", () => {
   const source = readSource("services/CalendarDiskCache.qml");
   const fetchService = readSource("services/FetchService.qml");
   assert.match(source, /readonly property string cacheRoot/);
   assert.match(source, /CachePolicy\.prune/);
-  assert.match(source, /atomicWrites: true/);
   assert.match(source, /CachePolicy\.parseDayText/);
   assert.match(source, /CachePolicy\.manifest/);
+  assert.match(source, /calendar-cache-helper\.py/);
+  assert.match(source, /\["\/usr\/bin\/python3", "-I", "-S", root\.helperPath, operation, name\]/);
+  assert.match(source, /stdinEnabled: true/);
+  assert.equal(source.includes("FileView"), false);
+  assert.equal(source.includes('"/usr/bin/rm"'), false);
   assert.match(source, /function persistStates\(states\)/);
   assert.match(source, /CachePolicy\.createRetainedDay\(state\.leagueId, day\.dateKey,/);
   assert.match(source, /function coverageFor\(leagueIds, dateKeys\)/);
@@ -6661,9 +6665,8 @@ test("persistent calendar cache is a separate sequential FileView owner", () => 
   assert.match(source, /function hydrationRanges\(leagueIds, dateKeys, maxRangeDays\)/);
   assert.match(source, /function shouldRequestMonth\(leagueIds, dateKeys\)/);
   assert.match(source, /CachePolicy\.shouldRequestRange/);
-  assert.equal((source.match(/Qt\.callLater\([^\n]*root\.readNext/g) || []).length, 3);
-  assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 2);
-  assert.equal((source.match(/\bFileView\s*\{/g) || []).length, 3);
+  assert.equal((source.match(/Qt\.callLater\([^\n]*root\.readNext/g) || []).length, 2);
+  assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 1);
   assert.match(fetchService, /CalendarDiskCache \{ id: calendarDiskCache \}/);
   assert.match(fetchService, /function refreshCalendarStates\(persist\)/);
   assert.match(fetchService, /if \(persist === true\) calendarDiskCache\.persistStates/);

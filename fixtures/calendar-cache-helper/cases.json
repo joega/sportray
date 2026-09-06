@@ -1,0 +1,5 @@
+{
+  "normal": "{\n  \"cacheVersion\": 1,\n  \"keys\": [\"nhl:2026-09-06\"]\n}\n",
+  "write": "{\n  \"cacheVersion\": 1,\n  \"leagueId\": \"nhl\",\n  \"dateKey\": \"2026-09-06\",\n  \"games\": []\n}\n",
+  "oversizedBytes": 8388609
+}
