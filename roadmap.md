@@ -1,5 +1,94 @@
 # Sportray private roadmap
 
+## Latest handoff - 2026-09-05 UX-1 presentation slice (implemented; visual review pending)
+
+UX-1 presentation work is implemented in the current worktree. Compact date mode
+is used below 420 logical pixels, score rows are flatter and omit venue from the
+slate, Watch labels clarify that the action enables alerts rather than video, and
+followed/enabled league shortcuts are shown with a bounded More dropdown fallback.
+Existing data, routing, and outer host border remain unchanged.
+
+JavaScript, summon-helper, diff, and plugin validation gates pass. Full real-import
+QML lint and Omarchy visual/focus checks remain pending; owner review is required
+before claiming UX-1 complete.
+
+Next bounded unit: finish adaptive visible followed-league shortcuts plus More,
+with keyboard/assistive coverage, then run the complete UX-1 gates and obtain
+owner feedback. Stop before inclusion, freshness, detail, standings, provider,
+Calendar, ticker, or workspace changes.
+
+## Latest handoff - 2026-09-05 popup UX direction (planning complete)
+
+The owner is happy with the bottom ticker and requested a stronger primary popup
+experience, then requested written findings and roadmap coverage for Sol or Luna
+to implement. `POPUP_UX_DIRECTION.md` is the detailed design and acceptance brief.
+This is a planning-only handoff: no application code, desktop state, live usability
+gate, or implementation milestone was changed or completed.
+
+Decision: the ticker answers what is happening; the popup becomes a personal sports
+desk answering what matters to the user and what is happening inside a game.
+Prioritize personal relevance, scannable scores, sport-specific context, and honest
+freshness over new leagues or a news feed. Preserve the current ticker and host
+border. Keep the quick-check popup; persistent expanded browsing is a later,
+upstream-verified prototype, not an assumed panel capability.
+
+Evidence: read-only current QML/model review and a historical 2026-09-05 panel
+screenshot. Source-level risks (detail snapshots, Following inclusion/freshness,
+standings states, detail keyboard routing) are recorded as verification targets,
+not runtime-proven defects. See the design brief for source references and tests.
+
+Next bounded unit: Sol or Luna implements the Following screen presentation only:
+compact navigation and scannable score rows using existing normalized data and
+inclusion rules. Obtain owner visual feedback before deeper redesign. Stop before
+provider changes, Following inclusion semantics, persistent workspace, Calendar,
+ticker redesign, release, or push. The prior ambient ticker date-isolation live
+verification remains pending and must be preserved in subsequent handoffs.
+
+## Active product roadmap - popup personal sports desk
+
+Status: direction documented; implementation not started. This active product
+sequence supersedes historical publication-readiness headings for next-work
+selection, without changing publication status or reopening completed gates.
+
+Detailed scope, rationale, unresolved decisions, source observations, and acceptance
+checks: `POPUP_UX_DIRECTION.md`. Execute one bounded unit at a time in this order;
+split units further if needed, but keep the plugin runnable at each boundary.
+
+| Unit | Outcome | Acceptance focus | Status |
+| --- | --- | --- | --- |
+| UX-1 | Following presentation: compact date controls, bounded league shortcuts/More, cleaner aligned rows, readable status, subordinate actions | Existing routes preserved; favorite score/live situation/league switch owner comparison; keyboard and narrow/light/dark checks | Next |
+| UX-2 | Useful Following with followed leagues alone; deduplicated watched/favorite/followed inclusion | Zero favorites, watched games, stable ordering, disabled leagues, no hidden fetch/settings changes | Pending |
+| UX-3 | Following freshness and recovery states | Per-league stale/partial failure, retained healthy scores, loading and selected-date empty copy | Pending |
+| UX-4 | Live detail follows current game identity | Refresh/state transitions, visible age/staleness, disappearance, stable focus/scroll, one fetch owner | Pending |
+| UX-5 | State/sport-aware detail and mode-correct keyboard behavior | Pregame/live/final, missing sections, labeled stats, long periods/last play, reachable actions and accurate focus | Pending |
+| UX-6 | Standings states and explicit favorite interaction | Loading/empty/error/retry routes, separate favorite action, no accidental persistent preference changes | Pending |
+| UX-7 | Sport-appropriate standings columns | Verified normalized data per sport, ties/missing values/groups and small layouts | Pending |
+| UX-8 | Expanded slate/detail prototype and owner decision | Upstream focus/dismissal/ownership check; small-screen fallback; explicit persistence/resume decision; no second shell/fetch owner | Pending |
+| UX-9 | Usability and sustainment evidence | Representative tasks, contrast/scaling, stable updates, accessible keyboard routes, measured performance | Pending |
+
+Cross-cutting acceptance: preserve date navigation/Today reset, enabled-league
+access and followed ordering, Watch/source nested-pointer safety, settings access,
+outer panel border, native themes, bounded requests, and provider parsing outside
+QML. Do not silently change open-on-today or introduce persisted preferences in a
+presentation-only unit. Calendar stays disabled. Existing ticker layout, safe links,
+today scope, and reserved screen space are regression boundaries.
+
+Required source gates per unit: `./tests/run-js-tests.sh`,
+`./tests/test-summon-helper.sh`, `git diff --check`,
+`omarchy plugin validate "$PWD"`, and real-import-path QML lint over every QML
+file. Actual Omarchy visual/focus interaction and fresh logs are required for
+changed behavior; get consent before desktop changes, and never label static tests
+as runtime proof. Update status/evidence/decision log/handoff and the next-session
+prompt each unit; commit atomically only when its gate passes.
+
+Open decisions: visible shortcut count follows available width; watched-game
+visibility must not enable leagues or add hidden requests; expanded persistence
+and resume behavior need explicit owner approval and verified host APIs. Team
+drill-down and extra home filters remain candidates, not requirements for UX-1.
+Defer news, new leagues, betting-heavy UI, and decorative animation. Reduced-motion/
+pause and ticker performance baseline remain separate sustainment work, not license
+to redesign the owner's accepted ticker during popup implementation.
+
 ## Latest handoff - 2026-09-05 ambient ticker date isolation (complete)
 
 Ambient ticker games now remain scoped to the current day while the panel

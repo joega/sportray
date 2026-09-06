@@ -8,7 +8,7 @@ Item {
 
   property string selectedDateKey: ""
   property int radius: 2
-  property bool compact: false
+   property bool compact: false
 
   signal dateSelected(string dateKey)
 
@@ -43,7 +43,7 @@ Item {
       }
 
       Repeater {
-        model: root.dates
+         model: root.compact ? [] : root.dates
 
         Button {
           required property var modelData
@@ -60,6 +60,23 @@ Item {
           Accessible.name: modelData.weekday + " " + modelData.month + " " + modelData.day
           Accessible.role: Accessible.Button
         }
+      }
+
+      Text {
+        visible: root.compact
+        width: Math.max(Style.space(110), dateRail.width - previousButton.width
+          - nextButton.width - dateRail.spacing * 2)
+        height: dateRail.height
+        text: DateModel.displayLabel(root.selectedDateKey,
+          DateModel.localDateKey(new Date())) + ", " + DateModel.shortDateLabel(root.selectedDateKey)
+        color: Color.popups.text
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body
+        font.bold: true
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
+        Accessible.role: Accessible.StaticText
       }
 
       SemanticActionButton {

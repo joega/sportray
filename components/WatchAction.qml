@@ -38,8 +38,8 @@ Item {
     return ""
   }
   readonly property bool available: root.active || root.disabledReason === ""
-  readonly property string actionLabel: root.active ? "Remove watch" : "Watch game"
-  readonly property string buttonText: root.active ? "Watching" : "Watch"
+   readonly property string actionLabel: root.active ? "Stop game alerts" : "Watch for game alerts"
+   readonly property string buttonText: root.active ? "Alerts on" : "Watch"
   readonly property bool pointerPressed: action.pointerPressed
 
   signal changed()
@@ -75,7 +75,7 @@ Item {
     Accessible.name: root.available
       ? root.actionLabel : root.disabledReason
     Accessible.description: root.active
-      ? "This game is included in watch notifications"
+       ? "This game is included in alert notifications, not video"
       : root.disabledReason
     Accessible.role: Accessible.Button
   }

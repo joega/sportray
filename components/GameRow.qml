@@ -101,13 +101,13 @@ Item {
     clip: true
     height: row.implicitHeight + Style.spacing.md * 2
     color: root.featured ? Style.selectedFillFor(Color.popups.text, Color.accent)
-      : Color.popups.background
+      : "transparent"
     borderSpec: root.selected
       ? Border.controlSpec("focus", Color.popups.text, Color.accent)
       : root.featured
       ? Border.controlSpec("selected", Color.popups.text, Color.accent)
-      : Border.controlSpec("normal", Color.popups.text, Color.popups.border)
-    radius: Style.cornerRadius
+      : Border.none()
+    radius: 0
 
     Rectangle {
       anchors.fill: parent
@@ -118,7 +118,10 @@ Item {
     Column {
       id: row
       anchors.fill: parent
-      anchors.margins: Style.spacing.md
+       anchors.leftMargin: Style.spacing.xs
+       anchors.rightMargin: Style.spacing.xs
+       anchors.topMargin: Style.spacing.xs
+       anchors.bottomMargin: Style.spacing.xs
       spacing: Style.spacing.xs
 
       Row {
@@ -364,7 +367,7 @@ Item {
               width: parent.width
               text: root.venueLabel
               textFormat: Text.PlainText
-              visible: root.venueLabel !== ""
+               visible: false
               color: Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall

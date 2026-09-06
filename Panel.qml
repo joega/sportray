@@ -113,7 +113,11 @@ Panel {
     scoreboard, root.favoriteTeamIds, FavoritePresentation.orderGames,
     FavoritePresentation.isFavoriteGame, root.followedLeagueIds, root.presentationRevision)
   readonly property var tabItems: buildTabItems()
+  readonly property int shortcutCapacity: Math.max(1, Math.floor((root.width - Style.space(92)) / Style.space(92)))
+  readonly property var visibleTabItems: root.tabItems.slice(0, root.shortcutCapacity + 1)
+  readonly property bool hasMoreTabs: root.tabItems.length > root.visibleTabItems.length
   readonly property var sportOptions: buildSportOptions()
+  readonly property var sportsPicker: hiddenSportsPicker
   readonly property var activeView: viewForDestination(root.activeDestination)
   readonly property var resultRows: ResultRows.flatten(
     root.activeView, root.activeDestination, root.selectedDateLabel)
@@ -503,6 +507,10 @@ Panel {
       options.push({value: item.id, label: item.label})
     }
     return options
+  }
+
+  function shortcutItems() {
+    return root.visibleTabItems.slice(0, Math.max(1, root.visibleTabItems.length - 1))
   }
 
   function viewForDestination(destination) {
@@ -1306,9 +1314,9 @@ Panel {
                 height: visible ? sportsPicker.implicitHeight : 0
                 visible: !root.calendarOpen
 
-                Item {
-                  id: sportChooser
-                  anchors.fill: parent
+                 Item {
+                   id: sportChooser
+                   anchors.fill: parent
 
                   SemanticIcon {
                     id: activeSportIcon
@@ -1322,21 +1330,62 @@ Panel {
                     decorative: true
                   }
 
-                  Dropdown {
-                    id: sportsPicker
-                    anchors.left: activeSportIcon.right
-                    anchors.leftMargin: Style.spacing.sm
-                    anchors.right: parent.right
-                    height: parent.height
-                    value: root.activeDestination
-                    options: root.sportOptions
-                    showLabel: false
-                    hasCursor: root.tabStripFocused
-                    Accessible.name: "Choose sport"
-                    onChanged: function(value) {
-                      root.selectDestination(value)
-                    }
-                  }
+                   Row {
+                     id: shortcutRow
+                     id: shortcutRow
+                     anchors.left: activeSportIcon.right
+                     anchors.leftMargin: Style.spacing.sm
+                     anchors.right: parent.right
+                     height: parent.height
+                     spacing: Style.spacing.xs
+
+                     Repeater {
+                       model: root.shortcutItems()
+                       SemanticActionButton {
+                         required property var modelData
+                         width: Math.max(Style.space(72), (shortcutRow.width
+                           - (root.hasMoreTabs ? Style.space(76) : 0)
+                           - shortcutRow.spacing * Math.max(0, root.shortcutItems().length - 1))
+                           / Math.max(1, root.shortcutItems().length))
+                         height: shortcutRow.height
+                         text: modelData.label
+                         textFontSize: Style.font.caption
+                         textBold: modelData.id === root.activeDestination
+                         bordered: modelData.id === root.activeDestination
+                         focusable: true
+                         hasCursor: root.tabStripFocused && modelData.id === root.activeDestination
+                         tooltipText: "Show " + modelData.label
+                         onClicked: root.selectDestination(modelData.id)
+                         Accessible.name: "Show " + modelData.label
+                         Accessible.role: Accessible.Button
+                   }
+
+                   Dropdown {
+                     id: sportsPicker
+                     visible: false
+                     value: root.activeDestination
+                     options: root.sportOptions
+                     showLabel: false
+                     onChanged: function(value) { root.selectDestination(value) }
+                   }
+                 }
+
+                     SemanticActionButton {
+                       visible: root.hasMoreTabs
+                       width: Style.space(76)
+                       height: shortcutRow.height
+                       text: "More"
+                       textFontSize: Style.font.caption
+                       textBold: true
+                       bordered: true
+                       focusable: true
+                       hasCursor: root.tabStripFocused && root.activeDestination === "more"
+                       tooltipText: "Show more leagues"
+                       onClicked: sportsPicker.open()
+                       Accessible.name: "Show more leagues"
+                       Accessible.role: Accessible.Button
+                     }
+                   }
                 }
               }
             }
