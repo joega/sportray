@@ -4,6 +4,8 @@ All notable changes to Sportray are documented here.
 
 ## Unreleased
 
+- Replaced external game-page sink substring checks with one exact-host HTTPS
+  admission policy, including executable deceptive-URL boundary coverage.
 - Fixed the bottom ticker rendering only league headings after games became
   activatable: the pointer target no longer sits inside the game Row (its
   fill anchor broke Row layout and collapsed the game text), and league

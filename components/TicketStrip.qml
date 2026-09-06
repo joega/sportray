@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import qs.Commons
 import "../model/TicketPresentation.js" as TicketPresentation
+import "../model/ProviderUrlPolicy.js" as ProviderUrlPolicy
 import "../model/PointerInteractionPolicy.js" as PointerInteractionPolicy
 import "../providers/LeagueCatalog.js" as LeagueCatalog
 
@@ -24,11 +25,9 @@ Item {
   // Guarded per-game source route: same HTTPS + provider-host allowlist as
   // SourceLinkButton.openSource over the GameModel.safeGameUrl hosts.
   function openTickerSource(url) {
-    if (typeof url !== "string" || url.indexOf("https://") !== 0) return
-    var lowered = url.toLowerCase()
-    if (lowered.indexOf("espn.com") === -1 && lowered.indexOf("nhl.com") === -1
-        && lowered.indexOf("mlb.com") === -1) return
-    Quickshell.execDetached(["omarchy-launch-browser", url])
+    var safeUrl = ProviderUrlPolicy.safeGameUrl(url)
+    if (!safeUrl) return
+    Quickshell.execDetached(["omarchy-launch-browser", safeUrl])
   }
 
   readonly property var ticker: TicketPresentation.build({

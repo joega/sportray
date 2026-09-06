@@ -56,6 +56,7 @@ const chunkPolicy = require(path.join(root, "model/ChunkPolicy.js"));
 const calendarCachePolicy = require(path.join(root, "model/CalendarCachePolicy.js"));
 const calendarDiskCachePolicy = require(path.join(root, "model/CalendarDiskCachePolicy.js"));
 const ticketPresentation = require(path.join(root, "model/TicketPresentation.js"));
+const providerUrlPolicy = require(path.join(root, "model/ProviderUrlPolicy.js"));
 
 function readFixture(name) {
   const fixturePath = path.join(root, "fixtures/nhl", `${name}.json`);
@@ -329,6 +330,11 @@ test("ticker omits the clock for untimed baseball games but keeps it for timed s
 });
 
 test("ticker keeps safe per-game provider URLs and neutralizes unsafe games", () => {
+  ["https://espn.com/a", "HTTPS://WWW.NHL.COM/a", "https://mlb.com/a"].forEach((url) =>
+    assert.equal(providerUrlPolicy.safeGameUrl(url), url));
+  ["https://example.invalid/espn.com", "https://espn.com.evil/a",
+    "https://user:pass@espn.com/a", "https://espn.com:443/a", "http://espn.com/a",
+    "espn.com/a", ""].forEach((url) => assert.equal(providerUrlPolicy.safeGameUrl(url), "", url));
   const fixture = readTicketPresentationFixture();
   const leagues = {
     nhl: {label: "NHL", sport: "hockey"},
@@ -368,10 +374,9 @@ test("ticker strip opens per-game provider pages through the guarded source rout
   assert.match(strip, /import Quickshell/);
   assert.match(strip, /PointerInteractionPolicy/);
   assert.match(strip, /function openTickerSource\(url\)/);
-  assert.match(strip, /indexOf\("https:\/\/".*\) !== 0/);
-  assert.match(strip, /espn\.com/);
-  assert.match(strip, /nhl\.com/);
-  assert.match(strip, /mlb\.com/);
+  assert.match(strip, /ProviderUrlPolicy\.safeGameUrl\(url\)/);
+  assert.match(strip, /ProviderUrlPolicy\.safeGameUrl\(url\)/);
+  assert.match(strip, /ProviderUrlPolicy/);
   assert.match(strip, /omarchy-launch-browser/);
   assert.match(strip, /id: gameMouse/);
   assert.match(strip, /enabled: gameItem\.hasGameSource/);
@@ -2395,12 +2400,13 @@ test("loaded game rows route to local detail while keeping the safe source actio
   const gameRow = readSource("components/GameRow.qml");
   const detail = readSource("components/GameDetailView.qml");
   const source = readSource("components/SourceLinkButton.qml");
+  assert.match(source, /ProviderUrlPolicy\.safeGameUrl\(root\.sourceUrl\)/);
   assert.match(panel, /function openGameDetail\(game\)/);
   assert.match(panel, /onPrimaryActionRequested: root\.openGameDetail\(gameValue\)/);
   assert.match(gameRow, /if \(root\.game && root\.game\.isValid === true\) root\.primaryActionRequested\(\)/);
   assert.match(detail, /GameDetailModel\.normalizeDetail\(root\.game, root\.sourceMetadata\)/);
   assert.match(detail, /SourceLinkButton \{/);
-  assert.match(source, /Quickshell\.execDetached\(\["omarchy-launch-browser", root\.sourceUrl\]\)/);
+  assert.match(source, /Quickshell\.execDetached\(\["omarchy-launch-browser", safeUrl\]\)/);
 });
 
 test("game detail presentation keeps sparse fields as neutral placeholders", () => {
@@ -6754,10 +6760,7 @@ test("LeagueFetch admits through the fallback chain without new fetch ownership"
 
 test("source links, logos, aggregate updates, and favorite checks stay bounded", () => {
   const sourceButton = readSource("components/SourceLinkButton.qml");
-  assert.match(sourceButton, /indexOf\("https:\/\/".*\) !== 0.*return/);
-  assert.match(sourceButton, /espn\.com/);
-  assert.match(sourceButton, /nhl\.com/);
-  assert.match(sourceButton, /mlb\.com/);
+  assert.match(sourceButton, /ProviderUrlPolicy\.safeGameUrl\(root\.sourceUrl\)/);
 
   const espn = readSource("providers/EspnProvider.js");
   assert.equal(espn.includes("var href = safeUrl(links[i].href);"), false);
