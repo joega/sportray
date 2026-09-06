@@ -9,6 +9,11 @@ Item {
 
   required property var game
   property var settingsStore: null
+  property var imageStore: null
+  readonly property string awayLogoSource: root.imageStore && root.game.awayTeam && root.game.awayTeam.logoUrl
+    ? root.imageStore.sourceFor(root.game.awayTeam.logoUrl) : ""
+  readonly property string homeLogoSource: root.imageStore && root.game.homeTeam && root.game.homeTeam.logoUrl
+    ? root.imageStore.sourceFor(root.game.homeTeam.logoUrl) : ""
   property double currentTime: Date.now()
   property bool stale: false
   property bool featured: false
@@ -139,8 +144,7 @@ Item {
             height: root.logoSize
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            source: root.game.awayTeam && root.game.awayTeam.logoUrl
-              ? root.game.awayTeam.logoUrl : ""
+            source: root.awayLogoSource
             sourceSize: Qt.size(root.logoSize * 2, root.logoSize * 2)
             cache: true
             fillMode: Image.PreserveAspectFit
@@ -225,8 +229,7 @@ Item {
             height: root.logoSize
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            source: root.game.homeTeam && root.game.homeTeam.logoUrl
-              ? root.game.homeTeam.logoUrl : ""
+            source: root.homeLogoSource
             sourceSize: Qt.size(root.logoSize * 2, root.logoSize * 2)
             cache: true
             fillMode: Image.PreserveAspectFit

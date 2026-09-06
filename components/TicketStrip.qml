@@ -20,6 +20,7 @@ Item {
   property bool enabled: true
   property bool paused: false
   property string speed: "normal"
+  property var imageStore: null
   // Tracks an in-progress per-game pointer press so the full-strip chrome
   // handler yields to the nested game target, mirroring the GameRow pattern.
   property bool gameActionPressed: false
@@ -185,6 +186,10 @@ Item {
             id: gameHit
             width: gameHitRow.implicitWidth
             height: root.height
+            readonly property string awayLogoSource: root.imageStore
+              ? root.imageStore.sourceFor(gameItem.modelData.awayLogoUrl) : ""
+            readonly property string homeLogoSource: root.imageStore
+              ? root.imageStore.sourceFor(gameItem.modelData.homeLogoUrl) : ""
 
             Row {
               id: gameHitRow
@@ -195,7 +200,7 @@ Item {
               width: Style.space(18)
               height: width
               anchors.verticalCenter: parent.verticalCenter
-              source: gameItem.modelData.awayLogoUrl
+              source: gameHit.awayLogoSource
               sourceSize: Qt.size(Style.space(36), Style.space(36))
               fillMode: Image.PreserveAspectFit
               asynchronous: true
@@ -227,7 +232,7 @@ Item {
               width: Style.space(18)
               height: width
               anchors.verticalCenter: parent.verticalCenter
-              source: gameItem.modelData.homeLogoUrl
+              source: gameHit.homeLogoSource
               sourceSize: Qt.size(Style.space(36), Style.space(36))
               fillMode: Image.PreserveAspectFit
               asynchronous: true

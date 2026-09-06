@@ -828,9 +828,9 @@ test("team logo URLs accept reviewed HTTPS hosts and preserve neutral fallbacks"
 
   const gameRow = readSource("components/GameRow.qml");
   const picker = readSource("components/TeamPicker.qml");
-  assert.match(gameRow, /source: root\.game\.awayTeam && root\.game\.awayTeam\.logoUrl/);
+  assert.match(gameRow, /root\.imageStore\.sourceFor\(root\.game\.awayTeam\.logoUrl\)/);
   assert.match(gameRow, /visible: !awayLogo\.visible/);
-  assert.match(picker, /source: modelData\.logoUrl \|\| ""/);
+  assert.match(picker, /root\.imageStore\.sourceFor\(modelData\.logoUrl\)/);
   assert.match(picker, /visible: !logo\.visible \|\| logo\.status !== Image\.Ready/);
 });
 
@@ -4266,8 +4266,8 @@ test("ticker presentation is integrated into the shared bar widget", () => {
   const strip = readSource("components/TicketStrip.qml");
   assert.match(strip, /NumberAnimation on x/);
   assert.match(strip, /loops: Animation\.Infinite/);
-  assert.match(strip, /source: gameItem\.modelData\.awayLogoUrl/);
-  assert.match(strip, /source: gameItem\.modelData\.homeLogoUrl/);
+  assert.match(strip, /root\.imageStore\.sourceFor\(gameItem\.modelData\.awayLogoUrl\)/);
+  assert.match(strip, /root\.imageStore\.sourceFor\(gameItem\.modelData\.homeLogoUrl\)/);
   assert.match(strip, /text: gameItem\.modelData\.detail[\s\S]*opacity: 0\.82/);
   assert.doesNotMatch(strip, /leagueLabel \+ "  \|"/);
   assert.doesNotMatch(strip, /"\|  " \+ gameItem\.modelData\.detail/);

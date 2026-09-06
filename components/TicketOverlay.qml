@@ -17,6 +17,7 @@ PanelWindow {
   property bool tickerEnabled: true
   property string tickerPosition: "bottom"
   property string tickerSpeed: "normal"
+  property var imageStore: null
   property bool tickerPaused: false
 
   screen: root.targetScreen
@@ -41,6 +42,7 @@ PanelWindow {
     enabled: root.tickerEnabled
     paused: root.tickerPaused
     speed: root.tickerSpeed
+    imageStore: root.imageStore
     onPauseToggled: root.tickerPaused = !root.tickerPaused
     onPrimaryActionRequested: if (root.hostWidget) root.hostWidget.open()
   }

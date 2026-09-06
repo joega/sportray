@@ -8,6 +8,7 @@ Item {
   id: root
 
   required property var settingsStore
+  property var imageStore: null
   required property var teams
   required property var leagues
   required property var notificationService
@@ -231,6 +232,7 @@ Item {
       settings: root.settingsStore
       settingsRevision: root.settingsRevision
       callbackOwner: root.callbackOwner
+      imageStore: root.imageStore
       onEscapeRequested: root.escapeRequested()
     }
 

@@ -16,6 +16,7 @@ Item {
   property string query: ""
   property string leagueFilter: "all"
   property var callbackOwner: null
+  property var imageStore: null
   readonly property var localCallbackOwner: LifecyclePolicy.createOwnerState()
 
   readonly property var favoriteIds: {
@@ -213,8 +214,11 @@ Item {
       QQC.ScrollBar.vertical: QQC.ScrollBar { policy: QQC.ScrollBar.AsNeeded }
 
       delegate: Item {
+        id: teamDelegate
         required property var modelData
         required property int index
+        readonly property string logoSource: root.imageStore && modelData.logoUrl
+          ? root.imageStore.sourceFor(modelData.logoUrl) : ""
         width: teamList.width
         height: Style.space(48)
 
@@ -244,7 +248,7 @@ Item {
                 id: logo
                 anchors.fill: parent
                 visible: modelData.logoUrl !== null && status !== Image.Error
-                source: modelData.logoUrl || ""
+                source: teamDelegate.logoSource
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
               }

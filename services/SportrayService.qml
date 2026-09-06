@@ -25,6 +25,7 @@ Item {
   readonly property var fetchService: fetchService
   readonly property var standingsService: standingsService
   readonly property var notificationService: notificationServiceImpl
+  readonly property var logoImageStore: logoImageStoreImpl
   readonly property var ambientGames: AmbientGamesPolicy.project(
     fetchService ? fetchService.games : [], root.selectedDateKey,
     root.todayDateKey, root.todayGames)
@@ -84,6 +85,8 @@ Item {
     settingsStore: settingsStore
     games: root.selectedDateKey === root.todayDateKey ? fetchService.games : []
   }
+
+  LogoImageStore { id: logoImageStoreImpl }
 
   Connections {
     target: fetchService

@@ -117,6 +117,9 @@ Press Escape to step back from settings to the prior score view.
   scores and team lists come from ESPN's site JSON endpoints.
 - MLB uses ESPN first with an MLB StatsAPI fallback, and league views use
   ESPN or NHL standings where available.
+- Optional team-logo rasters are fetched only from reviewed ESPN and NHL asset
+  hosts, validated for format, byte size, and dimensions before local display,
+  and retained only for the current shell session.
 
 Requests go directly from your computer to the sports data providers.
 Sportray has no backend, account, analytics service, or telemetry. It does

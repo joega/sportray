@@ -1,0 +1,14 @@
+{
+  "allowedUrl": "https://a.espncdn.com/team.png",
+  "redirectStatus": 302,
+  "oversizedBytes": 262145,
+  "invalidWidth": 1025,
+  "invalidHeight": 1025,
+  "hostileUrls": [
+    "http://a.espncdn.com/team.png",
+    "https://a.espncdn.com.evil/team.png",
+    "https://user@a.espncdn.com/team.png",
+    "https://a.espncdn.com:444/team.png",
+    "file:///etc/passwd"
+  ]
+}

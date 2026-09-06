@@ -76,6 +76,7 @@ BarWidget {
     tickerEnabled: root.tickerSettings.enabled !== false
     tickerPosition: root.tickerSettings.position || "bottom"
     tickerSpeed: root.tickerSettings.speed || "normal"
+    imageStore: root.sharedService ? root.sharedService.logoImageStore : null
   }
 
   function resolveBarRegion() {

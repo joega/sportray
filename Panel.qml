@@ -58,6 +58,7 @@ Panel {
   readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
   readonly property var resultListLifecycle: LifecyclePolicy.createOwnerState()
   readonly property var fetchService: root.service ? root.service.fetchService : null
+  readonly property var logoImageStore: root.service ? root.service.logoImageStore : null
   readonly property bool calendarFeatureEnabled: root.service
     ? root.service.calendarFeatureEnabled === true : false
   readonly property double ambientNowMs: root.service && typeof root.service.nowMs === "number"
@@ -1240,6 +1241,7 @@ Panel {
                 teams: root.pickerTeams
                 leagues: LeagueCatalog.listLeagues()
                 settingsStore: root.settingsStore
+                imageStore: root.logoImageStore
                 notificationService: root.notificationService
                 settingsRevision: root.presentationRevision
                 callbackOwner: root.callbackOwner
@@ -1479,6 +1481,7 @@ Panel {
                       visible: modelData && modelData.kind === "game"
                       game: gameValue
                       settingsStore: root.settingsStore
+                      imageStore: root.logoImageStore
                       currentTime: root.ambientNowMs
                       stale: modelData && modelData.stale === true
                       startTimeTextOverride: modelData
@@ -1588,6 +1591,7 @@ Panel {
                       favorite: modelData && modelData.favorite === true
                       selected: root.selectedRowId === (modelData ? modelData.rowId : "")
                       settings: root.settingsStore
+                      imageStore: root.logoImageStore
                     }
                   }
 

@@ -8,6 +8,9 @@ Item {
   required property var standing
   property bool favorite: false
   property var settings: null
+  property var imageStore: null
+  readonly property string teamLogoSource: root.imageStore && root.standing.team && root.standing.team.logoUrl
+    ? root.imageStore.sourceFor(root.standing.team.logoUrl) : ""
   property bool selected: false
   readonly property bool childActionPressed: rowMouse.pressed
 
@@ -89,8 +92,7 @@ Item {
           height: width
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
-          source: root.standing.team && root.standing.team.logoUrl
-            ? root.standing.team.logoUrl : ""
+          source: root.teamLogoSource
           fillMode: Image.PreserveAspectFit
           asynchronous: true
           visible: status === Image.Ready
