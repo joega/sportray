@@ -16,3 +16,12 @@ node_modules/
 
 # Local agent/tool state
 .hive/
+
+# Internal development planning and handoff documents
+AGENTS.md
+NEXT_SESSION_PROMPT.md
+roadmap.md
+POPUP_UX_DIRECTION.md
+competition.md
+PUBLIC_CONSUMPTION_REVIEW.md
+LEVEL_THE_FIELD_SPRINT.md
