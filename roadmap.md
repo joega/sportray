@@ -1,5 +1,34 @@
 # Sportray private roadmap
 
+## Latest handoff - 2026-09-05 UX-2 Following inclusion semantics (implemented; visual review pending)
+
+UX-2 inclusion correctness is implemented in the current worktree. Following now
+includes active watched games that are already present in enabled/fetched league
+state, includes all games from followed enabled leagues even with zero favorites,
+deduplicates overlapping favorite/watch/followed delivery, and retains deterministic
+favorite/status/time ordering. Disabled leagues cannot surface watched games because
+only composed enabled state is considered. Empty Following copy now reflects a
+followed/watch-aware selected date rather than unconditionally requesting favorite
+teams.
+
+Fixture-driven JS coverage passes for zero favorites, followed leagues alone,
+watch-only games, deduplication, disabled leagues, deterministic order, and selected
+date empty state. No provider, cache, polling, settings persistence, or hidden
+request path changed. Owner consent was not provided for an Omarchy rescan/restart;
+visual, focus, keyboard, assistive, narrow/scaled, and theme review therefore remain
+pending and are not claimed as passing. The full QML lint command was attempted but
+the installed `qmllint` plugin analysis stalled on the large host `Panel.qml`; the
+complete per-file real-import check passes with `-D all` (plugins disabled), while
+the established import/unqualified warnings remain outside this gate.
+
+Next bounded unit: obtain explicit owner consent for an actual Omarchy UX-2
+Following pass, exercise zero favorites, followed leagues alone, watched games,
+disabled leagues, date navigation, keyboard and assistive routes, inspect fresh logs
+with exactly one shell process, and make at most one correction justified by
+observed behavior. Preserve the pending ticker-today proof and stop before UX-3
+freshness/recovery, detail, standings, provider, Calendar, ticker, workspace,
+release, or push.
+
 ## Latest handoff - 2026-09-05 UX-1 presentation slice (implemented; visual review pending)
 
 UX-1 presentation work is implemented in the current worktree. Compact date mode

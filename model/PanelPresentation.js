@@ -123,6 +123,17 @@ function isFavoriteGame(game, favoriteIds, matcher) {
   return false;
 }
 
+function isWatchedGame(game, watchedGames) {
+  if (!isRecord(game) || !Array.isArray(watchedGames)) return false;
+  var gameId = gameIdentity(game);
+  if (!gameId) return false;
+  return watchedGames.some(function(watch) {
+    if (!isRecord(watch) || watch.status === "expired") return false;
+    var watchedId = typeof watch.gameId === "string" ? watch.gameId.trim().toLowerCase() : "";
+    return watchedId === gameId;
+  });
+}
+
 function leagueView(state, favoriteIds, orderer, matcher) {
   var ordered = orderGames(state.games, favoriteIds, orderer);
   var pinned = [];
@@ -160,7 +171,7 @@ function leagueView(state, favoriteIds, orderer, matcher) {
   };
 }
 
-function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, revision) {
+function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, revision, watchedGames) {
   var favorites = normalizeFavoriteIds(favoriteTeamIds);
   var leagueStates = composed && Array.isArray(composed.leagueStates)
     ? composed.leagueStates : [];
@@ -177,7 +188,7 @@ function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, r
   var followingLeagueIds = [];
   leagueStates.forEach(function(state) {
     state.games.forEach(function(game) {
-      if (isFavoriteGame(game, favorites, matcher)) {
+      if (isFavoriteGame(game, favorites, matcher) || isWatchedGame(game, watchedGames)) {
         followingGames.push(game);
         if (followingLeagueIds.indexOf(state.leagueId) === -1)
           followingLeagueIds.push(state.leagueId);
@@ -218,8 +229,10 @@ function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, r
       sections: followingSections,
       loading: leagueStates.some(function(state) { return state.loading === true; }),
       hasFavorites: favorites.length > 0,
+      followedLeagueIds: followed,
+      watchedGames: Array.isArray(watchedGames) ? watchedGames : [],
       hasGames: followingGames.length > 0,
-      emptyState: favorites.length === 0 ? "no-favorites"
+      emptyState: favorites.length === 0 && followed.length === 0 && followingGames.length === 0 ? "no-favorites"
         : followingGames.length === 0 ? "no-favorite-games" : "",
       isEmpty: followingGames.length === 0
     },

@@ -154,7 +154,7 @@ function flatten(view, destination) {
 
   var id = destination || view.leagueId || view.kind || "scores";
   if (view.kind === "following") {
-    if (!view.hasFavorites) {
+    if (!view.hasFavorites && (!Array.isArray(view.followedLeagueIds) || view.followedLeagueIds.length === 0)) {
       rows.push(emptyRow(id + ":no-favorites", "Choose favorite teams to pin their games here.",
         "choose-teams", {
           title: "Follow teams to pin their games here",
@@ -167,8 +167,8 @@ function flatten(view, destination) {
         rows.push(loadingRow(id + ":initial", false));
         return rows;
       }
-      rows.push(emptyRow(id + ":no-games", "No favorite games on this date.", "browse-leagues", {
-        title: "Your teams are off today",
+      rows.push(emptyRow(id + ":no-games", "Nothing followed on this date.", "browse-leagues", {
+        title: view.hasFavorites ? "Your teams are off today" : "Nothing followed on this date",
         supportingText: "Browse a league for the full slate."
       }));
       return rows;

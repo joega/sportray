@@ -3969,7 +3969,8 @@ test("U2.1 flattens provider-neutral section, game, status, and empty rows", () 
   assert.equal(resultRows.flatten(next, "nhl")[1].dateKey, "2026-08-22");
   const searching = Object.assign({}, empty, {nextGameStatus: "loading"});
   assert.deepEqual(resultRows.flatten(searching, "nhl").map((row) => row.kind), ["empty", "empty"]);
-  const following = resultRows.flatten({kind: "following", hasFavorites: false, hasGames: false}, "following");
+  const following = resultRows.flatten({kind: "following", hasFavorites: false, hasGames: false,
+    followedLeagueIds: []}, "following");
   assert.equal(following.length, 1);
   assert.equal(following[0].title, "Follow teams to pin their games here");
   assert.equal(following[0].supportingText, "8 leagues available.");

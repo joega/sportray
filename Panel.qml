@@ -111,7 +111,8 @@ Panel {
   readonly property var normalizedGames: scoreboard.games
   readonly property var panelPresentation: PanelPresentation.build(
     scoreboard, root.favoriteTeamIds, FavoritePresentation.orderGames,
-    FavoritePresentation.isFavoriteGame, root.followedLeagueIds, root.presentationRevision)
+    FavoritePresentation.isFavoriteGame, root.followedLeagueIds, root.presentationRevision,
+    root.settingsStore ? root.settingsStore.watchedGames : [])
   readonly property var tabItems: buildTabItems()
   readonly property int shortcutCapacity: Math.max(1, Math.floor((root.width - Style.space(92)) / Style.space(92)))
   readonly property var visibleTabItems: root.tabItems.slice(0, root.shortcutCapacity + 1)
