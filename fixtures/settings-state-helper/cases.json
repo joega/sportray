@@ -1,0 +1,6 @@
+{
+  "normal": "{\"schemaVersion\":2}\n",
+  "malformed": "{not-json\n",
+  "oversizedBytes": 65537,
+  "write": "{\"schemaVersion\":2,\"enabledLeagues\":[\"nhl\"]}\n"
+}

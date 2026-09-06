@@ -17,7 +17,7 @@ node_modules/
 # Local agent/tool state
 .hive/
 
-# Internal development planning and handoff documents
+# Internal development planning and handoff documents — private only; never force-add, stage, or commit.
 AGENTS.md
 NEXT_SESSION_PROMPT.md
 roadmap.md

@@ -3358,22 +3358,26 @@ test("settings permission repair uses owner-only state paths and safe admission"
   assert.equal(settingsPermissionPolicy.writeResult(1), false);
 });
 
-test("SettingsStore gates FileView writes on permission repair and hardens saved files", () => {
+test("SettingsStore routes persistence through the fixed descriptor-bound helper", () => {
   const source = readSource("services/SettingsStore.qml");
-  assert.equal(source.includes("SettingsPermissionPolicy.js"), true);
-  assert.equal(source.includes("path: root.loadStarted ? root.statePath : \"\""), true);
-  assert.equal(source.includes("if (!root.permissionsReady || permissionProcess.running) {"), true);
+  assert.equal(source.includes("SettingsPermissionPolicy.js"), false);
+  assert.equal(source.includes("blockWrites: true"), true);
+  assert.equal(source.includes("watchChanges: true"), true);
+  assert.equal(source.includes("/usr/bin/python3"), true);
+  assert.equal(source.includes("settings-state-helper.py"), true);
+  assert.match(source, /StdioCollector \{\s+id: stateHelperOutput\s+waitForEnd: true/);
+  assert.equal(source.includes("root.startHelperRead()"), true);
+  assert.equal(source.includes("root.startHelperWrite(JSON.stringify(state, null, 2) + \"\\n\")"), true);
   assert.equal(source.includes("root.pendingWrite = {"), true);
   assert.equal(source.includes("function flushPendingWrite()"), true);
   assert.equal(source.includes("root.flushPendingWrite()"), true);
-  assert.equal(source.includes("permissionProcess.exec(commands.makeDirectory)"), true);
-  assert.equal(source.includes("permissionProcess.exec(commands.hardenDirectory)"), true);
-  assert.equal(source.includes("permissionProcess.exec(commands.hardenFile)"), true);
-  assert.equal(source.includes("onSaved: root.repairWrittenFile()"), true);
+  assert.equal(source.includes("settingsFile.setText("), false);
+  assert.equal(source.includes("onLoaded: root.applyText"), false);
   assert.equal(source.includes("property string preservedRawStateText: \"\""), true);
   assert.equal(source.includes("root.preservedRawStateText = result.preservedRawText || \"\""), true);
   assert.equal(source.includes("if (root.preservedRawStateText.length > 0) return false"), true);
-  assert.equal(source.includes("console.warn(\"Sportray settings permission repair failed\""), true);
+  assert.equal(source.includes("function rejectState()"), true);
+  assert.equal(source.includes("root.preservedRawStateText = \"rejected-state\""), true);
   assert.equal(source.includes("JSON.stringify(state"), true);
   assert.equal(source.includes("rawResponse"), false);
 });

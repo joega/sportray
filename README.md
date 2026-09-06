@@ -58,8 +58,8 @@ omarchy plugin disable io.github.joega.sportray
 omarchy plugin remove io.github.joega.sportray
 ```
 
-Sportray needs Omarchy 4 with the Quattro shell and the `curl` command
-included by Omarchy. It fetches scores directly from ESPN, MLB StatsAPI, and
+Sportray needs Omarchy 4 with the Quattro shell, `curl`, and the system Python
+runtime included by Omarchy. It fetches scores directly from ESPN, MLB StatsAPI, and
 NHL data endpoints, and uses Omarchy's notification helper when alerts are
 enabled. It does not install packages, request privileged access, create a
 service, or overwrite user configuration.

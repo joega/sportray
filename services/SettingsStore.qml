@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../model/SettingsModel.js" as SettingsModel
-import "../model/SettingsPermissionPolicy.js" as SettingsPermissionPolicy
 import "../model/StateModel.js" as StateModel
 import "../model/TransitionDedupe.js" as TransitionDedupe
 import "../model/WatchPolicy.js" as WatchPolicy
@@ -14,11 +13,10 @@ Item {
   id: root
 
   readonly property string statePath: Quickshell.env("HOME") + "/.local/state/omarchy/settings/sportray.json"
-  property bool permissionsReady: false
-  property bool loadStarted: false
   property bool writePending: false
   property var pendingWrite: null
-  property string permissionStage: "idle"
+  property bool readQueued: false
+  property string helperOperation: ""
   property var settings: SettingsModel.createDefaults()
   property var transitionDedupe: TransitionDedupe.createDefaults()
   property var watchedGames: []
@@ -54,7 +52,7 @@ Item {
 
   function writeState(candidateSettings, candidateDedupe, candidateWatches) {
     if (root.preservedRawStateText.length > 0) return false
-    if (!root.permissionsReady || permissionProcess.running) {
+    if (root.helperOperation !== "" || stateHelper.running) {
       root.pendingWrite = {
         settings: candidateSettings,
         transitionDedupe: candidateDedupe,
@@ -77,52 +75,53 @@ Item {
     }
     root.transitionDedupe = state.transitionDedupe
     root.watchedGames = state.watchedGames
-    root.permissionsReady = false
     root.writePending = true
     root.pendingWrite = null
-    settingsFile.setText(JSON.stringify(state, null, 2) + "\n")
+    root.startHelperWrite(JSON.stringify(state, null, 2) + "\n")
     return true
   }
 
   function flushPendingWrite() {
-    if (!root.pendingWrite || !root.permissionsReady || permissionProcess.running
+    if (!root.pendingWrite || root.helperOperation !== "" || stateHelper.running
         || root.preservedRawStateText.length > 0) return
     var pending = root.pendingWrite
     root.pendingWrite = null
     root.writeState(pending.settings, pending.transitionDedupe, pending.watchedGames)
   }
 
-  function failPermissionRepair(stage) {
-    root.permissionsReady = false
+  function failStateHelper(stage) {
     root.writePending = false
-    console.warn("Sportray settings permission repair failed", stage)
+    console.warn("Sportray settings helper failed", stage)
   }
 
-  function finishPermissionRepair() {
-    root.permissionsReady = true
-    root.permissionStage = "ready"
-    if (!root.loadStarted) root.loadStarted = true
-    root.flushPendingWrite()
+  function rejectState() {
+    root.settings = SettingsModel.createDefaults()
+    root.transitionDedupe = TransitionDedupe.createDefaults()
+    root.watchedGames = []
+    root.preservedRawStateText = "rejected-state"
+    root.loadStatus = "rejected"
+    root.recovered = false
+    root.ready = true
+    root.writePending = false
+    root.pendingWrite = null
+    console.warn("Sportray settings state rejected")
   }
 
-  function beginPermissionRepair() {
-    var commands = SettingsPermissionPolicy.commands(root.statePath)
-    if (!commands) {
-      root.failPermissionRepair("invalid-path")
+  function startHelperRead() {
+    if (root.helperOperation !== "" || stateHelper.running) {
+      root.readQueued = true
       return
     }
-    root.permissionStage = "make-directory"
-    permissionProcess.exec(commands.makeDirectory)
+    root.readQueued = false
+    root.helperOperation = "read"
+    stateHelper.command = ["/usr/bin/python3", root.helperPath, "read"]
+    stateHelper.running = true
   }
 
-  function repairWrittenFile() {
-    var commands = SettingsPermissionPolicy.commands(root.statePath)
-    if (!commands) {
-      root.failPermissionRepair("invalid-path-after-write")
-      return
-    }
-    root.permissionStage = "harden-written-file"
-    permissionProcess.exec(commands.hardenFile)
+  function startHelperWrite(text) {
+    root.helperOperation = "write"
+    stateHelper.command = ["/usr/bin/python3", root.helperPath, "write", "--data", text]
+    stateHelper.running = true
   }
 
   // M6.3 will call this boundary after the pure detector has produced events.
@@ -216,87 +215,51 @@ Item {
   }
 
   function reloadSettings() {
-    settingsFile.reload()
+    root.startHelperRead()
   }
 
   FileView {
     id: settingsFile
-    path: root.loadStarted ? root.statePath : ""
+    path: root.statePath
     watchChanges: true
-    atomicWrites: true
+    blockWrites: true
     printErrors: false
-    onFileChanged: reload()
-    onLoaded: root.applyText(text())
-    onLoadFailed: root.applyText("")
-    onSaved: root.repairWrittenFile()
-    onSaveFailed: root.failPermissionRepair("file-write")
+    onFileChanged: root.reloadSettings()
   }
 
   Process {
-    id: permissionProcess
+    id: stateHelper
     running: false
+    stdout: StdioCollector {
+      id: stateHelperOutput
+      waitForEnd: true
+    }
 
     onExited: function(exitCode) {
-      var commands = SettingsPermissionPolicy.commands(root.statePath)
-      if (!commands) {
-        root.failPermissionRepair(root.permissionStage)
-        return
-      }
-
-      if (root.permissionStage === "make-directory") {
-        if (exitCode !== 0) {
-          root.failPermissionRepair("make-directory")
-          return
-        }
-        root.permissionStage = "harden-directory"
-        permissionProcess.exec(commands.hardenDirectory)
-        return
-      }
-
-      if (root.permissionStage === "harden-directory") {
-        if (exitCode !== 0) {
-          root.failPermissionRepair("harden-directory")
-          return
-        }
-        root.permissionStage = "check-file"
-        permissionProcess.exec(commands.checkFile)
-        return
-      }
-
-      if (root.permissionStage === "check-file") {
+      var operation = root.helperOperation
+      root.helperOperation = ""
+      if (operation === "read") {
+        if (exitCode === 0) root.applyText(stateHelperOutput.text)
+        else if (exitCode === 2) root.applyText("")
+        else if (exitCode === 4) root.rejectState()
+        else root.failStateHelper("read")
+      } else if (operation === "write") {
         if (exitCode === 0) {
-          root.permissionStage = "harden-file"
-          permissionProcess.exec(commands.hardenFile)
-        } else if (exitCode === 1) {
-          root.finishPermissionRepair()
-        } else {
-          root.failPermissionRepair("check-file")
-        }
-        return
-      }
-
-      if (root.permissionStage === "harden-file") {
-        if (exitCode === 0) root.finishPermissionRepair()
-        else root.failPermissionRepair("harden-file")
-        return
-      }
-
-      if (root.permissionStage === "harden-written-file") {
-        root.writePending = false
-        if (SettingsPermissionPolicy.writeResult(exitCode)) {
-          root.permissionsReady = true
-          root.permissionStage = "ready"
+          root.writePending = false
           root.flushPendingWrite()
-        } else {
-          root.failPermissionRepair("harden-written-file")
-        }
+        } else root.failStateHelper("write")
       }
+      if (root.readQueued && root.helperOperation === "" && !stateHelper.running)
+        root.startHelperRead()
     }
   }
 
-  Component.onCompleted: root.beginPermissionRepair()
+  readonly property string helperPath: decodeURIComponent(
+    Qt.resolvedUrl("../scripts/settings-state-helper.py").toString().replace("file://", ""))
+
+  Component.onCompleted: root.startHelperRead()
 
   Component.onDestruction: {
-    if (permissionProcess.running) permissionProcess.running = false
+    if (stateHelper.running) stateHelper.running = false
   }
 }
