@@ -4926,7 +4926,8 @@ test("lifecycle owner topology remains singular and destruction-safe", () => {
   assert.match(scheduler, /PollPolicy\.delayUntil\(dueAt, now\)/);
   assert.match(responsePolicySource, /MAX_RESPONSE_BYTES = 2 \* 1024 \* 1024/);
   assert.match(responsePolicySource, /MAX_EVENTS = 256/);
-  assert.match(leagueFetch, /--max-filesize/);
+  assert.match(leagueFetch, /provider-transport-helper\.py/);
+  assert.equal((leagueFetch.match(/\/usr\/bin\/python3/g) || []).length, 2);
   assert.equal((leagueFetch.match(/stdout: SplitParser/g) || []).length, 2);
   assert.equal((leagueFetch.match(/StdioCollector/g) || []).length, 0);
   assert.match(leagueFetch, /ResponsePolicy\.canAppend/);
@@ -6457,10 +6458,10 @@ test("C2 policy is pure and C1 runtime ownership remains unchanged", () => {
   assert.equal(fetchService.includes("CalendarFetch"), true);
   assert.equal((leagueFetch.match(/\bProcess\s*\{/g) || []).length, 2);
   assert.equal((leagueFetch.match(/\bTimer\s*\{/g) || []).length, 0);
-  assert.equal((leagueFetch.match(/curl/g) || []).length, 2);
-  assert.equal((leagueFetch.match(/--max-filesize/g) || []).length, 2);
+  assert.equal((leagueFetch.match(/provider-transport-helper\.py/g) || []).length, 1);
+  assert.equal((leagueFetch.match(/\/usr\/bin\/python3/g) || []).length, 2);
   assert.match(leagueFetch, /readonly property int dateCacheLimit: 5/);
-  assert.match(leagueFetch, /ResponsePolicy\.MAX_RESPONSE_BYTES/);
+  assert.match(leagueFetch, /provider-transport-helper\.py/);
 });
 
 test("C3 NHL calendar schedule parsing keeps normalized day buckets", () => {
@@ -6695,7 +6696,8 @@ test("C3 schedule owner hydrates eligible leagues through bounded range chunks",
   assert.match(source, /CalendarCachePolicy\.MAX_CACHE_WINDOWS/);
   assert.match(source, /root\.generation\+\+/);
   assert.match(source, /requestGeneration !== root\.activeGeneration/);
-  assert.match(source, /--max-filesize/);
+  assert.match(source, /provider-transport-helper\.py/);
+  assert.match(source, /\/usr\/bin\/python3/);
   assert.equal((source.match(/\bProcess\s*\{/g) || []).length, 1);
   assert.equal((source.match(/\bTimer\s*\{/g) || []).length, 1);
   assert.equal(source.includes("Notification"), false);
@@ -6793,11 +6795,11 @@ test("LeagueFetch admits through the fallback chain without new fetch ownership"
   assert.match(leagueFetch, /property var providerHealth: \(\{\}\)/);
   assert.match(leagueFetch, /property string activeProviderId: ""/);
 
-  // The wiring adds no process, timer, transport, or provider parsing: still
-  // exactly two Process objects and two curl command arrays.
+  // The wiring adds no process, timer, or provider parsing: still exactly two
+  // Process objects and two fixed helper command arrays.
   assert.equal((leagueFetch.match(/\bProcess\s*\{/g) || []).length, 2);
   assert.equal((leagueFetch.match(/\bTimer\s*\{/g) || []).length, 0);
-  assert.equal((leagueFetch.match(/curl/g) || []).length, 2);
+  assert.equal((leagueFetch.match(/\/usr\/bin\/python3/g) || []).length, 2);
   assert.equal((leagueFetch.match(/JSON\.parse/g) || []).length, 2);
 });
 

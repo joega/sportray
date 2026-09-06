@@ -1,0 +1,6 @@
+{
+  "allowedUrl": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=20260906",
+  "redirectStatus": 302,
+  "normalBody": "{\"events\":[]}",
+  "oversizedBytes": 2097153
+}

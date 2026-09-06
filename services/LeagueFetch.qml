@@ -76,6 +76,8 @@ Item {
   property var lookaheadCache: ({})
   property var lookaheadCacheOrder: []
   readonly property int dateCacheLimit: 5
+  readonly property string transportHelperPath: decodeURIComponent(
+    Qt.resolvedUrl("../scripts/provider-transport-helper.py").toString().replace("file://", ""))
 
   function buildScoreUrl(providerId) {
     if (providerId === "nhl") return NhlProvider.buildScoreUrl(root.dateKey)
@@ -333,8 +335,7 @@ Item {
     root.lookaheadHopCount++
     root.nextGameStatus = "loading"
     lookaheadProcess.requestGeneration = root.activeLookaheadGeneration
-    lookaheadProcess.command = ["curl", "-fsSL", "--max-time", "10",
-      "--max-filesize", String(ResponsePolicy.MAX_RESPONSE_BYTES), url]
+    lookaheadProcess.command = ["/usr/bin/python3", root.transportHelperPath, url]
     lookaheadProcess.running = true
     return true
   }
@@ -481,10 +482,7 @@ Item {
     root.streamFinished = false
     root.bodyReceived = false
     root.stoppingRequest = false
-    // The NHL endpoint redirects to a dated slate. -L is harmless for ESPN
-    // and keeps redirect handling inside this transport boundary.
-    requestProcess.command = ["curl", "-fsSL", "--max-time", "10",
-      "--max-filesize", String(ResponsePolicy.MAX_RESPONSE_BYTES), url]
+    requestProcess.command = ["/usr/bin/python3", root.transportHelperPath, url]
     requestProcess.requestGeneration = root.activeRequestGeneration
     requestProcess.running = true
     console.debug("Sportray league fetch", root.leagueId,

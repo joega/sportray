@@ -11,6 +11,9 @@ import "../model/ResponsePolicy.js" as ResponsePolicy
 Item {
   id: root
 
+  readonly property string transportHelperPath: decodeURIComponent(
+    Qt.resolvedUrl("../scripts/provider-transport-helper.py").toString().replace("file://", ""))
+
   property string leagueId: ""
   property var groups: []
   property var rows: []
@@ -132,8 +135,7 @@ Item {
     root.pendingResponseBody = ""
     root.responseTooLarge = false
     requestProcess.requestGeneration = root.activeRequestGeneration
-    requestProcess.command = ["curl", "-fsSL", "--max-time", "10",
-      "--max-filesize", String(ResponsePolicy.MAX_RESPONSE_BYTES), url]
+    requestProcess.command = ["/usr/bin/python3", root.transportHelperPath, url]
     requestProcess.running = true
     return true
   }

@@ -12,6 +12,9 @@ import "../model/ResponsePolicy.js" as ResponsePolicy
 Item {
   id: root
 
+  readonly property string transportHelperPath: decodeURIComponent(
+    Qt.resolvedUrl("../scripts/provider-transport-helper.py").toString().replace("file://", ""))
+
   property bool calendarEnabled: false
   property bool calendarFeatureEnabled: false
   property var enabledLeagues: ["nhl"]
@@ -407,9 +410,7 @@ Item {
     calendarProcess.requestGeneration = root.activeGeneration
     var url = window.providerId === "nhl" ? NhlProvider.buildNextGamesUrl(window.startDate)
       : EspnProvider.buildNextGamesUrl(window.leagueId, window.startDate, window.endDate)
-    calendarProcess.command = ["curl", "-fsSL", "--max-time", "10",
-      "--max-filesize", String(ResponsePolicy.MAX_RESPONSE_BYTES),
-      url]
+    calendarProcess.command = ["/usr/bin/python3", root.transportHelperPath, url]
     calendarProcess.running = true
   }
 
