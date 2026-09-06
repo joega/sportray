@@ -93,6 +93,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             text: "NEXT GAME"
             color: Color.accent
             font.family: Style.font.family
@@ -101,6 +102,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             text: DateModel.shortDateLabel(root.dateKey)
             color: Color.popups.text
             font.family: Style.font.family
@@ -122,6 +124,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: Formatters.teamLabel(root.game.awayTeam)
             color: Color.popups.text
@@ -132,6 +135,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: root.teamName(root.game.awayTeam)
             color: Color.muted
@@ -141,6 +145,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             text: "AWAY"
             color: Color.muted
             font.family: Style.font.family
@@ -149,6 +154,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           id: vsLabel
           anchors.verticalCenter: parent.verticalCenter
           text: "VS"
@@ -163,6 +169,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: Formatters.teamLabel(root.game.homeTeam)
             color: Color.popups.text
@@ -173,6 +180,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: root.teamName(root.game.homeTeam)
             color: Color.muted
@@ -182,6 +190,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             text: "HOME"
             color: Color.muted
             font.family: Style.font.family
@@ -195,6 +204,7 @@ Item {
         spacing: Style.spacing.sm
 
         Text {
+          textFormat: Text.PlainText
           id: startTimeLabel
           anchors.verticalCenter: parent.verticalCenter
           text: root.localStartTime(root.game.startTime)

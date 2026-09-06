@@ -1,0 +1,6 @@
+{
+  "awayAbbreviation": "<img src='https://attacker.invalid/leak'>&\u0000\u0085\u202e--AWAY",
+  "homeAbbreviation": "\u2066HOME\u2069<script>alert(1)</script>",
+  "periodLabel": "<b>2nd</b>\u0007 & \u200fremaining",
+  "clock": "08:42\u009f<svg/>"
+}

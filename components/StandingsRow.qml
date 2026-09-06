@@ -69,6 +69,7 @@ Item {
       height: Style.space(40)
 
       Text {
+        textFormat: Text.PlainText
         width: Style.space(24)
         anchors.verticalCenter: parent.verticalCenter
         text: root.valueOrDash(root.standing.rank)
@@ -96,6 +97,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           width: Style.space(26)
@@ -110,6 +112,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           anchors.left: parent.left
           anchors.leftMargin: Style.space(26) + Style.spacing.xs
           anchors.right: parent.right
@@ -144,6 +147,7 @@ Item {
             spacing: 0
 
             Text {
+              textFormat: Text.PlainText
               width: parent.width
               text: modelData.label
               color: Color.muted
@@ -153,6 +157,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               width: parent.width
               text: root.valueOrDash(modelData.value)
               color: Color.popups.text

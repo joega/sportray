@@ -149,6 +149,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: root.logoSize
@@ -162,6 +163,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             id: awayFavoriteMarker
             anchors.left: parent.left
             anchors.leftMargin: root.logoSize + Style.spacing.xs
@@ -196,6 +198,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.awayScoreLabel
           color: root.live ? Color.urgent : Color.popups.text
@@ -232,6 +235,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: root.logoSize
@@ -245,6 +249,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             id: homeFavoriteMarker
             anchors.left: parent.left
             anchors.leftMargin: root.logoSize + Style.spacing.xs
@@ -280,6 +285,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.homeScoreLabel
           color: root.live ? Color.urgent : Color.popups.text

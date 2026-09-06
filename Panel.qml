@@ -1063,6 +1063,7 @@ Panel {
           height: Math.max(headerTitle.implicitHeight, headerActions.implicitHeight)
 
           Text {
+            textFormat: Text.PlainText
             id: headerTitle
             anchors.left: parent.left
             anchors.right: headerActions.left
@@ -1445,6 +1446,7 @@ Panel {
                     spacing: modelData.kind === "game" ? 0 : Style.spacing.sm
 
                     Text {
+                      textFormat: Text.PlainText
                       width: parent.width
                       // Do not bind a QQuickText height to its own
                       // implicitHeight. The delegate's bounded row height
@@ -1459,6 +1461,7 @@ Panel {
                     }
 
                     Text {
+                      textFormat: Text.PlainText
                       width: parent.width
                       height: visible ? font.pixelSize : 0
                       visible: modelData && modelData.kind === "standings-section"
@@ -1521,6 +1524,7 @@ Panel {
                         spacing: Style.spacing.xs
 
                         Text {
+                          textFormat: Text.PlainText
                           width: parent.width
                           text: modelData.title || modelData.text || "No games on this date"
                           color: Color.popups.text
@@ -1531,6 +1535,7 @@ Panel {
                         }
 
                         Text {
+                          textFormat: Text.PlainText
                           width: parent.width
                           text: modelData.title ? modelData.text : ""
                           visible: text !== ""
@@ -1541,6 +1546,7 @@ Panel {
                         }
 
                         Text {
+                          textFormat: Text.PlainText
                           width: parent.width
                           text: modelData.supportingText || ""
                           visible: text !== ""
@@ -1648,6 +1654,7 @@ Panel {
                   }
 
                   Text {
+                    textFormat: Text.PlainText
                     width: parent.width - refreshToastRow.spacing - Style.space(18)
                     text: "Refreshing scores…"
                     color: Color.popups.text

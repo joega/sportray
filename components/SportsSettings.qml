@@ -85,6 +85,7 @@ Item {
     spacing: Style.spacing.sm
 
       Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: {
         var revision = root.settingsRevision
@@ -115,6 +116,7 @@ Item {
           spacing: Style.spacing.xs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: modelData ? (modelData.displayName || modelData.name || modelData.id) : ""
             color: Color.foreground
@@ -124,6 +126,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: root.isEnabled(modelData)
               ? (root.isFollowed(modelData) ? "Enabled · followed" : "Enabled · not followed")

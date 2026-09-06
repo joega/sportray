@@ -139,6 +139,7 @@ Item {
       spacing: Style.spacing.xs
 
       Text {
+        textFormat: Text.PlainText
         width: Math.max(0, controls.width - Style.space(90))
         height: controls.height
         text: root.gridState.monthLabel || "Calendar"
@@ -182,6 +183,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         anchors.left: root.rehydrating ? hydrationSpinner.right : parent.left
         anchors.leftMargin: Style.spacing.sm
         anchors.right: parent.right
@@ -209,6 +211,7 @@ Item {
       Repeater {
         model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         Text {
+          textFormat: Text.PlainText
           required property string modelData
           width: (weekdays.width - weekdays.spacing * 6) / 7
           height: weekdays.height

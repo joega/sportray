@@ -15,7 +15,13 @@ function isRecord(value) {
 
 function text(value, fallback) {
   if (typeof value !== "string") return fallback || "";
-  var result = value.trim().replace(/[\u0000-\u001f\u007f]+/g, " ");
+  // Notification renderers are outside Sportray's QML control and can parse
+  // rich text. Remove markup-significant, C0/C1, and bidi-control characters
+  // before any provider value is assembled into the fixed helper argv.
+  var result = value.trim()
+    .replace(/[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]+/g, " ")
+    .replace(/[<>&]/g, "")
+    .replace(/\s+/g, " ");
   return result || (fallback || "");
 }
 
@@ -182,7 +188,9 @@ function buildDelivery(event, game) {
     var minutes = Math.max(1, Math.ceil(remainingMs / 60000));
     description = summary + " · Starts in " + minutes + " min";
   }
-  description = description.slice(0, MAX_DESCRIPTION_LENGTH);
+  // Keep the complete field plain as a final invariant before building argv,
+  // including punctuation introduced while composing provider-derived fields.
+  description = text(description).slice(0, MAX_DESCRIPTION_LENGTH);
   var headline = headlineFor(event.type);
   return {
     event: event,

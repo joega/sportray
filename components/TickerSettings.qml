@@ -45,6 +45,7 @@ Item {
     width: parent.width
     spacing: Style.spacing.sm
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: "↑/↓ or j/k to move · Enter/Space to change"
       color: Color.muted

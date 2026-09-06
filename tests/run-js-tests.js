@@ -1212,6 +1212,25 @@ test("provider notification text cannot become helper options", () => {
   fs.rmSync(tempDir, {recursive: true, force: true});
 });
 
+test("provider notification markup, controls, and bidi text are plain before helper argv", () => {
+  const fixture = JSON.parse(fs.readFileSync(
+    path.join(root, "fixtures/notifications/s1-security.json"), "utf8"));
+  const base = readNotificationFixture();
+  const game = games.normalizeGame(base.favoriteGame);
+  game.awayTeam.abbreviation = fixture.awayAbbreviation;
+  game.homeTeam.abbreviation = fixture.homeAbbreviation;
+  game.periodLabel = fixture.periodLabel;
+  game.clock = fixture.clock;
+
+  const delivery = notificationModel.buildDelivery(base.events[1], game);
+  const helperText = delivery.argv.slice(-2).join(" ");
+  assert.equal(delivery.description, "img src='https://attacker.invalid/leak' --AWAY 3–2 HOME scriptalert(1)/script · b2nd/b remaining · 08:42 svg/");
+  assert.equal(/[<>&\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/.test(helperText), false);
+  assert.deepEqual(delivery.argv.slice(0, 4), [
+    "/usr/bin/omarchy-notification-send", "--app-name", "Sportray", "-u"
+  ]);
+});
+
 test("notification preview uses the real helper boundary without preferences", () => {
   const preview = notificationModel.buildTestDelivery();
   assert.deepEqual(preview.argv, [

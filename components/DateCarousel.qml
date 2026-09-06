@@ -63,6 +63,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         visible: root.compact
         width: Math.max(Style.space(110), dateRail.width - previousButton.width
           - nextButton.width - dateRail.spacing * 2)

@@ -166,6 +166,7 @@ Item {
           // match the separator convention and cannot be trimmed from the
           // measured text width.
           Text {
+            textFormat: Text.PlainText
             anchors.verticalCenter: parent.verticalCenter
             text: gameItem.modelData.groupStart
               ? gameItem.modelData.leagueEmoji + "  " + gameItem.modelData.leagueLabel + "\u00A0\u00A0\u00A0"

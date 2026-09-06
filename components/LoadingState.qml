@@ -30,6 +30,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         width: parent.width - Style.space(18) - parent.spacing
         text: root.labelText
         color: Color.muted

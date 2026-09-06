@@ -73,6 +73,7 @@ Item {
     spacing: Style.spacing.sm
 
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: "↑/↓ or j/k to move · Enter/Space to toggle · n to open"
       color: Color.muted
@@ -111,6 +112,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: "Sends a preview even when alerts are disabled."
       color: Color.muted

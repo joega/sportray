@@ -65,6 +65,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       id: textLabel
       visible: root.text !== ""
       anchors.centerIn: parent

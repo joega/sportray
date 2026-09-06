@@ -32,6 +32,7 @@ Item {
   Accessible.onPressAction: root.activatePrimaryAction()
 
   Text {
+    textFormat: Text.PlainText
     id: label
     width: parent.width
     text: root.status.loading

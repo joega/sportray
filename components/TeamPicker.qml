@@ -116,6 +116,7 @@ Item {
     spacing: Style.spacing.sm
 
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: root.selectedCount + " selected · selected teams stay at the top"
       color: Color.muted
@@ -158,6 +159,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: "League"
       color: Color.popups.text
@@ -191,6 +193,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       width: parent.width
       text: root.visibleTeams.length === 0 ? "No teams match this search." : "Teams"
       color: Color.muted
@@ -247,6 +250,7 @@ Item {
               }
 
               Text {
+                textFormat: Text.PlainText
                 anchors.fill: parent
                 visible: !logo.visible || logo.status !== Image.Ready
                 text: modelData.abbreviation || "?"
@@ -265,6 +269,7 @@ Item {
               spacing: 0
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: modelData.name || modelData.shortName || modelData.abbreviation || "Unnamed team"
                 color: Color.popups.text
@@ -274,6 +279,7 @@ Item {
               }
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: (modelData.league || "").toUpperCase()
                 color: Color.muted

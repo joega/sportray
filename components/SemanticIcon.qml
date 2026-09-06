@@ -16,6 +16,7 @@ Item {
   implicitHeight: glyph.implicitHeight
 
   Text {
+    textFormat: Text.PlainText
     id: glyph
     anchors.fill: parent
     text: Iconography.displayText(root.iconName, root.fontFamily)

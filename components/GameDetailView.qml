@@ -231,6 +231,7 @@ Item {
             spacing: Style.spacing.xxs
 
             Text {
+              textFormat: Text.PlainText
               width: parent.width
               text: "GAME DETAILS"
               color: Color.accent
@@ -240,6 +241,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               width: parent.width
               text: root.teamLabel(root.detail.participants[0]) + " at "
                 + root.teamLabel(root.detail.participants[1])
@@ -251,6 +253,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               width: parent.width
               text: root.valueOrDash(root.detail.league).toUpperCase()
                 + " · " + root.valueOrDash(root.detail.source.label)
@@ -284,6 +287,7 @@ Item {
             spacing: Style.spacing.sm
 
             Text {
+              textFormat: Text.PlainText
               width: Style.space(44)
               text: "AWAY"
               color: Color.muted
@@ -297,6 +301,7 @@ Item {
               spacing: Style.spacing.xxs
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamLabel(root.detail.participants[0])
                 color: Color.popups.text
@@ -307,6 +312,7 @@ Item {
               }
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamName(root.detail.participants[0])
                 color: Color.muted
@@ -317,6 +323,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               id: scoreAway
               text: root.scoreLabel(root.detail.participants[0])
               color: Color.popups.text
@@ -332,6 +339,7 @@ Item {
             spacing: Style.spacing.sm
 
             Text {
+              textFormat: Text.PlainText
               width: Style.space(44)
               text: "HOME"
               color: Color.muted
@@ -345,6 +353,7 @@ Item {
               spacing: Style.spacing.xxs
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamLabel(root.detail.participants[1])
                 color: Color.popups.text
@@ -355,6 +364,7 @@ Item {
               }
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamName(root.detail.participants[1])
                 color: Color.muted
@@ -365,6 +375,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               id: scoreHome
               text: root.scoreLabel(root.detail.participants[1])
               color: Color.popups.text
@@ -381,6 +392,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: Formatters.formatDetailStatus(root.detail.status)
             color: Color.popups.text
@@ -391,6 +403,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: Formatters.formatDetailTiming(
               root.timeLabel(root.detail.timing.startTime),
@@ -402,6 +415,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: "Venue   " + root.valueOrDash(root.detail.venue)
             color: Color.muted
@@ -411,6 +425,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: "Outcome   " + root.valueOrDash(root.outcomeLabel())
             color: Color.muted
@@ -426,6 +441,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: "SITUATION"
             color: Color.muted
@@ -439,6 +455,7 @@ Item {
             spacing: Style.spacing.sm
 
             Text {
+              textFormat: Text.PlainText
               width: Style.space(44)
               text: "COUNT"
               color: Color.muted
@@ -447,6 +464,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               text: root.situationCountLabel()
               color: Color.popups.text
               font.family: Style.font.family
@@ -455,6 +473,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               width: Style.space(30)
               text: "OUT"
               color: Color.muted
@@ -463,6 +482,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               text: root.situationOutsLabel()
               color: Color.popups.text
               font.family: Style.font.family
@@ -476,6 +496,7 @@ Item {
             spacing: Style.spacing.sm
 
             Text {
+              textFormat: Text.PlainText
               width: Style.space(44)
               text: "BASES"
               color: Color.muted
@@ -505,6 +526,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             visible: Boolean(root.situationData && root.situationData.lastPlay)
             text: root.situationData && root.situationData.lastPlay
@@ -521,6 +543,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: "SCORING BY "
               + Formatters.scoringPeriodUnit(root.detail.league).toUpperCase()
@@ -531,6 +554,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             visible: !root.linesData
             text: "—"
@@ -544,6 +568,7 @@ Item {
             spacing: Style.spacing.sm
 
             Text {
+              textFormat: Text.PlainText
               width: Style.space(44)
               text: "#"
               color: Color.muted
@@ -556,6 +581,7 @@ Item {
               model: root.linePeriods()
 
               delegate: Text {
+                textFormat: Text.PlainText
                 required property string modelData
                 width: Style.space(30)
                 text: modelData
@@ -578,6 +604,7 @@ Item {
               spacing: Style.spacing.sm
 
               Text {
+                textFormat: Text.PlainText
                 width: Style.space(44)
                 text: linesSideRow.modelData === "away" ? "AWAY" : "HOME"
                 color: Color.muted
@@ -590,6 +617,7 @@ Item {
                 model: root.lineValues(linesSideRow.modelData)
 
                 delegate: Text {
+                  textFormat: Text.PlainText
                   required property string modelData
                   width: Style.space(30)
                   text: modelData
@@ -609,6 +637,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: "TEAM STATS"
             color: Color.muted
@@ -618,6 +647,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             visible: !root.statsData
             text: "—"
@@ -636,6 +666,7 @@ Item {
               spacing: Style.spacing.sm
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width - Style.space(44) * 2 - parent.spacing * 2
                 text: statRow.modelData.label
                 color: Color.muted
@@ -645,6 +676,7 @@ Item {
               }
 
               Text {
+                textFormat: Text.PlainText
                 width: Style.space(44)
                 text: statRow.modelData.away
                 color: Color.popups.text
@@ -655,6 +687,7 @@ Item {
               }
 
               Text {
+                textFormat: Text.PlainText
                 width: Style.space(44)
                 text: statRow.modelData.home
                 color: Color.popups.text
@@ -673,6 +706,7 @@ Item {
           spacing: Style.spacing.xxs
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: "ODDS"
             color: Color.muted
@@ -682,6 +716,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             text: root.oddsLabel()
             color: Color.popups.text
@@ -697,6 +732,7 @@ Item {
           spacing: Style.spacing.sm
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width - actionsRow.implicitWidth - parent.spacing
             text: root.valueOrDash(root.detail.source.label)
             color: Color.muted
