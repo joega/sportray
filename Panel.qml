@@ -118,7 +118,7 @@ Panel {
   readonly property var visibleTabItems: root.tabItems.slice(0, root.shortcutCapacity + 1)
   readonly property bool hasMoreTabs: root.tabItems.length > root.visibleTabItems.length
   readonly property var sportOptions: buildSportOptions()
-  readonly property var sportsPicker: hiddenSportsPicker
+  readonly property var sportsPicker: null
   readonly property var activeView: viewForDestination(root.activeDestination)
   readonly property var resultRows: ResultRows.flatten(
     root.activeView, root.activeDestination, root.selectedDateLabel)
@@ -415,6 +415,7 @@ Panel {
         settings: Style.space(440),
         teams: Style.space(640),
         notifications: Style.space(520)
+        ,ticker: Style.space(300)
     }
     if (!header || !contentColumn)
       return PanelLayout.contentRequest(root.displayRows, root.settingsDestination,
@@ -973,7 +974,7 @@ Panel {
       // navigation keys before an active editor can receive them. Let the
       // editor own all keys, including Escape, while it has focus.
       blocked: KeyboardRoutingPolicy.catcherBlocked(
-        settingsHub.inputActive, sportsPicker.popupOpen)
+        settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen)
       onCloseRequested: root.detailOpen ? root.closeDetail()
         : root.settingsOpen ? root.closeUtility()
         : root.calendarOpen ? root.closeCalendar() : root.close()
@@ -1312,7 +1313,7 @@ Panel {
               Item {
                 id: tabStrip
                 width: parent.width
-                height: visible ? sportsPicker.implicitHeight : 0
+                height: visible ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0
                 visible: !root.calendarOpen
 
                  Item {
@@ -1331,9 +1332,8 @@ Panel {
                     decorative: true
                   }
 
-                   Row {
-                     id: shortcutRow
-                     id: shortcutRow
+                    Row {
+                      id: shortcutRow
                      anchors.left: activeSportIcon.right
                      anchors.leftMargin: Style.spacing.sm
                      anchors.right: parent.right
@@ -1361,8 +1361,8 @@ Panel {
                          Accessible.role: Accessible.Button
                    }
 
-                   Dropdown {
-                     id: sportsPicker
+                    Dropdown {
+                      id: sportsPicker
                      visible: false
                      value: root.activeDestination
                      options: root.sportOptions

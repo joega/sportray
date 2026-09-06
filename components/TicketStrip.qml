@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import qs.Commons
+import qs.Ui
 import "../model/TicketPresentation.js" as TicketPresentation
 import "../model/ProviderUrlPolicy.js" as ProviderUrlPolicy
 import "../model/PointerInteractionPolicy.js" as PointerInteractionPolicy
@@ -16,11 +17,15 @@ Item {
   property string tickerState: "empty"
   property double nowMs: Date.now()
   property bool reducedMotion: false
+  property bool enabled: true
+  property bool paused: false
+  property string speed: "normal"
   // Tracks an in-progress per-game pointer press so the full-strip chrome
   // handler yields to the nested game target, mirroring the GameRow pattern.
   property bool gameActionPressed: false
 
   signal primaryActionRequested()
+  signal pauseToggled()
 
   // Guarded per-game source route: same HTTPS + provider-host allowlist as
   // SourceLinkButton.openSource over the GameModel.safeGameUrl hosts.
@@ -50,12 +55,35 @@ Item {
 
   width: parent ? parent.width : 0
   height: Style.space(32)
+  visible: root.enabled
   implicitHeight: height
   clip: true
 
   Rectangle {
     anchors.fill: parent
     color: Color.background
+  }
+
+  Row {
+    id: controls
+    anchors.left: parent.left
+    anchors.leftMargin: Style.spacing.sm
+    anchors.verticalCenter: parent.verticalCenter
+    z: 3
+    width: Style.space(32)
+
+    Button {
+      width: Style.space(24)
+      height: Style.space(24)
+      text: root.paused ? "▶" : "Ⅱ"
+      fontSize: Style.font.bodySmall
+      color: Color.background
+      foreground: Color.accent
+      borderSpec: Border.controlSpec("normal", Color.accent, Color.accent)
+      onClicked: root.pauseToggled()
+      Accessible.name: root.paused ? "Resume ticker" : "Pause ticker"
+      Accessible.role: Accessible.Button
+    }
   }
 
   Rectangle {
@@ -81,12 +109,21 @@ Item {
 
   Item {
     id: tickerContent
+    x: controls.x + controls.width + Style.spacing.sm
+    anchors.right: parent.right
     anchors.verticalCenter: parent.verticalCenter
     width: gameRow.visible ? gameRow.implicitWidth : statusText.implicitWidth
     height: root.height
-    x: root.reducedMotion ? Style.spacing.md : root.width
+    clip: true
 
-    Text {
+    Item {
+      id: tickerViewport
+      width: tickerContent.width
+      height: parent.height
+      x: root.reducedMotion || root.paused ? Style.spacing.md : tickerContent.width
+      clip: true
+
+      Text {
       id: statusText
       anchors.verticalCenter: parent.verticalCenter
       visible: !gameRow.visible
@@ -98,7 +135,7 @@ Item {
       font.bold: true
     }
 
-    Row {
+      Row {
       id: gameRow
       anchors.verticalCenter: parent.verticalCenter
       visible: Boolean(root.ticker.items && root.ticker.items.length > 0)
@@ -253,13 +290,15 @@ Item {
       }
     }
 
-    NumberAnimation on x {
-      running: root.visible && !root.reducedMotion && tickerContent.width > 0
+      NumberAnimation on x {
+      running: root.visible && !root.reducedMotion && !root.paused && tickerContent.width > 0
       loops: Animation.Infinite
-      duration: Math.max(12000, (root.width + tickerContent.width) * 24)
+      duration: Math.max(12000, (root.width + tickerContent.width)
+        * (root.speed === "slow" ? 36 : root.speed === "fast" ? 16 : 24))
       from: root.width
       to: -tickerContent.width
       easing.type: Easing.Linear
+      }
     }
   }
 
