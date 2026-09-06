@@ -1,5 +1,19 @@
 # Sportray private roadmap
 
+## Latest handoff - 2026-09-05 ambient ticker date isolation (complete)
+
+Ambient ticker games now remain scoped to the current day while the panel
+browses another date. The singleton retains the latest today snapshot from the
+existing FetchService owner and projects it through AmbientGamesPolicy; no
+second fetch owner or request path was introduced. Deterministic transition
+coverage passes. All static gates pass; actual Omarchy has one Quickshell
+process and shell ping is `ok`, but no rescan/restart or interactive navigation
+was performed without owner consent.
+
+Next bounded unit: with explicit owner consent, manually verify ticker stability
+while navigating the date carousel and make at most one observed correction.
+Stop before performance, geometry, release, or push.
+
 ## Latest handoff - 2026-09-05 exact provider-host sink validation (complete)
 
 The external source sinks now share `model/ProviderUrlPolicy.js`, which parses

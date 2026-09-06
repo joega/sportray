@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import "../model/DateModel.js" as DateModel
 import "../model/MonitorOwnership.js" as MonitorOwnership
+import "../model/AmbientGamesPolicy.js" as AmbientGamesPolicy
 
 // Omarchy creates one bar-widget item per screen. This singleton is the only
 // owner of stateful work, so those view instances cannot duplicate requests,
@@ -12,6 +13,7 @@ Item {
 
   property string selectedDateKey: DateModel.localDateKey(new Date())
   property string todayDateKey: DateModel.localDateKey(new Date())
+  property var todayGames: []
   property double nowMs: Date.now()
   // Calendar remains in-tree for later rework but is not a production route.
   readonly property bool calendarFeatureEnabled: false
@@ -23,7 +25,9 @@ Item {
   readonly property var fetchService: fetchService
   readonly property var standingsService: standingsService
   readonly property var notificationService: notificationServiceImpl
-  readonly property var ambientGames: fetchService ? fetchService.games : []
+  readonly property var ambientGames: AmbientGamesPolicy.project(
+    fetchService ? fetchService.games : [], root.selectedDateKey,
+    root.todayDateKey, root.todayGames)
   readonly property string ambientTickerState: fetchService && fetchService.loading && !fetchService.hasData
     ? "loading" : fetchService && fetchService.errorCode !== "" && !fetchService.hasData
       ? "offline" : ambientGames.length > 0 ? "ready" : "empty"
@@ -41,6 +45,11 @@ Item {
 
   function unregisterPanel(token) {
     root.panelContexts = MonitorOwnership.removeContext(root.panelContexts, token)
+  }
+
+  function captureTodayGames() {
+    if (root.selectedDateKey === root.todayDateKey && fetchService)
+      root.todayGames = fetchService.games.slice()
   }
 
   Timer {
@@ -74,5 +83,10 @@ Item {
     id: notificationServiceImpl
     settingsStore: settingsStore
     games: root.selectedDateKey === root.todayDateKey ? fetchService.games : []
+  }
+
+  Connections {
+    target: fetchService
+    function onGamesChanged() { root.captureTodayGames() }
   }
 }

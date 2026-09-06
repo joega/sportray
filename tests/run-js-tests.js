@@ -29,6 +29,7 @@ const standingsRows = require(path.join(root, "model/StandingsRows.js"));
 const pollPolicy = require(path.join(root, "model/PollPolicy.js"));
 const freshness = require(path.join(root, "model/FreshnessPolicy.js"));
 const transitions = require(path.join(root, "model/TransitionDetector.js"));
+const ambientGamesPolicy = require(path.join(root, "model/AmbientGamesPolicy.js"));
 const transitionDedupe = require(path.join(root, "model/TransitionDedupe.js"));
 const watchPolicy = require(path.join(root, "model/WatchPolicy.js"));
 const stateModel = require(path.join(root, "model/StateModel.js"));
@@ -4245,6 +4246,17 @@ test("ticker presentation is integrated into the shared bar widget", () => {
   assert.doesNotMatch(strip, /: "   •   "/);
   assert.match(service, /readonly property var ambientGames/);
   assert.match(service, /readonly property string ambientTickerState/);
+});
+
+test("ambient ticker remains on today's slate while panel browses another date", () => {
+  const today = [{id: "today"}];
+  const other = [{id: "other"}];
+  assert.deepEqual(ambientGamesPolicy.project(today, "2026-09-05", "2026-09-05", today), today);
+  assert.deepEqual(ambientGamesPolicy.project(other, "2026-09-06", "2026-09-05", today), today);
+  assert.deepEqual(ambientGamesPolicy.project(today, "2026-09-05", "2026-09-05", today), today);
+  const service = readSource("services/SportrayService.qml");
+  assert.match(service, /AmbientGamesPolicy\.project/);
+  assert.match(service, /property var todayGames/);
 });
 
 test("U2.1 result row identity stays canonical and Panel uses one virtualized result list", () => {
