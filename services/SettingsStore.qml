@@ -71,7 +71,8 @@ Item {
         enabledLeagues: state.enabledLeagues,
         followedLeagueIds: state.followedLeagueIds,
         favoriteTeamIds: state.favoriteTeamIds,
-        notifications: state.notifications
+        notifications: state.notifications,
+        ticker: state.ticker
       }
     }
     root.transitionDedupe = state.transitionDedupe
@@ -157,6 +158,26 @@ Item {
   function toggleNotification(key) {
     var next = SettingsModel.toggleNotification(root.settings, key)
     return root.writeSettings(next)
+  }
+
+  function setTicker(key, value) {
+    var current = root.settings && root.settings.ticker ? root.settings.ticker : SettingsModel.createDefaults().ticker
+    var next = {
+      enabled: current.enabled,
+      position: current.position,
+      speed: current.speed
+    }
+    if (["enabled", "position", "speed"].indexOf(key) === -1) return false
+    next[key] = value
+    var candidate = {
+      schemaVersion: root.settings.schemaVersion,
+      enabledLeagues: root.settings.enabledLeagues,
+      followedLeagueIds: root.settings.followedLeagueIds,
+      favoriteTeamIds: root.settings.favoriteTeamIds,
+      notifications: root.settings.notifications,
+      ticker: next
+    }
+    return root.writeSettings(candidate)
   }
 
   function isLeagueFollowed(leagueId) {

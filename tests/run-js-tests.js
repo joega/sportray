@@ -3290,6 +3290,11 @@ test("settings defaults are versioned and safe", () => {
       gameFinal: false,
       pregameReminder: false,
       closeGame: false
+    },
+    ticker: {
+      enabled: true,
+      position: "bottom",
+      speed: "normal"
     }
   });
   const result = settingsModel.parseSettingsText("");
@@ -3555,14 +3560,15 @@ test("valid schema 1 settings round-trip without provider or raw response fields
       scoreChange: false,
       gameFinal: true,
       pregameReminder: false,
-      closeGame: false
-    }
+       closeGame: false
+     },
+     ticker: settingsModel.createDefaults().ticker
   };
   const result = settingsModel.parseSettingsText(JSON.stringify(input));
   assert.equal(result.status, "migrated");
   assert.equal(result.recovered, false);
   assert.equal(result.needsWrite, true);
-  assert.deepEqual(result.settings, {...input, schemaVersion: 2});
+   assert.deepEqual(result.settings, {...input, schemaVersion: 2, ticker: settingsModel.createDefaults().ticker});
   assert.equal(JSON.stringify(result.settings).includes("gameState"), false);
   assert.equal(JSON.stringify(result.settings).includes("games"), false);
 });
@@ -3804,8 +3810,9 @@ test("picker favorite updates preserve the exact schema-2 store shape", () => {
       scoreChange: false,
       gameFinal: false,
       pregameReminder: false,
-      closeGame: false
-    }
+       closeGame: false
+     },
+     ticker: settingsModel.createDefaults().ticker
   });
   assert.deepEqual(settingsModel.toggleFavoriteTeam(selected, "nhl:6"), base);
   assert.deepEqual(settingsModel.toggleFavoriteTeam(base, "not-canonical"), base);
@@ -4109,7 +4116,7 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   const hub = readSource("components/SettingsHub.qml");
   const picker = readSource("components/TeamPicker.qml");
   assert.match(panel, /blocked: KeyboardRoutingPolicy\.catcherBlocked\(/);
-  assert.match(panel, /settingsHub\.inputActive, sportsPicker\.popupOpen/);
+  assert.match(panel, /settingsHub\.inputActive, sportsPicker && sportsPicker\.popupOpen/);
   assert.match(hub, /onEscapeRequested: root\.escapeRequested\(\)/);
   assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
 });
@@ -4228,7 +4235,7 @@ test("ticker presentation is integrated into the shared bar widget", () => {
   assert.doesNotMatch(panel, /TicketStrip/);
   const overlay = readSource("components/TicketOverlay.qml");
   assert.match(overlay, /screen: root\.targetScreen/);
-  assert.match(overlay, /anchors \{ bottom: true; left: true; right: true \}/);
+  assert.match(overlay, /anchors\.bottom: root\.tickerPosition !== "top"/);
   assert.match(overlay, /implicitHeight: root\.tickerHeight/);
   assert.match(overlay, /exclusionMode: ExclusionMode\.Auto/);
   assert.match(overlay, /WlrLayer\.Top/);
@@ -4289,7 +4296,7 @@ test("U2.1 uses a compact vertical sport chooser instead of a clipped tab strip"
   assert.equal(panel.includes("Dropdown {"), true);
   assert.equal(panel.includes("id: sportsPicker"), true);
   assert.equal(panel.includes("options: root.sportOptions"), true);
-  assert.equal(panel.includes("settingsHub.inputActive, sportsPicker.popupOpen"), true);
+  assert.equal(panel.includes("settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen"), true);
   assert.equal(panel.includes("orientation: ListView.Horizontal"), false);
   assert.equal(panel.includes("text: tabList.contentWidth > tabList.width"), false);
 });
@@ -4329,7 +4336,7 @@ test("horizontal overlay anchors to its button and clamps at the screen edge", (
   assert.equal(panel.includes("anchors.right: parent.right"), true);
   assert.equal(panel.includes("function measuredPanelContentRequest()"), true);
   assert.equal(panel.includes("resultList.contentHeight"), true);
-  assert.equal(panel.includes("height: visible ? sportsPicker.implicitHeight : 0"), true);
+  assert.equal(panel.includes("height: visible ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0"), true);
 });
 
 test("U2.2 groups every normalized game state into a provider-neutral slate", () => {

@@ -9,7 +9,7 @@ if (typeof require === "function") {
 
 var SCHEMA_VERSION = 2;
 var MIN_SUPPORTED_SCHEMA_VERSION = 1;
-var SETTINGS_FIELDS = ["schemaVersion", "enabledLeagues", "followedLeagueIds", "favoriteTeamIds", "notifications"];
+var SETTINGS_FIELDS = ["schemaVersion", "enabledLeagues", "followedLeagueIds", "favoriteTeamIds", "notifications", "ticker"];
 var STATE_FIELDS = SETTINGS_FIELDS.concat(["transitionDedupe", "watchedGames"]);
 
 function isRecord(value) {
@@ -29,7 +29,8 @@ function copySettingsFields(value) {
     enabledLeagues: source.enabledLeagues,
     followedLeagueIds: source.followedLeagueIds,
     favoriteTeamIds: source.favoriteTeamIds,
-    notifications: source.notifications
+    notifications: source.notifications,
+    ticker: source.ticker
   };
 }
 
@@ -54,6 +55,7 @@ function createState(settings, dedupeState, settingsApi, dedupeApi, currentTime,
     followedLeagueIds: normalizedSettings.followedLeagueIds,
     favoriteTeamIds: normalizedSettings.favoriteTeamIds,
     notifications: normalizedSettings.notifications,
+    ticker: normalizedSettings.ticker,
     transitionDedupe: normalizedDedupe,
     watchedGames: normalizedWatches
   };

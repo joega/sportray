@@ -37,6 +37,8 @@ At a glance:
   plus optional pregame reminders and close-game alerts
 - Temporary one-game watches for games without favoriting a team
 - Persistent league, favorite, and notification preferences
+- Configurable ticker visibility, top/bottom placement, and scroll speed
+- Ticker controls for previous-day review, pause/resume, and next-day preview
 - Theme-aware layout for top, bottom, left, and right bars
 - Keyboard navigation with visible focus and Escape-to-close
 

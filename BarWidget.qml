@@ -54,6 +54,8 @@ BarWidget {
 
   readonly property var sharedService: Services.SportrayService
   readonly property var settingsStore: root.sharedService.settingsStore
+  readonly property var tickerSettings: root.settingsStore && root.settingsStore.settings
+    ? root.settingsStore.settings.ticker : ({enabled: true, position: "bottom", speed: "normal"})
   // Horizontal panels follow the configured bar region while anchoring to the
   // real button, whose item tree lets KeyboardPanel resolve the correct screen
   // and overlay layer.
@@ -71,6 +73,9 @@ BarWidget {
     favoriteTeamIds: panelLoader.item ? panelLoader.item.favoriteTeamIds : []
     tickerState: root.tickerState
     nowMs: root.sharedService ? root.sharedService.nowMs : Date.now()
+    tickerEnabled: root.tickerSettings.enabled !== false
+    tickerPosition: root.tickerSettings.position || "bottom"
+    tickerSpeed: root.tickerSettings.speed || "normal"
   }
 
   function resolveBarRegion() {

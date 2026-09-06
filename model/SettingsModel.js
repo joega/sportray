@@ -33,6 +33,11 @@ function createDefaults() {
       gameFinal: false,
       pregameReminder: false,
       closeGame: false
+    },
+    ticker: {
+      enabled: true,
+      position: "bottom",
+      speed: "normal"
     }
   };
 }
@@ -91,6 +96,16 @@ function normalizeNotifications(value) {
   return out;
 }
 
+function normalizeTicker(value) {
+  var defaults = createDefaults().ticker;
+  if (!isPlainObject(value)) return null;
+  return {
+    enabled: typeof value.enabled === "boolean" ? value.enabled : defaults.enabled,
+    position: ["top", "bottom"].indexOf(value.position) !== -1 ? value.position : defaults.position,
+    speed: ["slow", "normal", "fast"].indexOf(value.speed) !== -1 ? value.speed : defaults.speed
+  };
+}
+
 function normalizeSettings(value) {
   var out = createDefaults();
   var invalidFields = [];
@@ -146,7 +161,20 @@ function normalizeSettings(value) {
     }
   }
 
-  var knownFields = ["schemaVersion", "enabledLeagues", "followedLeagueIds", "favoriteTeamIds", "notifications"];
+  var ticker = value.ticker === undefined ? out.ticker : normalizeTicker(value.ticker);
+  if (ticker === null) {
+    invalidFields.push("ticker");
+  } else {
+    out.ticker = ticker;
+    if (value.ticker !== undefined) {
+      var tickerKeys = ["enabled", "position", "speed"];
+      for (var j = 0; j < tickerKeys.length; j++) {
+        if (value.ticker[tickerKeys[j]] === undefined) missingFields.push("ticker." + tickerKeys[j]);
+      }
+    }
+  }
+
+  var knownFields = ["schemaVersion", "enabledLeagues", "followedLeagueIds", "favoriteTeamIds", "notifications", "ticker"];
   var unknownFields = [];
   for (var key in value) {
     if (knownFields.indexOf(key) === -1) unknownFields.push(key);
@@ -338,6 +366,7 @@ var exported = {
   toggleFollowedLeague: toggleFollowedLeague,
   moveFollowedLeague: moveFollowedLeague,
   toggleNotification: toggleNotification,
+  normalizeTicker: normalizeTicker,
   parseSettingsText: parseSettingsText
 };
 

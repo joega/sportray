@@ -22,7 +22,8 @@ Item {
   readonly property var destinations: [
     {id: "sports", label: "Sports & leagues", shortLabel: "Sports"},
     {id: "teams", label: "Favorite teams", shortLabel: "Teams"},
-    {id: "notifications", label: "Notifications", shortLabel: "Alerts"}
+    {id: "notifications", label: "Notifications", shortLabel: "Alerts"},
+    {id: "ticker", label: "Ticker", shortLabel: "Ticker"}
   ]
   readonly property bool inputActive: favoriteTeams.inputActive
   readonly property bool contentHasFocus: root.contentFocused
@@ -72,7 +73,8 @@ Item {
     }
     if (root.destination === "sports") sportsSettings.moveCursor(dy)
     else if (root.destination === "teams") favoriteTeams.moveCursor(dy)
-    else notificationSettings.moveCursor(dy)
+    else if (root.destination === "notifications") notificationSettings.moveCursor(dy)
+    else tickerSettings.moveCursor(dy)
     root.deferCallback(root.ensureCursorVisible)
   }
 
@@ -83,7 +85,8 @@ Item {
     }
     if (root.destination === "sports") sportsSettings.activateCursor()
     else if (root.destination === "teams") favoriteTeams.activateCursor()
-    else notificationSettings.activateCursor()
+    else if (root.destination === "notifications") notificationSettings.activateCursor()
+    else tickerSettings.activateCursor()
   }
 
   function focusContent() {
@@ -94,7 +97,8 @@ Item {
   function ensureCursorVisible() {
     var bounds = root.destination === "teams" ? favoriteTeams.cursorBounds()
       : root.destination === "sports" ? sportsSettings.cursorBounds()
-      : notificationSettings.cursorBounds()
+      : root.destination === "notifications" ? notificationSettings.cursorBounds()
+      : tickerSettings.cursorBounds()
     root.contentBoundsRequested(bounds.top, bounds.bottom)
   }
 
@@ -129,7 +133,7 @@ Item {
             required property var modelData
             required property int index
             width: sectionTabs.width / root.destinations.length
-            text: root.compact ? modelData.shortLabel : modelData.label
+             text: modelData.shortLabel
             selected: false
             foreground: root.destination === modelData.id ? Color.popups.text : Color.muted
             hasCursor: !root.contentFocused && root.sectionCursor === index
@@ -236,6 +240,14 @@ Item {
       visible: root.destination === "notifications"
       settingsStore: root.settingsStore
       notificationService: root.notificationService
+      settingsRevision: root.settingsRevision
+    }
+
+    TickerSettings {
+      id: tickerSettings
+      width: hubColumn.width
+      visible: root.destination === "ticker"
+      settingsStore: root.settingsStore
       settingsRevision: root.settingsRevision
     }
   }
