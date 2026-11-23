@@ -220,9 +220,11 @@ Item {
 
   FileView {
     id: settingsFile
+    // Watch metadata only. Default preloading would read settings by pathname
+    // outside the descriptor-bound helper's validation and byte limit.
+    preload: false
     path: root.statePath
     watchChanges: true
-    blockWrites: true
     printErrors: false
     onFileChanged: root.reloadSettings()
   }

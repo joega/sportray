@@ -3512,7 +3512,7 @@ test("settings permission repair uses owner-only state paths and safe admission"
 test("SettingsStore routes persistence through the fixed descriptor-bound helper", () => {
   const source = readSource("services/SettingsStore.qml");
   assert.equal(source.includes("SettingsPermissionPolicy.js"), false);
-  assert.equal(source.includes("blockWrites: true"), true);
+  assert.equal(source.includes("preload: false"), true);
   assert.equal(source.includes("watchChanges: true"), true);
   assert.equal(source.includes("/usr/bin/python3"), true);
   assert.equal(source.includes("settings-state-helper.py"), true);
@@ -6881,6 +6881,21 @@ test("calendar rehydration plans only uncached days in the rolling window", () =
   assert.equal(qmlWindow.length, fixture.windowCount);
   assert.equal(qmlWindow[0], fixture.windowStart);
   assert.equal(qmlWindow.at(-1), fixture.windowEnd);
+});
+
+test("settings watcher cannot bypass bounded helper content I/O", () => {
+  const source = readSource("services/SettingsStore.qml");
+  const watcher = source.match(/\bFileView\s*\{([^{}]*)\}/);
+  assert.ok(watcher, "one metadata-only FileView remains for external changes");
+  assert.equal((source.match(/\bFileView\s*\{/g) || []).length, 1);
+  assert.match(watcher[1], /\bpreload:\s*false\b/);
+  assert.match(watcher[1], /\bwatchChanges:\s*true\b/);
+  assert.match(watcher[1], /onFileChanged:\s*root\.reloadSettings\(\)/);
+  // FileView's blocking properties do not prohibit I/O. Content access and
+  // adapters must stay out of this watcher, including future call sites.
+  assert.doesNotMatch(watcher[1], /\b(?:blockLoading|blockAllReads|blockWrites|adapter)\s*:/);
+  assert.doesNotMatch(source, /\bsettingsFile\s*(?:\.|\[)/);
+  assert.match(source, /function reloadSettings\(\)\s*\{\s*root\.startHelperRead\(\)/);
 });
 
 test("persistent calendar cache is a separate sequential descriptor-helper owner", () => {

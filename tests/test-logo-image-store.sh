@@ -7,13 +7,27 @@ IMPORT_DIR=$(mktemp -d)
 trap 'rm -rf "$IMPORT_DIR"' EXIT
 
 # Quickshell.Io is built into the shell executable, not a loadable QtTest
-# plugin. Replace only that process boundary; load the actual services and run
-# their bindings, callbacks, queues and transitions in the real Qt engine.
+# plugin. Fixture its process/file-watcher boundaries; load the actual services
+# and run their bindings, callbacks, queues and transitions in the real Qt engine.
+# FileView notifications are driven explicitly, not claimed as filesystem proof.
 mkdir -p "$IMPORT_DIR/Quickshell/Io"
+cat > "$IMPORT_DIR/Quickshell/qmldir" <<'QMLDIR'
+module Quickshell
+singleton Quickshell 1.0 Quickshell.qml
+QMLDIR
+cat > "$IMPORT_DIR/Quickshell/Quickshell.qml" <<'QML'
+pragma Singleton
+import QtQuick
+QtObject {
+  function env(name) { return name === "HOME" ? "/fixture-home" : "" }
+}
+QML
 cat > "$IMPORT_DIR/Quickshell/Io/qmldir" <<'QMLDIR'
 module Quickshell.Io
 Process 1.0 Process.qml
 SplitParser 1.0 SplitParser.qml
+StdioCollector 1.0 StdioCollector.qml
+FileView 1.0 FileView.qml
 QMLDIR
 cat > "$IMPORT_DIR/Quickshell/Io/Process.qml" <<'QML'
 import QtQuick
@@ -26,6 +40,7 @@ QtObject {
   property var commands: []
   signal exited(int exitCode, int exitStatus)
   onRunningChanged: if (running) {
+    if (stdout && "text" in stdout) stdout.text = ""
     starts += 1
     commands = commands.concat([command.slice()])
   }
@@ -41,6 +56,26 @@ import QtQuick
 QtObject {
   property string splitMarker: ""
   signal read(string chunk)
+}
+QML
+cat > "$IMPORT_DIR/Quickshell/Io/StdioCollector.qml" <<'QML'
+import QtQuick
+QtObject {
+  property bool waitForEnd: false
+  property string text: ""
+  function read(chunk) { text += chunk }
+}
+QML
+cat > "$IMPORT_DIR/Quickshell/Io/FileView.qml" <<'QML'
+import QtQuick
+QtObject {
+  objectName: "fixtureFileView"
+  property string path: ""
+  property bool preload: true
+  property bool watchChanges: false
+  property bool blockWrites: false
+  property bool printErrors: true
+  signal fileChanged()
 }
 QML
 
