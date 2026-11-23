@@ -12,6 +12,9 @@ Item {
   property string output: ""
   readonly property int maxEntries: 96
   readonly property int maxDataUrlChars: 350000
+  // Mutate this plain JS object's fields in place: sourceFor runs inside QML
+  // bindings, so it must not emit queue/active-property changes while they run.
+  readonly property var requests: ({alive: true, scheduled: false, urls: []})
   readonly property string helperPath: decodeURIComponent(
     Qt.resolvedUrl("../scripts/logo-image-helper.py").toString().replace("file://", ""))
 
@@ -19,11 +22,33 @@ Item {
     if (typeof url !== "string" || url.length === 0) return ""
     var current = root.sources[url]
     if (typeof current === "string") return current
-    if (current === undefined && root.queuedUrls.indexOf(url) === -1 && root.activeUrl !== url) {
-      root.queuedUrls = root.queuedUrls.concat([url]).slice(0, root.maxEntries)
-      root.startNext()
+    if (Object.keys(root.sources).length >= root.maxEntries) return ""
+    var pending = root.requests
+    if (pending.urls.indexOf(url) === -1 && pending.urls.length < root.maxEntries)
+      pending.urls.push(url)
+    if (!pending.scheduled && pending.urls.length > 0) {
+      pending.scheduled = true
+      Qt.callLater(function() {
+        // A deferred callback may outlive the store. Check only the captured
+        // plain owner state before touching the QML object again.
+        if (pending.alive) root.flushRequests()
+      })
     }
     return ""
+  }
+
+  function flushRequests() {
+    var urls = root.requests.urls
+    root.requests.urls = []
+    root.requests.scheduled = false
+    var queue = root.queuedUrls.slice()
+    for (var i = 0; i < urls.length && queue.length < root.maxEntries; i++) {
+      var url = urls[i]
+      if (typeof root.sources[url] !== "string" && root.activeUrl !== url
+          && queue.indexOf(url) === -1) queue.push(url)
+    }
+    root.queuedUrls = queue
+    root.startNext()
   }
 
   function setResult(url, value) {
@@ -36,6 +61,10 @@ Item {
 
   function startNext() {
     if (logoHelper.running || root.activeUrl !== "" || root.queuedUrls.length === 0) return
+    if (Object.keys(root.sources).length >= root.maxEntries) {
+      root.queuedUrls = []
+      return
+    }
     root.activeUrl = root.queuedUrls[0]
     root.queuedUrls = root.queuedUrls.slice(1)
     root.output = ""
@@ -70,6 +99,8 @@ Item {
   }
 
   Component.onDestruction: {
+    root.requests.alive = false
+    root.requests.urls = []
     if (logoHelper.running) logoHelper.running = false
   }
 }
