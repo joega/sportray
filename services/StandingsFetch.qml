@@ -4,6 +4,7 @@ import "../providers/EspnProvider.js" as EspnProvider
 import "../providers/NhlProvider.js" as NhlProvider
 import "../model/StandingsModel.js" as StandingsModel
 import "../model/ResponsePolicy.js" as ResponsePolicy
+import "../model/DateModel.js" as DateModel
 
 // One shared, on-demand standings request. It intentionally does not join the
 // scoreboard scheduler: opening a league table is an explicit view action and
@@ -120,8 +121,11 @@ Item {
 
   function load(targetLeague, force) {
     if (root.ownerDestroyed || typeof targetLeague !== "string" || targetLeague === "") return false
+    // NHL /now redirects. Query today in the same local calendar used by
+    // scores, independent of the selected historical score date. Keep the
+    // transport redirect policy closed. Recompute on each load/refresh.
     var url = targetLeague === "nhl"
-      ? NhlProvider.buildStandingsUrl()
+      ? NhlProvider.buildStandingsUrl(DateModel.localDateKey(new Date()))
       : EspnProvider.buildStandingsUrl(targetLeague)
     if (url && !force && root.leagueId === targetLeague && (root.loading || root.hasData)) return false
 

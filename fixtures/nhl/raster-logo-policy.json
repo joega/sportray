@@ -1,0 +1,53 @@
+{
+  "acceptedHosts": [
+    "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png",
+    "https://assets.nhle.com/logos/nhl/svg/BOS_light.svg",
+    "https://A.ESPNCDN.COM/i/teamlogos/nhl/500/nj.png"
+  ],
+  "rejectedUrls": [
+    null,
+    "",
+    "https://",
+    68,
+    {},
+    [],
+    "http://a.espncdn.com/i/teamlogos/nhl/500/la.png",
+    "https://images.example.test/team.png",
+    "https://a.espncdn.com.evil.test/team.png",
+    "https://a.espncdn.com@evil.test/team.png",
+    "https://evil.test@a.espncdn.com/team.png",
+    "https://a.espncdn.com:444/team.png",
+    "//a.espncdn.com/team.png"
+  ],
+  "unmappedIds": [
+    "999",
+    "59",
+    "53",
+    "toString",
+    "constructor",
+    "__proto__",
+    "68/../../bos",
+    "068"
+  ],
+  "malformedIds": [
+    null,
+    "",
+    {},
+    [],
+    true,
+    [
+      68
+    ],
+    {
+      "id": 68
+    }
+  ],
+  "untrustedFeedLogos": [
+    "https://assets.nhle.com/logos/nhl/svg/UTA_light.svg",
+    "https://evil.test/tracker.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png",
+    null,
+    {},
+    68
+  ]
+}

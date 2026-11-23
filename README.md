@@ -99,6 +99,8 @@ MLB, and NBA tables show the provider's **playoff seed order** within each
 conference or league; soccer tables use the provider's table ranks. ESPN tables
 show their own season, including when the provider returns an offseason table.
 College standings are currently unavailable; college scoreboards remain supported.
+NHL standings request the current local calendar date directly, so they do not
+follow redirects or change with the selected score date.
 
 The bar widget shows a compact favorite-aware indicator with score details on
 hover. The thin ticker across the bottom of the screen scrolls current live
@@ -132,6 +134,8 @@ Press Escape to step back from settings to the prior score view.
   scores and team lists come from ESPN's site JSON endpoints.
 - MLB uses ESPN first with an MLB StatsAPI fallback, and league views use
   ESPN or NHL standings where available.
+- NHL logos use reviewed ESPN PNGs while keeping NHL team and favorite IDs.
+  Unmapped teams or failed logo requests retain readable team text.
 - Optional team-logo rasters are fetched only from reviewed ESPN and NHL asset
   hosts, validated for format, byte size, and dimensions before local display,
   and retained only for the current shell session.

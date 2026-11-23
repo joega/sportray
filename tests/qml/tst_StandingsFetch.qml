@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import "../../model/DateModel.js" as DateModel
 
 TestCase {
   id: testCase
@@ -53,6 +54,24 @@ TestCase {
     compare(result.rows.length, 4)
     compare(result.rows[0].team.id, "nhl:12")
     compare(result.rows[0].rankKind, "rank")
+  }
+
+  function test_nhlRequestsDatedLocalTableAndRetainsRasters() {
+    var before = DateModel.localDateKey(new Date())
+    var process = findChild(fetchOwner, "fixtureProcess")
+    verify(fetchOwner.load("nhl", false))
+    var after = DateModel.localDateKey(new Date())
+    var url = process.command[process.command.length - 1]
+    verify(url === "https://api-web.nhle.com/v1/standings/" + before
+      || url === "https://api-web.nhle.com/v1/standings/" + after)
+    verify(url.indexOf("/now") === -1)
+    process.finish(0, JSON.stringify(jsonFile("../../fixtures/nhl/standings.json")))
+    compare(fetchOwner.rows[0].team.logoUrl, "https://a.espncdn.com/i/teamlogos/nhl/500/car.png")
+    verify(fetchOwner.refresh("nhl"))
+    process.finish(4, "")
+    verify(fetchOwner.stale)
+    compare(fetchOwner.rows[0].team.id, "nhl:12")
+    compare(fetchOwner.rows[0].team.logoUrl, "https://a.espncdn.com/i/teamlogos/nhl/500/car.png")
   }
 
   function test_sameLeagueFailureRetainsOnlyItsLastGoodTable() {

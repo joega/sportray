@@ -6,40 +6,41 @@ var TEAM_SOURCE = "https://api.nhle.com/stats/rest/en/team?limit=-1";
 
 // The stats endpoint also returns historical franchises. Keep the current
 // roster boundary explicit so provider changes cannot silently add retired or
-// placeholder teams to the picker.
+// placeholder teams to the picker. The last column is the reviewed ESPN PNG
+// suffix for that NHL ID, not an ESPN numeric team ID. Keep NhlProvider in sync.
 var CURRENT_TEAMS = [
-  [24, "ANA", "Anaheim Ducks"],
-  [6, "BOS", "Boston Bruins"],
-  [7, "BUF", "Buffalo Sabres"],
-  [12, "CAR", "Carolina Hurricanes"],
-  [29, "CBJ", "Columbus Blue Jackets"],
-  [20, "CGY", "Calgary Flames"],
-  [16, "CHI", "Chicago Blackhawks"],
-  [21, "COL", "Colorado Avalanche"],
-  [25, "DAL", "Dallas Stars"],
-  [17, "DET", "Detroit Red Wings"],
-  [22, "EDM", "Edmonton Oilers"],
-  [13, "FLA", "Florida Panthers"],
-  [26, "LAK", "Los Angeles Kings"],
-  [30, "MIN", "Minnesota Wild"],
-  [8, "MTL", "Montréal Canadiens"],
-  [1, "NJD", "New Jersey Devils"],
-  [18, "NSH", "Nashville Predators"],
-  [2, "NYI", "New York Islanders"],
-  [3, "NYR", "New York Rangers"],
-  [9, "OTT", "Ottawa Senators"],
-  [4, "PHI", "Philadelphia Flyers"],
-  [5, "PIT", "Pittsburgh Penguins"],
-  [55, "SEA", "Seattle Kraken"],
-  [28, "SJS", "San Jose Sharks"],
-  [19, "STL", "St. Louis Blues"],
-  [14, "TBL", "Tampa Bay Lightning"],
-  [10, "TOR", "Toronto Maple Leafs"],
-  [68, "UTA", "Utah Mammoth"],
-  [23, "VAN", "Vancouver Canucks"],
-  [54, "VGK", "Vegas Golden Knights"],
-  [52, "WPG", "Winnipeg Jets"],
-  [15, "WSH", "Washington Capitals"]
+  [24, "ANA", "Anaheim Ducks", "ana"],
+  [6, "BOS", "Boston Bruins", "bos"],
+  [7, "BUF", "Buffalo Sabres", "buf"],
+  [12, "CAR", "Carolina Hurricanes", "car"],
+  [29, "CBJ", "Columbus Blue Jackets", "cbj"],
+  [20, "CGY", "Calgary Flames", "cgy"],
+  [16, "CHI", "Chicago Blackhawks", "chi"],
+  [21, "COL", "Colorado Avalanche", "col"],
+  [25, "DAL", "Dallas Stars", "dal"],
+  [17, "DET", "Detroit Red Wings", "det"],
+  [22, "EDM", "Edmonton Oilers", "edm"],
+  [13, "FLA", "Florida Panthers", "fla"],
+  [26, "LAK", "Los Angeles Kings", "la"],
+  [30, "MIN", "Minnesota Wild", "min"],
+  [8, "MTL", "Montréal Canadiens", "mtl"],
+  [1, "NJD", "New Jersey Devils", "nj"],
+  [18, "NSH", "Nashville Predators", "nsh"],
+  [2, "NYI", "New York Islanders", "nyi"],
+  [3, "NYR", "New York Rangers", "nyr"],
+  [9, "OTT", "Ottawa Senators", "ott"],
+  [4, "PHI", "Philadelphia Flyers", "phi"],
+  [5, "PIT", "Pittsburgh Penguins", "pit"],
+  [55, "SEA", "Seattle Kraken", "sea"],
+  [28, "SJS", "San Jose Sharks", "sj"],
+  [19, "STL", "St. Louis Blues", "stl"],
+  [14, "TBL", "Tampa Bay Lightning", "tb"],
+  [10, "TOR", "Toronto Maple Leafs", "tor"],
+  [68, "UTA", "Utah Mammoth", "utah"],
+  [23, "VAN", "Vancouver Canucks", "van"],
+  [54, "VGK", "Vegas Golden Knights", "vgk"],
+  [52, "WPG", "Winnipeg Jets", "wpg"],
+  [15, "WSH", "Washington Capitals", "wsh"]
 ];
 
 var CURRENT_BY_ID = {};
@@ -75,7 +76,9 @@ function normalizeTeamFallback(input) {
     var result = clean(value);
     if (!result || !/^https:\/\//i.test(result)) return null;
     var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(result);
-    if (!match || match[1].toLowerCase() !== "assets.nhle.com") return null;
+    if (!match) return null;
+    var host = match[1].toLowerCase();
+    if (host !== "assets.nhle.com" && host !== "a.espncdn.com") return null;
     return result;
   }
   return {
@@ -93,9 +96,11 @@ function normalizeTeamFallback(input) {
 
 function normalizeTeamRecord(record) {
   if (!record || typeof record !== "object" || Array.isArray(record)) return null;
-  var id = String(record.id === undefined || record.id === null ? "" : record.id).trim();
+  if (typeof record.id !== "string" && typeof record.id !== "number") return null;
+  if (typeof record.id === "number" && !isFinite(record.id)) return null;
+  var id = String(record.id).trim();
   var known = CURRENT_BY_ID[id];
-  if (!known) return null;
+  if (!Array.isArray(known)) return null;
   if (typeof record.fullName !== "string" || !record.fullName.trim()
       || typeof record.triCode !== "string" || !record.triCode.trim()) return null;
 
@@ -105,7 +110,7 @@ function normalizeTeamRecord(record) {
     name: record.fullName,
     shortName: record.fullName,
     abbreviation: record.triCode,
-    logoUrl: record.teamLogo,
+    logoUrl: "https://a.espncdn.com/i/teamlogos/nhl/500/" + known[3] + ".png",
     link: null
   };
   return TeamModel.normalizeTeam(team);
@@ -124,7 +129,7 @@ function listTeams() {
       name: entry[2],
       shortName: entry[2],
       abbreviation: entry[1],
-      logoUrl: null,
+      logoUrl: "https://a.espncdn.com/i/teamlogos/nhl/500/" + entry[3] + ".png",
       link: null
     });
   }).sort(sortTeams);

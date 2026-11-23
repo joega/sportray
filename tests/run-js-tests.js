@@ -571,7 +571,7 @@ test("NHL team catalog is bounded to the current normalized roster", () => {
     shortName: "Anaheim Ducks",
     abbreviation: "ANA",
     primaryColor: null,
-    logoUrl: null,
+    logoUrl: "https://a.espncdn.com/i/teamlogos/nhl/500/ana.png",
     link: null
   });
   assert.equal(teams.some((team) => team.providerTeamId === "36"), false);
@@ -583,8 +583,79 @@ test("NHL team discovery normalizes current records and skips history", () => {
   assert.equal(result.teams.length, 4);
   assert.deepEqual(result.teams.map((team) => team.id), ["nhl:6", "nhl:13", "nhl:10", "nhl:68"]);
   assert.equal(result.teams.find((team) => team.id === "nhl:6").logoUrl,
-    "https://assets.nhle.com/logos/nhl/svg/BOS_light.svg");
+    "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png");
   assert.equal(result.errors.length, 0);
+});
+
+test("NHL reviewed rasters preserve canonical IDs across scores, schedules, standings and picker", () => {
+  const fixture = readFixture("raster-logos");
+  assert.equal(fixture.teams.length, 32);
+  assert.equal(new Set(fixture.teams.map((team) => team.nhlId)).size, 32);
+  const pickerTeams = nhlTeams.listTeams();
+  fixture.teams.forEach(({nhlId, abbreviation, name, suffix}) => {
+    const logo = "https://a.espncdn.com/i/teamlogos/nhl/500/" + suffix + ".png";
+    const raw = {id: Number(nhlId), abbrev: abbreviation, name: {default: name}};
+    const event = {...readRawFixture("live").games[0], awayTeam: raw};
+    const score = nhl.parseScoreResponse({games: [event]}).games[0].awayTeam;
+    const schedule = nhl.parseScheduleResponse({gameWeek: [{games: [event]}]}).games[0].awayTeam;
+    const standing = nhl.normalizeStandingsEntry({teamAbbrev: abbreviation}).team;
+    const discovered = nhlTeams.normalizeTeamRecord({id: Number(nhlId), triCode: abbreviation, fullName: name});
+    const bundled = pickerTeams.find((team) => team.providerTeamId === nhlId);
+    [score, schedule, standing, discovered, bundled].forEach((team) => {
+      assert.equal(team.id, "nhl:" + nhlId);
+      assert.equal(team.providerTeamId, nhlId);
+      assert.equal(team.logoUrl, logo);
+    });
+  });
+});
+
+test("NHL raster selection ignores raw feed logos and keeps unmapped teams readable", () => {
+  const policy = readFixture("raster-logo-policy");
+  policy.untrustedFeedLogos.forEach((logo) => {
+    const event = {...readRawFixture("live").games[0], awayTeam: {
+      id: 68, abbrev: "BOS", name: {default: "Utah Mammoth"}, logo
+    }};
+    const score = nhl.parseGame(event).awayTeam;
+    assert.equal(score.id, "nhl:68");
+    assert.equal(score.logoUrl, "https://a.espncdn.com/i/teamlogos/nhl/500/utah.png");
+    assert.equal(nhlTeams.normalizeTeamRecord({id: 68, triCode: "UTA", fullName: "Utah Mammoth",
+      teamLogo: logo}).logoUrl, score.logoUrl);
+  });
+  policy.unmappedIds.forEach((id) => {
+    const event = {...readRawFixture("live").games[0], awayTeam: {
+      id, abbrev: "UTA", name: {default: "Unmapped team"}, logo: policy.acceptedHosts[0]
+    }};
+    const team = nhl.parseGame(event).awayTeam;
+    assert.equal(team.name, "Unmapped team");
+    assert.equal(team.abbreviation, "UTA");
+    assert.equal(team.logoUrl, null);
+    assert.equal(nhlTeams.normalizeTeamRecord({id, triCode: "UTA", fullName: "Unmapped team"}), null);
+  });
+  policy.malformedIds.forEach((id) => {
+    const event = {...readRawFixture("live").games[0], awayTeam: {id}};
+    assert.equal(nhl.parseGame(event), null);
+    assert.equal(nhlTeams.normalizeTeamRecord({id, triCode: "UTA", fullName: "Malformed team"}), null);
+  });
+});
+
+test("NHL raster URL host fixtures retain the existing Node admission boundary", () => {
+  const policy = readFixture("raster-logo-policy");
+  policy.acceptedHosts.forEach((url) => assert.equal(assetUrlPolicy.safeLogoUrl(url), url));
+  policy.rejectedUrls.forEach((url) => assert.equal(assetUrlPolicy.safeLogoUrl(url), null));
+});
+
+test("NHL current standings query uses the local day across UTC midnight and DST", () => {
+  const previousTimezone = process.env.TZ;
+  try {
+    readFixture("standings-query-dates").forEach(({timezone, instant, expected}) => {
+      process.env.TZ = timezone;
+      const url = nhl.buildStandingsUrl(dateModel.localDateKey(new Date(instant)));
+      assert.equal(url, "https://api-web.nhle.com/v1/standings/" + expected, timezone + ": " + instant);
+    });
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimezone;
+  }
 });
 
 test("NHL standings fixture projects conference order, canonical teams, and nulls", () => {
@@ -604,7 +675,7 @@ test("NHL standings fixture projects conference order, canonical teams, and null
   assert.equal(result.rows[0].ties, 7);
   assert.equal(result.rows[0].recordLabel, "53-22-7");
   assert.equal(result.rows[0].team.logoUrl,
-    "https://assets.nhle.com/logos/nhl/svg/CAR_light.svg");
+    "https://a.espncdn.com/i/teamlogos/nhl/500/car.png");
   assert.equal(result.rows[1].team.id, "nhl:6");
   assert.equal(result.rows[1].team.name, null);
   assert.equal(result.rows[1].played, null);
@@ -2066,7 +2137,7 @@ test("standings rows keep existing favorite routing and expose bounded actions",
   assert.equal(fetch.includes('import "../model/StandingsModel.js" as StandingsModel'), true);
   assert.equal(fetch.includes('? NhlProvider.parseStandingsResponse(payload)'), true);
   assert.equal(fetch.includes("return StandingsModel.normalizeGroups(groups, targetLeague, parsed.errors)"), true);
-  assert.equal(fetch.includes('? NhlProvider.buildStandingsUrl()'), true);
+  assert.equal(fetch.includes('? NhlProvider.buildStandingsUrl(DateModel.localDateKey(new Date()))'), true);
 });
 
 test("generic game details normalize ESPN games into ordered provider-neutral fields", () => {
@@ -3356,7 +3427,7 @@ test("NHL provider preserves unknown state and tolerates omitted optional fields
   assert.equal(missing.startTime, null);
   assert.equal(missing.venue, null);
   assert.equal(missing.awayTeam.name, null);
-  assert.equal(missing.awayTeam.logoUrl, null);
+  assert.equal(missing.awayTeam.logoUrl, "https://a.espncdn.com/i/teamlogos/nhl/500/buf.png");
   assert.equal(missing.period, null);
   assert.equal(missing.clock, null);
   assert.equal(missing.link, "https://www.nhl.com/gamecenter/2026020016");

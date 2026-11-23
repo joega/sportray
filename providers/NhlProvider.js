@@ -27,6 +27,25 @@ var TEAM_IDS_BY_ABBREVIATION = {
   WPG: "52", WSH: "15"
 };
 
+// Reviewed against NHL's current roster and ESPN's hockey/nhl catalog.
+// These keys are NHL IDs, never ESPN IDs. Unknown/historical teams stay text-only.
+// Keep the catalog's suffixes in sync; fixtures cover both Node and QML imports.
+var RASTER_SUFFIX_BY_TEAM_ID = {
+  "1": "nj", "2": "nyi", "3": "nyr", "4": "phi", "5": "pit",
+  "6": "bos", "7": "buf", "8": "mtl", "9": "ott", "10": "tor",
+  "12": "car", "13": "fla", "14": "tb", "15": "wsh", "16": "chi",
+  "17": "det", "18": "nsh", "19": "stl", "20": "cgy", "21": "col",
+  "22": "edm", "23": "van", "24": "ana", "25": "dal", "26": "la",
+  "28": "sj", "29": "cbj", "30": "min", "52": "wpg", "54": "vgk",
+  "55": "sea", "68": "utah"
+};
+
+function rasterLogoUrl(teamId) {
+  var suffix = RASTER_SUFFIX_BY_TEAM_ID[teamId];
+  return typeof suffix === "string"
+    ? safeLogoUrl("https://a.espncdn.com/i/teamlogos/nhl/500/" + suffix + ".png") : null;
+}
+
 var CONFERENCE_ORDER = ["E", "W"];
 
 // The NHL scoreboard contract supplies logos but no colors. Keep this small,
@@ -83,7 +102,8 @@ function safeLogoUrl(value) {
   if (!url || !/^https:\/\//i.test(url)) return null;
   var match = /^https:\/\/([^/?#]+)(?:[/?#]|$)/i.exec(url);
   if (!match) return null;
-  return match[1].toLowerCase() === "assets.nhle.com" ? url : null;
+  var host = match[1].toLowerCase();
+  return host === "assets.nhle.com" || host === "a.espncdn.com" ? url : null;
 }
 
 function safeGameUrl(value) {
@@ -174,7 +194,7 @@ function normalizeTeam(rawTeam) {
     shortName: shortName,
     abbreviation: cleanString(rawTeam.abbrev),
     primaryColor: PRIMARY_COLORS[providerTeamId] || null,
-    logoUrl: safeLogoUrl(rawTeam.logo),
+    logoUrl: rasterLogoUrl(providerTeamId),
     link: null
   };
 }

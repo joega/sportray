@@ -1,0 +1,235 @@
+{
+  "retrieved": "2026-11-23",
+  "sources": [
+    "https://api.nhle.com/stats/rest/en/team",
+    "https://api-web.nhle.com/v1/standings/2026-11-23",
+    "https://api-web.nhle.com/v1/score/2026-11-23",
+    "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams?limit=100"
+  ],
+  "teams": [
+    {
+      "nhlId": "1",
+      "abbreviation": "NJD",
+      "name": "New Jersey Devils",
+      "espnId": "11",
+      "suffix": "nj"
+    },
+    {
+      "nhlId": "2",
+      "abbreviation": "NYI",
+      "name": "New York Islanders",
+      "espnId": "12",
+      "suffix": "nyi"
+    },
+    {
+      "nhlId": "3",
+      "abbreviation": "NYR",
+      "name": "New York Rangers",
+      "espnId": "13",
+      "suffix": "nyr"
+    },
+    {
+      "nhlId": "4",
+      "abbreviation": "PHI",
+      "name": "Philadelphia Flyers",
+      "espnId": "15",
+      "suffix": "phi"
+    },
+    {
+      "nhlId": "5",
+      "abbreviation": "PIT",
+      "name": "Pittsburgh Penguins",
+      "espnId": "16",
+      "suffix": "pit"
+    },
+    {
+      "nhlId": "6",
+      "abbreviation": "BOS",
+      "name": "Boston Bruins",
+      "espnId": "1",
+      "suffix": "bos"
+    },
+    {
+      "nhlId": "7",
+      "abbreviation": "BUF",
+      "name": "Buffalo Sabres",
+      "espnId": "2",
+      "suffix": "buf"
+    },
+    {
+      "nhlId": "8",
+      "abbreviation": "MTL",
+      "name": "Montr\u00e9al Canadiens",
+      "espnId": "10",
+      "suffix": "mtl"
+    },
+    {
+      "nhlId": "9",
+      "abbreviation": "OTT",
+      "name": "Ottawa Senators",
+      "espnId": "14",
+      "suffix": "ott"
+    },
+    {
+      "nhlId": "10",
+      "abbreviation": "TOR",
+      "name": "Toronto Maple Leafs",
+      "espnId": "21",
+      "suffix": "tor"
+    },
+    {
+      "nhlId": "12",
+      "abbreviation": "CAR",
+      "name": "Carolina Hurricanes",
+      "espnId": "7",
+      "suffix": "car"
+    },
+    {
+      "nhlId": "13",
+      "abbreviation": "FLA",
+      "name": "Florida Panthers",
+      "espnId": "26",
+      "suffix": "fla"
+    },
+    {
+      "nhlId": "14",
+      "abbreviation": "TBL",
+      "name": "Tampa Bay Lightning",
+      "espnId": "20",
+      "suffix": "tb"
+    },
+    {
+      "nhlId": "15",
+      "abbreviation": "WSH",
+      "name": "Washington Capitals",
+      "espnId": "23",
+      "suffix": "wsh"
+    },
+    {
+      "nhlId": "16",
+      "abbreviation": "CHI",
+      "name": "Chicago Blackhawks",
+      "espnId": "4",
+      "suffix": "chi"
+    },
+    {
+      "nhlId": "17",
+      "abbreviation": "DET",
+      "name": "Detroit Red Wings",
+      "espnId": "5",
+      "suffix": "det"
+    },
+    {
+      "nhlId": "18",
+      "abbreviation": "NSH",
+      "name": "Nashville Predators",
+      "espnId": "27",
+      "suffix": "nsh"
+    },
+    {
+      "nhlId": "19",
+      "abbreviation": "STL",
+      "name": "St. Louis Blues",
+      "espnId": "19",
+      "suffix": "stl"
+    },
+    {
+      "nhlId": "20",
+      "abbreviation": "CGY",
+      "name": "Calgary Flames",
+      "espnId": "3",
+      "suffix": "cgy"
+    },
+    {
+      "nhlId": "21",
+      "abbreviation": "COL",
+      "name": "Colorado Avalanche",
+      "espnId": "17",
+      "suffix": "col"
+    },
+    {
+      "nhlId": "22",
+      "abbreviation": "EDM",
+      "name": "Edmonton Oilers",
+      "espnId": "6",
+      "suffix": "edm"
+    },
+    {
+      "nhlId": "23",
+      "abbreviation": "VAN",
+      "name": "Vancouver Canucks",
+      "espnId": "22",
+      "suffix": "van"
+    },
+    {
+      "nhlId": "24",
+      "abbreviation": "ANA",
+      "name": "Anaheim Ducks",
+      "espnId": "25",
+      "suffix": "ana"
+    },
+    {
+      "nhlId": "25",
+      "abbreviation": "DAL",
+      "name": "Dallas Stars",
+      "espnId": "9",
+      "suffix": "dal"
+    },
+    {
+      "nhlId": "26",
+      "abbreviation": "LAK",
+      "name": "Los Angeles Kings",
+      "espnId": "8",
+      "suffix": "la"
+    },
+    {
+      "nhlId": "28",
+      "abbreviation": "SJS",
+      "name": "San Jose Sharks",
+      "espnId": "18",
+      "suffix": "sj"
+    },
+    {
+      "nhlId": "29",
+      "abbreviation": "CBJ",
+      "name": "Columbus Blue Jackets",
+      "espnId": "29",
+      "suffix": "cbj"
+    },
+    {
+      "nhlId": "30",
+      "abbreviation": "MIN",
+      "name": "Minnesota Wild",
+      "espnId": "30",
+      "suffix": "min"
+    },
+    {
+      "nhlId": "52",
+      "abbreviation": "WPG",
+      "name": "Winnipeg Jets",
+      "espnId": "28",
+      "suffix": "wpg"
+    },
+    {
+      "nhlId": "54",
+      "abbreviation": "VGK",
+      "name": "Vegas Golden Knights",
+      "espnId": "37",
+      "suffix": "vgk"
+    },
+    {
+      "nhlId": "55",
+      "abbreviation": "SEA",
+      "name": "Seattle Kraken",
+      "espnId": "124292",
+      "suffix": "sea"
+    },
+    {
+      "nhlId": "68",
+      "abbreviation": "UTA",
+      "name": "Utah Mammoth",
+      "espnId": "129764",
+      "suffix": "utah"
+    }
+  ]
+}
