@@ -37,6 +37,7 @@ Panel {
   property string barRegion: ""
   property bool settingsOpen: false
   property bool standingsOpen: false
+  property bool choosingStandingsLeague: false
   property bool calendarOpen: false
   property bool calendarFavoritesOnly: false
   property string calendarLeagueId: ""
@@ -115,11 +116,8 @@ Panel {
     FavoritePresentation.isFavoriteGame, root.followedLeagueIds, root.presentationRevision,
     root.settingsStore ? root.settingsStore.watchedGames : [])
   readonly property var tabItems: buildTabItems()
-  readonly property int shortcutCapacity: Math.max(1, Math.floor((root.width - Style.space(92)) / Style.space(92)))
-  readonly property var visibleTabItems: root.tabItems.slice(0, root.shortcutCapacity + 1)
-  readonly property bool hasMoreTabs: root.tabItems.length > root.visibleTabItems.length
   readonly property var sportOptions: buildSportOptions()
-  readonly property var sportsPicker: null
+  readonly property var sportsPicker: leaguePicker
   readonly property var activeView: viewForDestination(root.activeDestination)
   readonly property var resultRows: ResultRows.flatten(
     root.activeView, root.activeDestination, root.selectedDateLabel)
@@ -251,6 +249,11 @@ Panel {
   }
 
   function toggleStandings() {
+    if (!root.activeLeagueSupportsStandings) {
+      root.choosingStandingsLeague = true
+      if (root.sportsPicker) root.sportsPicker.open()
+      return
+    }
     if (root.standingsOpen) {
       root.standingsOpen = false
       root.recalculatePanelHeight()
@@ -512,9 +515,6 @@ Panel {
     return options
   }
 
-  function shortcutItems() {
-    return root.visibleTabItems.slice(0, Math.max(1, root.visibleTabItems.length - 1))
-  }
 
   function viewForDestination(destination) {
     if (destination === "following") return panelPresentation.following
@@ -544,13 +544,22 @@ Panel {
     root.recalculatePanelHeight()
   }
 
+  function chooseLeague(destination) {
+    var showStandings = root.choosingStandingsLeague
+    root.choosingStandingsLeague = false
+    root.selectDestination(destination)
+    if (showStandings) root.openStandings()
+  }
+
   function moveTabCursor(delta) {
     if (root.tabItems.length === 0) return
-    root.tabCursor = Math.max(0, Math.min(root.tabItems.length - 1, root.tabCursor + delta))
+    var index = Math.max(0, Math.min(root.tabItems.length - 1, root.tabCursor + delta))
+    root.selectDestination(root.tabItems[index].id)
   }
 
   function activateTabCursor() {
-    if (root.tabItems.length > 0) root.selectDestination(root.tabItems[root.tabCursor].id)
+    root.choosingStandingsLeague = false
+    if (root.sportsPicker) root.sportsPicker.open()
   }
 
   function saveResultPosition(destination) {
@@ -675,6 +684,7 @@ Panel {
   }
 
   function open() {
+    root.choosingStandingsLeague = false
     root.controller.show()
   }
 
@@ -772,6 +782,7 @@ Panel {
     root.activeDestination = "following"
 
   function close() {
+    root.choosingStandingsLeague = false
     // The bar remains an ambient current-day indicator; browsing another day
     // is a panel session, so closing returns the next ambient refresh to today.
     if (root.selectedDateKey !== root.todayDateKey)
@@ -1111,19 +1122,21 @@ Panel {
 
             SemanticActionButton {
             id: standingsButton
-            visible: !root.settingsOpen && !root.detailOpen && root.activeLeagueSupportsStandings
+            visible: !root.settingsOpen && !root.detailOpen
+            bordered: true
             iconName: root.standingsOpen ? "scores" : "list"
             fallbackText: root.standingsOpen ? "S" : "T"
-            tooltipText: root.standingsOpen ? "Show scores" : "Show standings"
-            text: header.compactActions ? "" : (root.standingsOpen ? "Scores" : "Table")
+            tooltipText: !root.activeLeagueSupportsStandings ? "Choose a league to view standings"
+              : root.standingsOpen ? "Show scores" : "Show standings"
+            text: root.standingsOpen ? "Scores" : "Standings"
             textFontSize: Style.font.caption
             textBold: true
             textVerticalPadding: Style.spacing.controlPaddingY / 2
-            width: root.standingsOpen ? Style.space(62) : Style.space(54)
             height: refreshButton.implicitHeight
             focusable: true
             onClicked: root.toggleStandings()
-            Accessible.name: root.standingsOpen ? "Show scores" : "Show standings"
+            Accessible.name: !root.activeLeagueSupportsStandings ? "Choose a league for standings"
+              : root.standingsOpen ? "Show scores" : "Show standings"
             Accessible.role: Accessible.Button
             }
 
@@ -1319,77 +1332,33 @@ Panel {
                 height: visible ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0
                 visible: !root.calendarOpen
 
-                 Item {
-                   id: sportChooser
-                   anchors.fill: parent
+                SemanticIcon {
+                  id: activeSportIcon
+                  anchors.left: parent.left
+                  anchors.verticalCenter: parent.verticalCenter
+                  width: Style.space(28)
+                  height: width
+                  iconName: Iconography.iconNameForLeague(root.activeDestination)
+                  fontSize: Style.font.subtitle
+                  color: Color.accent
+                  decorative: true
+                }
 
-                  SemanticIcon {
-                    id: activeSportIcon
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Style.space(28)
-                    height: parent.height
-                    iconName: Iconography.iconNameForLeague(root.activeDestination)
-                    fontSize: Style.font.subtitle
-                    color: Color.accent
-                    decorative: true
-                  }
-
-                    Row {
-                      id: shortcutRow
-                     anchors.left: activeSportIcon.right
-                     anchors.leftMargin: Style.spacing.sm
-                     anchors.right: parent.right
-                     height: parent.height
-                     spacing: Style.spacing.xs
-
-                     Repeater {
-                       model: root.shortcutItems()
-                       SemanticActionButton {
-                         required property var modelData
-                         width: Math.max(Style.space(72), (shortcutRow.width
-                           - (root.hasMoreTabs ? Style.space(76) : 0)
-                           - shortcutRow.spacing * Math.max(0, root.shortcutItems().length - 1))
-                           / Math.max(1, root.shortcutItems().length))
-                         height: shortcutRow.height
-                         text: modelData.label
-                         textFontSize: Style.font.caption
-                         textBold: modelData.id === root.activeDestination
-                         bordered: modelData.id === root.activeDestination
-                         focusable: true
-                         hasCursor: root.tabStripFocused && modelData.id === root.activeDestination
-                         tooltipText: "Show " + modelData.label
-                         onClicked: root.selectDestination(modelData.id)
-                         Accessible.name: "Show " + modelData.label
-                         Accessible.role: Accessible.Button
-                   }
-
-                    Dropdown {
-                      id: sportsPicker
-                     visible: false
-                     value: root.activeDestination
-                     options: root.sportOptions
-                     showLabel: false
-                     onChanged: function(value) { root.selectDestination(value) }
-                   }
-                 }
-
-                     SemanticActionButton {
-                       visible: root.hasMoreTabs
-                       width: Style.space(76)
-                       height: shortcutRow.height
-                       text: "More"
-                       textFontSize: Style.font.caption
-                       textBold: true
-                       bordered: true
-                       focusable: true
-                       hasCursor: root.tabStripFocused && root.activeDestination === "more"
-                       tooltipText: "Show more leagues"
-                       onClicked: sportsPicker.open()
-                       Accessible.name: "Show more leagues"
-                       Accessible.role: Accessible.Button
-                     }
-                   }
+                Dropdown {
+                  id: leaguePicker
+                  anchors.left: activeSportIcon.right
+                  anchors.leftMargin: Style.spacing.sm
+                  anchors.right: parent.right
+                  label: "League"
+                  showLabel: true
+                  value: root.activeDestination
+                  options: root.sportOptions
+                  hasCursor: root.tabStripFocused
+                  onChanged: function(value) { root.chooseLeague(value) }
+                  onPopupOpenChanged: if (!popupOpen) root.choosingStandingsLeague = false
+                  Accessible.name: "Choose a league"
+                  Accessible.role: Accessible.ComboBox
+                  Accessible.onPressAction: leaguePicker.open()
                 }
               }
             }

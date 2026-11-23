@@ -1,0 +1,442 @@
+{
+  "source": "https://site.api.espn.com/apis/v2/sports/baseball/mlb/standings",
+  "observedDate": "2026-11-23",
+  "payload": {
+    "id": "9",
+    "name": "Major League Baseball",
+    "season": {
+      "year": 2027,
+      "startDate": "2027-02-18T08:00Z",
+      "endDate": "2027-12-11T07:59Z",
+      "displayName": "2027"
+    },
+    "children": [
+      {
+        "id": "7",
+        "name": "American League",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2026,
+          "seasonDisplayName": "2026",
+          "entries": [
+            {
+              "team": {
+                "id": "10",
+                "displayName": "New York Yankees",
+                "shortDisplayName": "Yankees",
+                "abbreviation": "NYY",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 0.8999999999999995,
+                  "displayValue": "+0.9"
+                },
+                {
+                  "name": "gamesPlayed",
+                  "value": 161.0,
+                  "displayValue": "161"
+                },
+                {
+                  "name": "losses",
+                  "value": 68.0,
+                  "displayValue": "68"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 4.0,
+                  "displayValue": "4"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 138.0,
+                  "displayValue": "+138"
+                },
+                {
+                  "name": "points",
+                  "value": 12.5,
+                  "displayValue": "12.5"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 93.0,
+                  "displayValue": "93"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "93-68"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "5",
+                "displayName": "Cleveland Guardians",
+                "shortDisplayName": "Guardians",
+                "abbreviation": "CLE",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/mlb/500/cle.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 0.10000000000000053,
+                  "displayValue": "+0.1"
+                },
+                {
+                  "name": "gamesPlayed",
+                  "value": 162.0,
+                  "displayValue": "162"
+                },
+                {
+                  "name": "losses",
+                  "value": 77.0,
+                  "displayValue": "77"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 2.0,
+                  "displayValue": "2"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 11.0,
+                  "displayValue": "+11"
+                },
+                {
+                  "name": "points",
+                  "value": 4.0,
+                  "displayValue": "4.0"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 85.0,
+                  "displayValue": "85"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "85-77"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "30",
+                "displayName": "Tampa Bay Rays",
+                "shortDisplayName": "Rays",
+                "abbreviation": "TB",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/mlb/500/tb.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 0.5,
+                  "displayValue": "+0.5"
+                },
+                {
+                  "name": "gamesPlayed",
+                  "value": 162.0,
+                  "displayValue": "162"
+                },
+                {
+                  "name": "losses",
+                  "value": 64.0,
+                  "displayValue": "64"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 86.0,
+                  "displayValue": "+86"
+                },
+                {
+                  "name": "points",
+                  "value": 17.0,
+                  "displayValue": "17.0"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 98.0,
+                  "displayValue": "98"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "98-64"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "8",
+        "name": "National League",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2026,
+          "seasonDisplayName": "2026",
+          "entries": [
+            {
+              "team": {
+                "id": "25",
+                "displayName": "San Diego Padres",
+                "shortDisplayName": "Padres",
+                "abbreviation": "SD",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/mlb/500/sd.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 0.2999999999999998,
+                  "displayValue": "+0.3"
+                },
+                {
+                  "name": "gamesPlayed",
+                  "value": 162.0,
+                  "displayValue": "162"
+                },
+                {
+                  "name": "losses",
+                  "value": 71.0,
+                  "displayValue": "71"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 4.0,
+                  "displayValue": "4"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 41.0,
+                  "displayValue": "+41"
+                },
+                {
+                  "name": "points",
+                  "value": 10.0,
+                  "displayValue": "10.0"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 91.0,
+                  "displayValue": "91"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "91-71"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "19",
+                "displayName": "Los Angeles Dodgers",
+                "shortDisplayName": "Dodgers",
+                "abbreviation": "LAD",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/mlb/500/lad.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 1.2000000000000002,
+                  "displayValue": "+1.2"
+                },
+                {
+                  "name": "gamesPlayed",
+                  "value": 162.0,
+                  "displayValue": "162"
+                },
+                {
+                  "name": "losses",
+                  "value": 62.0,
+                  "displayValue": "62"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 2.0,
+                  "displayValue": "2"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 201.0,
+                  "displayValue": "+201"
+                },
+                {
+                  "name": "points",
+                  "value": 19.0,
+                  "displayValue": "19.0"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 100.0,
+                  "displayValue": "100"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "100-62"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "8",
+                "displayName": "Milwaukee Brewers",
+                "shortDisplayName": "Brewers",
+                "abbreviation": "MIL",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/mlb/500/mil.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 1.2999999999999998,
+                  "displayValue": "+1.3"
+                },
+                {
+                  "name": "gamesPlayed",
+                  "value": 162.0,
+                  "displayValue": "162"
+                },
+                {
+                  "name": "losses",
+                  "value": 59.0,
+                  "displayValue": "59"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 214.0,
+                  "displayValue": "+214"
+                },
+                {
+                  "name": "points",
+                  "value": 22.0,
+                  "displayValue": "22.0"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 103.0,
+                  "displayValue": "103"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "103-59"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {
+    "labels": [
+      "American League · Playoff seeds · 2026",
+      "National League · Playoff seeds · 2026"
+    ],
+    "ids": [
+      "mlb:30",
+      "mlb:5",
+      "mlb:10",
+      "mlb:8",
+      "mlb:19",
+      "mlb:25"
+    ],
+    "ranks": [
+      1,
+      2,
+      4,
+      1,
+      2,
+      4
+    ],
+    "rankKinds": [
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed"
+    ],
+    "records": [
+      "98-64",
+      "85-77",
+      "93-68",
+      "103-59",
+      "100-62",
+      "91-71"
+    ],
+    "points": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  }
+}

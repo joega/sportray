@@ -1,0 +1,210 @@
+{
+  "limits": {
+    "groups": 32,
+    "entries": 256,
+    "stats": 128
+  },
+  "malformed": [
+    {
+      "name": "missing root",
+      "payload": null,
+      "code": "invalid-standings-response",
+      "ids": []
+    },
+    {
+      "name": "wrong root fields",
+      "payload": {
+        "children": {}
+      },
+      "code": "invalid-standings-response",
+      "ids": []
+    },
+    {
+      "name": "bad sibling",
+      "payload": {
+        "children": [
+          null,
+          {
+            "id": "valid",
+            "name": "Valid",
+            "standings": {
+              "entries": [
+                {
+                  "team": {
+                    "id": "9",
+                    "abbreviation": "OK"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "code": "invalid-standings-group",
+      "ids": [
+        "nfl:9"
+      ]
+    },
+    {
+      "name": "bad entries",
+      "payload": {
+        "children": [
+          {
+            "id": "bad",
+            "standings": {
+              "entries": {}
+            }
+          }
+        ]
+      },
+      "code": "invalid-standings-group",
+      "ids": []
+    },
+    {
+      "name": "bad row",
+      "payload": {
+        "children": [
+          {
+            "id": "valid",
+            "standings": {
+              "entries": [
+                null,
+                {
+                  "team": {
+                    "id": "9",
+                    "abbreviation": "OK"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "code": "invalid-standing-entry",
+      "ids": [
+        "nfl:9"
+      ]
+    }
+  ],
+  "ties": {
+    "payload": {
+      "standings": [
+        {
+          "id": "table",
+          "entries": [
+            {
+              "rank": 2,
+              "team": {
+                "id": "20",
+                "displayName": "Zeta"
+              }
+            },
+            {
+              "rank": 1,
+              "team": {
+                "id": "10",
+                "displayName": "Beta"
+              }
+            },
+            {
+              "rank": 2,
+              "team": {
+                "id": "30",
+                "displayName": "Alpha"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "ids": [
+      "eng.1:10",
+      "eng.1:20",
+      "eng.1:30"
+    ]
+  },
+  "duplicates": {
+    "payload": {
+      "children": [
+        {
+          "id": "a",
+          "name": "A",
+          "standings": {
+            "entries": [
+              {
+                "team": {
+                  "id": "1"
+                }
+              },
+              {
+                "team": {
+                  "id": "1"
+                }
+              },
+              {
+                "team": {
+                  "id": "2"
+                }
+              }
+            ]
+          },
+          "children": [
+            {
+              "id": "division",
+              "standings": {
+                "entries": [
+                  {
+                    "team": {
+                      "id": "1"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "a",
+          "name": "Duplicate A",
+          "standings": {
+            "entries": [
+              {
+                "team": {
+                  "id": "3"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "b",
+          "name": "B",
+          "standings": {
+            "entries": [
+              {
+                "team": {
+                  "id": "2"
+                }
+              },
+              {
+                "team": {
+                  "id": "4"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "ids": [
+      "nfl:1",
+      "nfl:2",
+      "nfl:4"
+    ],
+    "codes": [
+      "duplicate-standing-team",
+      "duplicate-standings-group",
+      "duplicate-standing-team"
+    ]
+  }
+}

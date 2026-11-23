@@ -1,0 +1,221 @@
+{
+  "source": "https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings",
+  "observedDate": "2026-11-23",
+  "payload": {
+    "id": "23",
+    "name": "English Premier League",
+    "season": {
+      "year": 2026,
+      "startDate": "2026-06-01T04:00Z",
+      "endDate": "2027-06-01T03:59Z",
+      "displayName": "2026-27 English Premier League"
+    },
+    "children": [
+      {
+        "id": "1",
+        "name": "2026-27 English Premier League",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2026,
+          "seasonDisplayName": "2026-27 English Premier League",
+          "entries": [
+            {
+              "team": {
+                "id": "359",
+                "displayName": "Arsenal",
+                "shortDisplayName": "Arsenal",
+                "abbreviation": "ARS",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 11.0,
+                  "displayValue": "11"
+                },
+                {
+                  "name": "losses",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 10.0,
+                  "displayValue": "+10"
+                },
+                {
+                  "name": "points",
+                  "value": 28.0,
+                  "displayValue": "28"
+                },
+                {
+                  "name": "ties",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "wins",
+                  "value": 9.0,
+                  "displayValue": "9"
+                },
+                {
+                  "name": "rank",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "9-1-1"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "331",
+                "displayName": "Brighton & Hove Albion",
+                "shortDisplayName": "Brighton",
+                "abbreviation": "BHA",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/331.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 11.0,
+                  "displayValue": "11"
+                },
+                {
+                  "name": "losses",
+                  "value": 3.0,
+                  "displayValue": "3"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 17.0,
+                  "displayValue": "+17"
+                },
+                {
+                  "name": "points",
+                  "value": 22.0,
+                  "displayValue": "22"
+                },
+                {
+                  "name": "ties",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "wins",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "rank",
+                  "value": 2.0,
+                  "displayValue": "2"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "7-1-3"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "384",
+                "displayName": "Crystal Palace",
+                "shortDisplayName": "C Palace",
+                "abbreviation": "CRY",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/384.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 11.0,
+                  "displayValue": "11"
+                },
+                {
+                  "name": "losses",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -15.0,
+                  "displayValue": "-15"
+                },
+                {
+                  "name": "points",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "ties",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "wins",
+                  "value": 2.0,
+                  "displayValue": "2"
+                },
+                {
+                  "name": "rank",
+                  "value": 20.0,
+                  "displayValue": "20"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "2-1-8"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {
+    "labels": [
+      "2026-27 English Premier League"
+    ],
+    "ids": [
+      "eng.1:359",
+      "eng.1:331",
+      "eng.1:384"
+    ],
+    "ranks": [
+      1,
+      2,
+      20
+    ],
+    "rankKinds": [
+      "rank",
+      "rank",
+      "rank"
+    ],
+    "records": [
+      "9-1-1",
+      "7-1-3",
+      "2-1-8"
+    ],
+    "points": [
+      28,
+      22,
+      7
+    ]
+  }
+}

@@ -7,8 +7,8 @@ IMPORT_DIR=$(mktemp -d)
 trap 'rm -rf "$IMPORT_DIR"' EXIT
 
 # Quickshell.Io is built into the shell executable, not a loadable QtTest
-# plugin. Replace only that process boundary; load the actual store and run
-# its bindings, deferred callbacks, queues and cache in the real Qt engine.
+# plugin. Replace only that process boundary; load the actual services and run
+# their bindings, callbacks, queues and transitions in the real Qt engine.
 mkdir -p "$IMPORT_DIR/Quickshell/Io"
 cat > "$IMPORT_DIR/Quickshell/Io/qmldir" <<'QMLDIR'
 module Quickshell.Io
@@ -44,5 +44,5 @@ QtObject {
 }
 QML
 
-QT_QPA_PLATFORMTHEME= QT_QUICK_CONTROLS_STYLE=Basic \
+QML_XHR_ALLOW_FILE_READ=1 QT_QPA_PLATFORMTHEME= QT_QUICK_CONTROLS_STYLE=Basic \
   "$QML_TEST_RUNNER" -import "$IMPORT_DIR" -input "$ROOT_DIR/tests/qml" -platform offscreen

@@ -1,0 +1,382 @@
+{
+  "source": "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings",
+  "observedDate": "2026-11-23",
+  "payload": {
+    "id": "7",
+    "name": "National Basketball Association",
+    "season": {
+      "year": 2027,
+      "startDate": "2026-09-30T07:00Z",
+      "endDate": "2027-06-26T06:59Z",
+      "displayName": "2026-27"
+    },
+    "children": [
+      {
+        "id": "5",
+        "name": "Eastern Conference",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2027,
+          "seasonDisplayName": "2026-27",
+          "entries": [
+            {
+              "team": {
+                "id": "15",
+                "displayName": "Milwaukee Bucks",
+                "shortDisplayName": "Bucks",
+                "abbreviation": "MIL",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nba/500/mil.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": -12.299999999999997,
+                  "displayValue": "-12.3"
+                },
+                {
+                  "name": "losses",
+                  "value": 16.0,
+                  "displayValue": "16"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 15.0,
+                  "displayValue": "15"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -210.0,
+                  "displayValue": "-210"
+                },
+                {
+                  "name": "points",
+                  "value": -7.5,
+                  "displayValue": "-7.5"
+                },
+                {
+                  "name": "wins",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "1-16"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "19",
+                "displayName": "Orlando Magic",
+                "shortDisplayName": "Magic",
+                "abbreviation": "ORL",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nba/500/orl.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": -4.1000000000000085,
+                  "displayValue": "-4.1"
+                },
+                {
+                  "name": "losses",
+                  "value": 9.0,
+                  "displayValue": "9"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -66.0,
+                  "displayValue": "-66"
+                },
+                {
+                  "name": "points",
+                  "value": -1.0,
+                  "displayValue": "-1.0"
+                },
+                {
+                  "name": "wins",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "7-9"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "20",
+                "displayName": "Philadelphia 76ers",
+                "shortDisplayName": "76ers",
+                "abbreviation": "PHI",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nba/500/phi.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 2.9000000000000057,
+                  "displayValue": "+2.9"
+                },
+                {
+                  "name": "losses",
+                  "value": 3.0,
+                  "displayValue": "3"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 50.0,
+                  "displayValue": "+50"
+                },
+                {
+                  "name": "points",
+                  "value": 5.5,
+                  "displayValue": "5.5"
+                },
+                {
+                  "name": "wins",
+                  "value": 14.0,
+                  "displayValue": "14"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "14-3"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "6",
+        "name": "Western Conference",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2027,
+          "seasonDisplayName": "2026-27",
+          "entries": [
+            {
+              "team": {
+                "id": "23",
+                "displayName": "Sacramento Kings",
+                "shortDisplayName": "Kings",
+                "abbreviation": "SAC",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nba/500/sac.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": -12.299999999999997,
+                  "displayValue": "-12.3"
+                },
+                {
+                  "name": "losses",
+                  "value": 14.0,
+                  "displayValue": "14"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 15.0,
+                  "displayValue": "15"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -197.0,
+                  "displayValue": "-197"
+                },
+                {
+                  "name": "points",
+                  "value": -6.0,
+                  "displayValue": "-6.0"
+                },
+                {
+                  "name": "wins",
+                  "value": 2.0,
+                  "displayValue": "2"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "2-14"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "6",
+                "displayName": "Dallas Mavericks",
+                "shortDisplayName": "Mavericks",
+                "abbreviation": "DAL",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nba/500/dal.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": -0.09999999999999432,
+                  "displayValue": "-0.1"
+                },
+                {
+                  "name": "losses",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -1.0,
+                  "displayValue": "-1"
+                },
+                {
+                  "name": "points",
+                  "value": 1.5,
+                  "displayValue": "1.5"
+                },
+                {
+                  "name": "wins",
+                  "value": 10.0,
+                  "displayValue": "10"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "10-7"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "24",
+                "displayName": "San Antonio Spurs",
+                "shortDisplayName": "Spurs",
+                "abbreviation": "SA",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nba/500/sa.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 11.899999999999991,
+                  "displayValue": "+11.9"
+                },
+                {
+                  "name": "losses",
+                  "value": 3.0,
+                  "displayValue": "3"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 203.0,
+                  "displayValue": "+203"
+                },
+                {
+                  "name": "points",
+                  "value": 5.5,
+                  "displayValue": "5.5"
+                },
+                {
+                  "name": "wins",
+                  "value": 14.0,
+                  "displayValue": "14"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "14-3"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {
+    "labels": [
+      "Eastern Conference · Playoff seeds · 2026-27",
+      "Western Conference · Playoff seeds · 2026-27"
+    ],
+    "ids": [
+      "nba:20",
+      "nba:19",
+      "nba:15",
+      "nba:24",
+      "nba:6",
+      "nba:23"
+    ],
+    "ranks": [
+      1,
+      8,
+      15,
+      1,
+      8,
+      15
+    ],
+    "rankKinds": [
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed"
+    ],
+    "records": [
+      "14-3",
+      "7-9",
+      "1-16",
+      "14-3",
+      "10-7",
+      "2-14"
+    ],
+    "points": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  }
+}

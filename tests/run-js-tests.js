@@ -1908,7 +1908,7 @@ test("ESPN range responses project complete local calendar days", () => {
 
 test("ESPN standings fixture normalizes grouped rows, ordering, and missing fields", () => {
   assert.equal(espn.buildStandingsUrl("nfl"),
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/standings");
+    "https://site.api.espn.com/apis/v2/sports/football/nfl/standings");
   assert.equal(espn.buildStandingsUrl("nhl"), null);
   const result = espn.parseStandingsResponse(readStandingsFixture(), "nfl");
   assert.equal(result.errors.length, 0);
@@ -1922,6 +1922,85 @@ test("ESPN standings fixture normalizes grouped rows, ordering, and missing fiel
   assert.equal(result.rows[3].team.abbreviation, "CLE");
   assert.equal(JSON.stringify(result).includes("stats"), false);
   assert.equal(JSON.stringify(result).includes('"logos"'), false);
+});
+
+test("current ESPN standings use parent groups, actual seasons and explicit rank or seed", () => {
+  ["nfl", "mlb", "nba", "eng.1", "usa.1"].forEach((league) => {
+    const fixture = JSON.parse(readSource("fixtures/espn/standings/" + league + ".json"));
+    assert.equal(espn.buildStandingsUrl(league), fixture.source);
+    const before = JSON.stringify(fixture.payload);
+    const result = espn.parseStandingsResponse(fixture.payload, league);
+    assert.deepEqual(result.errors, [], league);
+    assert.deepEqual(result.groups.map((g) => g.label), fixture.expected.labels, league);
+    assert.deepEqual(result.rows.map((r) => r.team.id), fixture.expected.ids, league);
+    assert.deepEqual(result.rows.map((r) => r.rank), fixture.expected.ranks, league);
+    assert.deepEqual(result.rows.map((r) => r.rankKind), fixture.expected.rankKinds, league);
+    assert.deepEqual(result.rows.map((r) => r.recordLabel), fixture.expected.records, league);
+    assert.deepEqual(result.rows.map((r) => r.points), fixture.expected.points, league);
+    assert.equal(JSON.stringify(fixture.payload), before, "provider input remains unchanged");
+    const rebound = standingsModel.normalizeGroups(result.groups.map((g) => ({
+      id: g.id, label: g.label, entries: g.rows
+    })), league, result.errors);
+    assert.deepEqual(rebound.rows.map((r) => [r.rank, r.rankKind]),
+      result.rows.map((r) => [r.rank, r.rankKind]), "fetch owner's normalization keeps seed semantics");
+  });
+});
+
+test("current standings isolate malformed siblings and ignore nested duplicate tables", () => {
+  const fixture = JSON.parse(readSource("fixtures/espn/standings/edge-cases.json"));
+  fixture.malformed.forEach((entry) => {
+    const result = espn.parseStandingsResponse(entry.payload, "nfl");
+    assert.equal(result.errors[0].code, entry.code, entry.name);
+    assert.deepEqual(result.rows.map((r) => r.team.id), entry.ids, entry.name);
+  });
+  const duplicate = espn.parseStandingsResponse(fixture.duplicates.payload, "nfl");
+  assert.deepEqual(duplicate.rows.map((r) => r.team.id), fixture.duplicates.ids);
+  assert.deepEqual(duplicate.errors.map((e) => e.code), fixture.duplicates.codes);
+  assert.deepEqual(duplicate.groups.map((g) => g.id), ["a", "b"]);
+});
+
+test("standings bounds reject overlarge tables without truncating them into success", () => {
+  const limits = JSON.parse(readSource("fixtures/espn/standings/edge-cases.json")).limits;
+  assert.equal(espn.MAX_STANDINGS_GROUPS, limits.groups);
+  assert.equal(espn.MAX_STANDINGS_STATS, limits.stats);
+  const group = (entries, id) => ({id: id || "g", standings: {entries}});
+  const tooManyGroups = espn.parseStandingsResponse({children:
+    Array.from({length: limits.groups + 1}, (_, i) => group([], String(i)))}, "nfl");
+  assert.equal(tooManyGroups.rows.length, 0);
+  assert.equal(tooManyGroups.errors[0].code, "too-many-standings-groups");
+  const tooManyRows = espn.parseStandingsResponse({children: [group(
+    Array.from({length: limits.entries + 1}, (_, i) => ({team: {id: String(i)}})))]}, "nfl");
+  assert.equal(tooManyRows.rows.length, 0);
+  assert.equal(tooManyRows.errors[0].code, "too-many-standings");
+  const mixed = espn.parseStandingsResponse({children: [group([
+    {team: {id: "1"}, stats: Array(limits.stats + 1).fill({})},
+    {team: {id: "2".repeat(65)}},
+    {team: {id: "3", displayName: "A".repeat(1000), logos: [{href: "https://a.espncdn.com/" + "x".repeat(2100)}]}}
+  ])]}, "nfl");
+  assert.equal(mixed.errors.length, 2);
+  assert.equal(mixed.rows.length, 1);
+  assert.equal(mixed.rows[0].team.name.length, 160);
+  assert.equal(mixed.rows[0].team.logoUrl, null);
+});
+
+test("equal standings ranks retain provider order instead of inventing a name tiebreaker", () => {
+  const fixture = JSON.parse(readSource("fixtures/espn/standings/edge-cases.json")).ties;
+  assert.deepEqual(espn.parseStandingsResponse(fixture.payload, "eng.1").rows.map((r) => r.team.id), fixture.ids);
+});
+
+test("standings adapters retain their normalized groups when imported by QML", () => {
+  const cases = [
+    {source: "providers/EspnProvider.js", league: "nfl",
+      payload: JSON.parse(readSource("fixtures/espn/standings/nfl.json")).payload, adapter: espn},
+    {source: "providers/NhlProvider.js", league: "nhl", payload: readNhlStandingsFixture(), adapter: nhl}
+  ];
+  cases.forEach((entry) => {
+    const context = {};
+    vm.runInNewContext(readSource(entry.source), context);
+    const raw = JSON.parse(JSON.stringify(context.parseStandingsResponse(entry.payload, entry.league)));
+    const result = standingsModel.normalizeGroups(raw.groups, entry.league, raw.errors);
+    assert.deepEqual(result, entry.adapter.parseStandingsResponse(entry.payload, entry.league), entry.league);
+  });
 });
 
 test("standings model preserves null fields, deterministic rank ordering, and safe empties", () => {
@@ -4318,11 +4397,56 @@ test("U2.1 uses a compact vertical sport chooser instead of a clipped tab strip"
   const panel = readSource("Panel.qml");
   assert.equal(panel.includes("readonly property var sportOptions: buildSportOptions()"), true);
   assert.equal(panel.includes("Dropdown {"), true);
-  assert.equal(panel.includes("id: sportsPicker"), true);
+  assert.equal(panel.includes("id: leaguePicker"), true);
   assert.equal(panel.includes("options: root.sportOptions"), true);
   assert.equal(panel.includes("settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen"), true);
   assert.equal(panel.includes("orientation: ListView.Horizontal"), false);
   assert.equal(panel.includes("text: tabList.contentWidth > tabList.width"), false);
+});
+
+test("the visible league chooser exposes every enabled destination including the default NHL view", () => {
+  const panel = readSource("Panel.qml");
+  const functionSource = panel.match(/function buildSportOptions\(\) \{[\s\S]*?\n  \}/)[0];
+  const fixture = JSON.parse(readSource("fixtures/layout/league-navigation.json"));
+  fixture.cases.forEach((entry) => {
+    const select = vm.runInNewContext("(" + functionSource + ")", {root: {tabItems: entry.tabs}});
+    assert.deepEqual(JSON.parse(JSON.stringify(select())), entry.tabs.map((tab) => ({value: tab.id, label: tab.label})), entry.name);
+  });
+  assert.match(panel, /label: "League"\s+showLabel: true/);
+});
+
+test("the standings action has a visible label and explains its Following state", () => {
+  const panel = readSource("Panel.qml");
+  const start = panel.indexOf("id: standingsButton");
+  const block = panel.slice(start, panel.indexOf("\n            }", start));
+  const property = (name, state) => vm.runInNewContext(block.match(new RegExp("^ *" + name + ": (.*)$", "m"))[1], {root: state});
+  const following = {settingsOpen: false, detailOpen: false, activeLeagueSupportsStandings: false, standingsOpen: false};
+  assert.equal(property("visible", following), true);
+  assert.equal(block.includes("enabled:"), false, "Following can open the league chooser");
+  assert.equal(property("text", following), "Standings");
+  assert.equal(property("text", {...following, standingsOpen: true}), "Scores");
+});
+
+test("league and standings activation use the visible chooser instead of an invisible tab cursor", () => {
+  const panel = readSource("Panel.qml");
+  const method = (name, state) => vm.runInNewContext("(" + panel.match(new RegExp("function " + name + "\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}"))[0] + ")", {root: state});
+  const actions = [];
+  const state = {
+    activeLeagueSupportsStandings: false, choosingStandingsLeague: false,
+    sportsPicker: {open: () => actions.push("open-picker")},
+    selectDestination: (id) => actions.push("select:" + id),
+    openStandings: () => actions.push("standings"),
+    tabItems: [{id: "following"}, {id: "nfl"}], tabCursor: 0
+  };
+  method("toggleStandings", state)();
+  assert.equal(state.choosingStandingsLeague, true);
+  method("chooseLeague", state)("nfl");
+  assert.deepEqual(actions, ["open-picker", "select:nfl", "standings"]);
+  assert.equal(state.choosingStandingsLeague, false);
+  actions.length = 0;
+  method("activateTabCursor", state)();
+  method("moveTabCursor", state)(1);
+  assert.deepEqual(actions, ["open-picker", "select:nfl"]);
 });
 
 test("U2.1 section headers avoid a QQuickText implicit-height binding loop", () => {
@@ -4399,6 +4523,9 @@ test("horizontal overlay anchors to its button and clamps at the screen edge", (
   assert.equal(panel.includes("function measuredPanelContentRequest()"), true);
   assert.equal(panel.includes("resultList.contentHeight"), true);
   assert.equal(panel.includes("height: visible ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0"), true);
+  assert.equal(panel.includes("readonly property var sportsPicker: leaguePicker"), true);
+  assert.equal(panel.includes("id: leaguePicker"), true);
+  assert.equal(panel.includes("readonly property var sportsPicker: null"), false);
 });
 
 test("U2.2 groups every normalized game state into a provider-neutral slate", () => {

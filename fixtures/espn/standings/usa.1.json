@@ -1,0 +1,412 @@
+{
+  "source": "https://site.api.espn.com/apis/v2/sports/soccer/usa.1/standings",
+  "observedDate": "2026-11-23",
+  "payload": {
+    "id": "8675309",
+    "name": "MLS",
+    "season": {
+      "year": 2027,
+      "startDate": "2027-01-01T10:00Z",
+      "endDate": "2027-06-01T03:59Z",
+      "displayName": "2027 MLS"
+    },
+    "children": [
+      {
+        "id": "1",
+        "name": "Eastern Conference",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2026,
+          "seasonDisplayName": "2026 MLS",
+          "entries": [
+            {
+              "team": {
+                "id": "182",
+                "displayName": "Chicago Fire FC",
+                "shortDisplayName": "Chicago",
+                "abbreviation": "CHI",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/182.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 34.0,
+                  "displayValue": "34"
+                },
+                {
+                  "name": "losses",
+                  "value": 11.0,
+                  "displayValue": "11"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 10.0,
+                  "displayValue": "+10"
+                },
+                {
+                  "name": "points",
+                  "value": 55.0,
+                  "displayValue": "55"
+                },
+                {
+                  "name": "ties",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "wins",
+                  "value": 16.0,
+                  "displayValue": "16"
+                },
+                {
+                  "name": "rank",
+                  "value": 4.0,
+                  "displayValue": "4"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "16-7-11"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "9720",
+                "displayName": "CF Montréal",
+                "shortDisplayName": "CF Montréal",
+                "abbreviation": "MTL",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/9720.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 34.0,
+                  "displayValue": "34"
+                },
+                {
+                  "name": "losses",
+                  "value": 20.0,
+                  "displayValue": "20"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -32.0,
+                  "displayValue": "-32"
+                },
+                {
+                  "name": "points",
+                  "value": 26.0,
+                  "displayValue": "26"
+                },
+                {
+                  "name": "ties",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "wins",
+                  "value": 6.0,
+                  "displayValue": "6"
+                },
+                {
+                  "name": "rank",
+                  "value": 15.0,
+                  "displayValue": "15"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "6-8-20"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "18986",
+                "displayName": "Nashville SC",
+                "shortDisplayName": "Nashville",
+                "abbreviation": "NSH",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/18986.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 34.0,
+                  "displayValue": "34"
+                },
+                {
+                  "name": "losses",
+                  "value": 3.0,
+                  "displayValue": "3"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 46.0,
+                  "displayValue": "+46"
+                },
+                {
+                  "name": "points",
+                  "value": 77.0,
+                  "displayValue": "77"
+                },
+                {
+                  "name": "ties",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "wins",
+                  "value": 23.0,
+                  "displayValue": "23"
+                },
+                {
+                  "name": "rank",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "23-8-3"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "2",
+        "name": "Western Conference",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2026,
+          "seasonDisplayName": "2026 MLS",
+          "entries": [
+            {
+              "team": {
+                "id": "186",
+                "displayName": "Sporting Kansas City",
+                "shortDisplayName": "Kansas City",
+                "abbreviation": "SKC",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/186.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 34.0,
+                  "displayValue": "34"
+                },
+                {
+                  "name": "losses",
+                  "value": 22.0,
+                  "displayValue": "22"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -41.0,
+                  "displayValue": "-41"
+                },
+                {
+                  "name": "points",
+                  "value": 26.0,
+                  "displayValue": "26"
+                },
+                {
+                  "name": "ties",
+                  "value": 5.0,
+                  "displayValue": "5"
+                },
+                {
+                  "name": "wins",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "rank",
+                  "value": 15.0,
+                  "displayValue": "15"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "7-5-22"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "191",
+                "displayName": "San Jose Earthquakes",
+                "shortDisplayName": "San Jose",
+                "abbreviation": "SJ",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/191.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 34.0,
+                  "displayValue": "34"
+                },
+                {
+                  "name": "losses",
+                  "value": 10.0,
+                  "displayValue": "10"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 6.0,
+                  "displayValue": "+6"
+                },
+                {
+                  "name": "points",
+                  "value": 52.0,
+                  "displayValue": "52"
+                },
+                {
+                  "name": "ties",
+                  "value": 10.0,
+                  "displayValue": "10"
+                },
+                {
+                  "name": "wins",
+                  "value": 14.0,
+                  "displayValue": "14"
+                },
+                {
+                  "name": "rank",
+                  "value": 4.0,
+                  "displayValue": "4"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "14-10-10"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "9727",
+                "displayName": "Vancouver Whitecaps",
+                "shortDisplayName": "Vancouver",
+                "abbreviation": "VAN",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/soccer/500/9727.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "gamesPlayed",
+                  "value": 34.0,
+                  "displayValue": "34"
+                },
+                {
+                  "name": "losses",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 40.0,
+                  "displayValue": "+40"
+                },
+                {
+                  "name": "points",
+                  "value": 64.0,
+                  "displayValue": "64"
+                },
+                {
+                  "name": "ties",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "wins",
+                  "value": 19.0,
+                  "displayValue": "19"
+                },
+                {
+                  "name": "rank",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "19-7-8"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {
+    "labels": [
+      "Eastern Conference · 2026 MLS",
+      "Western Conference · 2026 MLS"
+    ],
+    "ids": [
+      "usa.1:18986",
+      "usa.1:182",
+      "usa.1:9720",
+      "usa.1:9727",
+      "usa.1:191",
+      "usa.1:186"
+    ],
+    "ranks": [
+      1,
+      4,
+      15,
+      1,
+      4,
+      15
+    ],
+    "rankKinds": [
+      "rank",
+      "rank",
+      "rank",
+      "rank",
+      "rank",
+      "rank"
+    ],
+    "records": [
+      "23-8-3",
+      "16-7-11",
+      "6-8-20",
+      "19-7-8",
+      "14-10-10",
+      "7-5-22"
+    ],
+    "points": [
+      77,
+      55,
+      26,
+      64,
+      52,
+      26
+    ]
+  }
+}

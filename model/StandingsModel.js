@@ -71,6 +71,7 @@ function normalizeEntry(entry, leagueId, groupId, sourceIndex) {
     league: leagueId,
     groupId: groupId,
     rank: rank,
+    rankKind: entry.rankKind === "seed" ? "seed" : "rank",
     team: team,
     played: played,
     wins: wins,
@@ -89,10 +90,8 @@ function compareEntries(left, right) {
   var rightRank = right.rank === null ? Number.POSITIVE_INFINITY : right.rank;
   if (leftRank !== rightRank) return leftRank - rightRank;
 
-  if (leftRank === Number.POSITIVE_INFINITY) return left.sourceIndex - right.sourceIndex;
-  var leftName = left.team.name || left.team.shortName || left.team.abbreviation || left.team.id;
-  var rightName = right.team.name || right.team.shortName || right.team.abbreviation || right.team.id;
-  if (leftName !== rightName) return leftName < rightName ? -1 : 1;
+  // Equal or missing ranks retain the provider's order; names are not a
+  // standings tiebreaker.
   return left.sourceIndex - right.sourceIndex;
 }
 

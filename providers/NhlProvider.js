@@ -434,6 +434,7 @@ function parseStandingsResponse(payload) {
   });
 
   var groups = orderedConferenceGroups(groupMap);
+  result.groups = groups;
   return StandingsModel
     ? StandingsModel.normalizeGroups(groups, "nhl", result.errors)
     : result;

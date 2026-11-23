@@ -30,6 +30,9 @@ Item {
   property int requestGeneration: 0
   property int activeRequestGeneration: 0
   property bool ownerDestroyed: false
+  property bool requestInFlight: false
+  property string pendingLeagueId: ""
+  property string pendingUrl: ""
 
   function clear() {
     root.leagueId = ""
@@ -83,17 +86,16 @@ Item {
 
     root.loading = false
     root.leagueId = targetLeague
-    root.groups = result.groups
-    root.rows = result.rows
     if (result.errors.length > 0 && result.rows.length === 0) {
-      root.hasData = false
-      root.stale = false
+      root.stale = root.hasData
       root.errorCode = "invalid-data"
       root.errorSummary = root.userSafeError(root.errorCode)
       root.partialErrorCount = result.errors.length
       return
     }
 
+    root.groups = result.groups
+    root.rows = result.rows
     root.hasData = true
     root.stale = result.errors.length > 0
     root.errorCode = result.errors.length > 0 ? "partial-data" : ""
@@ -102,41 +104,49 @@ Item {
     root.lastSuccessAt = new Date().toISOString()
   }
 
+  function startPendingRequest() {
+    if (root.ownerDestroyed || root.requestInFlight || root.pendingLeagueId === "") return
+    root.requestLeagueId = root.pendingLeagueId
+    var url = root.pendingUrl
+    root.pendingLeagueId = ""
+    root.pendingUrl = ""
+    root.pendingResponseBody = ""
+    root.responseTooLarge = false
+    requestProcess.requestGeneration = root.activeRequestGeneration
+    requestProcess.command = ["/usr/bin/python3", root.transportHelperPath, url]
+    root.requestInFlight = true
+    requestProcess.running = true
+  }
+
   function load(targetLeague, force) {
     if (root.ownerDestroyed || typeof targetLeague !== "string" || targetLeague === "") return false
     var url = targetLeague === "nhl"
       ? NhlProvider.buildStandingsUrl()
       : EspnProvider.buildStandingsUrl(targetLeague)
-    if (!url) {
-      root.leagueId = targetLeague
-      root.groups = []
-      root.rows = []
-      root.hasData = false
-      root.loading = false
-      root.errorCode = "unsupported"
-      root.errorSummary = "Standings are not available for this league"
-      root.partialErrorCount = 0
-      return false
-    }
-    if (!force && root.leagueId === targetLeague && (root.loading || root.hasData)) return false
-    if (requestProcess.running) {
-      root.activeRequestGeneration++
-      requestProcess.running = false
-    }
+    if (url && !force && root.leagueId === targetLeague && (root.loading || root.hasData)) return false
 
+    // A Process stop is asynchronous. Invalidate the old run, but do not
+    // overwrite its identity or command until exited has drained its output.
     root.requestGeneration++
     root.activeRequestGeneration = root.requestGeneration
-    root.requestLeagueId = targetLeague
+    root.pendingLeagueId = url ? targetLeague : ""
+    root.pendingUrl = url || ""
+    if (root.requestInFlight) requestProcess.running = false
+
+    // Last-good data belongs to one league. Retain it for that league's
+    // refresh failures, never while loading or failing a different table.
+    if (root.leagueId !== targetLeague || !url) root.clear()
     root.leagueId = targetLeague
+    if (!url) {
+      root.errorCode = "unsupported"
+      root.errorSummary = "Standings are not available for this league"
+      return false
+    }
     root.loading = true
     root.errorCode = ""
     root.errorSummary = ""
     root.partialErrorCount = 0
-    root.pendingResponseBody = ""
-    root.responseTooLarge = false
-    requestProcess.requestGeneration = root.activeRequestGeneration
-    requestProcess.command = ["/usr/bin/python3", root.transportHelperPath, url]
-    requestProcess.running = true
+    root.startPendingRequest()
     return true
   }
 
@@ -173,6 +183,8 @@ Item {
   Component.onDestruction: {
     root.ownerDestroyed = true
     root.activeRequestGeneration++
+    root.pendingLeagueId = ""
+    root.pendingUrl = ""
     if (requestProcess.running) requestProcess.running = false
   }
 
@@ -191,8 +203,12 @@ Item {
     }
 
     onExited: function(exitCode, exitStatus) {
-      if (requestProcess.requestGeneration !== root.activeRequestGeneration
-          || root.ownerDestroyed) return
+      if (root.ownerDestroyed) return
+      root.requestInFlight = false
+      if (requestProcess.requestGeneration !== root.activeRequestGeneration) {
+        root.startPendingRequest()
+        return
+      }
       var targetLeague = root.requestLeagueId
       var result = root.responseTooLarge ? null
         : root.parseBody(root.pendingResponseBody.trim(), targetLeague)

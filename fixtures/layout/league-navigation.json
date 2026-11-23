@@ -1,0 +1,50 @@
+{
+  "cases": [
+    {
+      "name": "default NHL setup",
+      "tabs": [
+        {
+          "id": "following",
+          "label": "Following"
+        },
+        {
+          "id": "nhl",
+          "label": "NHL"
+        }
+      ]
+    },
+    {
+      "name": "all enabled leagues",
+      "tabs": [
+        {
+          "id": "following",
+          "label": "Following"
+        },
+        {
+          "id": "nfl",
+          "label": "NFL"
+        },
+        {
+          "id": "mlb",
+          "label": "MLB"
+        },
+        {
+          "id": "nba",
+          "label": "NBA"
+        },
+        {
+          "id": "eng.1",
+          "label": "Premier League"
+        },
+        {
+          "id": "usa.1",
+          "label": "MLS"
+        },
+        {
+          "id": "nhl",
+          "label": "NHL"
+        }
+      ]
+    }
+  ]
+}

@@ -43,7 +43,8 @@ Item {
       root.settings.toggleFavoriteTeam(root.standing.team.id)
   }
 
-  Accessible.name: root.teamLabel() + ", rank " + root.valueOrDash(root.standing.rank)
+  Accessible.name: root.teamLabel() + ", " + (root.standing.rankKind === "seed" ? "seed " : "rank ")
+    + root.valueOrDash(root.standing.rank)
     + (root.recordLabel() ? ", record " + root.recordLabel() : "")
     + (root.favorite ? ", selected favorite team" : ", not selected")
   Accessible.role: Accessible.CheckBox

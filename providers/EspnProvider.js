@@ -12,7 +12,10 @@ if (typeof require === "function") {
 }
 
 var ESPN_BASE_URL = "https://site.api.espn.com/apis/site/v2/sports";
+var ESPN_STANDINGS_BASE_URL = "https://site.api.espn.com/apis/v2/sports";
 var ESPN_PROVIDER = "espn";
+var MAX_STANDINGS_GROUPS = 32;
+var MAX_STANDINGS_STATS = 128;
 var MAX_EVENTS = ResponsePolicy ? ResponsePolicy.MAX_EVENTS : 256;
 
 var LEAGUE_METADATA = {
@@ -112,7 +115,7 @@ function buildNextGamesUrl(leagueId, startDate, endDate) {
 function buildStandingsUrl(leagueId) {
   var metadata = metadataFor(leagueId);
   if (!metadata) return null;
-  return ESPN_BASE_URL + "/" + metadata.sport + "/" + metadata.slug + "/standings";
+  return ESPN_STANDINGS_BASE_URL + "/" + metadata.sport + "/" + metadata.slug + "/standings";
 }
 
 function buildGameUrl(leagueId, providerGameId) {
@@ -568,9 +571,10 @@ function detailStatsByGameId(payload) {
 
 function standingsStat(stats, names) {
   if (!Array.isArray(stats) || !Array.isArray(names)) return null;
-  for (var i = 0; i < stats.length; i++) {
-    if (!isRecord(stats[i]) || names.indexOf(stats[i].name) === -1) continue;
-    return stats[i];
+  for (var n = 0; n < names.length; n++) {
+    for (var i = 0; i < stats.length; i++) {
+      if (isRecord(stats[i]) && stats[i].name === names[n]) return stats[i];
+    }
   }
   return null;
 }
@@ -584,39 +588,57 @@ function standingsNumber(stats, names) {
   return value;
 }
 
+function standingsText(value, limit) {
+  var text = cleanString(value);
+  return text ? text.slice(0, limit) : null;
+}
+
 function standingsTeam(rawTeam, leagueId) {
   if (!isRecord(rawTeam)) return null;
+  var id = providerId(rawTeam.id);
+  if (!id || id.length > 64) return null;
   var logo = rawTeam.logo;
   if (!logo && Array.isArray(rawTeam.logos) && isRecord(rawTeam.logos[0]))
     logo = rawTeam.logos[0].href;
-  return normalizeTeam({id: rawTeam.id, team: {
-    id: rawTeam.id,
-    displayName: rawTeam.displayName || rawTeam.name,
-    shortDisplayName: rawTeam.shortDisplayName || rawTeam.abbreviation,
-    abbreviation: rawTeam.abbreviation,
-    logo: logo,
-    links: rawTeam.links
+  var team = normalizeTeam({id: id, team: {
+    id: id,
+    displayName: standingsText(rawTeam.displayName || rawTeam.name, 160),
+    shortDisplayName: standingsText(rawTeam.shortDisplayName || rawTeam.abbreviation, 80),
+    abbreviation: standingsText(rawTeam.abbreviation, 24),
+    logo: typeof logo === "string" && logo.length <= 2048 ? logo : null,
+    links: Array.isArray(rawTeam.links) ? rawTeam.links.slice(0, 4) : []
   }}, leagueId);
+  if (team && team.link && team.link.length > 2048) team.link = null;
+  return team;
 }
 
 function normalizeStandingsEntry(entry, leagueId) {
   if (!isRecord(entry) || !isRecord(entry.team)) return null;
   var stats = Array.isArray(entry.stats) ? entry.stats : [];
+  if (stats.length > MAX_STANDINGS_STATS) return null;
+  var metadata = metadataFor(leagueId);
+  var soccer = metadata && metadata.sport === "soccer";
   var wins = standingsNumber(stats, ["wins"]);
   var losses = standingsNumber(stats, ["losses"]);
-  var draws = standingsNumber(stats, ["draws"]);
-  var ties = standingsNumber(stats, ["ties"]);
-  var points = standingsNumber(stats, ["points", "leaguePoints"]);
+  var draws = standingsNumber(stats, soccer ? ["draws", "ties"] : ["draws"]);
+  var ties = soccer ? null : standingsNumber(stats, ["ties"]);
+  // NBA/MLB's points stat is games above/below .500, not table points.
+  var points = soccer ? standingsNumber(stats, ["points", "leaguePoints"]) : null;
   var differential = standingsNumber(stats, ["pointDifferential", "goalDifference", "differential"]);
   var played = standingsNumber(stats, ["gamesPlayed", "eventsPlayed", "played"]);
   var rank = integerOrNull(entry.rank);
-  if (rank === null) rank = standingsNumber(stats, ["rank", "order"]);
-  var record = standingsStat(stats, ["record"]);
-  var recordLabel = record ? cleanString(record.displayValue) : null;
+  if (rank === null || rank < 1) rank = standingsNumber(stats, ["rank", "order"]);
+  var rankKind = "rank";
+  if ((rank === null || rank < 1) && ["nfl", "mlb", "nba"].indexOf(leagueId) !== -1) {
+    rank = standingsNumber(stats, ["playoffSeed"]);
+    if (rank !== null && rank > 0) rankKind = "seed";
+  }
+  var record = standingsStat(stats, ["overall", "record"]);
 
   return {
     team: standingsTeam(entry.team, leagueId),
     rank: rank,
+    rankKind: rankKind,
     played: played,
     wins: wins,
     losses: losses,
@@ -624,7 +646,7 @@ function normalizeStandingsEntry(entry, leagueId) {
     ties: ties,
     points: points,
     differential: differential,
-    recordLabel: recordLabel
+    recordLabel: record ? standingsText(record.displayValue, 64) : null
   };
 }
 
@@ -635,38 +657,78 @@ function parseStandingsResponse(payload, leagueId) {
     result.errors.push(errorFor(leagueId, "unsupported-league", null));
     return result;
   }
-  if (!isRecord(payload) || !Array.isArray(payload.standings)) {
-    result.errors.push({provider: ESPN_PROVIDER, league: metadata.id,
-      endpoint: buildStandingsUrl(metadata.id), index: null,
-      code: "invalid-standings-response"});
+  function error(code, index, group) {
+    var value = {provider: ESPN_PROVIDER, league: metadata.id,
+      endpoint: buildStandingsUrl(metadata.id), index: index, code: code};
+    if (group !== undefined) value.group = group;
+    result.errors.push(value);
+  }
+  // Only the verified direct conference/league tables are consumed. Do not
+  // recursively duplicate their entries through a provider's nested divisions.
+  var current = isRecord(payload) && Array.isArray(payload.children);
+  var source = current ? payload.children
+    : isRecord(payload) && Array.isArray(payload.standings) ? payload.standings : null;
+  if (!source) {
+    error("invalid-standings-response", null);
     return result;
   }
-
+  if (source.length > MAX_STANDINGS_GROUPS) {
+    error("too-many-standings-groups", null);
+    return result;
+  }
+  var total = 0;
+  for (var i = 0; i < source.length; i++) {
+    var candidate = current && isRecord(source[i]) ? source[i].standings : source[i];
+    if (isRecord(candidate) && Array.isArray(candidate.entries)) total += candidate.entries.length;
+    if (total > MAX_EVENTS) {
+      error("too-many-standings", null);
+      return result;
+    }
+  }
   var groups = [];
-  payload.standings.forEach(function(standing, index) {
-    if (!isRecord(standing) || !Array.isArray(standing.entries)) {
-      result.errors.push({provider: ESPN_PROVIDER, league: metadata.id,
-        endpoint: buildStandingsUrl(metadata.id), index: index,
-        code: "invalid-standings-group"});
+  var groupIds = {};
+  var teamIds = {};
+  source.forEach(function(parent, index) {
+    var standing = current && isRecord(parent) ? parent.standings : parent;
+    if (!isRecord(parent) || !isRecord(standing) || !Array.isArray(standing.entries)) {
+      error("invalid-standings-group", index);
       return;
     }
-    var groupId = providerId(standing.id || standing.uid || standing.name) || "group-" + index;
-    var groupLabel = cleanString(standing.displayName) || cleanString(standing.name)
-      || "Standings";
+    var groupId = providerId(parent.id || parent.uid || parent.name);
+    if (!groupId || groupId.length > 64) groupId = "group-" + index;
+    if (groupIds["group:" + groupId]) {
+      error("duplicate-standings-group", index, groupId);
+      return;
+    }
+    groupIds["group:" + groupId] = true;
+    var groupLabel = standingsText(parent.displayName || parent.name, 160) || "Standings";
     var entries = [];
     standing.entries.forEach(function(entry, entryIndex) {
       var normalized = normalizeStandingsEntry(entry, metadata.id);
       if (!normalized || !normalized.team) {
-        result.errors.push({provider: ESPN_PROVIDER, league: metadata.id,
-          endpoint: buildStandingsUrl(metadata.id), index: entryIndex, group: groupId,
-          code: "invalid-standing-entry"});
+        error("invalid-standing-entry", entryIndex, groupId);
         return;
       }
+      var key = "team:" + normalized.team.id;
+      if (teamIds[key]) {
+        error("duplicate-standing-team", entryIndex, groupId);
+        return;
+      }
+      teamIds[key] = true;
       entries.push(normalized);
     });
-    groups.push({id: groupId, label: groupLabel, entries: entries});
+    if (current) {
+      if (entries.some(function(entry) { return entry.rankKind === "seed"; }))
+        groupLabel += " · Playoff seeds";
+      // During an offseason the root may describe the next season; label only
+      // the season of this actual table, never payload.season.
+      var season = standingsText(standing.seasonDisplayName, 64)
+        || standingsText(providerId(standing.season), 64);
+      if (season && groupLabel.indexOf(season) === -1) groupLabel += " · " + season;
+    }
+    groups.push({id: groupId, label: groupLabel.slice(0, 240), entries: entries});
   });
-
+  result.groups = groups;
   return StandingsModel
     ? StandingsModel.normalizeGroups(groups, metadata.id, result.errors)
     : result;
@@ -676,6 +738,8 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     ESPN_BASE_URL: ESPN_BASE_URL,
     ESPN_PROVIDER: ESPN_PROVIDER,
+    MAX_STANDINGS_GROUPS: MAX_STANDINGS_GROUPS,
+    MAX_STANDINGS_STATS: MAX_STANDINGS_STATS,
     LEAGUE_METADATA: LEAGUE_METADATA,
     metadataFor: metadataFor,
     buildScoreUrl: buildScoreUrl,

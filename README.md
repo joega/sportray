@@ -83,12 +83,22 @@ Remove that file separately if you want a complete preference reset.
 The panel opens on today's games. Use the date carousel to look back at
 completed slates or forward to upcoming games.
 
+Choose a league from the **League** dropdown below the dates, then select
+**Standings** in the panel header (or press **S**). From Following, **Standings**
+opens the league chooser first; **Scores** returns to the selected league’s games.
+
 - `[` and `]` move one day; `T` returns to today.
 - On a supported league view, `S` toggles standings.
 - When a league has no games on the selected day, select **View day** to jump
   to its next scheduled game day.
 - Select any loaded game row to see details such as status, venue, scoring
   lines, and team stats where available.
+
+Standings are available for NHL, NFL, MLB, NBA, Premier League, and MLS. NFL,
+MLB, and NBA tables show the provider's **playoff seed order** within each
+conference or league; soccer tables use the provider's table ranks. ESPN tables
+show their own season, including when the provider returns an offseason table.
+College standings are currently unavailable; college scoreboards remain supported.
 
 The bar widget shows a compact favorite-aware indicator with score details on
 hover. The thin ticker across the bottom of the screen scrolls current live
@@ -136,6 +146,8 @@ sports, and leagues are welcome.
 
 ## Troubleshooting
 
+- After updating plugin code, run `omarchy restart shell` to load the new QML
+  components.
 - If a league shows no games, check that it is enabled in Settings, try
   another date in the carousel, or use the **Refresh** action.
 - If a provider is temporarily unavailable, that league shows an unavailable

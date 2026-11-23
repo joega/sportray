@@ -1,0 +1,382 @@
+{
+  "source": "https://site.api.espn.com/apis/v2/sports/football/nfl/standings",
+  "observedDate": "2026-11-23",
+  "payload": {
+    "id": "9",
+    "name": "National Football League",
+    "season": {
+      "year": 2026,
+      "startDate": "2026-08-06T07:00Z",
+      "endDate": "2027-02-16T07:59Z",
+      "displayName": "2026"
+    },
+    "children": [
+      {
+        "id": "8",
+        "name": "American Football Conference",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2026,
+          "seasonDisplayName": "2026",
+          "entries": [
+            {
+              "team": {
+                "id": "2",
+                "displayName": "Buffalo Bills",
+                "shortDisplayName": "Bills",
+                "abbreviation": "BUF",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nfl/500/buf.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 105.0,
+                  "displayValue": "+105"
+                },
+                {
+                  "name": "losses",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 105.0,
+                  "displayValue": "+105"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 9.0,
+                  "displayValue": "9"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "9-1"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "12",
+                "displayName": "Kansas City Chiefs",
+                "shortDisplayName": "Chiefs",
+                "abbreviation": "KC",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nfl/500/kc.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 108.0,
+                  "displayValue": "+108"
+                },
+                {
+                  "name": "losses",
+                  "value": 2.0,
+                  "displayValue": "2"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 5.0,
+                  "displayValue": "5"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 108.0,
+                  "displayValue": "+108"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "8-2"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "30",
+                "displayName": "Jacksonville Jaguars",
+                "shortDisplayName": "Jaguars",
+                "abbreviation": "JAX",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nfl/500/jax.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 120.0,
+                  "displayValue": "+120"
+                },
+                {
+                  "name": "losses",
+                  "value": 3.0,
+                  "displayValue": "3"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 4.0,
+                  "displayValue": "4"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 120.0,
+                  "displayValue": "+120"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 7.0,
+                  "displayValue": "7"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "7-3"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "7",
+        "name": "National Football Conference",
+        "standings": {
+          "id": "0",
+          "name": "overall",
+          "displayName": "Standings",
+          "season": 2026,
+          "seasonDisplayName": "2026",
+          "entries": [
+            {
+              "team": {
+                "id": "25",
+                "displayName": "San Francisco 49ers",
+                "shortDisplayName": "49ers",
+                "abbreviation": "SF",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nfl/500/sf.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 110.0,
+                  "displayValue": "+110"
+                },
+                {
+                  "name": "losses",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 1.0,
+                  "displayValue": "1"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 110.0,
+                  "displayValue": "+110"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 9.0,
+                  "displayValue": "9"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "9-1"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "3",
+                "displayName": "Chicago Bears",
+                "shortDisplayName": "Bears",
+                "abbreviation": "CHI",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nfl/500/chi.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": 65.0,
+                  "displayValue": "+65"
+                },
+                {
+                  "name": "losses",
+                  "value": 2.0,
+                  "displayValue": "2"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 5.0,
+                  "displayValue": "5"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": 65.0,
+                  "displayValue": "+65"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 8.0,
+                  "displayValue": "8"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "8-2"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": "29",
+                "displayName": "Carolina Panthers",
+                "shortDisplayName": "Panthers",
+                "abbreviation": "CAR",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/nfl/500/car.png"
+                  }
+                ]
+              },
+              "stats": [
+                {
+                  "name": "differential",
+                  "value": -15.0,
+                  "displayValue": "-15"
+                },
+                {
+                  "name": "losses",
+                  "value": 5.0,
+                  "displayValue": "5"
+                },
+                {
+                  "name": "playoffSeed",
+                  "value": 4.0,
+                  "displayValue": "4"
+                },
+                {
+                  "name": "pointDifferential",
+                  "value": -15.0,
+                  "displayValue": "-15"
+                },
+                {
+                  "name": "ties",
+                  "value": 0.0,
+                  "displayValue": "0"
+                },
+                {
+                  "name": "wins",
+                  "value": 5.0,
+                  "displayValue": "5"
+                },
+                {
+                  "name": "overall",
+                  "displayValue": "5-5"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {
+    "labels": [
+      "American Football Conference · Playoff seeds · 2026",
+      "National Football Conference · Playoff seeds · 2026"
+    ],
+    "ids": [
+      "nfl:2",
+      "nfl:30",
+      "nfl:12",
+      "nfl:25",
+      "nfl:29",
+      "nfl:3"
+    ],
+    "ranks": [
+      1,
+      4,
+      5,
+      1,
+      4,
+      5
+    ],
+    "rankKinds": [
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed",
+      "seed"
+    ],
+    "records": [
+      "9-1",
+      "7-3",
+      "8-2",
+      "9-1",
+      "5-5",
+      "8-2"
+    ],
+    "points": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  }
+}
