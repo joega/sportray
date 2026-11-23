@@ -12,6 +12,7 @@ const games = require(path.join(root, "model/GameModel.js"));
 const gameDetails = require(path.join(root, "model/GameDetailModel.js"));
 const formatters = require(path.join(root, "model/Formatters.js"));
 const barPresentation = require(path.join(root, "model/BarPresentation.js"));
+const barPlacement = require(path.join(root, "model/BarPlacement.js"));
 const presentation = require(path.join(root, "model/FavoritePresentation.js"));
 const nhl = require(path.join(root, "providers/NhlProvider.js"));
 const espn = require(path.join(root, "providers/EspnProvider.js"));
@@ -4338,17 +4339,55 @@ test("overlay opens directly below the configured bar region with no gap", () =>
   assert.equal(panel.includes("borderSpec: Border.none()"), false);
 });
 
+test("the shared service declares its local types for Quickshell's module loader", () => {
+  const declarations = readSource("services/qmldir").trim().split(/\r?\n/);
+  assert.equal(declarations.includes("singleton SportrayService 1.0 SportrayService.qml"), true);
+  const internalFiles = declarations.filter((line) => line.startsWith("internal "))
+    .map((line) => line.trim().split(/\s+/)[2]).sort();
+  const serviceFiles = fs.readdirSync(path.join(root, "services"))
+    .filter((name) => name.endsWith(".qml") && name !== "SportrayService.qml").sort();
+  assert.deepEqual(internalFiles, serviceFiles);
+});
+
+test("bar placement resolves exact module ids through the public layout snapshot", () => {
+  const fixture = JSON.parse(readSource("fixtures/layout/bar-placement.json"));
+  const before = JSON.stringify(fixture);
+  fixture.cases.forEach((entry) => {
+    assert.equal(barPlacement.regionForLayout(entry.layout, fixture.moduleName), entry.region, entry.name);
+  });
+  [null, "", 42, {}, []].forEach((id) => {
+    assert.equal(barPlacement.regionForLayout(fixture.cases[0].layout, id), "");
+  });
+  assert.equal(JSON.stringify(fixture), before, "section detection must not mutate the host snapshot");
+});
+
+test("bar placement follows relocation and removal without retaining an old section", () => {
+  const fixture = JSON.parse(readSource("fixtures/layout/bar-placement.json"));
+  fixture.snapshots.forEach((entry) => {
+    assert.equal(barPlacement.regionForLayout(entry.layout, fixture.moduleName), entry.region);
+  });
+});
+
+test("right-edge placement is exclusive to horizontal right-section widgets", () => {
+  const fixture = JSON.parse(readSource("fixtures/layout/bar-placement.json"));
+  fixture.orientations.forEach((orientation) => {
+    fixture.cases.forEach((entry) => {
+      const region = barPlacement.regionForLayout(entry.layout, fixture.moduleName);
+      assert.equal(barPlacement.usesRightEdgeAnchor(region, orientation.vertical),
+        orientation.rightEdgeRegions.includes(region), entry.name + "/" + orientation.position);
+    });
+  });
+});
+
 test("horizontal overlay anchors to its button and clamps at the screen edge", () => {
   const widget = readSource("BarWidget.qml");
   const panel = readSource("Panel.qml");
-  assert.equal(widget.includes('property string barRegion: ""'), true);
+  assert.equal(widget.includes("readonly property string barRegion: BarPlacement.regionForLayout("), true);
+  assert.equal(widget.includes("root.bar ? root.bar.layoutConfig : null, root.moduleName)"), true);
+  assert.equal(widget.includes("moduleSlots"), false);
   assert.equal(widget.includes("readonly property string barPosition"), true);
-  assert.equal(widget.includes("function resolveBarRegion()"), true);
-  assert.equal(widget.includes("slot.activeItem === root"), true);
-  assert.equal(widget.includes("slot.moduleName === root.moduleName"), true);
-  assert.equal(widget.includes("function onModuleSlotsChanged()"), true);
-  assert.equal(widget.includes(
-    "readonly property var panelAnchorItem: root.barRegion === \"right\""), true);
+  assert.equal(widget.includes("BarPlacement.usesRightEdgeAnchor("), true);
+  assert.equal(widget.includes("onPanelAnchorItemChanged: injectPanel()"), true);
   assert.equal(widget.includes("id: rightEdgeAnchor"), true);
   assert.equal(widget.includes("id: panelAnchorWatcher"), true);
   assert.equal(widget.includes("root.mapFromItem(root.bar, edgeX, edgeY)"), false);

@@ -1,0 +1,259 @@
+{
+  "moduleName": "io.github.joega.sportray",
+  "cases": [
+    {
+      "name": "left",
+      "layout": {
+        "left": [
+          {
+            "id": "omarchy.clock"
+          },
+          {
+            "id": "io.github.joega.sportray",
+            "ticker": false
+          }
+        ]
+      },
+      "region": "left"
+    },
+    {
+      "name": "centerBegin",
+      "layout": {
+        "centerBegin": [
+          {
+            "id": "omarchy.clock"
+          },
+          {
+            "id": "io.github.joega.sportray",
+            "ticker": false
+          }
+        ]
+      },
+      "region": "centerBegin"
+    },
+    {
+      "name": "center",
+      "layout": {
+        "center": [
+          {
+            "id": "omarchy.clock"
+          },
+          {
+            "id": "io.github.joega.sportray",
+            "ticker": false
+          }
+        ]
+      },
+      "region": "center"
+    },
+    {
+      "name": "centerEnd",
+      "layout": {
+        "centerEnd": [
+          {
+            "id": "omarchy.clock"
+          },
+          {
+            "id": "io.github.joega.sportray",
+            "ticker": false
+          }
+        ]
+      },
+      "region": "centerEnd"
+    },
+    {
+      "name": "right",
+      "layout": {
+        "right": [
+          {
+            "id": "omarchy.clock"
+          },
+          {
+            "id": "io.github.joega.sportray",
+            "ticker": false
+          }
+        ]
+      },
+      "region": "right"
+    },
+    {
+      "name": "tray",
+      "layout": {
+        "tray": [
+          {
+            "id": "omarchy.clock"
+          },
+          {
+            "id": "io.github.joega.sportray",
+            "ticker": false
+          }
+        ]
+      },
+      "region": "tray"
+    },
+    {
+      "name": "exact id only",
+      "layout": {
+        "left": [
+          {
+            "id": "io.github.joega.sportray.other"
+          },
+          {
+            "id": "IO.GITHUB.JOEGA.SPORTRAY"
+          }
+        ],
+        "right": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ]
+      },
+      "region": "right"
+    },
+    {
+      "name": "missing layout",
+      "layout": null,
+      "region": ""
+    },
+    {
+      "name": "malformed layout",
+      "layout": [],
+      "region": ""
+    },
+    {
+      "name": "empty layout",
+      "layout": {},
+      "region": ""
+    },
+    {
+      "name": "unplaced module",
+      "layout": {
+        "right": [
+          {
+            "id": "omarchy.clock"
+          }
+        ]
+      },
+      "region": ""
+    },
+    {
+      "name": "malformed sections and entries",
+      "layout": {
+        "left": {
+          "id": "io.github.joega.sportray"
+        },
+        "centerBegin": null,
+        "center": [
+          null,
+          false,
+          42,
+          "io.github.joega.sportray",
+          [],
+          {},
+          {
+            "id": 42
+          }
+        ],
+        "right": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ]
+      },
+      "region": "right"
+    },
+    {
+      "name": "unknown section",
+      "layout": {
+        "floating": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ]
+      },
+      "region": ""
+    },
+    {
+      "name": "deterministic duplicate",
+      "layout": {
+        "right": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ],
+        "left": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ]
+      },
+      "region": "left"
+    }
+  ],
+  "snapshots": [
+    {
+      "layout": {
+        "right": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ]
+      },
+      "region": "right"
+    },
+    {
+      "layout": {
+        "center": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ],
+        "right": []
+      },
+      "region": "center"
+    },
+    {
+      "layout": {
+        "left": [
+          {
+            "id": "io.github.joega.sportray"
+          }
+        ],
+        "center": []
+      },
+      "region": "left"
+    },
+    {
+      "layout": {
+        "left": []
+      },
+      "region": ""
+    }
+  ],
+  "orientations": [
+    {
+      "position": "top",
+      "vertical": false,
+      "rightEdgeRegions": [
+        "right"
+      ]
+    },
+    {
+      "position": "bottom",
+      "vertical": false,
+      "rightEdgeRegions": [
+        "right"
+      ]
+    },
+    {
+      "position": "left",
+      "vertical": true,
+      "rightEdgeRegions": []
+    },
+    {
+      "position": "right",
+      "vertical": true,
+      "rightEdgeRegions": []
+    }
+  ]
+}

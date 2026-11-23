@@ -3,6 +3,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 import "model/BarPresentation.js" as BarPresentation
+import "model/BarPlacement.js" as BarPlacement
 import "model/CountdownProjectionPolicy.js" as CountdownProjectionPolicy
 import "model/Iconography.js" as Iconography
 import "services" as Services
@@ -59,7 +60,8 @@ BarWidget {
   // Horizontal panels follow the configured bar region while anchoring to the
   // real button, whose item tree lets KeyboardPanel resolve the correct screen
   // and overlay layer.
-  property string barRegion: ""
+  readonly property string barRegion: BarPlacement.regionForLayout(
+    root.bar ? root.bar.layoutConfig : null, root.moduleName)
   readonly property var tickerGames: root.sharedService ? root.sharedService.ambientGames : []
   readonly property string tickerState: root.sharedService
     ? root.sharedService.ambientTickerState : "empty"
@@ -79,31 +81,12 @@ BarWidget {
     imageStore: root.sharedService ? root.sharedService.logoImageStore : null
   }
 
-  function resolveBarRegion() {
-    var slots = root.bar && root.bar.moduleSlots ? root.bar.moduleSlots : []
-    var moduleFallback = ""
-    for (var i = 0; i < slots.length; i++) {
-      var slot = slots[i]
-      if (!slot) continue
-      if (slot.moduleName === root.moduleName && !moduleFallback)
-        moduleFallback = String(slot.region || "")
-      if (slot.activeItem === root) {
-        root.barRegion = String(slot.region || "")
-        return
-      }
-    }
-    // ModuleSlot registers after its Loader child is created. On a clean shell
-    // start activeItem may not yet point back to this widget, but the module id
-    // and configured region are already stable. All per-screen copies share
-    // that configured region because Sportray disallows multiple instances.
-    root.barRegion = moduleFallback
-  }
   readonly property string barPosition: root.bar ? String(root.bar.position || "") : ""
   // A wide panel opened from the right bar section should use the screen edge
   // as its horizontal anchor, rather than the first icon in that section.
   // Keep the normal trigger anchor for left/center sections and vertical bars.
-  readonly property var panelAnchorItem: root.barRegion === "right"
-    && root.bar && root.bar.vertical !== true
+  readonly property var panelAnchorItem: root.bar && BarPlacement.usesRightEdgeAnchor(
+    root.barRegion, root.bar.vertical)
     ? rightEdgeAnchor : (root.fullMode ? fullButton : compactButton)
 
   function injectPanel() {
@@ -136,21 +119,11 @@ BarWidget {
   implicitWidth: root.fullMode ? fullButton.implicitWidth : compactButton.implicitWidth
   implicitHeight: root.fullMode ? fullButton.implicitHeight : compactButton.implicitHeight
 
-  onBarChanged: {
-    resolveBarRegion()
-    injectPanel()
-  }
+  onBarChanged: injectPanel()
   onSettingsChanged: injectPanel()
   onBarRegionChanged: injectPanel()
   onBarPositionChanged: injectPanel()
-
-  Connections {
-    target: root.bar
-    function onModuleSlotsChanged() {
-      root.resolveBarRegion()
-      root.injectPanel()
-    }
-  }
+  onPanelAnchorItemChanged: injectPanel()
 
   TransformWatcher {
     id: panelAnchorWatcher
@@ -176,8 +149,6 @@ BarWidget {
   }
 
   Component.onCompleted: {
-    resolveBarRegion()
-    root.resolveBarRegion()
     root.injectPanel()
   }
 

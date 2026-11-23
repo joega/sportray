@@ -64,6 +64,11 @@ NHL data endpoints, and uses Omarchy's notification helper when alerts are
 enabled. It does not install packages, request privileged access, create a
 service, or overwrite user configuration.
 
+On Omarchy 4.5, Sportray follows the public bar layout snapshot when its widget
+moves between sections. Horizontal right-section panels anchor to the screen
+edge; center-section panels stay centered, and vertical right-section panels use
+the widget anchor.
+
 Removing the plugin unloads Sportray but leaves your preferences in place so a
 reinstall keeps your settings:
 

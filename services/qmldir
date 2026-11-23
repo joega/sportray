@@ -1,2 +1,11 @@
 module Sportray.Services
 singleton SportrayService 1.0 SportrayService.qml
+internal SettingsStore SettingsStore.qml
+internal FetchService FetchService.qml
+internal StandingsFetch StandingsFetch.qml
+internal NotificationService NotificationService.qml
+internal LogoImageStore LogoImageStore.qml
+internal PollScheduler PollScheduler.qml
+internal CalendarFetch CalendarFetch.qml
+internal CalendarDiskCache CalendarDiskCache.qml
+internal LeagueFetch LeagueFetch.qml
