@@ -1,0 +1,10 @@
+{
+  "cases": [
+    {"name":"loading","state":{"loading":true},"kinds":["standings-loading"],"text":"Loading standings…","retry":false},
+    {"name":"empty","state":{"hasData":true,"groups":[]},"kinds":["standings-empty"],"text":"No standings available for this league.","retry":false},
+    {"name":"unavailable","state":{"errorCode":"unavailable","errorSummary":"Standings temporarily unavailable"},"kinds":["standings-status"],"text":"Standings temporarily unavailable · retry","retry":true},
+    {"name":"retained failure","state":{"hasData":true,"stale":true,"errorCode":"unavailable","errorSummary":"Standings temporarily unavailable","lastSuccessAt":"2026-11-24T12:00:00Z","groups":[{"id":"conference","rows":[{"id":"nfl:1","team":{"id":"nfl:1"}}]}]},"kinds":["standings-status","standings-section","standings"],"text":"Standings temporarily unavailable · showing last update · 5 min ago · retry","retry":true},
+    {"name":"retained refresh","state":{"hasData":true,"loading":true,"groups":[{"id":"conference","rows":[{"id":"nfl:1","team":{"id":"nfl:1"}}]}]},"kinds":["standings-status","standings-section","standings"],"text":"Refreshing standings…","retry":false},
+    {"name":"healthy recovery","state":{"hasData":true,"groups":[{"id":"conference","rows":[{"id":"nfl:1","team":{"id":"nfl:1"}}]}]},"kinds":["standings-section","standings"],"retry":false}
+  ]
+}

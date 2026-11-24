@@ -34,14 +34,18 @@ function flatten(state, favoriteIds) {
     rows.push({kind: "standings-loading", rowId: "standings-loading", label: "Loading standings…", action: null});
     return rows;
   }
-  if (state.errorCode && state.hasData !== true) {
+  if (state.errorCode || state.stale === true || state.loading === true) {
     rows.push({
       kind: "standings-status",
       rowId: "standings-status",
-      label: state.errorSummary || "Standings unavailable",
+      label: state.errorSummary || (state.stale === true ? "Standings may be out of date"
+        : state.loading === true ? "Refreshing standings…" : "Standings unavailable"),
+      stale: state.hasData === true && (state.stale === true || Boolean(state.errorCode)),
+      loading: state.loading === true,
+      lastSuccessAt: state.lastSuccessAt || "",
       action: {type: "retry-standings", label: "Retry standings", enabled: state.loading !== true}
     });
-    return rows;
+    if (state.hasData !== true) return rows;
   }
 
   var groups = Array.isArray(state.groups) ? state.groups : [];

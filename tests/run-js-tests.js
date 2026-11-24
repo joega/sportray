@@ -7166,4 +7166,16 @@ test("open details track exact game identity and retain truthful failure snapsho
   });
 });
 
+test("standings states retain tables and expose only available retry actions", () => {
+  const fixture = JSON.parse(readSource("fixtures/presentation/standings-states.json"));
+  fixture.cases.forEach((sample) => {
+    const before = JSON.stringify(sample.state);
+    const rows = standingsRows.flatten(sample.state, []);
+    assert.deepEqual(rows.map((row) => row.kind), sample.kinds, sample.name);
+    const status = rows.find((row) => row.kind === "standings-status");
+    assert.equal(Boolean(status && status.action && status.action.enabled), sample.retry, sample.name);
+    assert.equal(JSON.stringify(sample.state), before, "projection changed its input");
+  });
+});
+
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

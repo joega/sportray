@@ -132,10 +132,13 @@ Panel {
     root.activeView, root.activeDestination, root.selectedDateLabel)
   readonly property var standingsService: root.service ? root.service.standingsService : null
   readonly property var notificationService: root.service ? root.service.notificationService : null
-  readonly property var standingsState: root.standingsService
+  readonly property var standingsState: {
+    root.standingsRevision
+    return root.standingsService
     && typeof root.standingsService.snapshot === "function"
     ? root.standingsService.snapshot() : ({leagueId: "", groups: [], rows: [], hasData: false,
       loading: false, errorCode: "", errorSummary: ""})
+  }
   readonly property bool activeLeagueSupportsStandings: {
     var league = LeagueCatalog.getLeague(root.activeDestination)
     return Boolean(league && league.standingsSupported === true)
@@ -240,7 +243,9 @@ Panel {
     root.selectedDateKey, root.todayDateKey)
 
   function refresh() {
-    fetchService.requestRefresh("manual")
+    if (root.standingsOpen && root.standingsService)
+      root.standingsService.refresh(root.activeDestination)
+    else if (root.fetchService) root.fetchService.requestRefresh("manual")
   }
 
   function openStandings() {
@@ -655,7 +660,7 @@ Panel {
         delegate.activatePrimaryAction()
     } else if (delegate && typeof delegate.activatePrimaryAction === "function") {
       delegate.activatePrimaryAction()
-    } else if (row.action.type === "retry") {
+    } else if (row.action.type === "retry" || row.action.type === "retry-standings") {
       root.refresh()
     }
   }
@@ -960,6 +965,8 @@ Panel {
     function onHasDataChanged() { root.standingsRevision++ }
     function onErrorCodeChanged() { root.standingsRevision++ }
     function onErrorSummaryChanged() { root.standingsRevision++ }
+    function onStaleChanged() { root.standingsRevision++ }
+    function onLastSuccessAtChanged() { root.standingsRevision++ }
   }
 
   Component.onCompleted: {
@@ -1437,7 +1444,7 @@ Panel {
                   height: rowColumn.implicitHeight
                   readonly property bool nestedActionPressed: PointerInteractionPolicy.childActionPressed(
                     gameRow.childActionPressed,
-                    leagueStatus.pointerPressed,
+                    leagueStatus.pointerPressed || standingsStatus.pointerPressed,
                     nextGameCard.childActionPressed,
                     emptyAction.pointerPressed,
                     standingsRow.childActionPressed)
@@ -1500,6 +1507,17 @@ Panel {
                       height: visible ? implicitHeight : 0
                       visible: modelData && modelData.kind === "status"
                       status: statusValue
+                      currentTime: root.nowMs
+                      onRetry: root.refresh()
+                    }
+
+                    StandingsStatus {
+                      id: standingsStatus
+                      width: parent.width
+                      height: visible ? implicitHeight : 0
+                      visible: modelData && (modelData.kind === "standings-loading"
+                        || modelData.kind === "standings-status" || modelData.kind === "standings-empty")
+                      row: modelData
                       currentTime: root.nowMs
                       onRetry: root.refresh()
                     }
@@ -1613,6 +1631,8 @@ Panel {
                     else if (modelData.kind === "next-game") nextGameCard.activatePrimaryAction()
                     else if (modelData.kind === "status") leagueStatus.activatePrimaryAction()
                     else if (modelData.kind === "standings") standingsRow.activatePrimaryAction()
+                    else if (modelData.action && modelData.action.type === "retry-standings")
+                      root.refresh()
                     else if (modelData.action && modelData.action.type === "choose-teams")
                       root.openUtility("teams")
                     else if (modelData.action && modelData.action.type === "browse-leagues")
