@@ -141,6 +141,10 @@ unavailable. Each group shares aligned column headers suited to its sport. Selec
 a team's star to add or remove a favorite; selecting the table row leaves favorites
 unchanged. Select a team name to open its schedule.
 
+Favorite and game-alert changes show a brief confirmation with **Undo**. Use
+the button or **Ctrl+Z** outside text fields and open menus to undo the latest
+change while it remains available. Other preferences stay unchanged.
+
 ### Open a game
 
 Select a loaded score row for its local detail view: score, status, venue, period
@@ -157,6 +161,8 @@ as data updates. An update message identifies retained scores if a request fails
 or the game disappears from the latest slate. **Game actions** keeps team schedules,
 alerts, and the source together on each compact score card. The source action opens ESPN
 gamecast, MLB.com gameday, or NHL.com gamecenter.
+Changed scores briefly highlight when desktop motion is enabled. Initial loads,
+retained stale scores, and recycled rows stay quiet.
 
 ## Ticker and alerts
 
@@ -194,6 +200,7 @@ up to 2.5 seconds to finish.
 | `N` | Open Settings from scores. |
 | `F` | Cycle All / Live / Favorites in Following scores. |
 | `Menu` / `Shift+F10` | Open Game actions for the selected score row. |
+| `Ctrl+Z` | Undo the latest favorite or alert change outside editors and menus. |
 | `F` / `/` | Filter leagues / search while browsing Favorite teams. |
 | Arrow keys | Move through the active chooser, rows, or detail/settings actions. Left/Right scrolls a long scoring table in details. |
 | Page Up / Page Down | Scroll game details or page through score rows. |

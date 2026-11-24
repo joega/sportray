@@ -1,9 +1,12 @@
 import QtQuick
+import QtQuick.Window
 import "../model/UiTypography.js" as Typography
 import "../model/UiContrast.js" as UiContrast
 import qs.Commons as Commons
 import qs.Ui
 import "../model/Formatters.js" as Formatters
+import "../model/ScoreChangePresentation.js" as ScoreChangePresentation
+import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
 Item {
   id: root
@@ -25,6 +28,84 @@ Item {
   readonly property bool childActionPressed: gameActions.pointerPressed || awayLink.pointerPressed || homeLink.pointerPressed
   readonly property bool popupOpen: gameActions.popupOpen
   readonly property bool inputActive: gameActions.inputActive
+  property real awayScoreHighlight: 0
+  property real homeScoreHighlight: 0
+  property var scoreSnapshot: null
+  property bool scoresInitialized: false
+  property bool scoreReviewQueued: false
+  readonly property var scoreCallbackOwner: LifecyclePolicy.createOwnerState()
+  readonly property bool scorePulseAllowed: root.visible && root.Window.window !== null
+    && root.Window.window.visible && !root.stale && !Commons.Style.reduceMotion
+
+  function scoreOptions() {
+    return {visible: root.scorePulseAllowed, stale: root.stale, reducedMotion: Commons.Style.reduceMotion}
+  }
+  function stopScorePulse() {
+    awayScorePulse.stop()
+    homeScorePulse.stop()
+    root.awayScoreHighlight = 0
+    root.homeScoreHighlight = 0
+  }
+  function queueScoreReview() {
+    if (!root.scoresInitialized || root.scoreReviewQueued) return
+    root.scoreReviewQueued = true
+    var owner = root.scoreCallbackOwner
+    var generation = owner.generation
+    Qt.callLater(function() {
+      if (!owner || owner.alive !== true || owner.generation !== generation) return
+      root.scoreReviewQueued = false
+      var result = ScoreChangePresentation.observe(root.scoreSnapshot, root.game, root.scoreOptions())
+      if (!result.snapshot.eligible || !root.scoreSnapshot || root.scoreSnapshot.id !== result.snapshot.id)
+        root.stopScorePulse()
+      root.scoreSnapshot = result.snapshot
+      if (result.awayChanged) { root.awayScoreHighlight = 1; awayScorePulse.restart() }
+      if (result.homeChanged) { root.homeScoreHighlight = 1; homeScorePulse.restart() }
+    })
+  }
+  onGameChanged: {
+    if (root.scoresInitialized) {
+      if (!root.game || !root.scoreSnapshot || root.game.id !== root.scoreSnapshot.id
+          || !ScoreChangePresentation.snapshot(root.game, root.scoreOptions()).eligible) root.stopScorePulse()
+      else {
+        if (!ScoreChangePresentation.finiteScore(root.game.awayScore)) {
+          awayScorePulse.stop(); root.awayScoreHighlight = 0
+        }
+        if (!ScoreChangePresentation.finiteScore(root.game.homeScore)) {
+          homeScorePulse.stop(); root.homeScoreHighlight = 0
+        }
+      }
+    }
+    root.queueScoreReview()
+  }
+  onScorePulseAllowedChanged: if (root.scoresInitialized) {
+    if (!root.scorePulseAllowed) {
+      root.stopScorePulse()
+      root.scoreSnapshot = ScoreChangePresentation.snapshot(root.game, root.scoreOptions())
+    } else root.queueScoreReview()
+  }
+  Component.onCompleted: {
+    root.scoresInitialized = true
+    root.scoreSnapshot = ScoreChangePresentation.snapshot(root.game, root.scoreOptions())
+  }
+  Component.onDestruction: LifecyclePolicy.invalidate(root.scoreCallbackOwner)
+  NumberAnimation {
+    id: awayScorePulse
+    target: root
+    property: "awayScoreHighlight"
+    from: 1
+    to: 0
+    duration: Commons.Style.duration(200)
+    easing.type: Easing.OutCubic
+  }
+  NumberAnimation {
+    id: homeScorePulse
+    target: root
+    property: "homeScoreHighlight"
+    from: 1
+    to: 0
+    duration: Commons.Style.duration(200)
+    easing.type: Easing.OutCubic
+  }
 
   signal primaryActionRequested()
   signal teamScheduleRequested(string teamId)
@@ -212,6 +293,7 @@ Item {
         }
 
         Text {
+          id: awayScoreText
           textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.awayScoreLabel
@@ -222,6 +304,13 @@ Item {
           font.bold: true
           horizontalAlignment: Text.AlignRight
           verticalAlignment: Text.AlignVCenter
+          Rectangle {
+            objectName: "awayScoreUpdateTint"
+            anchors.fill: parent
+            z: -1
+            radius: Commons.Style.space(3)
+            color: Qt.alpha(Commons.Color.accent, root.awayScoreHighlight * 0.12)
+          }
         }
       }
 
@@ -304,6 +393,7 @@ Item {
         }
 
         Text {
+          id: homeScoreText
           textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.homeScoreLabel
@@ -314,6 +404,13 @@ Item {
           font.bold: true
           horizontalAlignment: Text.AlignRight
           verticalAlignment: Text.AlignVCenter
+          Rectangle {
+            objectName: "homeScoreUpdateTint"
+            anchors.fill: parent
+            z: -1
+            radius: Commons.Style.space(3)
+            color: Qt.alpha(Commons.Color.accent, root.homeScoreHighlight * 0.12)
+          }
         }
       }
 

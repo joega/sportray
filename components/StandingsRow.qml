@@ -29,7 +29,7 @@ Item {
   function toggleFavorite() {
     if (root.settings && root.standing && root.standing.team
         && typeof root.settings.toggleFavoriteTeam === "function")
-      root.settings.toggleFavoriteTeam(root.standing.team.id)
+      root.settings.toggleFavoriteTeam(root.standing.team.id, root.teamLabel())
   }
   function activatePrimaryAction() {
     if (root.standing && root.standing.team && root.standing.team.id)

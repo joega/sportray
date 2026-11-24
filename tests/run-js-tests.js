@@ -2154,7 +2154,7 @@ test("standings rows open team schedules while the explicit star keeps favorite 
   assert.deepEqual(rows[2].action,
     {type: "open-team-schedule", label: "Open team schedule", enabled: true});
   const source = readSource("components/StandingsRow.qml");
-  assert.equal(source.includes("root.settings.toggleFavoriteTeam(root.standing.team.id)"), true);
+  assert.match(source, /root\.settings\.toggleFavoriteTeam\(root\.standing\.team\.id(?:,\s*root\.teamLabel\(\))?\)/);
   const nhlRows = standingsRows.flatten(nhl.parseStandingsResponse(readNhlStandingsFixture()), ["nhl:12"]);
   assert.equal(nhlRows[1].favorite, true);
   assert.deepEqual(nhlRows[1].action,
@@ -7244,7 +7244,7 @@ test("standings states retain tables and expose only available retry actions", (
 // Each suite also remains directly runnable during isolated development.
 for (const suite of ["test-following-presentation.js", "test-navigation-context.js",
     "test-notice-presentation.js", "test-ticket-model.js", "test-ui-contrast.js", "test-agenda-presentation.js",
-    "test-settings-preservation.js"]) {
+    "test-settings-preservation.js", "test-action-feedback.js", "test-score-change-presentation.js"]) {
   require(path.join(__dirname, suite));
 }
 

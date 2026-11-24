@@ -42,6 +42,10 @@ Panel {
   property var hostWidget: null
   property var service: Services.SportrayService
   property var settingsStore: null
+  readonly property var actionFeedbackState: root.settingsStore
+    && typeof root.settingsStore.feedbackAction !== "undefined" ? root.settingsStore.feedbackAction : null
+  readonly property bool actionUndoAvailable: root.settingsStore
+    && typeof root.settingsStore.canUndoFeedback !== "undefined" && root.settingsStore.canUndoFeedback === true
   property string barRegion: ""
   property bool settingsOpen: false
   property bool standingsOpen: false
@@ -297,6 +301,12 @@ Panel {
     else if (root.standingsOpen && root.standingsService)
       root.standingsService.refresh(root.activeDestination)
     else if (root.fetchService) root.fetchService.requestRefresh("manual")
+  }
+
+  function undoLastAction(actionId) {
+    return root.actionUndoAvailable && root.settingsStore
+      && typeof root.settingsStore.undoFeedback === "function"
+      ? root.settingsStore.undoFeedback(actionId) : false
   }
 
   function requestUpcoming(force) {
@@ -1504,6 +1514,12 @@ Panel {
       // Omarchy handler does not emit semantic signals for these keys.
       Keys.onPressed: function(event) {
         if (event.accepted) return
+        if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier)
+            && !settingsHub.inputActive && !root.gameActionsOpen && !sportsPicker.popupOpen
+            && !(root.scheduleOpen && upcomingCalendar.chooserOpen)) {
+          event.accepted = root.undoLastAction(root.actionFeedbackState ? root.actionFeedbackState.id : undefined)
+          if (event.accepted) return
+        }
         if (root.scheduleOpen) {
           if (upcomingCalendar.chooserOpen) return
           if (event.key === Qt.Key_Escape) root.closeSchedule()
@@ -1746,6 +1762,17 @@ Panel {
           id: panelBody
           width: parent.width
           height: Math.max(0, parent.height - header.height - contentColumn.spacing)
+
+          ActionFeedback {
+            id: actionFeedbackView
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            z: 20
+            action: root.actionFeedbackState
+            canUndo: root.actionUndoAvailable
+            onUndoRequested: function(actionId) { root.undoLastAction(actionId) }
+          }
 
           FocusScope {
             id: upcomingPage
@@ -2268,6 +2295,7 @@ Panel {
                 anchors.bottom: parent.bottom
                 anchors.margins: Style.spacing.sm
                 visible: root.activeView && root.activeView.loading === true
+                  && !root.actionFeedbackState
                   && root.resultRows.some(function(row) { return row.kind === "game" })
                   && !root.resultRows.some(function(row) { return row.kind === "status" })
                 z: 2

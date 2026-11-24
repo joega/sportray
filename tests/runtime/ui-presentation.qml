@@ -38,6 +38,18 @@ ShellRoot {
     property int favoriteCalls: 0
     property var tickerCalls: []
     property var leagueCalls: []
+    property var feedbackAction: null
+    readonly property bool canUndoFeedback: Boolean(feedbackAction && !feedbackAction.undone)
+    property var undoAttempts: []
+    property int successfulUndos: 0
+    function undoFeedback(expectedId) {
+      undoAttempts = undoAttempts.concat([expectedId])
+      if (!canUndoFeedback || expectedId !== feedbackAction.id) return false
+      successfulUndos++
+      feedbackAction = {id: expectedId + 1, summary: "Change undone", undone: true, severity: "info"}
+      return true
+    }
+    function dismissFeedback() { feedbackAction = null }
     function toggleLeague(league) {
       leagueCalls = leagueCalls.concat([league])
       settings = SettingsModel.toggleLeague(settings, league)
@@ -289,6 +301,94 @@ ShellRoot {
         var delegate = panel.testList.itemAtIndex(index)
         check(delegate !== null, "Restored row is outside the rendered viewport: " + rowId)
         return delegate.mapToItem(panel.testList, 0, 0).y
+      }
+      function checkActionFeedback(panel) {
+        // Exercise only the public feedback interface here. The real store's
+        // field reconciliation, persistence and Undo policy have separate Qt tests.
+        panel.selectDate(root.sample.dateKey)
+        panel.selectDestination("following")
+        fetch.leagueStates = root.sample.settings.enabledLeagues.map(function(league) {
+          return {leagueId: league, displayName: league.toUpperCase(),
+            games: root.sample.games.filter(function(game) { return game.league === league }),
+            hasData: true, loading: false, stale: false, errorCode: "", errorSummary: "",
+            lastSuccessAt: root.sample.now}
+        })
+        settle(panel)
+        var index = panel.displayRows.findIndex(function(row) { return row.kind === "game" && row.game.league === "nhl" })
+        check(index >= 0, "Feedback fixture has no game anchor")
+        panel.setSelectedRow(index)
+        panel.testCatcher.forceActiveFocus()
+        settle(panel)
+        var rowId = panel.selectedRowId, beforeY = rowViewportY(panel, rowId)
+        var height = panel.testList.height, contentHeight = panel.testList.contentHeight
+        var focus = window.activeFocusItem
+        var preferences = JSON.stringify(store.settings)
+        var undos = store.successfulUndos
+        function publish(id) {
+          store.feedbackAction = {id: id, kind: "favorite", targetId: "nhl:6",
+            summary: "Fixture favorite changed", undone: false, severity: "info"}
+        }
+        publish(101); wait(40)
+        check(panel.testFeedback.visible && panel.testFeedback.canUndo, "Action feedback is not visible or actionable")
+        same(panel.testList.height, height, "Feedback resized the score viewport")
+        same(panel.testList.contentHeight, contentHeight, "Feedback changed score-list layout")
+        same(panel.selectedRowId, rowId, "Feedback changed selected row")
+        check(Math.abs(rowViewportY(panel, rowId) - beforeY) < 1, "Feedback moved the anchored row")
+        same(window.activeFocusItem, focus, "Feedback stole keyboard focus")
+        var undo = find(panel.testFeedback, function(item) {
+          return item.visible && "tooltipText" in item && item.tooltipText === "Undo last change (Ctrl+Z)"
+        })
+        check(undo !== null, "Visible feedback has no explicit Undo action")
+        mouseClick(undo, undo.width / 2, undo.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+        wait(40)
+        same(store.successfulUndos, undos + 1, "Pointer Undo did not activate exactly once")
+        check(!panel.detailOpen && !panel.gameActionsOpen, "Undo also opened a game action")
+        same(window.activeFocusItem, focus, "Pointer Undo stole score focus")
+        publish(201); wait(30)
+        mousePress(undo, undo.width / 2, undo.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+        publish(202)
+        mouseRelease(undo, undo.width / 2, undo.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+        wait(40)
+        same(store.successfulUndos, undos + 1, "A stale Undo press undid the replacement action")
+        same(store.undoAttempts[store.undoAttempts.length - 1], 201, "Undo release lost its captured action ID")
+        publish(301)
+        panel.testCatcher.forceActiveFocus()
+        keyClick(Qt.Key_Z, Qt.ControlModifier); settle(panel)
+        same(store.successfulUndos, undos + 2, "Ctrl+Z did not undo the visible action")
+        publish(401)
+        naturalKey(panel, Qt.Key_Menu)
+        check(panel.gameActionsOpen, "Menu ownership fixture did not open")
+        keyClick(Qt.Key_Z, Qt.ControlModifier); wait(30)
+        same(store.successfulUndos, undos + 2, "Game actions leaked Ctrl+Z to global Undo")
+        check(panel.gameActionsOpen, "Ctrl+Z unexpectedly closed Game actions")
+        naturalKey(panel, Qt.Key_Escape)
+        mouseClick(panel.testLeaguePicker, panel.testLeaguePicker.width / 2,
+          panel.testLeaguePicker.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+        settle(panel)
+        check(panel.testLeaguePicker.popupOpen, "League dropdown ownership fixture did not open")
+        keyClick(Qt.Key_Z, Qt.ControlModifier); wait(30)
+        same(store.successfulUndos, undos + 2, "League dropdown leaked Ctrl+Z to global Undo")
+        naturalKey(panel, Qt.Key_Escape)
+        panel.openUtility("teams"); settle(panel)
+        var picker = find(panel.testHub, function(item) {
+          return item.visible && "focusSearch" in item && "query" in item
+        })
+        check(picker !== null, "Editor ownership fixture has no team search")
+        picker.focusSearch(); wait(30)
+        check(picker.inputActive && panel.testCatcher.blocked, "Team search did not acquire editor ownership")
+        keyClick(Qt.Key_A); keyClick(Qt.Key_B)
+        var typed = picker.query
+        keyClick(Qt.Key_Z, Qt.ControlModifier); wait(30)
+        same(store.successfulUndos, undos + 2, "Search editor leaked Ctrl+Z to global Undo")
+        check(picker.inputActive, "Ctrl+Z left the search editor")
+        check(picker.query !== typed, "Search editor did not process its own Undo")
+        naturalKey(panel, Qt.Key_Escape)
+        store.dismissFeedback(); settle(panel)
+        check(!panel.testFeedback.visible, "Dismissed feedback remains visible")
+        same(panel.testList.height, height, "Feedback dismissal resized the score viewport")
+        same(panel.selectedRowId, rowId, "Feedback dismissal changed selected row")
+        check(Math.abs(rowViewportY(panel, rowId) - beforeY) < 1, "Feedback dismissal moved the anchored row")
+        same(JSON.stringify(store.settings), preferences, "Feedback presentation changed preferences")
       }
       function checkScheduleSurface(panel, heading) {
         var page = panel.testSchedulePage
@@ -1189,6 +1289,7 @@ ShellRoot {
           settle(panel)
           check(store.isLeagueEnabled("nhl"), "In-memory league fixture was not restored")
           same(JSON.stringify(store.settings), JSON.stringify(savedFixtureSettings))
+          checkActionFeedback(panel)
           console.log("UI_PRESENTATION_PASS " + root.uiCase.name)
         } catch (error) {
           console.error("UI_PRESENTATION_FAIL " + String(error) + " " + error.stack)
