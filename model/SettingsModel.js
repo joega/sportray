@@ -206,7 +206,8 @@ function toggleFavoriteTeam(value, teamId) {
     enabledLeagues: normalized.enabledLeagues,
     followedLeagueIds: normalized.followedLeagueIds,
     favoriteTeamIds: favorites,
-    notifications: normalized.notifications
+    notifications: normalized.notifications,
+    ticker: normalized.ticker
   }).settings;
 }
 
@@ -232,7 +233,8 @@ function toggleLeague(value, leagueId) {
     enabledLeagues: enabled,
     followedLeagueIds: normalized.followedLeagueIds,
     favoriteTeamIds: normalized.favoriteTeamIds,
-    notifications: normalized.notifications
+    notifications: normalized.notifications,
+    ticker: normalized.ticker
   }).settings;
 }
 
@@ -247,7 +249,8 @@ function toggleFollowedLeague(value, leagueId) {
   else followed.splice(index, 1);
   return normalizeSettings({schemaVersion: SCHEMA_VERSION,
     enabledLeagues: normalized.enabledLeagues, followedLeagueIds: followed,
-    favoriteTeamIds: normalized.favoriteTeamIds, notifications: normalized.notifications}).settings;
+    favoriteTeamIds: normalized.favoriteTeamIds, notifications: normalized.notifications,
+    ticker: normalized.ticker}).settings;
 }
 
 function moveFollowedLeague(value, leagueId, direction) {
@@ -263,7 +266,8 @@ function moveFollowedLeague(value, leagueId, direction) {
   followed[target] = id;
   return normalizeSettings({schemaVersion: SCHEMA_VERSION,
     enabledLeagues: normalized.enabledLeagues, followedLeagueIds: followed,
-    favoriteTeamIds: normalized.favoriteTeamIds, notifications: normalized.notifications}).settings;
+    favoriteTeamIds: normalized.favoriteTeamIds, notifications: normalized.notifications,
+    ticker: normalized.ticker}).settings;
 }
 
 function toggleNotification(value, key) {
@@ -283,7 +287,8 @@ function toggleNotification(value, key) {
     enabledLeagues: normalized.enabledLeagues,
     followedLeagueIds: normalized.followedLeagueIds,
     favoriteTeamIds: normalized.favoriteTeamIds,
-    notifications: notifications
+    notifications: notifications,
+    ticker: normalized.ticker
   }).settings;
 }
 
