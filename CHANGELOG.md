@@ -2,7 +2,29 @@
 
 All notable changes to Sportray are documented here.
 
-## Unreleased
+## 1.0.0-rc.9
+
+- Updated Omarchy 4.5 bar placement through the public layout snapshot and
+  restored professional standings for the current provider response shapes.
+- Restored NHL team logos with reviewed raster mappings and dated NHL standings
+  requests that preserve the no-redirect transport boundary.
+- Moved provider JSON, state persistence, and logo loading through bounded
+  helpers; rendered provider text plainly and kept settings watching metadata-only.
+- Fixed settings reloads on first installation when the settings parent did not
+  exist before startup, and preserved future-version state during shutdown.
+- Preserved per-league Following failures and stale scores without interrupting
+  healthy leagues or reporting a failed request as an empty day.
+- Bound background workers to the first and last widget instances so disabling
+  or removing Sportray stops score requests and alerts; pending settings saves
+  have a bounded completion window.
+- Kept open game details current as scores change, with update age and explicit
+  retained-data messages when a refresh fails or a game disappears.
+- Added rendered standings loading, empty, unavailable and retained-table states,
+  retry actions, and a Refresh action that updates the selected table.
+- Fixed theme-color lookup in refreshed detail and action delegates on the
+  current Qt runtime.
+- Corrected detail action focus and kept detail/settings viewport keys from
+  changing the score list behind them.
 
 - Replaced external game-page sink substring checks with one exact-host HTTPS
   admission policy, including executable deceptive-URL boundary coverage.
@@ -36,9 +58,6 @@ All notable changes to Sportray are documented here.
   compact team logos precede team names when available. League transitions use
   a larger visual gap than games within the same group, whose separators reuse
   the next game's sport emoji with three spaces on each side.
-- Assigned the local next release candidate as `1.0.0-rc.8` after the
-  post-`1.0.0-rc.7` hardening work. The tree remains unreleased and untagged;
-  no release date is asserted.
 - Recorded the owner's confirmation that the personally captured `preview.png`
   may be submitted as shown, including its visible provider and team marks.
 - Kept Omarchy's interactive safety confirmations in the documented install
@@ -159,5 +178,6 @@ All notable changes to Sportray are documented here.
   fixture-driven verification.
 
 The `v1.0.0-rc.7` Git tag identifies the `1.0.0-rc.7` release-candidate
-snapshot. The current `1.0.0-rc.8` remains unreleased and untagged. A GitHub
-Release and Marketplace submission are separate publication steps.
+snapshot. The current `1.0.0-rc.9` candidate is prepared locally and remains
+untagged and unpublished. A GitHub Release and Marketplace update are separate
+publication steps.

@@ -58,25 +58,29 @@ omarchy plugin disable io.github.joega.sportray
 omarchy plugin remove io.github.joega.sportray
 ```
 
-Sportray needs Omarchy 4 with the Quattro shell, `curl`, and the system Python
+Sportray needs Omarchy 4 with the Quattro shell and the system Python
 runtime included by Omarchy. It fetches scores directly from ESPN, MLB StatsAPI, and
 NHL data endpoints, and uses Omarchy's notification helper when alerts are
 enabled. It does not install packages, request privileged access, create a
 service, or overwrite user configuration.
 
+This candidate is tested against Omarchy 4.5.0, Quickshell 0.3.2.r7, and Qt 6.12.
 On Omarchy 4.5, Sportray follows the public bar layout snapshot when its widget
 moves between sections. Horizontal right-section panels anchor to the screen
 edge; center-section panels stay centered, and vertical right-section panels use
 the widget anchor.
 
-Removing the plugin unloads Sportray but leaves your preferences in place so a
-reinstall keeps your settings:
+Disabling or removing Sportray stops its background score requests and alerts.
+A settings save already in progress gets up to 2.5 seconds to finish. Removing
+the plugin leaves your preferences in place so a reinstall keeps your settings:
 
 ```text
 ~/.local/state/omarchy/settings/sportray.json
 ```
 
-Remove that file separately if you want a complete preference reset.
+Remove that file separately if you want a complete preference reset. Older
+Calendar cache files, if present under `~/.cache/sportray/calendar`, are also
+retained; the experimental Calendar feature remains disabled.
 
 ## Using Sportray
 
@@ -99,8 +103,16 @@ MLB, and NBA tables show the provider's **playoff seed order** within each
 conference or league; soccer tables use the provider's table ranks. ESPN tables
 show their own season, including when the provider returns an offseason table.
 College standings are currently unavailable; college scoreboards remain supported.
+Loading, empty, and unavailable tables have explicit states. **Refresh** updates
+the selected table; retained standings show a warning and last-update age if a
+refresh fails.
 NHL standings request the current local calendar date directly, so they do not
 follow redirects or change with the selected score date.
+
+Open game details follow that game's updates from the existing score feed.
+The update message distinguishes fresh scores from retained data, including when
+a game disappears from the latest slate. Refreshes preserve the detail's scroll
+position and selected action when it remains available.
 
 The bar widget shows a compact favorite-aware indicator with score details on
 hover. The thin ticker across the bottom of the screen scrolls current live

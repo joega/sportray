@@ -10,6 +10,8 @@
 *~
 
 # Generated output
+__pycache__/
+*.pyc
 *.log
 coverage/
 node_modules/

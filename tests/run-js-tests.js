@@ -4921,7 +4921,7 @@ test("U3.5 release assets and visitor README describe the current candidate", ()
   assert.equal(readme.includes("## Install"), true);
   assert.equal(readme.includes("## License"), true);
   assert.equal(readme.includes("View <date>"), false);
-  assert.equal(manifest.version, "1.0.0-rc.8");
+  assert.equal(manifest.version, "1.0.0-rc.9");
   assert.match(manifest.description, /favorite teams.*daily schedules.*alerts/);
   assert.match(changelog, /## 1\.0\.0-rc\.7/);
 });
