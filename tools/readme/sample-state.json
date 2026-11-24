@@ -1,0 +1,759 @@
+{
+  "description": "Illustrative scores, standings and preferences for native README captures; not live results.",
+  "dateKey": "2026-10-11",
+  "now": "2026-10-11T23:30:00Z",
+  "settings": {
+    "schemaVersion": 2,
+    "enabledLeagues": [
+      "nhl",
+      "nfl",
+      "mlb",
+      "nba",
+      "college-football",
+      "mens-college-basketball",
+      "eng.1",
+      "usa.1"
+    ],
+    "followedLeagueIds": [
+      "nba"
+    ],
+    "favoriteTeamIds": [
+      "nhl:6",
+      "nfl:2",
+      "nba:13"
+    ],
+    "notifications": {
+      "enabled": true,
+      "gameStart": true,
+      "scoreChange": true,
+      "gameFinal": true,
+      "pregameReminder": true,
+      "closeGame": false
+    },
+    "ticker": {
+      "enabled": true,
+      "position": "bottom",
+      "speed": "normal"
+    }
+  },
+  "games": [
+    {
+      "id": "nhl:demo-bos-tor",
+      "league": "nhl",
+      "providerGameId": "demo-bos-tor",
+      "startTime": "2026-10-11T22:00:00.000Z",
+      "endTime": null,
+      "status": "live",
+      "statusDetail": null,
+      "period": 2,
+      "periodLabel": "2nd",
+      "clock": "08:42",
+      "awayTeam": {
+        "id": "nhl:10",
+        "league": "nhl",
+        "providerTeamId": "10",
+        "name": "Toronto Maple Leafs",
+        "shortName": "Toronto Maple Leafs",
+        "abbreviation": "TOR",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/tor.png",
+        "link": null
+      },
+      "homeTeam": {
+        "id": "nhl:6",
+        "league": "nhl",
+        "providerTeamId": "6",
+        "name": "Boston Bruins",
+        "shortName": "Boston Bruins",
+        "abbreviation": "BOS",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png",
+        "link": null
+      },
+      "awayScore": 3,
+      "homeScore": 2,
+      "venue": "TD Garden",
+      "link": "https://www.nhl.com/gamecenter/2026020001",
+      "lastUpdated": "2026-10-11T23:30:00.000Z",
+      "isValid": true
+    },
+    {
+      "id": "nfl:demo-buf-kc",
+      "league": "nfl",
+      "providerGameId": "demo-buf-kc",
+      "startTime": "2026-10-11T20:25:00Z",
+      "endTime": null,
+      "status": "live",
+      "statusDetail": null,
+      "period": 4,
+      "periodLabel": "4th",
+      "clock": "02:16",
+      "awayTeam": {
+        "id": "nfl:2",
+        "league": "nfl",
+        "providerTeamId": "2",
+        "name": "Buffalo Bills",
+        "shortName": "Buffalo Bills",
+        "abbreviation": "BUF",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/buf.png",
+        "link": null
+      },
+      "homeTeam": {
+        "id": "nfl:12",
+        "league": "nfl",
+        "providerTeamId": "12",
+        "name": "Kansas City Chiefs",
+        "shortName": "Kansas City Chiefs",
+        "abbreviation": "KC",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/kc.png",
+        "link": null
+      },
+      "awayScore": 20,
+      "homeScore": 17,
+      "venue": "GEHA Field at Arrowhead Stadium",
+      "link": "https://www.espn.com/game/_/gameId/401000001",
+      "lastUpdated": "2026-10-11T23:30:00.000Z",
+      "isValid": true
+    },
+    {
+      "id": "nba:demo-lal-den",
+      "league": "nba",
+      "providerGameId": "demo-lal-den",
+      "startTime": "2026-10-12T00:30:00Z",
+      "endTime": null,
+      "status": "scheduled",
+      "statusDetail": null,
+      "period": null,
+      "periodLabel": null,
+      "clock": null,
+      "awayTeam": {
+        "id": "nba:13",
+        "league": "nba",
+        "providerTeamId": "13",
+        "name": "Los Angeles Lakers",
+        "shortName": "Los Angeles Lakers",
+        "abbreviation": "LAL",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nba/500/lal.png",
+        "link": null
+      },
+      "homeTeam": {
+        "id": "nba:7",
+        "league": "nba",
+        "providerTeamId": "7",
+        "name": "Denver Nuggets",
+        "shortName": "Denver Nuggets",
+        "abbreviation": "DEN",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nba/500/den.png",
+        "link": null
+      },
+      "awayScore": null,
+      "homeScore": null,
+      "venue": "Ball Arena",
+      "link": "https://www.espn.com/game/_/gameId/401000001",
+      "lastUpdated": "2026-10-11T23:30:00.000Z",
+      "isValid": true
+    },
+    {
+      "id": "mlb:demo-nyy-lad",
+      "league": "mlb",
+      "providerGameId": "demo-nyy-lad",
+      "startTime": "2026-10-11T20:00:00Z",
+      "endTime": null,
+      "status": "live",
+      "statusDetail": null,
+      "period": 7,
+      "periodLabel": "Top 7th",
+      "clock": null,
+      "awayTeam": {
+        "id": "mlb:10",
+        "league": "mlb",
+        "providerTeamId": "10",
+        "name": "New York Yankees",
+        "shortName": "New York Yankees",
+        "abbreviation": "NYY",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png",
+        "link": null
+      },
+      "homeTeam": {
+        "id": "mlb:19",
+        "league": "mlb",
+        "providerTeamId": "19",
+        "name": "Los Angeles Dodgers",
+        "shortName": "Los Angeles Dodgers",
+        "abbreviation": "LAD",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/mlb/500/lad.png",
+        "link": null
+      },
+      "awayScore": 2,
+      "homeScore": 4,
+      "venue": "Dodger Stadium",
+      "link": "https://www.espn.com/mlb/game/_/gameId/401000002",
+      "lastUpdated": "2026-10-11T23:30:00.000Z",
+      "isValid": true,
+      "lines": {
+        "away": [
+          {
+            "period": 1,
+            "value": 0
+          },
+          {
+            "period": 2,
+            "value": 0
+          },
+          {
+            "period": 3,
+            "value": 1
+          },
+          {
+            "period": 4,
+            "value": 0
+          },
+          {
+            "period": 5,
+            "value": 0
+          },
+          {
+            "period": 6,
+            "value": 1
+          },
+          {
+            "period": 7,
+            "value": 0
+          }
+        ],
+        "home": [
+          {
+            "period": 1,
+            "value": 1
+          },
+          {
+            "period": 2,
+            "value": 0
+          },
+          {
+            "period": 3,
+            "value": 0
+          },
+          {
+            "period": 4,
+            "value": 2
+          },
+          {
+            "period": 5,
+            "value": 0
+          },
+          {
+            "period": 6,
+            "value": 1
+          },
+          {
+            "period": 7,
+            "value": 0
+          }
+        ]
+      },
+      "stats": {
+        "away": [
+          {
+            "key": "hits",
+            "label": "Hits",
+            "value": "6"
+          },
+          {
+            "key": "errors",
+            "label": "Errors",
+            "value": "0"
+          },
+          {
+            "key": "left-on-base",
+            "label": "Left on base",
+            "value": "5"
+          }
+        ],
+        "home": [
+          {
+            "key": "hits",
+            "label": "Hits",
+            "value": "8"
+          },
+          {
+            "key": "errors",
+            "label": "Errors",
+            "value": "1"
+          },
+          {
+            "key": "left-on-base",
+            "label": "Left on base",
+            "value": "4"
+          }
+        ]
+      },
+      "situation": {
+        "balls": 2,
+        "strikes": 1,
+        "outs": 1,
+        "onFirst": true,
+        "onSecond": true,
+        "onThird": false,
+        "lastPlay": "Judge singles to center; runner advances to second."
+      }
+    },
+    {
+      "id": "nhl:demo-nyr-det",
+      "league": "nhl",
+      "providerGameId": "demo-nyr-det",
+      "startTime": "2026-10-11T18:00:00Z",
+      "endTime": "2026-10-11T20:35:00Z",
+      "status": "final",
+      "statusDetail": null,
+      "period": 3,
+      "periodLabel": "Final",
+      "clock": null,
+      "awayTeam": {
+        "id": "nhl:3",
+        "league": "nhl",
+        "providerTeamId": "3",
+        "name": "New York Rangers",
+        "shortName": "New York Rangers",
+        "abbreviation": "NYR",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/nyr.png",
+        "link": null
+      },
+      "homeTeam": {
+        "id": "nhl:17",
+        "league": "nhl",
+        "providerTeamId": "17",
+        "name": "Detroit Red Wings",
+        "shortName": "Detroit Red Wings",
+        "abbreviation": "DET",
+        "primaryColor": null,
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/det.png",
+        "link": null
+      },
+      "awayScore": 4,
+      "homeScore": 1,
+      "venue": "Little Caesars Arena",
+      "link": "https://www.nhl.com/gamecenter/2026020001",
+      "lastUpdated": "2026-10-11T23:30:00.000Z",
+      "isValid": true
+    }
+  ],
+  "detailGameId": "mlb:demo-nyy-lad",
+  "standings": {
+    "leagueId": "nhl",
+    "groups": [
+      {
+        "id": "east",
+        "label": "Eastern Conference",
+        "rows": [
+          {
+            "id": "nhl:6",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:6",
+              "league": "nhl",
+              "providerTeamId": "6",
+              "name": "Boston Bruins",
+              "shortName": "Boston Bruins",
+              "abbreviation": "BOS",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png",
+              "link": null
+            },
+            "rank": 1,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 8,
+            "losses": 1,
+            "points": 17,
+            "draws": null,
+            "ties": null
+          },
+          {
+            "id": "nhl:12",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:12",
+              "league": "nhl",
+              "providerTeamId": "12",
+              "name": "Carolina Hurricanes",
+              "shortName": "Carolina Hurricanes",
+              "abbreviation": "CAR",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/car.png",
+              "link": null
+            },
+            "rank": 2,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 7,
+            "losses": 2,
+            "points": 15,
+            "draws": null,
+            "ties": null
+          },
+          {
+            "id": "nhl:3",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:3",
+              "league": "nhl",
+              "providerTeamId": "3",
+              "name": "New York Rangers",
+              "shortName": "New York Rangers",
+              "abbreviation": "NYR",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/nyr.png",
+              "link": null
+            },
+            "rank": 3,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 6,
+            "losses": 3,
+            "points": 13,
+            "draws": null,
+            "ties": null
+          },
+          {
+            "id": "nhl:10",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:10",
+              "league": "nhl",
+              "providerTeamId": "10",
+              "name": "Toronto Maple Leafs",
+              "shortName": "Toronto Maple Leafs",
+              "abbreviation": "TOR",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/tor.png",
+              "link": null
+            },
+            "rank": 4,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 5,
+            "losses": 4,
+            "points": 11,
+            "draws": null,
+            "ties": null
+          }
+        ]
+      },
+      {
+        "id": "west",
+        "label": "Western Conference",
+        "rows": [
+          {
+            "id": "nhl:22",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:22",
+              "league": "nhl",
+              "providerTeamId": "22",
+              "name": "Edmonton Oilers",
+              "shortName": "Edmonton Oilers",
+              "abbreviation": "EDM",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/edm.png",
+              "link": null
+            },
+            "rank": 1,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 8,
+            "losses": 1,
+            "points": 17,
+            "draws": null,
+            "ties": null
+          },
+          {
+            "id": "nhl:21",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:21",
+              "league": "nhl",
+              "providerTeamId": "21",
+              "name": "Colorado Avalanche",
+              "shortName": "Colorado Avalanche",
+              "abbreviation": "COL",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/col.png",
+              "link": null
+            },
+            "rank": 2,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 7,
+            "losses": 2,
+            "points": 15,
+            "draws": null,
+            "ties": null
+          },
+          {
+            "id": "nhl:25",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:25",
+              "league": "nhl",
+              "providerTeamId": "25",
+              "name": "Dallas Stars",
+              "shortName": "Dallas Stars",
+              "abbreviation": "DAL",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/dal.png",
+              "link": null
+            },
+            "rank": 3,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 6,
+            "losses": 3,
+            "points": 13,
+            "draws": null,
+            "ties": null
+          },
+          {
+            "id": "nhl:54",
+            "league": "nhl",
+            "team": {
+              "id": "nhl:54",
+              "league": "nhl",
+              "providerTeamId": "54",
+              "name": "Vegas Golden Knights",
+              "shortName": "Vegas Golden Knights",
+              "abbreviation": "VGK",
+              "primaryColor": null,
+              "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/vgk.png",
+              "link": null
+            },
+            "rank": 4,
+            "rankKind": "rank",
+            "played": 10,
+            "wins": 5,
+            "losses": 4,
+            "points": 11,
+            "draws": null,
+            "ties": null
+          }
+        ]
+      }
+    ],
+    "rows": [
+      {
+        "id": "nhl:6",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:6",
+          "league": "nhl",
+          "providerTeamId": "6",
+          "name": "Boston Bruins",
+          "shortName": "Boston Bruins",
+          "abbreviation": "BOS",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png",
+          "link": null
+        },
+        "rank": 1,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 8,
+        "losses": 1,
+        "points": 17,
+        "draws": null,
+        "ties": null
+      },
+      {
+        "id": "nhl:12",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:12",
+          "league": "nhl",
+          "providerTeamId": "12",
+          "name": "Carolina Hurricanes",
+          "shortName": "Carolina Hurricanes",
+          "abbreviation": "CAR",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/car.png",
+          "link": null
+        },
+        "rank": 2,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 7,
+        "losses": 2,
+        "points": 15,
+        "draws": null,
+        "ties": null
+      },
+      {
+        "id": "nhl:3",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:3",
+          "league": "nhl",
+          "providerTeamId": "3",
+          "name": "New York Rangers",
+          "shortName": "New York Rangers",
+          "abbreviation": "NYR",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/nyr.png",
+          "link": null
+        },
+        "rank": 3,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 6,
+        "losses": 3,
+        "points": 13,
+        "draws": null,
+        "ties": null
+      },
+      {
+        "id": "nhl:10",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:10",
+          "league": "nhl",
+          "providerTeamId": "10",
+          "name": "Toronto Maple Leafs",
+          "shortName": "Toronto Maple Leafs",
+          "abbreviation": "TOR",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/tor.png",
+          "link": null
+        },
+        "rank": 4,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 5,
+        "losses": 4,
+        "points": 11,
+        "draws": null,
+        "ties": null
+      },
+      {
+        "id": "nhl:22",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:22",
+          "league": "nhl",
+          "providerTeamId": "22",
+          "name": "Edmonton Oilers",
+          "shortName": "Edmonton Oilers",
+          "abbreviation": "EDM",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/edm.png",
+          "link": null
+        },
+        "rank": 1,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 8,
+        "losses": 1,
+        "points": 17,
+        "draws": null,
+        "ties": null
+      },
+      {
+        "id": "nhl:21",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:21",
+          "league": "nhl",
+          "providerTeamId": "21",
+          "name": "Colorado Avalanche",
+          "shortName": "Colorado Avalanche",
+          "abbreviation": "COL",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/col.png",
+          "link": null
+        },
+        "rank": 2,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 7,
+        "losses": 2,
+        "points": 15,
+        "draws": null,
+        "ties": null
+      },
+      {
+        "id": "nhl:25",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:25",
+          "league": "nhl",
+          "providerTeamId": "25",
+          "name": "Dallas Stars",
+          "shortName": "Dallas Stars",
+          "abbreviation": "DAL",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/dal.png",
+          "link": null
+        },
+        "rank": 3,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 6,
+        "losses": 3,
+        "points": 13,
+        "draws": null,
+        "ties": null
+      },
+      {
+        "id": "nhl:54",
+        "league": "nhl",
+        "team": {
+          "id": "nhl:54",
+          "league": "nhl",
+          "providerTeamId": "54",
+          "name": "Vegas Golden Knights",
+          "shortName": "Vegas Golden Knights",
+          "abbreviation": "VGK",
+          "primaryColor": null,
+          "logoUrl": "https://a.espncdn.com/i/teamlogos/nhl/500/vgk.png",
+          "link": null
+        },
+        "rank": 4,
+        "rankKind": "rank",
+        "played": 10,
+        "wins": 5,
+        "losses": 4,
+        "points": 11,
+        "draws": null,
+        "ties": null
+      }
+    ],
+    "hasData": true,
+    "loading": false,
+    "stale": false,
+    "errorCode": "",
+    "errorSummary": "",
+    "lastSuccessAt": "2026-10-11T23:30:00Z"
+  },
+  "logoUrls": [
+    "https://a.espncdn.com/i/teamlogos/nhl/500/tor.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/bos.png",
+    "https://a.espncdn.com/i/teamlogos/nfl/500/buf.png",
+    "https://a.espncdn.com/i/teamlogos/nfl/500/kc.png",
+    "https://a.espncdn.com/i/teamlogos/nba/500/lal.png",
+    "https://a.espncdn.com/i/teamlogos/nba/500/den.png",
+    "https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png",
+    "https://a.espncdn.com/i/teamlogos/mlb/500/lad.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/nyr.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/det.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/car.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/edm.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/col.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/dal.png",
+    "https://a.espncdn.com/i/teamlogos/nhl/500/vgk.png"
+  ]
+}

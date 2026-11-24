@@ -4912,6 +4912,15 @@ test("U3.5 release assets and visitor README describe the current candidate", ()
   const readme = readSource("README.md");
   const manifest = JSON.parse(readSource("manifest.json"));
   const changelog = readSource("CHANGELOG.md");
+  for (const name of ["following", "standings", "details", "favorites", "leagues", "notifications"]) {
+    const image = "screenshots/sportray-" + name + ".png";
+    assert.deepEqual(pngSize(image), [800, 1280]);
+    assert.ok(readme.includes(image), "feature capture must be linked: " + image);
+  }
+  const tickerSize = pngSize("screenshots/sportray-ticker.png");
+  assert.equal(tickerSize[1], 64);
+  assert.ok(tickerSize[0] >= 1200 && tickerSize[0] <= 2560);
+  assert.ok(readme.includes("Screenshots show illustrative games"));
   assert.equal(readme.includes("**Favorite-first**"), true);
   assert.equal(readme.includes("**Eight leagues**"), true);
   assert.equal(readme.includes("**No account or API key**"), true);
