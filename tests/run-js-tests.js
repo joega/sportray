@@ -3513,7 +3513,7 @@ test("SettingsStore routes persistence through the fixed descriptor-bound helper
   const source = readSource("services/SettingsStore.qml");
   assert.equal(source.includes("SettingsPermissionPolicy.js"), false);
   assert.equal(source.includes("preload: false"), true);
-  assert.equal(source.includes("watchChanges: true"), true);
+  assert.equal(source.includes("watchChanges: !root.shuttingDown"), true);
   assert.equal(source.includes("/usr/bin/python3"), true);
   assert.equal(source.includes("settings-state-helper.py"), true);
   assert.match(source, /StdioCollector \{\s+id: stateHelperOutput\s+waitForEnd: true/);
@@ -6367,7 +6367,7 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.match(calendarFetch, /Qt\.callLater\(function\(\) \{ root\.requestMonth\(root\.requestedMonthKey\) \}\)/);
   const fetchServiceSource = readSource("services/FetchService.qml");
   assert.match(fetchServiceSource, /onCalendarOpenChanged:/);
-  assert.match(fetchServiceSource, /Qt\.callLater\(function\(\) \{ root\.syncCalendarOpen\(\) \}\)/);
+  assert.match(fetchServiceSource, /root\.deferCallback\(function\(\) \{ root\.syncCalendarOpen\(\) \}\)/);
   assert.match(fetchServiceSource, /function monthNeedsHydration\(monthKey\)/);
   assert.match(fetchServiceSource, /calendarDiskCache\.shouldRequestMonth/);
   assert.match(fetchServiceSource, /calendarFetch\.requestMonth\(requested\)/);
@@ -6934,7 +6934,7 @@ test("settings watcher cannot bypass bounded helper content I/O", () => {
   assert.ok(watcher, "one metadata-only FileView remains for external changes");
   assert.equal((source.match(/\bFileView\s*\{/g) || []).length, 1);
   assert.match(watcher[1], /\bpreload:\s*false\b/);
-  assert.match(watcher[1], /\bwatchChanges:\s*true\b/);
+  assert.match(watcher[1], /\bwatchChanges:\s*!root\.shuttingDown\b/);
   assert.match(watcher[1], /onFileChanged:\s*root\.reloadSettings\(\)/);
   // FileView's blocking properties do not prohibit I/O. Content access and
   // adapters must stay out of this watcher, including future call sites.

@@ -53,6 +53,7 @@ BarWidget {
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true : false
 
+  property string serviceToken: ""
   readonly property var sharedService: Services.SportrayService
   readonly property var settingsStore: root.sharedService.settingsStore
   readonly property var tickerSettings: root.settingsStore && root.settingsStore.settings
@@ -149,12 +150,19 @@ BarWidget {
   }
 
   Component.onCompleted: {
+    root.serviceToken = root.sharedService.acquireWidget()
     root.injectPanel()
+  }
+
+  Component.onDestruction: {
+    // Destroy views before their shared workers, including their panel context.
+    panelLoader.active = false
+    root.sharedService.releaseWidget(root.serviceToken)
   }
 
   Loader {
     id: panelLoader
-    active: true
+    active: root.serviceToken !== ""
     source: Qt.resolvedUrl("Panel.qml")
     visible: false
     onLoaded: {

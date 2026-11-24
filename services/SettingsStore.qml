@@ -13,6 +13,7 @@ Item {
   id: root
 
   readonly property string statePath: Quickshell.env("HOME") + "/.local/state/omarchy/settings/sportray.json"
+  property bool shuttingDown: false
   property bool writePending: false
   property var pendingWrite: null
   property bool readQueued: false
@@ -38,7 +39,7 @@ Item {
     root.loadStatus = result.status
     root.recovered = result.recovered
     root.ready = true
-    if (result.needsWrite) root.writeState(result.settings, result.transitionDedupe, root.watchedGames)
+    if (result.needsWrite && !root.shuttingDown) root.writeState(result.settings, result.transitionDedupe, root.watchedGames)
   }
 
   // Settings UI calls this narrow boundary with a candidate object. It is
@@ -108,7 +109,18 @@ Item {
     console.warn("Sportray settings state rejected")
   }
 
+  function beginShutdown() {
+    root.shuttingDown = true
+    root.readQueued = false
+  }
+
+  function resume() {
+    root.shuttingDown = false
+    root.reloadSettings()
+  }
+
   function startHelperRead() {
+    if (root.shuttingDown) return
     if (root.helperOperation !== "" || stateHelper.running) {
       root.readQueued = true
       return
@@ -227,7 +239,7 @@ Item {
     // The helper creates/validates the parent on first install. Registering
     // before that happens leaves FileView without a directory to watch.
     path: root.metadataWatchEnabled ? root.statePath : ""
-    watchChanges: true
+    watchChanges: !root.shuttingDown
     printErrors: false
     onFileChanged: root.reloadSettings()
   }
@@ -244,7 +256,21 @@ Item {
       var operation = root.helperOperation
       root.helperOperation = ""
       if (operation === "read") {
-        if (!root.metadataWatchEnabled) {
+        if (root.shuttingDown) {
+          // An in-flight external reload can discover an opaque future schema
+          // or an unsafe file. Admit its result before publishing queued edits.
+          if (exitCode === 0) root.applyText(stateHelperOutput.text)
+          else if (exitCode === 2) root.applyText("")
+          else if (exitCode === 4) root.rejectState()
+          else root.failStateHelper("read")
+          if ((exitCode === 0 || exitCode === 2)
+              && root.preservedRawStateText.length === 0) root.flushPendingWrite()
+          else {
+            root.pendingWrite = null
+            root.writePending = false
+          }
+        }
+        else if (!root.metadataWatchEnabled) {
           root.metadataWatchEnabled = true
           // A replacement between the first snapshot and registration has no
           // watcher event. Reconcile once through the same bounded helper before

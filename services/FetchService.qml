@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/LifecyclePolicy.js" as LifecyclePolicy
 import "../model/ScoreboardModel.js" as ScoreboardModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
 import "../model/CalendarModel.js" as CalendarModel
@@ -34,10 +35,22 @@ Item {
   // single aggregate recompose per event loop turn.
   property bool aggregateUpdatePending: false
 
+  readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
+
+  function deferCallback(callback) {
+    var owner = root.callbackOwner
+    var generation = LifecyclePolicy.captureGeneration(owner)
+    Qt.callLater(function() {
+      if (LifecyclePolicy.canRun(owner, generation)) callback()
+    })
+  }
+
+  Component.onDestruction: LifecyclePolicy.invalidate(root.callbackOwner)
+
   function requestAggregateUpdate() {
     if (root.aggregateUpdatePending) return
     root.aggregateUpdatePending = true
-    Qt.callLater(function() {
+    root.deferCallback(function() {
       root.aggregateUpdatePending = false
       root.updateAggregateState()
     })
@@ -192,23 +205,23 @@ Item {
   onEnabledLeaguesChanged: {
     root.updateAggregateState()
     root.refreshCalendarStates(false)
-    Qt.callLater(function() { root.maybeStartCalendarRehydration() })
+    root.deferCallback(function() { root.maybeStartCalendarRehydration() })
   }
 
 
-  onSettingsReadyChanged: Qt.callLater(function() { root.maybeStartCalendarRehydration() })
+  onSettingsReadyChanged: root.deferCallback(function() { root.maybeStartCalendarRehydration() })
 
   onSelectedDateKeyChanged: root.updateAggregateState()
 
   onCalendarOpenChanged: {
     if (root.calendarOpen) root.refreshCalendarStates(false)
-    Qt.callLater(function() { root.syncCalendarOpen() })
+    root.deferCallback(function() { root.syncCalendarOpen() })
   }
 
   Component.onCompleted: {
     root.updateAggregateState()
     root.refreshCalendarStates(false)
-    Qt.callLater(function() { root.maybeStartCalendarRehydration() })
+    root.deferCallback(function() { root.maybeStartCalendarRehydration() })
   }
 
   Connections {
@@ -224,8 +237,8 @@ Item {
     function onReadyChanged() {
       root.updateAggregateState()
       root.refreshCalendarStates(false)
-      Qt.callLater(function() { root.maybeStartCalendarRehydration() })
-      if (root.calendarOpen) Qt.callLater(function() { root.syncCalendarOpen() })
+      root.deferCallback(function() { root.maybeStartCalendarRehydration() })
+      if (root.calendarOpen) root.deferCallback(function() { root.syncCalendarOpen() })
     }
   }
 

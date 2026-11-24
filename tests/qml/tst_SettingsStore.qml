@@ -195,4 +195,39 @@ TestCase {
     compare(store.settings.ticker.speed, "slow")
     compare(process.starts, 3)
   }
+  function test_shutdownReadAdmission_data() {
+    return [
+      {tag: "compatible", code: 0, text: stateText("slow"), writes: true},
+      {tag: "missing", code: 2, text: "", writes: true},
+      {tag: "future", code: 0, text: '{"schemaVersion":99}', writes: false},
+      {tag: "rejected", code: 4, text: "", writes: false},
+      {tag: "failed", code: 5, text: "", writes: false}
+    ]
+  }
+
+  function test_shutdownReadAdmission(data) {
+    loadInitialState(0, stateText("normal"))
+    watcher.fileChanged()
+    store.setTicker("speed", "fast")
+    compare(store.helperOperation, "read")
+    verify(store.pendingWrite !== null)
+    store.beginShutdown()
+    compare(watcher.watchChanges, false)
+    if (data.code === 4) ignoreWarning("Sportray settings state rejected")
+    if (data.code === 5) ignoreWarning("Sportray settings helper failed read")
+    var starts = process.starts
+    process.finish(data.code, data.text)
+    compare(process.starts, starts + (data.writes ? 1 : 0))
+    if (data.writes) {
+      compare(store.helperOperation, "write")
+      compare(JSON.parse(process.command[4]).ticker.speed, "fast")
+      process.finish(0, "")
+    }
+    compare(store.helperOperation, "")
+    compare(store.writePending, false)
+    compare(store.pendingWrite, null)
+    store.reloadSettings()
+    compare(process.starts, starts + (data.writes ? 1 : 0))
+  }
+
 }
