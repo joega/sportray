@@ -1,0 +1,744 @@
+{
+  "now": "2026-11-24T20:02:00Z",
+  "dateKey": "2026-11-24",
+  "games": {
+    "live": {
+      "id": "nhl:game-1",
+      "providerGameId": "game-1",
+      "league": "nhl",
+      "isValid": true,
+      "status": "live",
+      "startTime": "2026-11-24T19:00:00Z",
+      "awayTeam": {
+        "id": "nhl:6",
+        "name": "Away Team",
+        "abbreviation": "AWY"
+      },
+      "homeTeam": {
+        "id": "nhl:8",
+        "name": "Home Team",
+        "abbreviation": "HME"
+      },
+      "awayScore": 1,
+      "homeScore": 0,
+      "clock": "08:42",
+      "periodLabel": "2nd",
+      "lastUpdated": "2026-11-24T20:00:00Z"
+    },
+    "scored": {
+      "id": "nhl:game-1",
+      "providerGameId": "game-1",
+      "league": "nhl",
+      "isValid": true,
+      "status": "live",
+      "startTime": "2026-11-24T19:00:00Z",
+      "awayTeam": {
+        "id": "nhl:6",
+        "name": "Away Team",
+        "abbreviation": "AWY"
+      },
+      "homeTeam": {
+        "id": "nhl:8",
+        "name": "Home Team",
+        "abbreviation": "HME"
+      },
+      "awayScore": 2,
+      "homeScore": 0,
+      "clock": "07:10",
+      "periodLabel": "2nd",
+      "lastUpdated": "2026-11-24T20:00:00Z"
+    },
+    "final": {
+      "id": "nhl:game-1",
+      "providerGameId": "game-1",
+      "league": "nhl",
+      "isValid": true,
+      "status": "final",
+      "startTime": "2026-11-24T19:00:00Z",
+      "awayTeam": {
+        "id": "nhl:6",
+        "name": "Away Team",
+        "abbreviation": "AWY"
+      },
+      "homeTeam": {
+        "id": "nhl:8",
+        "name": "Home Team",
+        "abbreviation": "HME"
+      },
+      "awayScore": 3,
+      "homeScore": 1,
+      "clock": null,
+      "periodLabel": null,
+      "lastUpdated": "2026-11-24T20:00:00Z"
+    },
+    "scheduled": {
+      "id": "nhl:game-1",
+      "providerGameId": "game-1",
+      "league": "nhl",
+      "isValid": true,
+      "status": "scheduled",
+      "startTime": "2026-11-24T19:00:00Z",
+      "awayTeam": {
+        "id": "nhl:6",
+        "name": "Away Team",
+        "abbreviation": "AWY"
+      },
+      "homeTeam": {
+        "id": "nhl:8",
+        "name": "Home Team",
+        "abbreviation": "HME"
+      },
+      "awayScore": null,
+      "homeScore": null,
+      "clock": null,
+      "periodLabel": null,
+      "lastUpdated": "2026-11-24T20:00:00Z"
+    },
+    "foreignLeague": {
+      "id": "nhl:game-1",
+      "providerGameId": "game-1",
+      "league": "nba",
+      "isValid": true,
+      "status": "live",
+      "startTime": "2026-11-24T19:00:00Z",
+      "awayTeam": {
+        "id": "nhl:6",
+        "name": "Away Team",
+        "abbreviation": "AWY"
+      },
+      "homeTeam": {
+        "id": "nhl:8",
+        "name": "Home Team",
+        "abbreviation": "HME"
+      },
+      "awayScore": 99,
+      "homeScore": 0,
+      "clock": "08:42",
+      "periodLabel": "2nd",
+      "lastUpdated": "2026-11-24T20:00:00Z"
+    },
+    "other": {
+      "id": "nhl:game-2",
+      "providerGameId": "game-2",
+      "league": "nhl",
+      "isValid": true,
+      "status": "live",
+      "startTime": "2026-11-24T19:00:00Z",
+      "awayTeam": {
+        "id": "nhl:6",
+        "name": "Away Team",
+        "abbreviation": "AWY"
+      },
+      "homeTeam": {
+        "id": "nhl:8",
+        "name": "Home Team",
+        "abbreviation": "HME"
+      },
+      "awayScore": 8,
+      "homeScore": 0,
+      "clock": "08:42",
+      "periodLabel": "2nd",
+      "lastUpdated": "2026-11-24T20:00:00Z"
+    },
+    "invalid": {
+      "id": "nhl:game-1",
+      "providerGameId": "game-1",
+      "league": "nhl",
+      "isValid": false,
+      "status": "live",
+      "startTime": "2026-11-24T19:00:00Z",
+      "awayTeam": {
+        "id": "nhl:6",
+        "name": "Away Team",
+        "abbreviation": "AWY"
+      },
+      "homeTeam": {
+        "id": "nhl:8",
+        "name": "Home Team",
+        "abbreviation": "HME"
+      },
+      "awayScore": 99,
+      "homeScore": 0,
+      "clock": "08:42",
+      "periodLabel": "2nd",
+      "lastUpdated": "2026-11-24T20:00:00Z"
+    }
+  },
+  "cases": [
+    {
+      "name": "live scores follow the exact refreshed game",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": false,
+        "missing": false,
+        "loading": false,
+        "message": "Updated 2 min ago"
+      }
+    },
+    {
+      "name": "scheduled game becomes live",
+      "selectionGame": "scheduled",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "live"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": false,
+        "missing": false,
+        "loading": false,
+        "message": "Updated 2 min ago"
+      }
+    },
+    {
+      "name": "live game becomes final",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "final"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "final",
+        "stale": false,
+        "missing": false,
+        "loading": false,
+        "message": "Updated 2 min ago"
+      }
+    },
+    {
+      "name": "matching event id from another league is ignored",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "foreignLeague",
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": false,
+        "missing": false,
+        "loading": false,
+        "message": "Updated 2 min ago"
+      }
+    },
+    {
+      "name": "another game cannot replace selected identity",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "other"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": true,
+        "loading": false,
+        "message": "Game is no longer in the latest scores \u00b7 showing last update \u00b7 2 min ago"
+      }
+    },
+    {
+      "name": "invalid identity match cannot replace selected game",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "invalid"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": true,
+        "loading": false,
+        "message": "Game is no longer in the latest scores \u00b7 showing last update \u00b7 2 min ago"
+      }
+    },
+    {
+      "name": "failed request retains latest cached matching score",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": true,
+          "errorCode": "timeout",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000,
+          "errorSummary": "<b>untrusted provider error</b>"
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Scores are temporarily unavailable \u00b7 showing last update \u00b7 2 min ago"
+      }
+    },
+    {
+      "name": "partial response retains cache and shows fixed warning",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": true,
+          "errorCode": "partial-data",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Some scores could not be updated \u00b7 showing last update \u00b7 2 min ago"
+      }
+    },
+    {
+      "name": "unavailable request without cached match is not disappearance",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "unavailable",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Scores are temporarily unavailable \u00b7 showing last update \u00b7 2 min ago"
+      }
+    },
+    {
+      "name": "successful disappearance retains latest caller snapshot",
+      "selectionGame": "scored",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:01:59Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": true,
+        "missing": true,
+        "loading": false,
+        "message": "Game is no longer in the latest scores \u00b7 showing last update \u00b7 2 min ago",
+        "lastSuccessAt": "2026-11-24T20:00:00Z"
+      }
+    },
+    {
+      "name": "loading retains matching score without confirmed disappearance",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": true,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": false,
+        "missing": false,
+        "loading": true,
+        "message": "Refreshing scores\u2026 \u00b7 updated 2 min ago"
+      }
+    },
+    {
+      "name": "loading before any data retains snapshot",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [],
+          "hasData": false,
+          "loading": true,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": false,
+        "loading": true,
+        "message": "Showing last update \u00b7 update time unavailable \u00b7 refreshing\u2026"
+      },
+      "selectionLastSuccessAt": ""
+    },
+    {
+      "name": "date change never resolves against another slate",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "final"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Showing the game from the previously selected date"
+      },
+      "selectedDateKey": "2026-11-25"
+    },
+    {
+      "name": "missing league retains snapshot without borrowing health",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nba",
+          "gameKeys": [
+            "final"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Scores are unavailable for this league \u00b7 showing last update"
+      }
+    },
+    {
+      "name": "disabled league does not confirm empty day",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Showing last update \u00b7 2 min ago"
+      }
+    },
+    {
+      "name": "exact threshold is still fresh",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": false,
+        "missing": false,
+        "loading": false,
+        "message": "Updated 5 min ago"
+      },
+      "now": "2026-11-24T20:05:00Z"
+    },
+    {
+      "name": "minute clock exposes expired retained data",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Showing last update \u00b7 5 min ago"
+      },
+      "now": "2026-11-24T20:05:00.001Z"
+    },
+    {
+      "name": "provider cadence threshold preserves quiet long interval",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": 3600000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": false,
+        "missing": false,
+        "loading": false,
+        "message": "Updated 30 min ago"
+      },
+      "now": "2026-11-24T20:30:00Z"
+    },
+    {
+      "name": "missing threshold uses existing twenty minute default",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:00:00Z",
+          "staleThresholdMs": null
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Showing last update \u00b7 20 min ago"
+      },
+      "now": "2026-11-24T20:20:00.001Z"
+    },
+    {
+      "name": "invalid timestamp cannot manufacture an age",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": true,
+          "errorCode": "",
+          "lastSuccessAt": "invalid",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": true,
+        "missing": false,
+        "loading": false,
+        "message": "Showing last update \u00b7 update time unavailable"
+      }
+    },
+    {
+      "name": "future timestamp clamps age to zero",
+      "selectionGame": "live",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [
+            "scored"
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:03:00Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": false,
+        "missing": false,
+        "loading": false,
+        "message": "Updated less than a minute ago"
+      }
+    },
+    {
+      "name": "refresh without current match marks fallback snapshot stale",
+      "selectionGame": "scored",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [],
+          "hasData": true,
+          "loading": true,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:01:59Z",
+          "staleThresholdMs": 300000
+        }
+      ],
+      "expected": {
+        "game": "scored",
+        "stale": true,
+        "missing": false,
+        "loading": true,
+        "message": "Showing last update \u00b7 2 min ago \u00b7 refreshing\u2026",
+        "lastSuccessAt": "2026-11-24T20:00:00Z"
+      }
+    },
+    {
+      "name": "disappeared snapshot with unknown age does not borrow newer slate time",
+      "selectionGame": "live",
+      "selectionLastSuccessAt": "",
+      "states": [
+        {
+          "leagueId": "nhl",
+          "gameKeys": [],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "lastSuccessAt": "2026-11-24T20:01:59Z"
+        }
+      ],
+      "expected": {
+        "game": "live",
+        "stale": true,
+        "missing": true,
+        "loading": false,
+        "message": "Game is no longer in the latest scores \u00b7 showing last update \u00b7 update time unavailable",
+        "lastSuccessAt": ""
+      }
+    }
+  ],
+  "lastSuccessAt": "2026-11-24T20:00:00Z"
+}

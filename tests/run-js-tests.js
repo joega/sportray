@@ -10,6 +10,7 @@ const catalog = require(path.join(root, "providers/LeagueCatalog.js"));
 const teams = require(path.join(root, "model/TeamModel.js"));
 const games = require(path.join(root, "model/GameModel.js"));
 const gameDetails = require(path.join(root, "model/GameDetailModel.js"));
+const gameDetailState = require(path.join(root, "model/GameDetailState.js"));
 const formatters = require(path.join(root, "model/Formatters.js"));
 const barPresentation = require(path.join(root, "model/BarPresentation.js"));
 const barPlacement = require(path.join(root, "model/BarPlacement.js"));
@@ -7140,6 +7141,29 @@ test("source links, logos, aggregate updates, and favorite checks stay bounded",
 
   const panel = readSource("Panel.qml");
   assert.equal(panel.includes("borderSpec: Border.none()"), false);
+});
+
+test("open details track exact game identity and retain truthful failure snapshots", () => {
+  const fixture = JSON.parse(readSource("fixtures/presentation/game-detail-state.json"));
+  fixture.cases.forEach((sample) => {
+    const selection = {game: fixture.games[sample.selectionGame], dateKey: fixture.dateKey,
+      lastSuccessAt: "selectionLastSuccessAt" in sample ? sample.selectionLastSuccessAt : fixture.lastSuccessAt};
+    const states = sample.states.map((state) => {
+      const next = {...state, games: state.gameKeys.map((key) => fixture.games[key])};
+      delete next.gameKeys;
+      return next;
+    });
+    const before = JSON.stringify({selection, states});
+    const result = gameDetailState.resolve(selection, states,
+      sample.selectedDateKey || fixture.dateKey, Date.parse(sample.now || fixture.now));
+    assert.equal(result.game, fixture.games[sample.expected.game], sample.name);
+    for (const key of ["stale", "missing", "loading", "message"]) {
+      assert.equal(result[key], sample.expected[key], sample.name + ": " + key);
+    }
+    if ("lastSuccessAt" in sample.expected)
+      assert.equal(result.lastSuccessAt, sample.expected.lastSuccessAt, sample.name);
+    assert.equal(JSON.stringify({selection, states}), before, "projection changed its inputs");
+  });
 });
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

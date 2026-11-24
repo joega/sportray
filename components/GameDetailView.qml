@@ -2,17 +2,23 @@ import QtQuick
 import Quickshell
 import QtQuick.Controls as QQC
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../model/GameDetailModel.js" as GameDetailModel
 import "../model/Formatters.js" as Formatters
+import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
 Item {
   id: root
 
   property var game: null
+  property string updateMessage: ""
+  property bool stale: false
   property var settingsStore: null
   property double currentTime: Date.now()
   property int cursorIndex: 0
+  readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
+  Component.onDestruction: LifecyclePolicy.invalidate(root.callbackOwner)
   signal backRequested()
 
   readonly property var sourceMetadata: sourceMetadataFor(root.game)
@@ -71,6 +77,15 @@ Item {
   readonly property var extraLinks: root.detail.links || []
   readonly property int linkCursorOffset: 2 + (root.sourceAvailable ? 1 : 0)
   readonly property int maxCursorIndex: root.linkCursorOffset + root.extraLinks.length - 1
+
+  onMaxCursorIndexChanged: {
+    if (root.cursorIndex > root.maxCursorIndex) {
+      // A refreshed sparse detail may remove the currently focused link.
+      // Fall back to Back so Enter cannot activate a different game action.
+      root.cursorIndex = 0
+      if (root.visible) root.focusCursor()
+    }
+  }
 
   function openExternalUrl(url) {
     if (typeof url !== "string" || url.indexOf("https://") !== 0) return
@@ -165,8 +180,10 @@ Item {
 
   function deferFocus(callback) {
     if (typeof callback !== "function") return
+    var owner = root.callbackOwner
+    var generation = LifecyclePolicy.captureGeneration(owner)
     Qt.callLater(function() {
-      if (root.visible) callback()
+      if (LifecyclePolicy.canRun(owner, generation) && root.visible) callback()
     })
   }
 
@@ -234,7 +251,7 @@ Item {
               textFormat: Text.PlainText
               width: parent.width
               text: "GAME DETAILS"
-              color: Color.accent
+              color: Commons.Color.accent
               font.family: Style.font.family
               font.pixelSize: Style.font.caption
               font.bold: true
@@ -245,7 +262,7 @@ Item {
               width: parent.width
               text: root.teamLabel(root.detail.participants[0]) + " at "
                 + root.teamLabel(root.detail.participants[1])
-              color: Color.popups.text
+              color: Commons.Color.popups.text
               font.family: Style.font.family
               font.pixelSize: Style.font.subtitle
               font.bold: true
@@ -257,7 +274,7 @@ Item {
               width: parent.width
               text: root.valueOrDash(root.detail.league).toUpperCase()
                 + " · " + root.valueOrDash(root.detail.source.label)
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
               elide: Text.ElideRight
@@ -265,11 +282,23 @@ Item {
           }
         }
 
+    Text {
+      textFormat: Text.PlainText
+      width: parent.width
+      visible: root.updateMessage !== ""
+      text: root.updateMessage
+      color: root.stale ? Commons.Color.urgent : Commons.Color.muted
+      font.family: Style.font.family
+      font.pixelSize: Style.font.bodySmall
+      wrapMode: Text.WordWrap
+      Accessible.name: root.updateMessage
+    }
+
     BorderSurface {
       width: parent.width
       height: detailCardColumn.implicitHeight + Style.spacing.lg * 2
-      color: Color.popups.background
-      borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
+      color: Commons.Color.popups.background
+      borderSpec: Border.controlSpec("normal", Commons.Color.popups.text, Commons.Color.accent)
       radius: Style.cornerRadius
 
       Column {
@@ -290,7 +319,7 @@ Item {
               textFormat: Text.PlainText
               width: Style.space(44)
               text: "AWAY"
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.caption
               font.bold: true
@@ -304,7 +333,7 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamLabel(root.detail.participants[0])
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 font.family: Style.font.family
                 font.pixelSize: Style.font.subtitle
                 font.bold: true
@@ -315,7 +344,7 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamName(root.detail.participants[0])
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
                 elide: Text.ElideRight
@@ -326,7 +355,7 @@ Item {
               textFormat: Text.PlainText
               id: scoreAway
               text: root.scoreLabel(root.detail.participants[0])
-              color: Color.popups.text
+              color: Commons.Color.popups.text
               font.family: Style.font.family
               font.pixelSize: Style.font.display
               font.bold: true
@@ -342,7 +371,7 @@ Item {
               textFormat: Text.PlainText
               width: Style.space(44)
               text: "HOME"
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.caption
               font.bold: true
@@ -356,7 +385,7 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamLabel(root.detail.participants[1])
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 font.family: Style.font.family
                 font.pixelSize: Style.font.subtitle
                 font.bold: true
@@ -367,7 +396,7 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width
                 text: root.teamName(root.detail.participants[1])
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
                 elide: Text.ElideRight
@@ -378,7 +407,7 @@ Item {
               textFormat: Text.PlainText
               id: scoreHome
               text: root.scoreLabel(root.detail.participants[1])
-              color: Color.popups.text
+              color: Commons.Color.popups.text
               font.family: Style.font.family
               font.pixelSize: Style.font.display
               font.bold: true
@@ -395,7 +424,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: Formatters.formatDetailStatus(root.detail.status)
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             font.family: Style.font.family
             font.pixelSize: Style.font.body
             font.bold: true
@@ -408,7 +437,7 @@ Item {
             text: Formatters.formatDetailTiming(
               root.timeLabel(root.detail.timing.startTime),
               root.timeLabel(root.detail.timing.endTime))
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             elide: Text.ElideRight
@@ -418,7 +447,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: "Venue   " + root.valueOrDash(root.detail.venue)
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             elide: Text.ElideRight
@@ -428,7 +457,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: "Outcome   " + root.valueOrDash(root.outcomeLabel())
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             elide: Text.ElideRight
@@ -444,7 +473,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: "SITUATION"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
             font.bold: true
@@ -458,7 +487,7 @@ Item {
               textFormat: Text.PlainText
               width: Style.space(44)
               text: "COUNT"
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.caption
             }
@@ -466,7 +495,7 @@ Item {
             Text {
               textFormat: Text.PlainText
               text: root.situationCountLabel()
-              color: Color.popups.text
+              color: Commons.Color.popups.text
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
               font.bold: true
@@ -476,7 +505,7 @@ Item {
               textFormat: Text.PlainText
               width: Style.space(30)
               text: "OUT"
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.caption
             }
@@ -484,7 +513,7 @@ Item {
             Text {
               textFormat: Text.PlainText
               text: root.situationOutsLabel()
-              color: Color.popups.text
+              color: Commons.Color.popups.text
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
               font.bold: true
@@ -499,7 +528,7 @@ Item {
               textFormat: Text.PlainText
               width: Style.space(44)
               text: "BASES"
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.caption
               Accessible.role: Accessible.StaticText
@@ -518,8 +547,8 @@ Item {
                 width: Style.space(8)
                 height: width
                 radius: width / 2
-                color: modelData.occupied ? Color.accent : "transparent"
-                border.color: modelData.occupied ? Color.accent : Color.muted
+                color: modelData.occupied ? Commons.Color.accent : "transparent"
+                border.color: modelData.occupied ? Commons.Color.accent : Commons.Color.muted
                 border.width: 1
               }
             }
@@ -531,7 +560,7 @@ Item {
             visible: Boolean(root.situationData && root.situationData.lastPlay)
             text: root.situationData && root.situationData.lastPlay
               ? "Last play   " + root.situationData.lastPlay : ""
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             elide: Text.ElideRight
@@ -547,7 +576,7 @@ Item {
             width: parent.width
             text: "SCORING BY "
               + Formatters.scoringPeriodUnit(root.detail.league).toUpperCase()
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
             font.bold: true
@@ -558,7 +587,7 @@ Item {
             width: parent.width
             visible: !root.linesData
             text: "—"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
           }
@@ -571,7 +600,7 @@ Item {
               textFormat: Text.PlainText
               width: Style.space(44)
               text: "#"
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.caption
               font.bold: true
@@ -585,7 +614,7 @@ Item {
                 required property string modelData
                 width: Style.space(30)
                 text: modelData
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
                 font.bold: true
@@ -607,7 +636,7 @@ Item {
                 textFormat: Text.PlainText
                 width: Style.space(44)
                 text: linesSideRow.modelData === "away" ? "AWAY" : "HOME"
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
                 font.bold: true
@@ -621,7 +650,7 @@ Item {
                   required property string modelData
                   width: Style.space(30)
                   text: modelData
-                  color: Color.popups.text
+                  color: Commons.Color.popups.text
                   font.family: Style.font.family
                   font.pixelSize: Style.font.bodySmall
                   font.bold: true
@@ -640,7 +669,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: "TEAM STATS"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
             font.bold: true
@@ -651,7 +680,7 @@ Item {
             width: parent.width
             visible: !root.statsData
             text: "—"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
           }
@@ -669,7 +698,7 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width - Style.space(44) * 2 - parent.spacing * 2
                 text: statRow.modelData.label
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.caption
                 elide: Text.ElideRight
@@ -679,7 +708,7 @@ Item {
                 textFormat: Text.PlainText
                 width: Style.space(44)
                 text: statRow.modelData.away
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
                 font.bold: true
@@ -690,7 +719,7 @@ Item {
                 textFormat: Text.PlainText
                 width: Style.space(44)
                 text: statRow.modelData.home
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
                 font.bold: true
@@ -709,7 +738,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: "ODDS"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
             font.bold: true
@@ -719,7 +748,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: root.oddsLabel()
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             font.bold: true
@@ -735,7 +764,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width - actionsRow.implicitWidth - parent.spacing
             text: root.valueOrDash(root.detail.source.label)
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
             verticalAlignment: Text.AlignVCenter
@@ -756,7 +785,7 @@ Item {
             SourceLinkButton {
               id: sourceLink
               game: root.game
-              hasCursor: root.sourceAvailable && root.cursorIndex === 1
+              hasCursor: root.sourceAvailable && root.cursorIndex === 2
             }
 
             Repeater {

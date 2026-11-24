@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Item {
@@ -13,7 +14,7 @@ Item {
   property real textHorizontalPadding: Style.spacing.controlPaddingX
   property real textVerticalPadding: Style.spacing.controlPaddingY / 2
   property string tooltipText: ""
-  property color foreground: Color.foreground
+  property color foreground: Commons.Color.foreground
   property color hoverColor: foreground
   property string fontFamily: Style.font.family
   property real fontSize: Style.font.icon
@@ -41,7 +42,7 @@ Item {
     ? Border.controlSpec("focus", hoverColor, hoverColor)
     : (_hot && bordered
       ? Border.controlSpec("hover-cursor", hoverColor, hoverColor)
-      : (bordered ? Border.controlSpec("normal", foreground, Color.accent) : Border.none()))
+      : (bordered ? Border.controlSpec("normal", foreground, Commons.Color.accent) : Border.none()))
 
   BorderSurface {
     anchors.fill: parent

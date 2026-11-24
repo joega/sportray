@@ -8,6 +8,7 @@ import "model/FavoritePresentation.js" as FavoritePresentation
 import "model/BarPresentation.js" as BarPresentation
 import "model/CalendarModel.js" as CalendarModel
 import "model/Formatters.js" as Formatters
+import "model/GameDetailState.js" as GameDetailState
 import "model/LiveFavoriteRotationPolicy.js" as LiveFavoriteRotationPolicy
 import "model/PanelPresentation.js" as PanelPresentation
 import "model/ResultRows.js" as ResultRows
@@ -45,6 +46,13 @@ Panel {
   property string calendarMonthKey: ""
   property bool detailOpen: false
   property var detailGame: null
+  property string detailDateKey: ""
+  property string detailLastSuccessAt: ""
+  readonly property var detailState: GameDetailState.resolve(root.detailOpen
+    ? {game: root.detailGame, dateKey: root.detailDateKey,
+      lastSuccessAt: root.detailLastSuccessAt} : null,
+    root.fetchService ? root.fetchService.leagueStates : [], root.selectedDateKey, root.ambientNowMs)
+
   property string utilityReturnDestination: "following"
   property string settingsDestination: "sports"
   property string activeDestination: "following"
@@ -346,10 +354,30 @@ Panel {
     root.selectDate(target)
   }
 
+  function syncDetailSnapshot() {
+    if (!root.detailOpen || !root.fetchService) return
+    var resolved = GameDetailState.resolve({game: root.detailGame, dateKey: root.detailDateKey,
+      lastSuccessAt: root.detailLastSuccessAt}, root.fetchService.leagueStates,
+      root.selectedDateKey, root.ambientNowMs)
+    // Cache only the newest resolved identity. Keep this event-driven so no
+    // presentation binding writes back into its own dependencies.
+    if (resolved.game && root.detailGame !== resolved.game) root.detailGame = resolved.game
+    if (!resolved.missing && resolved.lastSuccessAt)
+      root.detailLastSuccessAt = resolved.lastSuccessAt
+  }
+
+  Connections {
+    target: root.fetchService
+    function onLeagueStatesChanged() { root.syncDetailSnapshot() }
+  }
+
   function openGameDetail(game) {
     if (!game || game.isValid !== true) return
+    root.detailDateKey = root.selectedDateKey
+    root.detailLastSuccessAt = ""
     root.detailGame = game
     root.detailOpen = true
+    root.syncDetailSnapshot()
     root.standingsOpen = false
     root.tabStripFocused = false
     root.recalculatePanelHeight()
@@ -1037,6 +1065,8 @@ Panel {
       // Keep only the extra viewport navigation keys here; the installed
       // Omarchy handler does not emit semantic signals for these keys.
       Keys.onPressed: function(event) {
+        if (keyCatcher.blocked) return
+        if (root.settingsOpen || root.detailOpen) return
         if (root.calendarOpen && event.key === Qt.Key_PageDown) {
           root.changeCalendarMonth(1)
           event.accepted = true
@@ -1652,7 +1682,9 @@ Panel {
             id: gameDetailView
             anchors.fill: parent
             visible: root.detailOpen
-            game: root.detailGame
+            game: root.detailState.game
+            updateMessage: root.detailState.message
+            stale: root.detailState.stale
             settingsStore: root.settingsStore
             currentTime: root.ambientNowMs
             onBackRequested: root.closeDetail()
