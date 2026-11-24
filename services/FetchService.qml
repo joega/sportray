@@ -6,6 +6,7 @@ import "../model/ScoreboardModel.js" as ScoreboardModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
 import "../model/CalendarModel.js" as CalendarModel
 import "../model/DateModel.js" as DateModel
+import "../model/TeamSchedulePolicy.js" as TeamSchedulePolicy
 
 Item {
   id: root
@@ -14,6 +15,8 @@ Item {
   property bool settingsReady: false
   property var favoriteTeamIds: []
   property var followedLeagueIds: []
+  property string transientScheduleTeamId: ""
+  property string transientScheduleOwner: ""
   property string selectedDateKey: ""
   property string lookaheadLeagueId: ""
   property bool panelOpen: false
@@ -59,28 +62,54 @@ Item {
     })
   }
   readonly property var upcomingState: calendarFetch.upcomingState
-  readonly property var upcomingCatalogTeams: NhlTeamCatalog.listTeams().concat(
+  readonly property var enabledScheduleTeams: NhlTeamCatalog.listTeams().concat(
     EspnTeamCatalog.listTeamsForLeagues(root.enabledLeagues)).filter(function(team) {
       return root.enabledLeagues.indexOf(team.league) !== -1
-        && root.favoriteTeamIds.indexOf(team.id) !== -1
     })
+  readonly property var upcomingCatalogTeams: root.enabledScheduleTeams.filter(function(team) {
+    return root.favoriteTeamIds.indexOf(team.id) !== -1 || team.id === root.transientScheduleTeamId
+  })
   readonly property var upcomingBusyLeagues: [nhlFetch, nflFetch, mlbFetch, nbaFetch,
     ncaafFetch, eplFetch, mlsFetch, ncaabFetch].filter(function(fetch) {
       return fetch && fetch.networkBusy
     }).map(function(fetch) { return fetch.leagueId })
 
   function requestUpcoming(owner, teamId, startDate, endDate, force) {
-    if (!root.settingsReady || !root.panelOpen || !root.upcomingCatalogTeams.some(function(team) {
-      return team.id === teamId
-    })) return false
-    return calendarFetch.requestUpcoming(owner, teamId, startDate, endDate, force === true)
+    if (!root.settingsReady || !root.panelOpen || !owner || root.calendarFeatureEnabled
+        || !DateModel.isDateKey(startDate) || !DateModel.isDateKey(endDate)
+        || DateModel.calendarDistance(endDate, startDate) < 0
+        || DateModel.calendarDistance(endDate, startDate) > 34
+        || !TeamSchedulePolicy.resolve(teamId, root.enabledScheduleTeams, root.enabledLeagues)
+        || !calendarFetch.validUpcomingSelection(teamId, startDate, endDate, root.enabledScheduleTeams)) return false
+    var previousTeam = root.transientScheduleTeamId, previousOwner = root.transientScheduleOwner
+    root.transientScheduleOwner = owner
+    root.transientScheduleTeamId = teamId
+    var accepted = calendarFetch.requestUpcoming(owner, teamId, startDate, endDate, force === true)
+    if (!accepted) {
+      root.transientScheduleTeamId = previousTeam
+      root.transientScheduleOwner = previousOwner
+    }
+    return accepted
   }
 
-  function cancelUpcoming(owner) { return calendarFetch.cancelUpcoming(owner) }
+  function cancelUpcoming(owner) {
+    var canceled = calendarFetch.cancelUpcoming(owner)
+    if (canceled && (!owner || owner === root.transientScheduleOwner)) {
+      root.transientScheduleOwner = ""
+      root.transientScheduleTeamId = ""
+    }
+    return canceled
+  }
   function requestGlobalCalendar(owner, dateKey, force) {
     if (!root.settingsReady || !root.panelOpen) return false
-    return calendarFetch.requestGlobal(owner, dateKey, force === true)
+    var accepted = calendarFetch.requestGlobal(owner, dateKey, force === true)
+    if (accepted) {
+      root.transientScheduleOwner = ""
+      root.transientScheduleTeamId = ""
+    }
+    return accepted
   }
+  onPanelOpenChanged: if (!root.panelOpen) root.cancelUpcoming()
 
   readonly property var calendarScheduleState: calendarFetch.snapshotFor("nhl")
   readonly property bool calendarCacheReady: calendarDiskCache.ready
@@ -230,13 +259,18 @@ Item {
   }
 
   onEnabledLeaguesChanged: {
+    if (root.transientScheduleTeamId && !TeamSchedulePolicy.resolve(root.transientScheduleTeamId,
+        root.enabledScheduleTeams, root.enabledLeagues)) root.cancelUpcoming()
     root.updateAggregateState()
     root.refreshCalendarStates(false)
     root.deferCallback(function() { root.maybeStartCalendarRehydration() })
   }
 
 
-  onSettingsReadyChanged: root.deferCallback(function() { root.maybeStartCalendarRehydration() })
+  onSettingsReadyChanged: {
+    if (!root.settingsReady) root.cancelUpcoming()
+    root.deferCallback(function() { root.maybeStartCalendarRehydration() })
+  }
 
   onSelectedDateKeyChanged: root.updateAggregateState()
 

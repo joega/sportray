@@ -58,6 +58,10 @@ import QtQuick
 QtObject {
   objectName: "fixtureProcess"
   property bool running: false
+  property bool stdinEnabled: false
+  property var writes: []
+  function write(value) { writes = writes.concat([value]) }
+  signal started()
   property var command: []
   property var stdout: null
   property int starts: 0

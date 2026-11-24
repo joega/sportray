@@ -1,13 +1,27 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
-import qs.Commons as Commons
+import "../model/NoticePresentation.js" as NoticePresentation
 
 Item {
   id: root
   property var row: ({})
   property double currentTime: Date.now()
+  property bool hasCursor: false
+  signal contentFocusRequested()
   readonly property bool actionable: Boolean(root.row && root.row.action && root.row.action.enabled)
-  readonly property bool pointerPressed: retryMouse.pressed
+    && root.row.loading !== true && root.row.kind !== "standings-loading"
+  readonly property var notice: NoticePresentation.noticeFor({
+    kind: "standings", displayName: "Standings", loading: root.row.kind === "standings-loading" || root.row.loading === true,
+    hasData: root.row.stale === true || root.row.kind === "standings-empty" || root.row.kind === "standings-status" && root.row.loading === true,
+    stale: root.row.stale === true, empty: root.row.kind === "standings-empty",
+    failed: root.row.kind === "standings-status" && root.row.loading !== true,
+    errorSummary: root.row.kind === "standings-status" && root.row.loading !== true ? root.row.label || "" : "",
+    lastSuccessAt: root.row.lastSuccessAt || "", canRetry: root.actionable
+  }, root.currentTime)
+  readonly property bool pointerPressed: noticeView.pointerPressed
+  property alias expanded: noticeView.expanded
+  function moveCursor(delta) { return noticeView.moveCursor(delta) }
+  function activateCursor() { return noticeView.activateCursor() }
   readonly property string message: {
     var value = root.row || {}
     var text = value.label || value.text || ""
@@ -22,7 +36,7 @@ Item {
     return text
   }
   signal retry()
-  implicitHeight: label.implicitHeight
+  implicitHeight: noticeView.implicitHeight
   function activatePrimaryAction() { if (root.actionable) root.retry() }
   Accessible.name: root.message
   Accessible.role: root.actionable ? Accessible.Button : Accessible.StaticText
@@ -31,23 +45,12 @@ Item {
   Keys.onEnterPressed: root.activatePrimaryAction()
   Keys.onSpacePressed: root.activatePrimaryAction()
 
-  Text {
-    id: label
-    textFormat: Text.PlainText
+  StatusNotice {
+    id: noticeView
     width: parent.width
-    text: root.message
-    wrapMode: Text.WordWrap
-    font.family: Typography.family
-    font.pixelSize: Commons.Style.font.bodySmall
-    color: root.row && root.row.kind === "standings-status" && !root.row.loading
-      ? Commons.Color.urgent : Qt.alpha(Commons.Color.popups.text, 0.85)
-  }
-
-  MouseArea {
-    id: retryMouse
-    anchors.fill: parent
-    enabled: root.actionable
-    cursorShape: Qt.PointingHandCursor
-    onClicked: root.activatePrimaryAction()
+    notice: root.notice
+    hasCursor: root.hasCursor
+    onRetryRequested: root.retry()
+    onContentFocusRequested: root.contentFocusRequested()
   }
 }

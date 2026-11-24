@@ -25,6 +25,12 @@ CASES = (
 )
 
 
+EXACT_COMPONENTS = tuple(Path("components") / name for name in (
+    "UpcomingCalendar.qml", "GameRow.qml", "GameActions.qml", "TeamScheduleLink.qml",
+    "FollowingOverview.qml", "StatusNotice.qml", "LeagueStatus.qml", "StandingsStatus.qml", "NextGameCard.qml",
+    "GameDetailView.qml", "StandingsRow.qml", "TicketStrip.qml", "TicketOverlay.qml"))
+
+
 def stage(base, case):
     """Retain production views; expose private IDs only in disposable copies."""
     config = base / "config"
@@ -35,12 +41,22 @@ def stage(base, case):
         shutil.copytree(ROOT / name, plugin / name,
                         ignore=shutil.ignore_patterns("__pycache__"))
     shutil.copy2(ROOT / "Panel.qml", plugin / "Panel.qml")
-    # Preserve the legacy capture qualification outside this component's scope.
-    # The new calendar MUST execute its exact production imports and bindings:
-    # rewriting its Color lookup previously concealed an actual desktop error.
+    # Render the committed former card only for the fixed-viewport density
+    # comparison. It is never substituted for a production component.
+    baseline_bytes = (ROOT / "tests/runtime/legacy-density-card.qml.fixture").read_bytes()
+    assert hashlib.sha256(baseline_bytes).hexdigest() == "14859900dfcada7c98c56f64447e55d5ed2674ef5cc04d893510ef28d146a87b", \
+        "Reviewed e78eddb card density baseline changed"
+    baseline = baseline_bytes.decode()
+    baseline = baseline.replace("import qs.Commons\n", "import qs.Commons as Commons\n", 1)
+    baseline = re.sub(r"(?<![\w.])(Color|Style|Border)\.", r"Commons.\1.", baseline)
+    (plugin / "components/LegacyDensityGameRow.qml").write_text(baseline)
+
+    # All changed components execute exact production imports and bindings.
+    # Legacy capture qualification is retained only outside this set: rewriting
+    # a changed view's Color lookup previously concealed a desktop error.
     upcoming_path = Path("components/UpcomingCalendar.qml")
     for source in plugin.rglob("*.qml"):
-        if source.relative_to(plugin) == upcoming_path:
+        if source.relative_to(plugin) in EXACT_COMPONENTS or source.relative_to(plugin) == Path("Panel.qml"):
             continue
         text = source.read_text()
         if re.search(r"(?<![\w.])Color\.", text) and "import qs.Commons\n" in text:
@@ -52,6 +68,13 @@ def stage(base, case):
     staged_upcoming = (plugin / upcoming_path).read_bytes()
     assert staged_upcoming == production_upcoming, "UpcomingCalendar source was rewritten for testing"
     upcoming_source_hash = hashlib.sha256(production_upcoming).hexdigest()
+    source_evidence = []
+    for relative in EXACT_COMPONENTS:
+        production, staged = (ROOT / relative).read_bytes(), (plugin / relative).read_bytes()
+        assert production == staged, str(relative) + " source was rewritten for testing"
+        source_evidence.append({"component": relative.as_posix(), "copiedByteForByte": True,
+            "productionSha256": hashlib.sha256(production).hexdigest(),
+            "stagedSha256": hashlib.sha256(staged).hexdigest()})
     panel = plugin / "Panel.qml"
     text = panel.read_text()
     marker = "  property var anchorItem: null"
@@ -62,10 +85,12 @@ def stage(base, case):
                "testUtilityScroll": "utilityScroll", "testChrome": "scoreChrome",
                "testDates": "dateCarousel", "testLeaguePicker": "leaguePicker",
                "testUpcomingPopup": "upcomingPopup", "testUpcomingCalendar": "upcomingCalendar",
-               "testCalendarButton": "calendarButton"}
-    text = text.replace(marker, "\n".join(
-        "  property alias " + key + ": " + value for key, value in aliases.items())
-        + "\n" + marker, 1)
+               "testCalendarButton": "calendarButton", "testFollowingOverview": "followingOverview"}
+    instrumentation = "\n".join("  property alias " + key + ": " + value
+        for key, value in aliases.items()) + "\n"
+    text = text.replace(marker, instrumentation + marker, 1)
+    assert text.replace(instrumentation, "", 1).encode() == (ROOT / "Panel.qml").read_bytes(), \
+        "Panel production source changed beyond documented test aliases"
     panel.write_text(text)
     harness = (ROOT / "tests/runtime/ui-presentation.qml").read_text()
     harness = harness.replace('"../.."', '"plugin"').replace('"../../', '"plugin/')
@@ -87,6 +112,15 @@ def stage(base, case):
     for directory in (home, runtime, binaries, captures):
         directory.mkdir(mode=0o700)
     (captures / "source-evidence.json").write_text(json.dumps({
+        "components": source_evidence,
+        "panelInstrumentation": {
+            "component": "Panel.qml",
+            "productionSha256": hashlib.sha256((ROOT / "Panel.qml").read_bytes()).hexdigest(),
+            "stagedSha256": hashlib.sha256(panel.read_bytes()).hexdigest(),
+            "changes": ["Private test-only ID aliases"],
+            "preservedExceptAliases": True,
+            "aliases": aliases,
+        },
         "component": upcoming_path.as_posix(), "copiedByteForByte": True,
         "productionSha256": upcoming_source_hash,
         "stagedSha256": hashlib.sha256(staged_upcoming).hexdigest(),
@@ -132,13 +166,16 @@ def stage(base, case):
 class UiPresentationTests(unittest.TestCase):
     def test_native_flow_pointer_routing_and_adaptive_layout(self):
         self.assertTrue(SHELL.is_dir(), "installed Omarchy UI modules required")
-        for case in CASES:
+        cases = [case for case in CASES if not os.environ.get("SPORTRAY_UI_CASE")
+                 or case["name"] == os.environ["SPORTRAY_UI_CASE"]]
+        self.assertTrue(cases, "Unknown SPORTRAY_UI_CASE")
+        for case in cases:
             with self.subTest(case=case["name"]), tempfile.TemporaryDirectory(prefix="sportray-ui-test-") as temporary:
                 base = Path(temporary)
                 config, env, captures = stage(base, case)
                 try:
                     result = subprocess.run(["/usr/bin/quickshell", "-n", "--no-color", "-p", str(config)],
-                                            env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=65)
+                                            env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=150)
                     transcript = result.stdout.decode(errors="replace")
                 except subprocess.TimeoutExpired as error:
                     transcript = (error.stdout or b"").decode(errors="replace")
@@ -151,6 +188,17 @@ class UiPresentationTests(unittest.TestCase):
                         shutil.copy2(capture, output / capture.name)
                     (output / "ui-presentation.log").write_text(transcript)
                 evidence = json.loads((captures / "source-evidence.json").read_text())
+                self.assertTrue(evidence["panelInstrumentation"]["preservedExceptAliases"])
+                self.assertEqual(evidence["panelInstrumentation"]["productionSha256"],
+                    hashlib.sha256((ROOT / "Panel.qml").read_bytes()).hexdigest(),
+                    "Panel changed during the run")
+                self.assertEqual(len(evidence["components"]), len(EXACT_COMPONENTS))
+                for item in evidence["components"]:
+                    self.assertTrue(item["copiedByteForByte"], item["component"])
+                    self.assertEqual(item["productionSha256"], item["stagedSha256"], item["component"])
+                    self.assertEqual(item["productionSha256"],
+                        hashlib.sha256((ROOT / item["component"]).read_bytes()).hexdigest(),
+                        item["component"] + " changed during the run")
                 self.assertTrue(evidence["copiedByteForByte"])
                 self.assertEqual(evidence["productionSha256"], evidence["stagedSha256"])
                 self.assertEqual(result.returncode, 0, transcript)

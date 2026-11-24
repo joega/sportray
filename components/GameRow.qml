@@ -1,6 +1,7 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
-import qs.Commons
+import "../model/UiContrast.js" as UiContrast
+import qs.Commons as Commons
 import qs.Ui
 import "../model/Formatters.js" as Formatters
 
@@ -21,9 +22,13 @@ Item {
   // Calendar rows pass an explicit bounded local-time label; the scoreboard
   // route keeps its own computed local start text.
   property string startTimeTextOverride: ""
-  readonly property bool childActionPressed: sourceLink.pointerPressed || watchAction.pointerPressed
+  readonly property bool childActionPressed: gameActions.pointerPressed || awayLink.pointerPressed || homeLink.pointerPressed
+  readonly property bool popupOpen: gameActions.popupOpen
+  readonly property bool inputActive: gameActions.inputActive
 
   signal primaryActionRequested()
+  signal teamScheduleRequested(string teamId)
+  signal focusReturnRequested()
 
   width: parent ? parent.width : implicitWidth
   implicitHeight: card.height
@@ -52,7 +57,8 @@ Item {
   readonly property string detailLabel: Formatters.formatGameStateLabel(root.game, {
     includeStartTime: root.game.status === "scheduled",
     startTimeText: root.resolvedStartTimeText(root.game.startTime),
-    stale: root.stale
+    stale: root.stale,
+    now: root.currentTime
   }) + root.oddsSuffix
   readonly property bool awayIsFavorite: Boolean(root.game.presentation
     && root.game.presentation.awayIsFavorite)
@@ -70,11 +76,11 @@ Item {
   readonly property string venueLabel: root.venueName ? "At " + root.venueName : ""
   readonly property string accessibleLabel: root.awayLabel + " " + root.awayScoreLabel
     + " at " + root.homeLabel + " " + root.homeScoreLabel + ". "
-    + (root.awayIsFavorite ? "Followed away team. " : "")
-    + (root.homeIsFavorite ? "Followed home team. " : "")
+    + (root.awayIsFavorite ? "Favorite away team. " : "")
+    + (root.homeIsFavorite ? "Favorite home team. " : "")
     + root.stateLabel + ". " + (root.venueName ? "At " + root.venueName + ". " : "")
     + (root.showLeagueContext ? root.leagueLabel + ". " : "")
-    + (watchAction.active ? "Game is watched. " : "Game is not watched. ")
+    + (gameActions.alertsActive ? "Game alerts on. " : "")
     + (root.game && root.game.isValid === true ? "View game details. " : "")
     + (root.game.link ? "Open external game page." : "External game page unavailable.")
 
@@ -83,7 +89,18 @@ Item {
   }
 
   function openSource() {
-    sourceLink.openSource()
+    gameActions.openSource()
+  }
+
+  function openActions() { gameActions.open() }
+  function closeActions() { gameActions.close() }
+  function focusActions() { return gameActions.focusTrigger() }
+  function focusTeam(teamId) {
+    var target = root.game.awayTeam && root.game.awayTeam.id === teamId ? awayLink
+      : root.game.homeTeam && root.game.homeTeam.id === teamId ? homeLink : null
+    if (!target || !target.available) return false
+    target.forceActiveFocus()
+    return true
   }
 
   Accessible.name: root.accessibleLabel
@@ -93,18 +110,18 @@ Item {
   // local-detail route as the existing TapHandler/keyboard path; the nested
   // source button remains the only external-page route.
   Accessible.onPressAction: root.activatePrimaryAction()
-  readonly property real logoSize: Style.space(24)
-  readonly property real scoreColumnWidth: Style.space(58)
+  readonly property real logoSize: Commons.Style.space(20)
+  readonly property real scoreColumnWidth: Commons.Style.space(44)
 
   BorderSurface {
     id: card
     width: parent.width
     clip: true
-    height: row.implicitHeight + Style.spacing.md * 2
+    height: row.implicitHeight + Commons.Style.space(12)
     color: "transparent"
     borderSpec: root.selected
-      ? Border.controlSpec("focus", Color.popups.text, Color.accent)
-      : Border.none()
+      ? Commons.Border.controlSpec("focus", Commons.Color.popups.text, Commons.Color.accent)
+      : Commons.Border.none()
     radius: 0
 
     Column {
@@ -112,13 +129,14 @@ Item {
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.top: parent.top
-      anchors.margins: Style.spacing.sm
-      spacing: Style.spacing.xs
+      anchors.margins: Commons.Style.spacing.sm
+      anchors.topMargin: Commons.Style.space(6)
+      spacing: Commons.Style.spacing.xs
 
       Row {
-        width: parent.width
-        height: Math.max(root.logoSize, awayLabelText.implicitHeight)
-        spacing: Style.spacing.sm
+        width: parent.width - gameActions.width - Commons.Style.spacing.xs
+        height: Math.max(Commons.Style.space(24), awayLink.implicitHeight)
+        spacing: Commons.Style.spacing.sm
 
         Item {
           width: parent.width - root.scoreColumnWidth - parent.spacing
@@ -126,10 +144,9 @@ Item {
 
           Rectangle {
             anchors.fill: awayLogo
-            anchors.margins: -Style.space(2)
-            radius: Style.space(4)
-            color: "#f5f5f5"
-            visible: awayLogo.visible
+            anchors.margins: -Commons.Style.space(2)
+            radius: Commons.Style.space(4)
+            color: awayLogo.visible ? "#f5f5f5" : Qt.alpha(Commons.Color.popups.text, 0.06)
           }
 
           Image {
@@ -151,10 +168,10 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: root.logoSize
-            text: root.awayLabel.slice(0, 3)
-            color: Qt.alpha(Color.popups.text, 0.85)
+            text: root.awayLabel.slice(0, 1)
+            color: Qt.alpha(Commons.Color.popups.text, 0.85)
             font.family: Typography.family
-            font.pixelSize: Style.font.caption
+            font.pixelSize: Commons.Style.font.caption
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
             visible: !awayLogo.visible
@@ -164,33 +181,33 @@ Item {
             textFormat: Text.PlainText
             id: awayFavoriteMarker
             anchors.left: parent.left
-            anchors.leftMargin: root.logoSize + Style.spacing.xs
+            anchors.leftMargin: root.logoSize + Commons.Style.spacing.xs
             anchors.verticalCenter: parent.verticalCenter
-            width: root.awayIsFavorite ? Style.space(14) : 0
+            width: root.awayIsFavorite ? Commons.Style.space(14) : 0
             text: root.awayIsFavorite ? "★" : ""
-            color: Color.accent
+            color: Commons.Color.accent
             font.family: Typography.family
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Commons.Style.font.bodySmall
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
             visible: root.awayIsFavorite
           }
 
-          Text {
-            id: awayLabelText
+          TeamScheduleLink {
+            id: awayLink
             anchors.left: parent.left
-            anchors.leftMargin: root.logoSize + Style.spacing.xs
-              + (root.awayIsFavorite ? Style.space(14) + Style.spacing.xs : 0)
+            anchors.leftMargin: root.logoSize + Commons.Style.spacing.xs
+              + (root.awayIsFavorite ? Commons.Style.space(14) + Commons.Style.spacing.xs : 0)
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
+            height: parent.height
+            team: root.game.awayTeam
             text: root.awayLabel
-            textFormat: Text.PlainText
-            color: Formatters.isWinningTeam(root.game, "away")
-              ? Color.accent : Color.popups.text
-            font.family: Typography.family
-            font.pixelSize: Style.font.subtitle
-            font.bold: root.awayIsFavorite || Formatters.isWinningTeam(root.game, "away")
-            elide: Text.ElideRight
+            foreground: Formatters.isWinningTeam(root.game, "away")
+              ? Commons.Color.accent : Commons.Color.popups.text
+            fontSize: root.live ? Commons.Style.font.subtitle : Commons.Style.font.body
+            bold: root.awayIsFavorite || Formatters.isWinningTeam(root.game, "away")
+            onRequested: function(teamId) { root.teamScheduleRequested(teamId) }
           }
         }
 
@@ -198,9 +215,9 @@ Item {
           textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.awayScoreLabel
-          color: Color.popups.text
+          color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.title
+          font.pixelSize: root.live ? Commons.Style.font.title : Commons.Style.font.subtitle
           font.features: ({"tnum": 1})
           font.bold: true
           horizontalAlignment: Text.AlignRight
@@ -209,9 +226,9 @@ Item {
       }
 
       Row {
-        width: parent.width
-        height: Math.max(root.logoSize, homeLabelText.implicitHeight)
-        spacing: Style.spacing.sm
+        width: parent.width - gameActions.width - Commons.Style.spacing.xs
+        height: Math.max(Commons.Style.space(24), homeLink.implicitHeight)
+        spacing: Commons.Style.spacing.sm
 
         Item {
           width: parent.width - root.scoreColumnWidth - parent.spacing
@@ -219,10 +236,9 @@ Item {
 
           Rectangle {
             anchors.fill: homeLogo
-            anchors.margins: -Style.space(2)
-            radius: Style.space(4)
-            color: "#f5f5f5"
-            visible: homeLogo.visible
+            anchors.margins: -Commons.Style.space(2)
+            radius: Commons.Style.space(4)
+            color: homeLogo.visible ? "#f5f5f5" : Qt.alpha(Commons.Color.popups.text, 0.06)
           }
 
           Image {
@@ -244,10 +260,10 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: root.logoSize
-            text: root.homeLabel.slice(0, 3)
-            color: Qt.alpha(Color.popups.text, 0.85)
+            text: root.homeLabel.slice(0, 1)
+            color: Qt.alpha(Commons.Color.popups.text, 0.85)
             font.family: Typography.family
-            font.pixelSize: Style.font.caption
+            font.pixelSize: Commons.Style.font.caption
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
             visible: !homeLogo.visible
@@ -257,34 +273,33 @@ Item {
             textFormat: Text.PlainText
             id: homeFavoriteMarker
             anchors.left: parent.left
-            anchors.leftMargin: root.logoSize + Style.spacing.xs
+            anchors.leftMargin: root.logoSize + Commons.Style.spacing.xs
             anchors.verticalCenter: parent.verticalCenter
-            width: root.homeIsFavorite ? Style.space(14) : 0
+            width: root.homeIsFavorite ? Commons.Style.space(14) : 0
             text: root.homeIsFavorite ? "★" : ""
-            color: Color.accent
+            color: Commons.Color.accent
             font.family: Typography.family
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Commons.Style.font.bodySmall
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
             visible: root.homeIsFavorite
           }
 
-          Text {
-            id: homeLabelText
+          TeamScheduleLink {
+            id: homeLink
             anchors.left: parent.left
-            anchors.leftMargin: root.logoSize + Style.spacing.xs
-              + (root.homeIsFavorite ? Style.space(14) + Style.spacing.xs : 0)
+            anchors.leftMargin: root.logoSize + Commons.Style.spacing.xs
+              + (root.homeIsFavorite ? Commons.Style.space(14) + Commons.Style.spacing.xs : 0)
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
+            height: parent.height
+            team: root.game.homeTeam
             text: root.homeLabel
-            textFormat: Text.PlainText
-            color: Formatters.isWinningTeam(root.game, "home")
-              ? Color.accent : Color.popups.text
-            font.family: Typography.family
-            font.pixelSize: Style.font.subtitle
-            font.bold: root.homeIsFavorite || Formatters.isWinningTeam(root.game, "home")
-            horizontalAlignment: Text.AlignLeft
-            elide: Text.ElideRight
+            foreground: Formatters.isWinningTeam(root.game, "home")
+              ? Commons.Color.accent : Commons.Color.popups.text
+            fontSize: root.live ? Commons.Style.font.subtitle : Commons.Style.font.body
+            bold: root.homeIsFavorite || Formatters.isWinningTeam(root.game, "home")
+            onRequested: function(teamId) { root.teamScheduleRequested(teamId) }
           }
         }
 
@@ -292,9 +307,9 @@ Item {
           textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.homeScoreLabel
-          color: Color.popups.text
+          color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.title
+          font.pixelSize: root.live ? Commons.Style.font.title : Commons.Style.font.subtitle
           font.features: ({"tnum": 1})
           font.bold: true
           horizontalAlignment: Text.AlignRight
@@ -305,42 +320,41 @@ Item {
       Column {
         id: footer
         width: parent.width
-        spacing: Style.spacing.xxs
+        spacing: Commons.Style.spacing.xxs
 
         Text {
           id: detailText
           width: parent.width
           text: (root.showLeagueContext && root.leagueLabel !== ""
             ? root.leagueLabel + " · " : "") + root.detailLabel
+            + (gameActions.alertsActive ? " · Alerts on" : "")
           textFormat: Text.PlainText
           color: root.unavailable || root.stale || root.game.status === "postponed"
-            || root.game.status === "canceled" ? Color.urgent
-            : root.live ? Color.accent : Qt.alpha(Color.popups.text, 0.85)
+            || root.game.status === "canceled" ? Commons.Color.urgent
+            : root.live ? UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
+            : Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           font.weight: root.live ? Font.DemiBold : Font.Normal
           wrapMode: Text.WordWrap
         }
 
-        Row {
-          id: actionsRow
-          anchors.right: parent.right
-          spacing: Style.spacing.sm
 
-          WatchAction {
-            id: watchAction
-            game: root.game
-            settingsStore: root.settingsStore
-            currentTime: root.currentTime
-          }
-
-          SourceLinkButton {
-            id: sourceLink
-            game: root.game
-            Accessible.name: root.game.link ? "Open " + sourceLink.sourceName + " game page" : "External game page unavailable"
-          }
-        }
       }
+    }
+
+    GameActions {
+      id: gameActions
+      anchors.right: parent.right
+      anchors.rightMargin: Commons.Style.spacing.sm
+      y: Commons.Style.space(6) + Math.max(0, (Commons.Style.space(48) + Commons.Style.spacing.xs - height) / 2)
+      width: implicitWidth
+      height: implicitHeight
+      game: root.game
+      settingsStore: root.settingsStore
+      currentTime: root.currentTime
+      onTeamScheduleRequested: function(teamId) { root.teamScheduleRequested(teamId) }
+      onFocusReturnRequested: root.focusReturnRequested()
     }
 
     Rectangle {
@@ -348,7 +362,7 @@ Item {
       anchors.right: parent.right
       anchors.bottom: parent.bottom
       height: 1
-      color: Color.popups.text
+      color: Commons.Color.popups.text
       opacity: 0.10
     }
   }

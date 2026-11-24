@@ -20,8 +20,8 @@ function standingRow(row, favoriteIds) {
     standing: row,
     favorite: favorite,
     action: {
-      type: "toggle-favorite-team",
-      label: favorite ? "Remove favorite" : "Add favorite",
+      type: "open-team-schedule",
+      label: "Open team schedule",
       enabled: Boolean(row.team && row.team.id)
     }
   };

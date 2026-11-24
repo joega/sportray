@@ -1,6 +1,7 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
-import qs.Commons
+import "../model/UiContrast.js" as UiContrast
+import qs.Commons as Commons
 import qs.Ui
 import "../model/DateModel.js" as DateModel
 import "../model/Formatters.js" as Formatters
@@ -32,6 +33,13 @@ Item {
   readonly property color homeTint: root.hasHomeTint
     ? root.game.homeTeam.primaryColor : "transparent"
   readonly property string venueName: root.game.venue || ""
+  readonly property var paintedBackground: UiContrast.composite(
+    Qt.alpha(root.homeTint, root.hasHomeTint ? 0.09 : 0),
+    UiContrast.composite(card.color, Commons.Color.popups.background))
+
+  function readable(preferred) {
+    return UiContrast.foreground(preferred, Commons.Color.popups.text, root.paintedBackground)
+  }
 
   implicitHeight: card.height
   width: parent ? parent.width : implicitWidth
@@ -50,10 +58,10 @@ Item {
   BorderSurface {
     id: card
     width: parent.width
-    height: cardColumn.implicitHeight + Style.spacing.md * 2
-    color: Util.alpha(Color.popups.background, 0.86)
-    borderSpec: Border.controlSpec("selected", Color.popups.text, Color.accent)
-    radius: Style.cornerRadius
+    height: cardColumn.implicitHeight + Commons.Style.spacing.md * 2
+    color: Commons.Util.alpha(Commons.Color.popups.background, 0.86)
+    borderSpec: Commons.Border.controlSpec("selected", Commons.Color.popups.text, Commons.Color.accent)
+    radius: Commons.Style.cornerRadius
     clip: true
 
     Rectangle {
@@ -63,51 +71,51 @@ Item {
     }
 
     Rectangle {
-      width: Math.max(Style.space(3), Style.spacing.xs)
+      width: Math.max(Commons.Style.space(3), Commons.Style.spacing.xs)
       height: parent.height
-      color: Color.accent
+      color: Commons.Color.accent
     }
 
     Column {
       id: cardColumn
       anchors.fill: parent
-      anchors.leftMargin: Style.spacing.lg
-      anchors.rightMargin: Style.spacing.md
-      anchors.topMargin: Style.spacing.md
-      anchors.bottomMargin: Style.spacing.md
-      spacing: Style.spacing.sm
+      anchors.leftMargin: Commons.Style.spacing.lg
+      anchors.rightMargin: Commons.Style.spacing.md
+      anchors.topMargin: Commons.Style.spacing.md
+      anchors.bottomMargin: Commons.Style.spacing.md
+      spacing: Commons.Style.spacing.sm
 
       Row {
         width: parent.width
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
 
         SemanticIcon {
-          width: Style.space(20)
+          width: Commons.Style.space(20)
           height: width
           iconName: "calendar"
-          fontSize: Style.font.body
-          color: Color.accent
+          fontSize: Commons.Style.font.body
+          color: Commons.Color.accent
         }
 
         Column {
-          width: parent.width - Style.space(20) - parent.spacing
-          spacing: Style.spacing.xxs
+          width: parent.width - Commons.Style.space(20) - parent.spacing
+          spacing: Commons.Style.spacing.xxs
 
           Text {
             textFormat: Text.PlainText
             text: "NEXT GAME"
-            color: Color.accent
+            color: root.readable(Commons.Color.accent)
             font.family: Typography.family
-            font.pixelSize: Style.font.caption
+            font.pixelSize: Commons.Style.font.caption
             font.bold: true
           }
 
           Text {
             textFormat: Text.PlainText
             text: DateModel.shortDateLabel(root.dateKey)
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             font.family: Typography.family
-            font.pixelSize: Style.font.subtitle
+            font.pixelSize: Commons.Style.font.subtitle
             font.bold: true
           }
         }
@@ -116,21 +124,21 @@ Item {
 
       Row {
         width: parent.width
-        height: Math.max(Style.space(54), awayColumn.implicitHeight)
-        spacing: Style.spacing.sm
+        height: Math.max(Commons.Style.space(54), awayColumn.implicitHeight)
+        spacing: Commons.Style.spacing.sm
 
         Column {
           id: awayColumn
           width: (parent.width - vsLabel.implicitWidth - parent.spacing * 2) / 2
-          spacing: Style.spacing.xxs
+          spacing: Commons.Style.spacing.xxs
 
           Text {
             textFormat: Text.PlainText
             width: parent.width
             text: Formatters.teamLabel(root.game.awayTeam)
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             font.family: Typography.family
-            font.pixelSize: Style.font.subtitle
+            font.pixelSize: Commons.Style.font.subtitle
             font.bold: true
             elide: Text.ElideRight
           }
@@ -139,18 +147,18 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: root.teamName(root.game.awayTeam)
-            color: Qt.alpha(Color.popups.text, 0.85)
+            color: root.readable(Qt.alpha(Commons.Color.popups.text, 0.85))
             font.family: Typography.family
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Commons.Style.font.bodySmall
             elide: Text.ElideRight
           }
 
           Text {
             textFormat: Text.PlainText
             text: "AWAY"
-            color: Qt.alpha(Color.popups.text, 0.85)
+            color: root.readable(Qt.alpha(Commons.Color.popups.text, 0.85))
             font.family: Typography.family
-            font.pixelSize: Style.font.caption
+            font.pixelSize: Commons.Style.font.caption
           }
         }
 
@@ -159,23 +167,23 @@ Item {
           id: vsLabel
           anchors.verticalCenter: parent.verticalCenter
           text: "VS"
-          color: Color.accent
+          color: root.readable(Commons.Color.accent)
           font.family: Typography.family
-          font.pixelSize: Style.font.caption
+          font.pixelSize: Commons.Style.font.caption
           font.bold: true
         }
 
         Column {
           width: (parent.width - vsLabel.implicitWidth - parent.spacing * 2) / 2
-          spacing: Style.spacing.xxs
+          spacing: Commons.Style.spacing.xxs
 
           Text {
             textFormat: Text.PlainText
             width: parent.width
             text: Formatters.teamLabel(root.game.homeTeam)
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             font.family: Typography.family
-            font.pixelSize: Style.font.subtitle
+            font.pixelSize: Commons.Style.font.subtitle
             font.bold: true
             elide: Text.ElideRight
           }
@@ -184,39 +192,39 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: root.teamName(root.game.homeTeam)
-            color: Qt.alpha(Color.popups.text, 0.85)
+            color: root.readable(Qt.alpha(Commons.Color.popups.text, 0.85))
             font.family: Typography.family
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Commons.Style.font.bodySmall
             elide: Text.ElideRight
           }
 
           Text {
             textFormat: Text.PlainText
             text: "HOME"
-            color: Qt.alpha(Color.popups.text, 0.85)
+            color: root.readable(Qt.alpha(Commons.Color.popups.text, 0.85))
             font.family: Typography.family
-            font.pixelSize: Style.font.caption
+            font.pixelSize: Commons.Style.font.caption
           }
         }
       }
 
       Column {
         width: parent.width
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
         Text {
           id: startTimeLabel
           width: parent.width
           text: root.localStartTime(root.game.startTime)
             + (root.venueName ? "   ·   " + root.venueName : "")
           textFormat: Text.PlainText
-          color: Qt.alpha(Color.popups.text, 0.85)
+          color: root.readable(Qt.alpha(Commons.Color.popups.text, 0.85))
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
         Row {
           anchors.right: parent.right
-          spacing: Style.spacing.sm
+          spacing: Commons.Style.spacing.sm
           SourceLinkButton {
             id: sourceLink
             game: root.game
@@ -225,7 +233,7 @@ Item {
             id: jumpButton
             text: "View day"
             tooltipText: "Jump to the next game"
-            textFontSize: Style.font.bodySmall
+            textFontSize: Commons.Style.font.bodySmall
             focusable: true
             onClicked: root.jumpRequested()
             Accessible.name: "View " + DateModel.shortDateLabel(root.dateKey)

@@ -1,8 +1,10 @@
 import QtQuick
 import "model/UiTypography.js" as Typography
+import "model/UiContrast.js" as UiContrast
 import QtQuick.Controls
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "components"
 import "model/FavoritePresentation.js" as FavoritePresentation
@@ -12,6 +14,9 @@ import "model/Formatters.js" as Formatters
 import "model/GameDetailState.js" as GameDetailState
 import "model/LiveFavoriteRotationPolicy.js" as LiveFavoriteRotationPolicy
 import "model/PanelPresentation.js" as PanelPresentation
+import "model/FollowingPresentation.js" as FollowingPresentation
+import "model/NavigationContext.js" as NavigationContext
+import "model/TeamSchedulePolicy.js" as TeamSchedulePolicy
 import "model/ResultRows.js" as ResultRows
 import "model/WatchPolicy.js" as WatchPolicy
 import "model/ScoreboardModel.js" as ScoreboardModel
@@ -63,6 +68,19 @@ Panel {
   property bool utilityReturnTabFocused: true
   property string settingsDestination: "sports"
   property string activeDestination: "following"
+  property string followingFilterId: "all"
+  property var resultContextOrder: []
+  property var navigationStack: []
+  property var utilityReturnContext: null
+  property bool upcomingNavigationTransition: false
+  property string resultActionFocus: ""
+  property var activeGameActionsRow: null
+  property var pendingResultFocus: null
+  property string resultViewportKey: ""
+  property var upcomingReturnContext: null
+  readonly property bool gameActionsOpen: !!root.activeGameActionsRow && root.activeGameActionsRow.popupOpen
+  readonly property string returnLabel: NavigationContext.label(root.navigationStack.length
+    ? root.navigationStack[root.navigationStack.length - 1] : null)
   property int tabCursor: 0
   property bool tabStripFocused: true
   property int selectedRowIndex: -1
@@ -131,6 +149,9 @@ Panel {
     scoreboard, root.favoriteTeamIds, FavoritePresentation.orderGames,
     FavoritePresentation.isFavoriteGame, root.followedLeagueIds, root.presentationRevision,
     root.settingsStore ? root.settingsStore.watchedGames : [], root.nowMs, WatchPolicy.normalizeWatches)
+  readonly property var followingProjection: FollowingPresentation.project(panelPresentation.following, root.followingFilterId)
+  readonly property bool followingControlsVisible: root.activeDestination === "following"
+    && !root.standingsOpen && !root.calendarOpen
   readonly property var tabItems: buildTabItems()
   readonly property var sportOptions: buildSportOptions()
   readonly property var sportsPicker: leaguePicker
@@ -151,7 +172,10 @@ Panel {
     return Boolean(league && league.standingsSupported === true)
   }
   readonly property var standingsRows: StandingsRows.flatten(
-    root.standingsState, root.favoriteTeamIds, root.standingsRevision)
+    root.standingsState, root.favoriteTeamIds, root.standingsRevision).map(function(row) {
+      return row.kind === "standings-status" ? Object.assign({}, row,
+        {action: {type: "notice-actions", label: "Data status", enabled: true}}) : row
+    })
   function calendarProjectionOptions(monthKey) {
     return {
       enabledLeagues: root.enabledLeagues,
@@ -243,7 +267,7 @@ Panel {
   }
   readonly property var pickerTeams: buildPickerTeams()
   readonly property var upcomingTeamOptions: [{value: "", label: "All followed leagues"}].concat(root.pickerTeams.filter(function(team) {
-    return root.favoriteTeamIds.indexOf(team.id) !== -1
+    return (root.favoriteTeamIds.indexOf(team.id) !== -1 || team.id === root.upcomingTeamId)
       && root.enabledLeagues.indexOf(team.league) !== -1
   }).map(function(team) {
     var league = LeagueCatalog.getLeague(team.league)
@@ -253,7 +277,7 @@ Panel {
   readonly property var upcomingScheduleState: root.upcomingLocalError !== ""
     ? {teamId: root.upcomingTeamId, scope: root.upcomingTeamId ? "team" : "global",
       dateKey: root.upcomingBrowseDate, loading: false, hasData: false,
-      partial: true, errorSummary: root.upcomingLocalError, entries: []}
+      failed: true, partial: false, errorSummary: root.upcomingLocalError, entries: []}
     : root.fetchService && typeof root.fetchService.upcomingState !== "undefined"
       ? root.fetchService.upcomingState : ({})
   readonly property string barScoreText: buildBarScoreText()
@@ -286,6 +310,8 @@ Panel {
   function openUpcomingCalendar() {
     if (root.settingsOpen || root.detailOpen || root.standingsOpen) return
     if (upcomingPopup.opened) { upcomingPopup.close(); return }
+    root.closeGameActions()
+    root.pushNavigation(root.captureNavigationContext())
     root.upcomingTeamId = ""
     root.upcomingBrowseDate = root.selectedDateKey
     root.upcomingMonthKey = CalendarModel.monthKey(root.selectedDateKey)
@@ -297,11 +323,176 @@ Panel {
   function jumpToUpcomingDate(dateKey) {
     if (!DateModel.isDateKey(dateKey)) return
     var league = root.upcomingTeamId.split(":")[0]
-    upcomingPopup.close()
+    root.pushNavigation(root.captureNavigationContext())
+    root.closeUpcomingForNavigation()
+    root.detailOpen = false
+    root.settingsOpen = false
     if (!root.upcomingTeamId) root.selectDestination("following")
     else if (root.activeDestination !== league)
       root.selectDestination(league)
     root.selectDate(dateKey)
+  }
+
+  function closeGameActions() {
+    if (root.activeGameActionsRow && typeof root.activeGameActionsRow.closeActions === "function")
+      root.activeGameActionsRow.closeActions()
+    root.activeGameActionsRow = null
+  }
+
+  function openSelectedGameActions() {
+    if (root.settingsOpen || root.detailOpen || root.standingsOpen || root.calendarOpen) return false
+    var delegate = resultList.itemAtIndex(root.selectedRowIndex)
+    if (!delegate || typeof delegate.openGameActions !== "function") return false
+    root.resultActionFocus = "actions"
+    return delegate.openGameActions()
+  }
+
+  function activateResultAction() {
+    if (!root.selectableRow(root.selectedRowIndex)) return
+    var row = root.displayRows[root.selectedRowIndex]
+    if (root.resultActionFocus.indexOf("team:") === 0) {
+      var teamId = root.resultActionFocus.slice(5)
+      var contains = row.kind === "game" && row.game
+        && ((row.game.awayTeam && row.game.awayTeam.id === teamId)
+          || (row.game.homeTeam && row.game.homeTeam.id === teamId))
+      contains = contains || row.kind === "standings" && row.standing && row.standing.team
+        && row.standing.team.id === teamId
+      if (contains) root.openTeamSchedule(teamId, root.resultActionFocus)
+      else root.resultActionFocus = ""
+    } else if (root.resultActionFocus === "actions") root.openSelectedGameActions()
+    else root.activateRow(root.selectedRowIndex)
+  }
+
+  function moveSelectedNotice(delta) {
+    var delegate = resultList.itemAtIndex(root.selectedRowIndex)
+    return delegate && typeof delegate.moveNoticeCursor === "function" ? delegate.moveNoticeCursor(delta) : false
+  }
+
+  function revealNotice(index) {
+    root.setSelectedRow(index)
+    root.tabStripFocused = false
+    root.deferResultListCallback(function(list) {
+      list.positionViewAtIndex(index, ListView.Contain)
+      if (!keyCatcher.blocked) keyCatcher.forceActiveFocus()
+    })
+  }
+
+  function captureNavigationContext(focusId) {
+    root.saveResultPosition(root.activeDestination)
+    var selectedItem = resultList.itemAtIndex(root.selectedRowIndex)
+    return {surface: upcomingPopup.opened ? (root.upcomingTeamId ? "team" : "calendar")
+        : root.detailOpen ? "detail" : root.standingsOpen ? "standings" : "scores",
+      destination: root.activeDestination, dateKey: root.selectedDateKey,
+      baseSurface: root.detailOpen ? "detail" : root.standingsOpen ? "standings" : "scores",
+      followingFilterId: root.followingFilterId, selectedRowId: root.selectedRowId,
+      listScrollY: resultList.contentY - resultList.originY,
+      rowViewportY: selectedItem ? selectedItem.mapToItem(resultList, 0, 0).y : null,
+      tabStripFocused: root.tabStripFocused,
+      focusId: focusId || root.resultActionFocus,
+      detailGame: root.detailState.game, detailDateKey: root.detailDateKey,
+      detailLastSuccessAt: root.detailState.lastSuccessAt || root.detailLastSuccessAt,
+      detailContext: gameDetailView.captureContext(),
+      upcomingTeamId: root.upcomingTeamId, upcomingMonthKey: root.upcomingMonthKey,
+      upcomingWindowStart: root.upcomingWindowStart, upcomingBrowseDate: root.upcomingBrowseDate,
+      upcomingContext: upcomingCalendar.captureContext()}
+  }
+
+  function pushNavigation(frame) { root.navigationStack = NavigationContext.push(root.navigationStack, frame) }
+
+  function closeUpcomingForNavigation() {
+    root.upcomingNavigationTransition = true
+    upcomingPopup.close()
+  }
+
+  function restoreNavigationContext(frame) {
+    if (!frame || !root.opened) return
+    var destination = NavigationContext.destination(frame, root.enabledLeagues)
+    root.settingsOpen = false
+    root.followingFilterId = FollowingPresentation.normalizeFilter(frame.followingFilterId)
+    root.setSelectedDate(frame.dateKey)
+    root.activeDestination = destination
+    root.standingsOpen = (frame.surface === "standings" || frame.baseSurface === "standings") && destination !== "following"
+    if (root.standingsOpen && root.standingsService) root.standingsService.load(destination, false)
+    root.detailOpen = (frame.surface === "detail" || frame.baseSurface === "detail") && !!frame.detailGame
+      && root.enabledLeagues.indexOf(frame.detailGame.league) !== -1
+    root.detailGame = root.detailOpen ? frame.detailGame : null
+    root.detailDateKey = frame.detailDateKey || ""
+    root.detailLastSuccessAt = frame.detailLastSuccessAt || ""
+    root.tabStripFocused = frame.tabStripFocused === true
+    root.resultActionFocus = frame.focusId || ""
+    root.pendingResultFocus = {key: root.resultContextKey(destination),
+      rowId: frame.selectedRowId || "", focusId: frame.focusId || ""}
+    var key = root.resultContextKey(destination)
+    var positions = Object.assign({}, root.scrollPositions)
+    positions[key] = Number(frame.listScrollY) || 0
+    var selected = Object.assign({}, root.selectedRowIds)
+    selected[key] = frame.selectedRowId || ""
+    var order = root.resultContextOrder.filter(function(value) { return value !== key })
+    order.push(key)
+    while (order.length > 32) {
+      var evicted = order.shift()
+      delete positions[evicted]
+      delete selected[evicted]
+    }
+    root.resultContextOrder = order
+    root.scrollPositions = positions
+    root.selectedRowIds = selected
+    root.restoreResultPosition()
+    if (frame.surface === "team" || frame.surface === "calendar") {
+      var validTeam = frame.upcomingTeamId
+        ? TeamSchedulePolicy.resolve(frame.upcomingTeamId, root.pickerTeams, root.enabledLeagues) : null
+      root.upcomingTeamId = validTeam ? validTeam.id : ""
+      root.upcomingMonthKey = frame.upcomingMonthKey || CalendarModel.monthKey(root.todayDateKey)
+      root.upcomingWindowStart = frame.upcomingWindowStart || root.todayDateKey
+      root.upcomingBrowseDate = frame.upcomingBrowseDate || root.todayDateKey
+      root.upcomingReturnContext = frame.upcomingContext || null
+      upcomingPopup.open()
+      root.requestUpcoming(false)
+    }
+    root.recalculatePanelHeight()
+    root.deferPanelCallback(function() {
+      scoreChrome.forceLayout()
+      contentColumn.forceLayout()
+      root.restoreResultPosition(true, frame)
+      if (!upcomingPopup.opened && root.detailOpen) gameDetailView.restoreContext(frame.detailContext)
+    })
+  }
+
+  function restorePendingResultFocus() {
+    var pending = root.pendingResultFocus
+    if (!pending || root.detailOpen || upcomingPopup.opened || root.settingsOpen) return
+    if (pending.key !== root.resultContextKey(root.activeDestination)) { root.pendingResultFocus = null; return }
+    if (pending.rowId && pending.rowId !== root.selectedRowId) {
+      if (!root.activeView.loading) root.pendingResultFocus = null
+      return
+    }
+    keyCatcher.forceActiveFocus()
+    root.resultActionFocus = pending.focusId
+    var delegate = resultList.itemAtIndex(root.selectedRowIndex)
+    if (delegate && typeof delegate.restoreActionFocus === "function") delegate.restoreActionFocus(pending.focusId)
+    root.pendingResultFocus = null
+  }
+
+  function goBack() {
+    if (!root.navigationStack.length) return false
+    var result = NavigationContext.pop(root.navigationStack)
+    root.navigationStack = result.stack
+    root.restoreNavigationContext(result.frame)
+    return true
+  }
+
+  function openTeamSchedule(teamId, focusId) {
+    var team = TeamSchedulePolicy.resolve(teamId, root.pickerTeams, root.enabledLeagues)
+    if (!team || !root.opened) return false
+    if (!upcomingPopup.opened) root.pushNavigation(root.captureNavigationContext(focusId))
+    root.closeGameActions()
+    root.upcomingTeamId = team.id
+    root.upcomingWindowStart = root.todayDateKey
+    root.upcomingBrowseDate = root.selectedDateKey
+    root.upcomingMonthKey = CalendarModel.monthKey(root.todayDateKey)
+    upcomingPopup.open()
+    root.requestUpcoming(false)
+    return true
   }
 
   onUpcomingTeamOptionsChanged: {
@@ -452,6 +643,8 @@ Panel {
 
   function openGameDetail(game) {
     if (!game || game.isValid !== true) return
+    if (!root.detailOpen) root.pushNavigation(root.captureNavigationContext())
+    root.closeGameActions()
     root.detailDateKey = root.selectedDateKey
     root.detailLastSuccessAt = ""
     root.detailGame = game
@@ -468,6 +661,7 @@ Panel {
 
   function closeDetail() {
     if (!root.detailOpen) return
+    if (root.goBack()) return
     root.detailOpen = false
     root.detailGame = null
     root.tabStripFocused = false
@@ -585,17 +779,15 @@ Panel {
 
   function selectDate(dateKey) {
     if (!DateModel.isDateKey(dateKey) || dateKey === root.selectedDateKey) return
+    root.saveResultPosition(root.activeDestination)
+    root.resultActionFocus = ""
+    root.pendingResultFocus = null
+    root.closeGameActions()
     if (root.calendarOpen) root.calendarMonthKey = CalendarModel.monthKey(dateKey)
     root.queuePanelHeightRecalculation()
     root.setSelectedDate(dateKey)
     root.selectedRowIndex = -1
     root.selectedRowId = ""
-    var positions = Object.assign({}, root.scrollPositions || {})
-    delete positions[root.activeDestination]
-    root.scrollPositions = positions
-    var selected = Object.assign({}, root.selectedRowIds || {})
-    delete selected[root.activeDestination]
-    root.selectedRowIds = selected
     root.deferPanelCallback(root.recalculatePanelHeight)
   }
 
@@ -627,11 +819,12 @@ Panel {
 
 
   function viewForDestination(destination) {
-    if (destination === "following") return panelPresentation.following
+    if (destination === "following") return root.followingProjection.view
     for (var i = 0; i < panelPresentation.leagues.length; i++) {
-      if (panelPresentation.leagues[i].leagueId === destination) return panelPresentation.leagues[i]
+      if (panelPresentation.leagues[i].leagueId === destination)
+        return Object.assign({}, panelPresentation.leagues[i], {interactiveNotice: true})
     }
-    return panelPresentation.following
+    return root.followingProjection.view
   }
 
   function destinationIndex(destination) {
@@ -642,6 +835,9 @@ Panel {
   }
 
   function selectDestination(destination) {
+    root.resultActionFocus = ""
+    root.pendingResultFocus = null
+    root.closeGameActions()
     var index = root.destinationIndex(destination)
     root.queuePanelHeightRecalculation()
     root.saveResultPosition(root.activeDestination)
@@ -672,14 +868,43 @@ Panel {
     if (root.sportsPicker) root.sportsPicker.open()
   }
 
+  function resultContextKey(destination) {
+    return JSON.stringify([root.standingsOpen ? "standings" : "scores", destination,
+      root.selectedDateKey, destination === "following" ? root.followingFilterId : "all"])
+  }
+
+  function setFollowingFilter(filterId) {
+    var next = FollowingPresentation.normalizeFilter(filterId)
+    if (next !== root.followingFilterId) {
+      root.resultActionFocus = ""
+      root.pendingResultFocus = null
+      root.closeGameActions()
+      root.saveResultPosition(root.activeDestination)
+      root.followingFilterId = next
+      root.selectedRowIndex = -1
+      root.selectedRowId = ""
+      root.restoreResultPosition()
+      root.recalculatePanelHeight()
+    }
+    root.deferPanelCallback(function() { if (!keyCatcher.blocked) keyCatcher.forceActiveFocus() })
+  }
+
   function saveResultPosition(destination) {
     if (!destination || !resultList) return
+    var key = root.resultContextKey(destination)
     var positions = Object.assign({}, root.scrollPositions || {})
-    positions[destination] = resultList.contentY
-    root.scrollPositions = positions
-
     var selected = Object.assign({}, root.selectedRowIds || {})
-    selected[destination] = root.selectedRowId || ""
+    positions[key] = resultList.contentY - resultList.originY
+    selected[key] = root.selectedRowId || ""
+    var order = root.resultContextOrder.filter(function(value) { return value !== key })
+    order.push(key)
+    while (order.length > 32) {
+      var evicted = order.shift()
+      delete positions[evicted]
+      delete selected[evicted]
+    }
+    root.resultContextOrder = order
+    root.scrollPositions = positions
     root.selectedRowIds = selected
   }
 
@@ -709,10 +934,12 @@ Panel {
 
   function setSelectedRow(index) {
     if (!root.selectableRow(index)) return
+    root.tabStripFocused = false
+    if (root.selectedRowIndex !== index) root.resultActionFocus = ""
     root.selectedRowIndex = index
     root.selectedRowId = root.displayRows[index].rowId
     var selected = Object.assign({}, root.selectedRowIds || {})
-    selected[root.activeDestination] = root.selectedRowId
+    selected[root.resultContextKey(root.activeDestination)] = root.selectedRowId
     root.selectedRowIds = selected
     root.deferResultListCallback(function(list) {
       if (root.selectedRowIndex === index && list.count > index)
@@ -729,6 +956,10 @@ Panel {
       root.openUtility("teams")
     } else if (row.action.type === "browse-leagues") {
       root.selectDestination(root.firstLeagueDestination())
+    } else if (row.action.type === "show-all") {
+      root.setFollowingFilter("all")
+    } else if (row.action.type === "notice-actions") {
+      if (delegate && typeof delegate.activateNoticeCursor === "function") delegate.activateNoticeCursor()
     } else if (row.action.type === "open-detail") {
       root.openGameDetail(row.game)
     } else if (row.action.type === "open-source") {
@@ -766,17 +997,36 @@ Panel {
     if (next >= 0) root.setSelectedRow(next)
   }
 
-  function restoreResultPosition() {
-    var savedId = root.selectedRowIds && root.selectedRowIds[root.activeDestination]
-      ? root.selectedRowIds[root.activeDestination] : ""
+  function restoreResultPosition(forceSavedPosition, frame) {
+    var key = root.resultContextKey(root.activeDestination)
+    var savedId = root.selectedRowIds && root.selectedRowIds[key] ? root.selectedRowIds[key] : ""
     var index = root.rowIndexForId(savedId)
-    root.selectedRowId = savedId
+    root.selectedRowId = index >= 0 ? savedId : ""
     root.selectedRowIndex = index
+    if (index < 0) root.resultActionFocus = ""
     root.deferResultListCallback(function(list) {
-      var savedY = root.scrollPositions && root.scrollPositions[root.activeDestination]
-        ? root.scrollPositions[root.activeDestination] : 0
+      if (key !== root.resultContextKey(root.activeDestination)) return
+      var savedY = root.scrollPositions && root.scrollPositions[key] ? root.scrollPositions[key] : 0
+      var returning = root.pendingResultFocus && root.pendingResultFocus.key === key
+      if (forceSavedPosition === true || root.resultViewportKey !== key || returning)
+        list.contentY = list.originY + Math.max(0, Math.min(savedY, list.contentHeight - list.height))
+      root.resultViewportKey = key
       if (index >= 0) list.positionViewAtIndex(index, ListView.Contain)
-      else list.contentY = Math.max(0, Math.min(savedY, list.contentHeight - list.height))
+      // A virtualized ListView may change originY and estimated item positions
+      // while its hidden viewport resizes. Restore the selected row's actual
+      // screen position after layout, with normalized scroll as the fallback.
+      if (frame && frame.selectedRowId === root.selectedRowId
+          && typeof frame.rowViewportY === "number" && isFinite(frame.rowViewportY)) {
+        for (var pass = 0; pass < 2; pass++) {
+          list.forceLayout()
+          var item = list.itemAtIndex(index)
+          if (!item) break
+          var correction = item.mapToItem(list, 0, 0).y - frame.rowViewportY
+          list.contentY = list.originY + Math.max(0, Math.min(list.contentY - list.originY + correction,
+            Math.max(0, list.contentHeight - list.height)))
+        }
+      }
+      root.restorePendingResultFocus()
     })
   }
 
@@ -801,14 +1051,23 @@ Panel {
   onOpenedChanged: {
     root.syncSharedContext()
     if (!root.opened) {
+      root.navigationStack = []
+      root.pendingResultFocus = null
+      root.resultActionFocus = ""
+      root.utilityReturnContext = null
+      root.closeGameActions()
+      root.upcomingNavigationTransition = true
       upcomingPopup.close()
       if (root.fetchService && typeof root.fetchService.cancelCalendarSchedule === "function")
         root.fetchService.cancelCalendarSchedule()
       root.detailOpen = false
       root.detailGame = null
+      root.settingsOpen = false
       return
     }
     root.nowMs = Date.now()
+    root.upcomingNavigationTransition = false
+    root.followingFilterId = "all"
     root.standingsOpen = false
     root.calendarOpen = false
     root.calendarFavoritesOnly = false
@@ -834,6 +1093,7 @@ Panel {
   }
 
   onSelectedDateKeyChanged: {
+    root.resultActionFocus = ""
     root.selectedRowIndex = -1
     root.selectedRowId = ""
     root.deferPanelCallback(root.restoreResultPosition)
@@ -841,6 +1101,7 @@ Panel {
   }
 
   onActiveDestinationChanged: {
+    root.resultActionFocus = ""
     root.standingsOpen = false
     root.calendarOpen = false
     root.tabCursor = root.destinationIndex(root.activeDestination)
@@ -895,6 +1156,13 @@ Panel {
     root.activeDestination = "following"
 
   function close() {
+    root.navigationStack = []
+    root.pendingResultFocus = null
+    root.resultActionFocus = ""
+    root.utilityReturnContext = null
+    root.closeGameActions()
+    root.upcomingNavigationTransition = true
+    upcomingPopup.close()
     root.choosingStandingsLeague = false
     // The bar remains an ambient current-day indicator; browsing another day
     // is a panel session, so closing returns the next ambient refresh to today.
@@ -929,6 +1197,10 @@ Panel {
   }
 
   function openUtility(destination) {
+    root.utilityReturnContext = root.captureNavigationContext()
+    root.detailOpen = false
+    root.closeGameActions()
+    if (upcomingPopup.opened) root.closeUpcomingForNavigation()
     root.saveResultPosition(root.activeDestination)
     root.utilityReturnTabFocused = root.tabStripFocused
     root.utilityReturnDestination = root.activeDestination
@@ -938,10 +1210,19 @@ Panel {
     root.tabStripFocused = false
     utilityScroll.contentY = 0
     root.recalculatePanelHeight()
+    root.deferPanelCallback(function() {
+      if (root.settingsOpen && !keyCatcher.blocked) keyCatcher.forceActiveFocus()
+    })
   }
 
   function closeUtility() {
     root.settingsOpen = false
+    if (root.utilityReturnContext) {
+      var context = root.utilityReturnContext
+      root.utilityReturnContext = null
+      root.restoreNavigationContext(context)
+      return
+    }
     // The selected league may have been disabled in Settings.
     root.activeDestination = root.tabItems.some(function(item) {
       return item.id === root.utilityReturnDestination
@@ -1112,19 +1393,23 @@ Panel {
       // The installed catcher runs BeforeItem and otherwise consumes panel
       // navigation keys before an active editor can receive them. Let the
       // editor own all keys, including Escape, while it has focus.
-      blocked: upcomingPopup.opened || KeyboardRoutingPolicy.catcherBlocked(
+      blocked: upcomingPopup.opened || root.gameActionsOpen || KeyboardRoutingPolicy.catcherBlocked(
         settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen)
       onCloseRequested: root.detailOpen ? root.closeDetail()
         : root.settingsOpen ? root.closeUtility()
-        : root.calendarOpen ? root.closeCalendar() : root.close()
+        : root.calendarOpen ? root.closeCalendar() : root.navigationStack.length ? root.goBack() : root.close()
       onMoveRequested: function(dx, dy) {
+        root.resultActionFocus = ""
+        root.pendingResultFocus = null
         if (root.detailOpen) {
           if (dy !== 0 || !gameDetailView.scrollLines(dx))
             root.moveDetailCursor(dy !== 0 ? dy : dx)
         }
         else if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
         else if (root.calendarOpen) monthCalendar.moveFocus(dx, dy)
-        else if (dx !== 0) {
+        else if (dx !== 0 && !root.tabStripFocused && root.moveSelectedNotice(dx)) {
+          // A selected status row owns its visible Details/Retry action cursor.
+        } else if (dx !== 0) {
           root.tabStripFocused = true
           root.moveTabCursor(dx)
         }
@@ -1140,7 +1425,7 @@ Panel {
         else if (root.settingsOpen) settingsHub.activateCursor()
         else if (root.calendarOpen) monthCalendar.activateFocused()
         else if (root.tabStripFocused) root.activateTabCursor()
-          else root.activateRow(root.selectedRowIndex)
+        else root.activateResultAction()
       }
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(text) {
@@ -1148,6 +1433,10 @@ Panel {
         if (root.detailOpen) return
         if (root.settingsOpen) {
           settingsHub.handleTextKey(text)
+          return
+        }
+        if (root.followingControlsVisible && (text === "f" || text === "F")) {
+          root.setFollowingFilter(FollowingPresentation.nextFilter(root.followingFilterId))
           return
         }
         if (!root.standingsOpen && (text === "g" || text === "G")) root.openUpcomingCalendar()
@@ -1177,6 +1466,10 @@ Panel {
       // Omarchy handler does not emit semantic signals for these keys.
       Keys.onPressed: function(event) {
         if (keyCatcher.blocked) return
+        if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
+          event.accepted = root.openSelectedGameActions()
+          return
+        }
         if (root.settingsOpen) return
         if (root.detailOpen) {
           if (event.key === Qt.Key_PageDown) gameDetailView.scrollPage(1)
@@ -1230,18 +1523,29 @@ Panel {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         Overlay.modal: Item {}
         background: BorderSurface {
-          color: Color.popups.background
-          borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))
+          color: Commons.Color.popups.background
+          borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2)))
           radius: Style.cornerRadius
         }
         onOpened: root.deferPanelCallback(function() {
-          if (upcomingPopup.opened && root.upcomingTeamOptions.length) upcomingCalendar.focusCalendar()
+          if (!upcomingPopup.opened) return
+          if (root.upcomingReturnContext) {
+            var context = root.upcomingReturnContext
+            root.upcomingReturnContext = null
+            upcomingCalendar.restoreContext(context)
+          } else if (root.upcomingTeamOptions.length) upcomingCalendar.focusCalendar()
         })
         onClosed: {
+          root.upcomingReturnContext = null
+          upcomingCalendar.pendingContext = null
           if (root.fetchService && typeof root.fetchService.cancelUpcoming === "function")
             root.fetchService.cancelUpcoming(root.panelToken)
+          var navigating = root.upcomingNavigationTransition
+          root.upcomingNavigationTransition = false
+          if (!navigating && root.opened && root.navigationStack.length) root.goBack()
           root.deferPanelCallback(function() {
-            if (root.opened && !root.settingsOpen) keyCatcher.forceActiveFocus()
+            if (root.opened && !root.settingsOpen && !root.detailOpen && !upcomingPopup.opened)
+              keyCatcher.forceActiveFocus()
           })
         }
 
@@ -1261,7 +1565,7 @@ Panel {
               font.family: Typography.family
               font.pixelSize: Style.font.subtitle
               font.bold: true
-              color: Color.popups.text
+              color: Commons.Color.popups.text
               elide: Text.ElideRight
             }
             SemanticActionButton {
@@ -1273,19 +1577,19 @@ Panel {
               textFontSize: Style.font.caption
               tooltipText: "Choose followed leagues"
               focusable: true
-              onClicked: { upcomingPopup.close(); root.openUtility("sports") }
+              onClicked: root.openUtility("sports")
               Accessible.name: "Choose followed leagues in Sports & leagues"
               Accessible.role: Accessible.Button
             }
             SemanticActionButton {
               id: upcomingClose
               anchors.right: parent.right
-              iconName: "close"
-              fallbackText: "X"
-              tooltipText: "Close calendar"
+              iconName: root.navigationStack.length ? "chevronLeft" : "close"
+              fallbackText: root.navigationStack.length ? "<" : "X"
+              tooltipText: root.navigationStack.length ? root.returnLabel : "Close calendar"
               focusable: true
               onClicked: upcomingPopup.close()
-              Accessible.name: "Close calendar"
+              Accessible.name: upcomingClose.tooltipText
               Accessible.role: Accessible.Button
             }
           }
@@ -1295,27 +1599,35 @@ Panel {
             height: Math.max(0, upcomingPopup.availableHeight - upcomingHeading.height - parent.spacing)
             teamOptions: root.upcomingTeamOptions
             teamId: root.upcomingTeamId
+            globalSelectionEmpty: root.followedLeagueIds.filter(function(id) {
+              return root.enabledLeagues.indexOf(id) !== -1
+            }).length === 0
             selectedDateKey: root.upcomingTeamId ? root.upcomingWindowStart : root.upcomingBrowseDate
             todayDateKey: root.todayDateKey
+            currentTime: root.nowMs
             monthKey: root.upcomingMonthKey
             scheduleState: root.upcomingScheduleState
             imageStore: root.logoImageStore
             onTeamSelected: function(teamId) {
+              upcomingCalendar.pendingContext = null
               root.upcomingTeamId = teamId
               if (teamId) root.upcomingWindowStart = root.todayDateKey
               root.requestUpcoming(false)
             }
             onMonthRequested: function(monthKey) {
+              upcomingCalendar.pendingContext = null
               root.upcomingMonthKey = monthKey
               root.upcomingBrowseDate = monthKey
               root.requestUpcoming(false)
             }
             onDaySelected: function(dateKey) {
+              upcomingCalendar.pendingContext = null
               root.upcomingBrowseDate = dateKey
               root.upcomingMonthKey = CalendarModel.monthKey(dateKey)
               root.requestUpcoming(false)
             }
             onWindowRequested: function(startDateKey) {
+              upcomingCalendar.pendingContext = null
               root.upcomingWindowStart = startDateKey
               root.requestUpcoming(false)
             }
@@ -1353,7 +1665,7 @@ Panel {
               : DateModel.shortDateLabel(root.selectedDateKey)
             font.family: Typography.family
             font.pixelSize: Style.font.title
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             font.bold: true
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
@@ -1364,6 +1676,17 @@ Panel {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: header.spacing
+
+            SemanticActionButton {
+              visible: root.navigationStack.length > 0 && !root.settingsOpen && !root.detailOpen
+              iconName: "chevronLeft"
+              fallbackText: "<"
+              tooltipText: root.returnLabel
+              focusable: true
+              onClicked: root.goBack()
+              Accessible.name: root.returnLabel
+              Accessible.role: Accessible.Button
+            }
 
             SemanticActionButton {
             id: todayButton
@@ -1558,7 +1881,7 @@ Panel {
                 id: dateNavigation
                 width: parent.width
                 visible: !root.calendarOpen && !root.standingsOpen
-                height: visible ? dateCarousel.implicitHeight : 0
+                height: !root.calendarOpen && !root.standingsOpen ? dateCarousel.implicitHeight : 0
 
                 DateCarousel {
                   id: dateCarousel
@@ -1620,7 +1943,7 @@ Panel {
               Item {
                 id: tabStrip
                 width: parent.width
-                height: visible ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0
+                height: !root.calendarOpen ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0
                 visible: !root.calendarOpen
 
                 SemanticIcon {
@@ -1631,7 +1954,7 @@ Panel {
                   height: width
                   iconName: Iconography.iconNameForLeague(root.activeDestination)
                   fontSize: Style.font.subtitle
-                  color: Color.accent
+                  color: Commons.Color.accent
                   decorative: true
                 }
 
@@ -1652,6 +1975,15 @@ Panel {
                   Accessible.role: Accessible.ComboBox
                   Accessible.onPressAction: leaguePicker.open()
                 }
+              }
+
+              FollowingOverview {
+                id: followingOverview
+                width: parent.width
+                visible: root.followingControlsVisible
+                height: root.followingControlsVisible ? implicitHeight : 0
+                projection: root.followingProjection
+                onFilterSelected: function(filterId) { root.setFollowingFilter(filterId) }
               }
             }
 
@@ -1717,7 +2049,7 @@ Panel {
                       height: modelData && modelData.kind === "section-header" ? font.pixelSize : 0
                       visible: modelData && modelData.kind === "section-header"
                       text: modelData.label || "Scores"
-                      color: Color.accent
+                      color: UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
                       font.family: Typography.family
                       font.pixelSize: Style.font.caption
                       font.bold: true
@@ -1751,7 +2083,26 @@ Panel {
                       featured: Boolean(gameValue.presentation
                         && gameValue.presentation.isFavorite
                         && gameValue.presentation.isLive)
-                      onPrimaryActionRequested: root.openGameDetail(gameValue)
+                      onPrimaryActionRequested: {
+                        root.setSelectedRow(index)
+                        root.resultActionFocus = ""
+                        root.openGameDetail(gameValue)
+                      }
+                      onTeamScheduleRequested: function(teamId) {
+                        root.setSelectedRow(index)
+                        root.resultActionFocus = "team:" + teamId
+                        root.openTeamSchedule(teamId, root.resultActionFocus)
+                      }
+                      onPopupOpenChanged: {
+                        if (popupOpen) {
+                          root.setSelectedRow(index)
+                          root.activeGameActionsRow = gameRow
+                          root.resultActionFocus = "actions"
+                        }
+                      }
+                      onFocusReturnRequested: root.deferPanelCallback(function() {
+                        if (!keyCatcher.blocked) keyCatcher.forceActiveFocus()
+                      })
                     }
 
                     LeagueStatus {
@@ -1761,7 +2112,9 @@ Panel {
                       visible: modelData && modelData.kind === "status"
                       status: statusValue
                       currentTime: root.nowMs
+                      hasCursor: root.selectedRowId === modelData.rowId && !root.tabStripFocused
                       onRetry: root.refresh()
+                      onContentFocusRequested: root.revealNotice(index)
                     }
 
                     StandingsStatus {
@@ -1773,7 +2126,9 @@ Panel {
                         || modelData.kind === "standings-status" || modelData.kind === "standings-empty")
                       row: modelData
                       currentTime: root.nowMs
+                      hasCursor: root.selectedRowId === modelData.rowId && !root.tabStripFocused
                       onRetry: root.refresh()
+                      onContentFocusRequested: root.revealNotice(index)
                     }
 
                     LoadingState {
@@ -1789,8 +2144,8 @@ Panel {
                       width: parent.width
                       height: modelData && modelData.kind === "empty" ? emptyColumn.implicitHeight + Style.spacing.md * 2 : 0
                       visible: modelData && modelData.kind === "empty"
-                      color: Util.alpha(Color.popups.background, 0.72)
-                      borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
+                      color: Util.alpha(Commons.Color.popups.background, 0.72)
+                      borderSpec: Border.controlSpec("normal", Commons.Color.popups.text, Commons.Color.accent)
                       radius: Style.cornerRadius
 
                       Column {
@@ -1803,7 +2158,7 @@ Panel {
                           textFormat: Text.PlainText
                           width: parent.width
                           text: modelData.title || modelData.text || "No games on this date"
-                          color: Color.popups.text
+                          color: Commons.Color.popups.text
                           font.family: Typography.family
                           font.pixelSize: Style.font.subtitle
                           font.bold: Boolean(modelData.title)
@@ -1815,7 +2170,7 @@ Panel {
                           width: parent.width
                           text: modelData.title ? modelData.text : ""
                           visible: text !== ""
-                          color: Qt.alpha(Color.popups.text, 0.85)
+                          color: Qt.alpha(Commons.Color.popups.text, 0.85)
                           font.family: Typography.family
                           font.pixelSize: Style.font.bodySmall
                           wrapMode: Text.WordWrap
@@ -1826,7 +2181,7 @@ Panel {
                           width: parent.width
                           text: modelData.supportingText || ""
                           visible: text !== ""
-                          color: Color.accent
+                          color: UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
                           font.family: Typography.family
                           font.pixelSize: Style.font.caption
                         }
@@ -1865,6 +2220,11 @@ Panel {
                       selected: root.selectedRowId === (modelData ? modelData.rowId : "")
                       settings: root.settingsStore
                       imageStore: root.logoImageStore
+                      onTeamScheduleRequested: function(teamId) {
+                        root.setSelectedRow(index)
+                        root.resultActionFocus = "team:" + teamId
+                        root.openTeamSchedule(teamId, root.resultActionFocus)
+                      }
                     }
                   }
 
@@ -1877,6 +2237,9 @@ Panel {
                       if (!PointerInteractionPolicy.allowsRowActivation(parent.nestedActionPressed)) return
                       root.setSelectedRow(index)
                       if (modelData.kind !== "standings") root.activateRow(index)
+                      else root.deferPanelCallback(function() {
+                        if (!keyCatcher.blocked) keyCatcher.forceActiveFocus()
+                      })
                     }
                   }
 
@@ -1894,6 +2257,28 @@ Panel {
                     else if (modelData.action && modelData.action.type === "retry")
                       root.refresh()
                   }
+
+                  function openGameActions() {
+                    if (modelData.kind !== "game") return false
+                    gameRow.openActions()
+                    return true
+                  }
+                  function restoreActionFocus(focusId) {
+                    if (focusId.indexOf("team:") === 0) {
+                      if (modelData.kind === "game") gameRow.focusTeam(focusId.slice(5))
+                      else if (modelData.kind === "standings") standingsRow.focusTeam()
+                    } else if (focusId === "actions" && modelData.kind === "game") gameRow.focusActions()
+                  }
+                  function moveNoticeCursor(delta) {
+                    if (modelData.kind === "status") return leagueStatus.moveCursor(delta)
+                    if (modelData.kind === "standings-status") return standingsStatus.moveCursor(delta)
+                    return false
+                  }
+                  function activateNoticeCursor() {
+                    if (modelData.kind === "status") leagueStatus.activateCursor()
+                    else if (modelData.kind === "standings-status") standingsStatus.activateCursor()
+                    root.revealNotice(index)
+                  }
                 }
               }
 
@@ -1908,10 +2293,11 @@ Panel {
                 anchors.margins: Style.spacing.sm
                 visible: root.activeView && root.activeView.loading === true
                   && root.resultRows.some(function(row) { return row.kind === "game" })
+                  && !root.resultRows.some(function(row) { return row.kind === "status" })
                 z: 2
                 height: refreshToastRow.implicitHeight + Style.spacing.sm * 2
-                color: Util.alpha(Color.popups.background, 0.94)
-                borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
+                color: Util.alpha(Commons.Color.popups.background, 0.94)
+                borderSpec: Border.controlSpec("normal", Commons.Color.popups.text, Commons.Color.accent)
                 radius: Style.cornerRadius
 
                 Row {
@@ -1928,15 +2314,15 @@ Panel {
                     height: width
                     iconName: "refresh"
                     fontSize: Style.font.bodySmall
-                    color: Color.accent
+                    color: Commons.Color.accent
                     decorative: true
                   }
 
                   Text {
                     textFormat: Text.PlainText
                     width: parent.width - refreshToastRow.spacing - Style.space(18)
-                    text: "Refreshing scores…"
-                    color: Color.popups.text
+                    text: "Updating scores…"
+                    color: Commons.Color.popups.text
                     font.family: Typography.family
                     font.pixelSize: Style.font.bodySmall
                     elide: Text.ElideRight
@@ -1944,7 +2330,7 @@ Panel {
                   }
                 }
 
-              Accessible.name: "Refreshing scores"
+              Accessible.name: "Updating scores"
               Accessible.role: Accessible.StaticText
             }
 
@@ -1960,9 +2346,13 @@ Panel {
             game: root.detailState.game
             updateMessage: root.detailState.message
             stale: root.detailState.stale
+            loading: root.detailState.loading
+            lastSuccessAt: root.detailState.lastSuccessAt
             settingsStore: root.settingsStore
             currentTime: root.ambientNowMs
             onBackRequested: root.closeDetail()
+            onTeamScheduleRequested: function(teamId) { root.openTeamSchedule(teamId) }
+            onRefreshRequested: root.refresh()
           }
         }
       }

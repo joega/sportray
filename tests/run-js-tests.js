@@ -1678,7 +1678,7 @@ test("panel presentation keeps canonical favorites when its QML import has no re
 
 test("score rows reserve theme focus chrome while keeping scores calm", () => {
   const source = readSource("components/GameRow.qml");
-  assert.match(source, /Border\.controlSpec\("focus", Color\.popups\.text, Color\.accent\)/);
+  assert.match(source, /Commons\.Border\.controlSpec\("focus", Commons\.Color\.popups\.text, Commons\.Color\.accent\)/);
   assert.match(source, /color: "transparent"/);
   assert.doesNotMatch(source, /color: root\.live \? Color\.urgent/);
   assert.match(source, /font\.features: \(\{"tnum": 1\}\)/);
@@ -1689,8 +1689,10 @@ test("score context has its own wrapping row above reachable actions", () => {
   assert.match(source, /readonly property string venueLabel: root\.venueName \? "At " \+ root\.venueName : ""/);
   assert.match(source, /root\.venueName \? "At " \+ root\.venueName/);
   assert.match(source, /Column \{\s+id: footer/);
+  assert.match(source, /GameActions \{/);
+  assert.match(readSource("components/GameActions.qml"), /QQC\.Popup/);
   assert.match(source, /id: detailText[\s\S]*?width: parent\.width[\s\S]*?wrapMode: Text\.WordWrap/);
-  assert.match(source, /id: actionsRow[\s\S]*?anchors\.right: parent\.right/);
+  assert.match(source, /GameActions \{[\s\S]*?anchors\.right: parent\.right/);
   assert.doesNotMatch(source, /anchors\.right: actionsRow\.left/);
 });
 
@@ -1706,7 +1708,8 @@ test("game cards expose normalized provider source links", () => {
   const gameRow = readSource("components/GameRow.qml");
   const nextGameCard = readSource("components/NextGameCard.qml");
   const sourceButton = readSource("components/SourceLinkButton.qml");
-  assert.equal(gameRow.includes("SourceLinkButton {"), true);
+  assert.equal(gameRow.includes("GameActions {"), true);
+  assert.equal(readSource("components/GameActions.qml").includes("SourceLinkButton {"), true);
   assert.equal(nextGameCard.includes("SourceLinkButton {"), true);
   assert.equal(sourceButton.includes("root.game.link"), true);
   assert.equal(sourceButton.includes("omarchy-launch-browser"), true);
@@ -2138,7 +2141,7 @@ test("standings columns use existing sport metrics with aligned bounded table ge
   assert.equal(view.metricValue({}, "points"), "—");
 });
 
-test("standings rows keep existing favorite routing and expose bounded actions", () => {
+test("standings rows open team schedules while the explicit star keeps favorite routing", () => {
   const result = espn.parseStandingsResponse(readStandingsFixture(), "nfl");
   const rows = standingsRows.flatten(result, ["nfl:17"]);
   assert.deepEqual(rows.map((row) => row.kind), [
@@ -2146,15 +2149,15 @@ test("standings rows keep existing favorite routing and expose bounded actions",
   ]);
   assert.equal(rows[1].favorite, true);
   assert.deepEqual(rows[1].action,
-    {type: "toggle-favorite-team", label: "Remove favorite", enabled: true});
+    {type: "open-team-schedule", label: "Open team schedule", enabled: true});
   assert.deepEqual(rows[2].action,
-    {type: "toggle-favorite-team", label: "Add favorite", enabled: true});
+    {type: "open-team-schedule", label: "Open team schedule", enabled: true});
   const source = readSource("components/StandingsRow.qml");
   assert.equal(source.includes("root.settings.toggleFavoriteTeam(root.standing.team.id)"), true);
   const nhlRows = standingsRows.flatten(nhl.parseStandingsResponse(readNhlStandingsFixture()), ["nhl:12"]);
   assert.equal(nhlRows[1].favorite, true);
   assert.deepEqual(nhlRows[1].action,
-    {type: "toggle-favorite-team", label: "Remove favorite", enabled: true});
+    {type: "open-team-schedule", label: "Open team schedule", enabled: true});
   const fetch = readSource("services/StandingsFetch.qml");
   assert.equal(fetch.includes('import "../providers/NhlProvider.js" as NhlProvider'), true);
   assert.equal(fetch.includes('import "../model/StandingsModel.js" as StandingsModel'), true);
@@ -2596,7 +2599,7 @@ test("loaded game rows route to local detail while keeping the safe source actio
   const source = readSource("components/SourceLinkButton.qml");
   assert.match(source, /ProviderUrlPolicy\.safeGameUrl\(root\.sourceUrl\)/);
   assert.match(panel, /function openGameDetail\(game\)/);
-  assert.match(panel, /onPrimaryActionRequested: root\.openGameDetail\(gameValue\)/);
+  assert.match(panel, /onPrimaryActionRequested: \{\s+root\.setSelectedRow\(index\)\s+root\.resultActionFocus = ""\s+root\.openGameDetail\(gameValue\)/);
   assert.match(gameRow, /if \(root\.game && root\.game\.isValid === true\) root\.primaryActionRequested\(\)/);
   assert.match(detail, /GameDetailModel\.normalizeDetail\(root\.game, root\.sourceMetadata\)/);
   assert.match(detail, /SourceLinkButton \{/);
@@ -3712,10 +3715,11 @@ test("W3 wires one bounded watch action through rows, detail, and SettingsStore"
   assert.equal(action.includes("Accessible.name: root.available"), true);
   assert.equal(action.includes("enabled: root.available"), true);
   assert.equal(action.includes("onClicked: root.activate()"), true);
-  assert.equal(row.includes("WatchAction {"), true);
+  assert.equal(row.includes("GameActions {"), true);
+  assert.equal(readSource("components/GameActions.qml").includes("WatchAction {"), true);
   assert.equal(row.includes("settingsStore: root.settingsStore"), true);
   assert.equal(detail.includes("WatchAction {"), true);
-  assert.equal(detail.includes("root.cursorIndex === 1) watchAction.activate()"), true);
+  assert.equal(detail.includes('action.id === "watch") watchAction.activate()'), true);
   assert.equal(store.includes("function toggleWatch(game)"), true);
   assert.equal(store.includes("WatchPolicy.removeExpired"), true);
   assert.equal(store.includes("WatchPolicy.createWatch"), true);
@@ -4264,7 +4268,7 @@ test("U3.1 gives actionable rows typed primary actions and safe fallbacks", () =
   assert.equal(panel.includes("StandingsRow {"), true);
   assert.equal(gameRow.includes(
     "Accessible.role: root.game && root.game.isValid === true ? Accessible.Button : Accessible.StaticText"), true);
-  assert.equal(gameRow.includes("External game page unavailable."), true);
+  assert.equal(readSource("components/GameActions.qml").includes("External game page unavailable"), true);
   assert.equal(status.includes("Accessible.role: root.status.loading ? Accessible.StaticText : Accessible.Button"), true);
   assert.equal(nextCard.includes("Accessible.name: \"Next game: \""), true);
   assert.equal(picker.includes("Accessible.role: Accessible.CheckBox"), true);
@@ -4338,8 +4342,8 @@ test("nested pointer actions keep their tap out of the enclosing result row", ()
   assert.match(panel, /if \(!PointerInteractionPolicy\.allowsRowActivation\(parent\.nestedActionPressed\)\) return/);
   assert.match(action, /readonly property bool pointerPressed: actionMouse\.pressed/);
   assert.match(source, /readonly property bool pointerPressed: action\.pointerPressed/);
-  assert.match(gameRow, /readonly property bool childActionPressed: sourceLink\.pointerPressed/);
-  assert.match(status, /readonly property bool pointerPressed: retryMouse\.pressed/);
+  assert.match(gameRow, /readonly property bool childActionPressed: gameActions\.pointerPressed \|\| awayLink\.pointerPressed \|\| homeLink\.pointerPressed/);
+  assert.match(status, /readonly property bool pointerPressed: noticeView\.pointerPressed/);
   assert.match(nextCard, /sourceLink\.pointerPressed \|\| jumpButton\.pointerPressed/);
 });
 
@@ -4357,7 +4361,7 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   const panel = readSource("Panel.qml");
   const hub = readSource("components/SettingsHub.qml");
   const picker = readSource("components/TeamPicker.qml");
-  assert.match(panel, /blocked: upcomingPopup\.opened \|\| KeyboardRoutingPolicy\.catcherBlocked\(/);
+  assert.match(panel, /blocked: upcomingPopup\.opened \|\| root\.gameActionsOpen \|\| KeyboardRoutingPolicy\.catcherBlocked\(/);
   assert.match(panel, /settingsHub\.inputActive, sportsPicker && sportsPicker\.popupOpen/);
   assert.match(hub, /onEscapeRequested: root\.escapeRequested\(\)/);
   assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
@@ -4676,7 +4680,7 @@ test("horizontal overlay anchors to its button and clamps at the screen edge", (
   assert.equal(panel.includes("anchors.right: parent.right"), true);
   assert.equal(panel.includes("function measuredPanelContentRequest()"), true);
   assert.equal(panel.includes("resultList.contentHeight"), true);
-  assert.equal(panel.includes("height: visible ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0"), true);
+  assert.equal(panel.includes("height: !root.calendarOpen ? (sportsPicker ? sportsPicker.implicitHeight : 0) : 0"), true);
   assert.equal(panel.includes("readonly property var sportsPicker: leaguePicker"), true);
   assert.equal(panel.includes("id: leaguePicker"), true);
   assert.equal(panel.includes("readonly property var sportsPicker: null"), false);
@@ -4698,13 +4702,13 @@ test("U2.2 groups every normalized game state into a provider-neutral slate", ()
   };
   const rows = resultRows.flatten(view, "nhl");
   assert.deepEqual(rows.filter((row) => row.kind === "section-header").map((row) => row.label),
-    ["Live", "Upcoming", "Final", "Unavailable"]);
+    ["Live", "Upcoming", "Schedule changes", "Final", "Unavailable"]);
   assert.equal(rows.filter((row) => row.kind === "game").length, games.length);
   assert.equal(rows.filter((row) => row.kind === "game")[0].game.id, games[0].id);
   assert.equal(rows.filter((row) => row.kind === "game").every((row) => row.stale), true);
   assert.equal(resultRows.slateBucket({status: "intermission"}), "live");
-  assert.equal(resultRows.slateBucket({status: "postponed"}), "upcoming");
-  assert.equal(resultRows.slateBucket({status: "canceled"}), "upcoming");
+  assert.equal(resultRows.slateBucket({status: "postponed"}), "changes");
+  assert.equal(resultRows.slateBucket({status: "canceled"}), "changes");
   assert.equal(resultRows.slateBucket({status: "final"}), "final");
   assert.equal(resultRows.slateBucket({status: "unknown"}), "unavailable");
 
@@ -4751,7 +4755,7 @@ test("U2.2 GameRow keeps logos optional while reserving stable team and score co
   assert.equal(source.includes("visible: !homeLogo.visible"), true);
   assert.equal(source.includes("Formatters.isWinningTeam"), true);
   assert.equal(source.includes("STALE"), false);
-  assert.equal(source.includes("provider"), false);
+  assert.equal(source.includes("game.provider"), false);
 });
 
 test("U3.2 annotates each followed side and adds league context only to mixed Following", () => {
@@ -4833,6 +4837,8 @@ test("U3.4 reserves a reachable trailing source action in mixed Following rows",
   });
 
   assert.match(source, /Column \{\s+id: footer/);
+  assert.match(source, /GameActions \{/);
+  assert.match(readSource("components/GameActions.qml"), /QQC\.Popup/);
   assert.match(source, /anchors\.right: parent\.right/);
   assert.match(source, /id: detailText[\s\S]*?width: parent\.width[\s\S]*?wrapMode: Text\.WordWrap/);
   assert.match(sourceButton, /focusable: true/);
@@ -4858,7 +4864,7 @@ test("U3.2 keeps every scoreboard state textual and separates stale age from sta
   assert.equal(source.includes('text: root.awayIsFavorite ? "★" : ""'), true);
   assert.equal(source.includes('text: root.homeIsFavorite ? "★" : ""'), true);
   assert.equal(source.includes("font.underline: root.awayIsFavorite"), false);
-  assert.equal(source.includes("font.bold: root.awayIsFavorite"), true);
+  assert.equal(source.includes("bold: root.awayIsFavorite"), true);
   assert.equal(source.includes("showLeagueContext"), true);
   assert.equal(source.includes("root.stateLabel"), true);
 });
@@ -4935,7 +4941,7 @@ test("U3.3 keeps sparse states compact while dense and utility views stay bounde
   assert.equal(loadingState.includes("model: 2"), true);
   assert.equal(loadingState.includes("Behavior on opacity"), false);
   assert.equal(panel.includes("id: refreshToast"), true);
-  assert.equal(panel.includes('text: "Refreshing scores…"'), true);
+  assert.equal(panel.includes('text: "Updating scores…"'), true);
   assert.equal(panel.includes("root.resultRows.some(function(row) { return row.kind === \"game\" })"), true);
 });
 
@@ -6388,7 +6394,7 @@ test("calendar projection adds no new fetch ownership or provider parsing", () =
   assert.match(panel, /scoreChrome\.implicitHeight \+ Style\.spacing\.md/);
   assert.match(panel, /resultList\.contentHeight/);
   assert.match(panel, /height: root\.calendarOpen \? implicitHeight : 0/);
-  assert.equal(panel.includes(": root.calendarOpen ? root.closeCalendar() : root.close()"), true);
+  assert.equal(panel.includes(": root.calendarOpen ? root.closeCalendar() : root.navigationStack.length ? root.goBack() : root.close()"), true);
   assert.equal(panel.includes('root.toggleCalendar()'), true);
   assert.equal(panel.includes('root.toggleCalendarFilter()'), true);
 
@@ -7162,8 +7168,9 @@ test("source links, logos, aggregate updates, and favorite checks stay bounded",
   const gameRow = readSource("components/GameRow.qml");
   assert.equal((gameRow.match(/sourceSize:/g) || []).length >= 2, true);
   assert.equal((gameRow.match(/cache: true/g) || []).length >= 2, true);
-  assert.equal(gameRow.includes("text: root.awayLabel\n            textFormat: Text.PlainText"), true);
-  assert.equal(gameRow.includes("text: root.homeLabel\n            textFormat: Text.PlainText"), true);
+  assert.match(gameRow, /TeamScheduleLink \{[\s\S]*text: root\.awayLabel/);
+  assert.match(readSource("components/TeamScheduleLink.qml"), /textFormat: Text\.PlainText/);
+  assert.match(gameRow, /TeamScheduleLink \{[\s\S]*text: root\.homeLabel/);
   assert.match(gameRow, /id: detailText[\s\S]*?textFormat: Text\.PlainText/);
 
   const strip = readSource("components/TicketStrip.qml");
@@ -7225,6 +7232,11 @@ test("standings states retain tables and expose only available retry actions", (
   });
 });
 
-for (const suite of ["test-ticket-model.js", "test-ui-contrast.js"]) require(path.join(__dirname, suite));
+// Focused UI policies run under the standard deterministic acceptance command.
+// Each suite also remains directly runnable during isolated development.
+for (const suite of ["test-following-presentation.js", "test-navigation-context.js",
+    "test-notice-presentation.js", "test-ticket-model.js", "test-ui-contrast.js"]) {
+  require(path.join(__dirname, suite));
+}
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

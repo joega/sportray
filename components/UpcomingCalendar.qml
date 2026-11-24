@@ -6,7 +6,9 @@ import qs.Ui
 import "../model/CalendarModel.js" as CalendarModel
 import "../model/DateModel.js" as DateModel
 import "../model/UiTypography.js" as Typography
+import "../model/UiContrast.js" as UiContrast
 import "../model/LifecyclePolicy.js" as LifecyclePolicy
+import "../model/NoticePresentation.js" as NoticePresentation
 
 // Calendar and team agenda presentation of normalized schedule entries. The shared schedule
 // owner supplies coverage and data; this view emits navigation intent only.
@@ -16,12 +18,15 @@ FocusScope {
   property var teamOptions: []
   property string teamId: ""
   property bool globalMode: root.teamId === ""
+  property bool globalSelectionEmpty: false
   property string selectedDateKey: ""
   property string todayDateKey: ""
+  property double currentTime: Date.now()
   property string monthKey: ""
   property var scheduleState: ({})
   property var imageStore: null
   property string focusedDateKey: ""
+  property var pendingContext: null
   readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
   readonly property string displayedMonthKey: CalendarModel.monthKey(root.monthKey
     || root.selectedDateKey || root.todayDateKey)
@@ -76,6 +81,23 @@ FocusScope {
     if (!root.globalMode && !root.upcomingEntries.length) return "No upcoming games are listed in this schedule."
     return ""
   }
+  readonly property var notice: NoticePresentation.noticeFor({
+    kind: "schedule", contextKey: root.globalMode ? "global:" + root.selectedDateKey
+      : "team:" + root.teamId + ":" + root.windowStartKey,
+    loading: root.loading || !root.stateMatchesTeam,
+    hasData: root.stateMatchesTeam && root.scheduleState.hasData === true && !root.entriesOverflow,
+    stale: root.stateMatchesTeam && root.scheduleState.stale === true,
+    partial: root.stateMatchesTeam && root.scheduleState.partial === true,
+    failed: root.requestFailed || root.entriesOverflow,
+    emptySelection: root.globalMode && root.globalSelectionEmpty,
+    unloaded: root.globalMode && !root.globalDayLoaded && !root.loading,
+    empty: !root.globalMode && root.stateMatchesTeam && root.scheduleState.hasData === true
+      && !root.upcomingEntries.length,
+    summary: !root.globalMode && !root.upcomingEntries.length ? "No upcoming games listed" : "",
+    errorSummary: root.entriesOverflow ? "Schedule unavailable. Retry to load it again."
+      : root.stateMatchesTeam ? root.scheduleState.errorSummary || "" : "",
+    lastSuccessAt: root.stateMatchesTeam ? root.scheduleState.lastSuccessAt || "" : ""
+  }, root.currentTime)
 
   signal teamSelected(string teamId)
   signal monthRequested(string monthKey)
@@ -214,11 +236,64 @@ FocusScope {
     var owner = root.callbackOwner
     var generation = LifecyclePolicy.captureGeneration(owner)
     Qt.callLater(function() {
-      if (LifecyclePolicy.canRun(owner, generation) && root.visible) callback()
+      if (owner && owner.alive === true && owner.generation === generation && root.visible) callback()
+    })
+  }
+
+  function captureContext() {
+    var focusKind = jumpButton.activeFocus ? "next" : root.inputActive ? "selector" : "dates"
+    var gameId = ""
+    for (var i = 0; i < root.agendaEntries.length; i++) {
+      var row = agendaRepeater.itemAt(i)
+      if (row && row.activeFocus) { focusKind = "agenda"; gameId = row.modelData.game.id; break }
+    }
+    if (scheduleNotice.activeFocus) focusKind = "notice"
+    return {teamId: root.teamId, selectedDateKey: root.selectedDateKey,
+      scrollY: viewport.contentY, focusedDateKey: root.focusedDateKey,
+      focusKind: focusKind, gameId: gameId, noticeExpanded: scheduleNotice.expanded,
+      noticeAction: scheduleNotice.activeAction}
+  }
+
+  function restoreContext(context) {
+    if (!context) return
+    root.pendingContext = context
+    root.restorePendingContext()
+  }
+
+  function restorePendingContext() {
+    var context = root.pendingContext
+    if (!context || !root.visible || !root.stateMatchesTeam || root.loading) return
+    if (context.teamId !== root.teamId || context.selectedDateKey !== root.selectedDateKey) {
+      root.pendingContext = null
+      return
+    }
+    if (root.globalMode && root.scheduleState.dateKey !== root.selectedDateKey
+        && root.scheduleState.failed !== true) return
+    if (!root.globalMode && root.scheduleState.coverageStart !== root.selectedDateKey
+        && root.scheduleState.failed !== true) return
+    root.focusedDateKey = DateModel.isDateKey(context.focusedDateKey) ? context.focusedDateKey : root.selectedDateKey
+    scheduleNotice.expanded = context.noticeExpanded === true
+    scheduleNotice.activeAction = context.noticeAction || ""
+    root.defer(function() {
+      if (root.pendingContext !== context || !root.stateMatchesTeam || root.loading) return
+      var target = root.globalMode ? calendarKeys : root.nextEntry ? jumpButton : teamPicker
+      if (context.focusKind === "next" && root.nextEntry) target = jumpButton
+      else if (context.focusKind === "selector") target = teamPicker
+      else if (context.focusKind === "notice" && root.notice.visible) target = scheduleNotice
+      else if (context.focusKind === "agenda") {
+        for (var i = 0; i < root.agendaEntries.length; i++) {
+          if (root.agendaEntries[i].game.id === context.gameId) { target = agendaRepeater.itemAt(i); break }
+        }
+      }
+      if (target) target.forceActiveFocus()
+      viewport.contentY = Math.max(0, Math.min(Number(context.scrollY) || 0,
+        Math.max(0, viewport.contentHeight - viewport.height)))
+      root.pendingContext = null
     })
   }
 
   function focusCalendar() {
+    if (root.pendingContext) { root.restorePendingContext(); return }
     if (teamPicker.popupOpen) return
     if (!DateModel.isDateKey(root.focusedDateKey) || root.dateKeys.indexOf(root.focusedDateKey) === -1)
       root.focusedDateKey = root.dateKeys.indexOf(root.selectedDateKey) !== -1 ? root.selectedDateKey
@@ -252,7 +327,7 @@ FocusScope {
     var top = item.mapToItem(viewport, 0, 0).y
     var bottom = top + item.height
     if (top < 0) viewport.contentY = Math.max(0, viewport.contentY + top)
-    else if (bottom > viewport.height)
+    else if (item.height <= viewport.height && bottom > viewport.height)
       viewport.contentY = Math.max(0, Math.min(viewport.contentHeight - viewport.height,
         viewport.contentY + bottom - viewport.height))
   }
@@ -271,19 +346,21 @@ FocusScope {
     // caller-owned selection changes visible after that binding is replaced.
     if (teamPicker && teamPicker.value !== root.teamId) teamPicker.value = root.teamId
   }
+  onScheduleStateChanged: if (root.pendingContext) root.defer(root.restorePendingContext)
   onVisibleChanged: if (visible) root.defer(root.focusCalendar)
   Component.onCompleted: root.defer(root.focusCalendar)
   Component.onDestruction: LifecyclePolicy.invalidate(root.callbackOwner)
 
   Keys.priority: Keys.BeforeItem
   Keys.onPressed: function(event) {
+    root.pendingContext = null
     if (teamPicker.popupOpen) return
     if (event.key === Qt.Key_Escape) {
       root.closeRequested()
       event.accepted = true
       return
     }
-    if (root.inputActive) return
+    if (root.inputActive || scheduleNotice.activeFocus) return
     if (!root.globalMode) {
       if (event.key === Qt.Key_PageUp) root.changeWindow(-1)
       else if (event.key === Qt.Key_PageDown) root.changeWindow(1)
@@ -314,6 +391,8 @@ FocusScope {
 
   Item { id: calendarKeys; focus: true; activeFocusOnTab: true }
 
+  TapHandler { onPressedChanged: if (pressed) root.pendingContext = null }
+
   Flickable {
     id: viewport
     anchors.fill: parent
@@ -322,6 +401,7 @@ FocusScope {
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     interactive: contentHeight > height
+    onMovementStarted: root.pendingContext = null
     QQC.ScrollBar.vertical: QQC.ScrollBar { policy: QQC.ScrollBar.AsNeeded }
 
     Column {
@@ -374,7 +454,8 @@ FocusScope {
                   && root.nextEntry.game.status === "intermission" ? "Intermission"
                 : root.completeFromAnchor ? "Next up" : "Next listed game"
               textFormat: Text.PlainText
-              color: Commons.Color.accent
+              color: UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text,
+                UiContrast.composite(nextCard.color, Commons.Color.popups.background))
               font.family: Typography.family
               font.pixelSize: Commons.Style.font.bodySmall
               font.weight: Font.DemiBold
@@ -555,7 +636,9 @@ FocusScope {
               y: Commons.Style.spacing.xxs
               text: String(Number(dayCell.modelData.slice(-2)))
               textFormat: Text.PlainText
-              color: dayCell.inMonth ? Commons.Color.popups.text : Qt.alpha(Commons.Color.popups.text, 0.62)
+              color: dayCell.inMonth ? Commons.Color.popups.text
+                : UiContrast.foreground(Qt.alpha(Commons.Color.popups.text, 0.85), Commons.Color.popups.text,
+                  UiContrast.composite(dayCell.color, Commons.Color.popups.background))
               font.family: Typography.family
               font.pixelSize: Commons.Style.font.body
               font.weight: dayCell.selectedDay || dayCell.today ? Font.DemiBold : Font.Normal
@@ -615,25 +698,12 @@ FocusScope {
       }
 
 
-      Text {
+      StatusNotice {
+        id: scheduleNotice
         width: parent.width
-        visible: root.statusMessage !== ""
-        text: root.statusMessage
-        textFormat: Text.PlainText
-        color: root.requestFailed || root.entriesOverflow ? Commons.Color.urgent : Qt.alpha(Commons.Color.popups.text, 0.85)
-        font.family: Typography.family
-        font.pixelSize: Commons.Style.font.bodySmall
-        wrapMode: Text.WordWrap
-      }
-      SemanticActionButton {
-        visible: root.stateMatchesTeam && (root.requestFailed
-          || root.scheduleState.stale === true || root.entriesOverflow) && !root.loading
-        height: visible ? implicitHeight : 0
-        text: "Retry schedule"
-        tooltipText: "Refresh this schedule"
-        textFontSize: Commons.Style.font.bodySmall
-        focusable: true
-        onClicked: root.retryRequested()
+        notice: root.notice
+        onRetryRequested: root.retryRequested()
+        onBoundsChanged: root.defer(function() { if (scheduleNotice.expanded) root.ensureVisible(scheduleNotice) })
       }
 
 
@@ -668,6 +738,7 @@ FocusScope {
           onClicked: root.dateSelected(root.selectedDateKey || root.todayDateKey)
         }
         Repeater {
+          id: agendaRepeater
           model: root.agendaEntries
           Item {
             id: laterRow
@@ -693,7 +764,7 @@ FocusScope {
                 width: parent.width
                 text: root.agendaDetail(laterRow.modelData)
                 textFormat: Text.PlainText
-                color: Qt.alpha(Commons.Color.popups.text, 0.85)
+                color: Commons.Color.popups.text
                 font.family: Typography.family
                 font.pixelSize: Commons.Style.font.caption
                 wrapMode: Text.WordWrap

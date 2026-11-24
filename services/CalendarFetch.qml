@@ -119,6 +119,12 @@ Item {
     return root.requestUpcomingPlan(owner, plan, force)
   }
 
+  function validUpcomingSelection(teamId, startDate, endDate, catalog) {
+    var plan = UpcomingScheduleProvider.buildPlan(teamId, startDate, endDate, catalog,
+      MlbStatsProvider.TEAM_IDS_BY_STATS_ID)
+    return !!plan && plan.kind === "plan" && plan.requests.length > 0 && plan.requests.length <= 8
+  }
+
   function requestGlobal(owner, dateKey, force) {
     if (!root.upcomingEnabled || root.ownerDestroyed || !owner
         || root.calendarFeatureEnabled && root.calendarEnabled) return false

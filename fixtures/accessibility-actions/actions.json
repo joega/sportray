@@ -21,8 +21,8 @@
     {
       "control": "GameDetailView watch action",
       "source": "components/GameDetailView.qml",
-      "signal": "else if (root.cursorIndex === 1) watchAction.activate()",
-      "route": "else if (root.cursorIndex === 1) watchAction.activate()"
+      "signal": "else if (action.id === \"watch\") watchAction.activate()",
+      "route": "else if (action.id === \"watch\") watchAction.activate()"
     },
     {
       "control": "NextGameCard whole row",

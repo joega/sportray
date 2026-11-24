@@ -68,7 +68,11 @@ Open **Settings → Favorite teams** to search by team or filter by league.
 Favorites stay at the top of the picker and pin their games in league views.
 
 **Following** brings together favorite-team games, temporary game watches, and
-slates from leagues you follow. Under **Settings → Sports & leagues**:
+slates from leagues you follow. Its overview counts the loaded games; **All**,
+**Live**, and **Favorites** help narrow a busy day. Live includes intermissions;
+Favorites includes favorite-team games. Filters reset to All when you reopen the
+panel. **Show all** returns from an empty filter without changing your follows.
+Under **Settings → Sports & leagues**:
 
 | Control | What it does |
 | --- | --- |
@@ -76,7 +80,7 @@ slates from leagues you follow. Under **Settings → Sports & leagues**:
 | **Follow** | Include the enabled league in Following and promote it in navigation. |
 | **Reorder** | Change followed-league order. Disabling a league also removes it from the followed set. |
 
-Use **Alerts** on a score row or in game details to receive alerts for that game
+Use **Game actions → Alerts** on a score row, or **Alerts** in game details, to receive alerts for that game
 without favoriting either team. **Alerts on** marks an active watch. These controls manage game notifications.
 
 ## Scores and standings
@@ -92,7 +96,9 @@ enabled leagues you follow. Selecting a day previews its agenda; **View day**
 opens that date in Following. **Leagues** opens the controls for choosing what to
 follow. Unloaded days remain unknown; markers identify previously loaded games.
 
-Choose a favorite team in the same selector for its **team schedule**. This view
+Choose a favorite team in the same selector, or select a team name in scores,
+game details, or standings, for its **team schedule**. Opening a team's schedule
+does not add it to favorites. This view
 puts the dated **Next up** matchup first, followed by a list of later games.
 There is no month picker in the team view. **View day** opens the team's league
 on that date; range arrows let you browse the next or previous 35 days.
@@ -103,6 +109,9 @@ during the shell session. Providers may publish only part of a season, especiall
 playoffs and college schedules. In that case it says **Next listed game** and
 labels the incomplete schedule. An unmarked date does not prove there are no games;
 unannounced start times show **Time TBD**. Failed updates identify retained data.
+**Details** expands coverage or update information inline; **Retry** is available
+when an update can be attempted. Back restores the previous view, date, filter,
+scroll position, and selected action.
 
 <p><a href="screenshots/sportray-calendar-global.png"><img src="screenshots/sportray-calendar-global.png" alt="Global month calendar with a selected-day agenda across followed leagues" width="320"></a> <a href="screenshots/sportray-calendar.png"><img src="screenshots/sportray-calendar.png" alt="Team schedule with a featured next matchup and a dated list of later games" width="320"></a></p>
 
@@ -127,7 +136,7 @@ provider returns, including offseason tables. NHL standings use the current loca
 calendar date, independently of the selected score date. College standings remain
 unavailable. Each group shares aligned column headers suited to its sport. Select
 a team's star to add or remove a favorite; selecting the table row leaves favorites
-unchanged.
+unchanged. Select a team name to open its schedule.
 
 ### Open a game
 
@@ -139,7 +148,8 @@ long period tables scroll horizontally.
 
 Open details follow the existing score feed, preserving scroll and action focus
 as data updates. An update message identifies retained scores if a request fails
-or the game disappears from the latest slate. The source action opens ESPN
+or the game disappears from the latest slate. **Game actions** keeps team schedules,
+alerts, and the source together on each compact score card. The source action opens ESPN
 gamecast, MLB.com gameday, or NHL.com gamecenter.
 
 ## Ticker and alerts
@@ -176,21 +186,24 @@ up to 2.5 seconds to finish.
 | `S` | Toggle Scores / Standings on a supported league view. |
 | `R` | Refresh scores or the open standings table. |
 | `N` | Open Settings from scores. |
+| `F` | Cycle All / Live / Favorites in Following scores. |
+| `Menu` / `Shift+F10` | Open Game actions for the selected score row. |
 | `F` / `/` | Filter leagues / search while browsing Favorite teams. |
 | Arrow keys | Move through the active chooser, rows, or detail/settings actions. Left/Right scrolls a long scoring table in details. |
 | Page Up / Page Down | Scroll game details or page through score rows. |
 | Home / End | Jump to the beginning or end of details or score rows. |
 | Enter / Space | Activate the selected action. |
-| Escape | Step back from details/settings, or close the panel. |
+| Escape | Return to the previous view, or close the panel. |
 
 In Favorite teams, press Down or Enter from search to browse results; Enter on a
 result toggles its favorite state. Editors and open dropdowns own their keys. Tab follows Omarchy's neighboring-panel
-navigation rather than cycling through Sportray's actions.
+navigation rather than cycling through Sportray's actions. Native dropdowns,
+Game actions, and the calendar keep their own Tab navigation.
 
 Inside the global calendar, arrows move between dates, Page Up / Page Down change
 months, and Enter previews the focused day. In a team schedule, Page Up / Page Down
 change the 35-day range. Tab reaches the selector and matchup actions; Escape
-returns to scores.
+returns to the previous view.
 
 ## Data sources and privacy
 

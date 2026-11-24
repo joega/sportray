@@ -242,7 +242,11 @@ function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, r
     followingSections.push({leagueId: leagueId, displayName: state.displayName, games: games});
     followingGames = followingGames.concat(games);
   });
-  var followingIsMixed = followingLeagueIds.length > 1;
+  var displayedLeagueIds = [];
+  followingGames.forEach(function(game) {
+    if (displayedLeagueIds.indexOf(game.league) === -1) displayedLeagueIds.push(game.league);
+  });
+  var followingIsMixed = displayedLeagueIds.length > 1;
   followingGames = followingGames.map(function(game) {
     var state = leagueStates.filter(function(candidate) {
       return candidate.leagueId === game.league;

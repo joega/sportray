@@ -39,8 +39,8 @@ function slateBucket(game) {
   var status = isRecord(game) && typeof game.status === "string" ? game.status : "unknown";
   if (status === "live" || status === "intermission") return "live";
   if (status === "final") return "final";
-  if (status === "scheduled" || status === "postponed" || status === "canceled")
-    return "upcoming";
+  if (status === "scheduled") return "upcoming";
+  if (status === "postponed" || status === "canceled") return "changes";
   return "unavailable";
 }
 
@@ -49,6 +49,7 @@ function slateLabel(bucket) {
   case "live": return "Live";
   case "upcoming": return "Upcoming";
   case "final": return "Final";
+  case "changes": return "Schedule changes";
   default: return "Unavailable";
   }
 }
@@ -65,12 +66,13 @@ function statusRow(view) {
       errorSummary: view.errorSummary || "",
       stale: view.stale === true || Boolean(view.errorCode && view.hasData),
       partialErrorCount: Number(view.partialErrorCount) || 0,
-      lastSuccessAt: view.lastSuccessAt || null
+      lastSuccessAt: view.lastSuccessAt || null,
+      hasData: view.hasData === true, affectedLeagues: view.affectedLeagues || []
     },
     action: {
-      type: "retry",
-      label: "Retry scores",
-      enabled: view.loading !== true
+      type: view.interactiveNotice ? "notice-actions" : "retry",
+      label: view.interactiveNotice ? "Data status" : "Retry scores",
+      enabled: view.interactiveNotice === true || view.loading !== true
     }
   };
 }
@@ -86,7 +88,7 @@ function emptyRow(id, text, action, details) {
     action: action ? {
       type: action,
       label: action === "choose-teams" ? "Choose favorite teams"
-        : action === "browse-leagues" ? "Browse leagues" : action,
+        : action === "browse-leagues" ? "Browse leagues" : action === "show-all" ? "Show all games" : action,
       enabled: true
     } : null
   };
@@ -128,6 +130,7 @@ function appendSlateGroups(rows, games, destination, stale) {
   var groups = {
     live: [],
     upcoming: [],
+    changes: [],
     final: [],
     unavailable: []
   };
@@ -139,7 +142,7 @@ function appendSlateGroups(rows, games, destination, stale) {
     groups[slateBucket(game)].push(game);
   });
 
-  ["live", "upcoming", "final", "unavailable"].forEach(function(bucket) {
+  ["live", "upcoming", "changes", "final", "unavailable"].forEach(function(bucket) {
     if (groups[bucket].length === 0) return;
     rows.push(sectionRow(destination + ":" + bucket, slateLabel(bucket),
       groups[bucket].some(function(game) {
@@ -166,11 +169,28 @@ function flatten(view, destination, selectedDateLabel) {
       return rows;
     }
     var staleLeagues = Object.create(null);
+    var affected = [];
     (Array.isArray(view.leagueStates) ? view.leagueStates : []).forEach(function(state) {
       staleLeagues[state.leagueId] = state.stale === true
         || Boolean(state.errorCode && state.hasData);
-      if (state.errorCode || state.stale) rows.push(statusRow(state));
+      if (state.errorCode || state.stale) {
+        affected.push(state);
+        if (!view.compactNotices) rows.push(statusRow(state));
+      }
     });
+    if (view.compactNotices && affected.length) rows.push(statusRow({
+      leagueId: "following", displayName: "", affectedLeagues: affected,
+      hasData: view.unfilteredHasGames || affected.some(function(state) { return state.hasData; }),
+      loading: view.loading === true, stale: affected.some(function(state) { return state.stale || state.hasData; }),
+      interactiveNotice: true
+    }));
+    if (view.filteredEmpty) {
+      rows.push(emptyRow(id + ":filter:" + view.followingFilterId,
+        view.followingFilterId === "live" ? "No live games are listed on this date." : "No favorite-team games are listed on this date.",
+        "show-all", {title: view.followingFilterId === "live" ? "No live games" : "No favorite-team games",
+          supportingText: "Show all games in Following."}));
+      return rows;
+    }
     if (!view.hasGames) {
       if (view.loading) {
         rows.push(loadingRow(id + ":initial", false));

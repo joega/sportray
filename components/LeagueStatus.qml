@@ -1,6 +1,6 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
-import qs.Commons as Commons
+import "../model/NoticePresentation.js" as NoticePresentation
 
 Item {
   id: root
@@ -8,17 +8,34 @@ Item {
   required property var status
   property double currentTime: Date.now()
   signal retry()
+  signal contentFocusRequested()
+  property bool hasCursor: false
   width: parent ? parent.width : implicitWidth
-  implicitHeight: label.implicitHeight
+  readonly property var notice: NoticePresentation.noticeFor({
+    kind: "scores", displayName: root.status ? root.status.displayName || "" : "",
+    loading: Boolean(root.status && root.status.loading),
+    hasData: Boolean(root.status && (root.status.hasData || root.status.stale)),
+    stale: Boolean(root.status && root.status.stale),
+    partial: Boolean(root.status && root.status.errorCode === "partial-data"),
+    errorCode: root.status ? root.status.errorCode || "" : "",
+    errorSummary: root.status ? root.status.errorSummary || "" : "",
+    affectedLeagues: root.status ? root.status.affectedLeagues || [] : [],
+    lastSuccessAt: root.status ? root.status.lastSuccessAt || "" : ""
+  }, root.currentTime)
+  implicitHeight: noticeView.implicitHeight
   height: implicitHeight
-  readonly property bool pointerPressed: retryMouse.pressed
+  readonly property bool pointerPressed: noticeView.pointerPressed
+  property alias expanded: noticeView.expanded
+  function moveCursor(delta) { return noticeView.moveCursor(delta) }
+  function activateCursor() { return noticeView.activateCursor() }
 
   activeFocusOnTab: false
   Keys.onReturnPressed: if (!root.status.loading) root.retry()
   Keys.onEnterPressed: if (!root.status.loading) root.retry()
   Keys.onSpacePressed: if (!root.status.loading) root.retry()
 
-  readonly property string accessibleLabel: root.status.stale
+  readonly property string accessibleLabel: root.status.affectedLeagues && root.status.affectedLeagues.length
+    ? root.notice.accessibleSummary : root.status.stale
     ? root.status.displayName + ", stale scores, " + root.staleText()
     : root.status.loading
       ? root.status.displayName + ", refreshing scores"
@@ -33,28 +50,13 @@ Item {
   Accessible.role: root.status.loading ? Accessible.StaticText : Accessible.Button
   Accessible.onPressAction: root.activatePrimaryAction()
 
-  Text {
-    textFormat: Text.PlainText
-    id: label
+  StatusNotice {
+    id: noticeView
     width: parent.width
-    text: root.status.stale
-      ? root.status.displayName + " · " + root.staleText()
-      : root.status.loading
-        ? root.status.displayName + " · refreshing…"
-        : root.status.displayName + " · "
-          + (root.status.errorSummary || "scores unavailable") + " · retry"
-    color: root.status.loading ? Qt.alpha(Commons.Color.popups.text, 0.85) : Commons.Color.urgent
-    font.family: Typography.family
-    font.pixelSize: Commons.Style.font.bodySmall
-    wrapMode: Text.WordWrap
-  }
-
-  MouseArea {
-    id: retryMouse
-    anchors.fill: parent
-    enabled: !root.status.loading
-    onClicked: root.retry()
-    cursorShape: Qt.PointingHandCursor
+    notice: root.notice
+    hasCursor: root.hasCursor
+    onRetryRequested: root.retry()
+    onContentFocusRequested: root.contentFocusRequested()
   }
 
   function staleText() {

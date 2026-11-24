@@ -30,6 +30,16 @@ TestCase {
     verify(consumer !== null)
     compare(consumer.message, data.text)
     verify(consumer.implicitHeight > 0)
+    var summary = findChild(consumer, "statusNoticeSummary")
+    verify(summary !== null && summary.text.length > 0)
+    if (data.state.stale) {
+      verify(summary.text.indexOf("5 min ago") >= 0)
+      compare(consumer.notice.severity, "warning")
+      verify(consumer.notice.detail.indexOf(data.state.errorSummary) >= 0)
+    }
+    if (data.state.loading) verify(!consumer.notice.canRetry)
+    if (data.name === "empty") compare(consumer.notice.severity, "info")
+    if (data.name === "unavailable") compare(consumer.notice.severity, "error")
     compare(consumer.actionable, data.retry)
     retried.target = consumer
     consumer.activatePrimaryAction()

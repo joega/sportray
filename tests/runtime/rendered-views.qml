@@ -157,15 +157,21 @@ ShellRoot {
         if (step === 0) {
           require(renderDetail.detail.participants[0].score === 1 && scoreText(1) !== null,
             "initial detail score not rendered")
-          renderDetail.cursorIndex = 2
+          var sourceIndex = renderDetail.indexForFocusId("source")
+          require(sourceIndex >= 0, "live detail source action unavailable")
+          renderDetail.cursorIndex = sourceIndex
           var sourceAction = descendants(renderDetail,
             function(item) { return "openSource" in item && "hasCursor" in item }, [])
           var watchAction = descendants(renderDetail,
             function(item) { return "watchCount" in item && "hasCursor" in item }, [])
           require(sourceAction !== null && watchAction !== null, "detail actions absent")
-          require(sourceAction.hasCursor && !watchAction.hasCursor,
-            "source and Watch cursor highlights disagree with action index")
-          renderDetail.cursorIndex = 1
+          require(renderDetail.focusId === "source" && sourceAction.hasCursor && !watchAction.hasCursor,
+            "source and Watch cursor highlights disagree with semantic source focus")
+          var watchIndex = renderDetail.indexForFocusId("watch")
+          require(watchIndex >= 0, "live detail Watch action unavailable")
+          renderDetail.cursorIndex = watchIndex
+          require(renderDetail.focusId === "watch" && watchAction.hasCursor && !sourceAction.hasCursor,
+            "source and Watch cursor highlights disagree with semantic Watch focus")
           scroll.contentY = 25
           savedScroll = scroll.contentY
           require(savedScroll === 25, "rich fixture did not produce a scrollable detail")
@@ -176,7 +182,9 @@ ShellRoot {
         } else if (step === 1) {
           require(renderDetail.game.awayScore === 2 && renderDetail.detail.participants[0].score === 2
             && scoreText(2) !== null, "live score text stayed frozen")
-          require(renderDetail.cursorIndex === 1 && scroll.contentY === savedScroll,
+          require(renderDetail.focusId === "watch"
+            && renderDetail.cursorIndex === renderDetail.indexForFocusId("watch")
+            && scroll.contentY === savedScroll,
             "refresh reset detail cursor or scroll")
           capture(renderDetail, "detail-scored", function() {
             slate([game("final")], {lastSuccessAt: "2026-11-24T20:02:00Z"})
@@ -204,11 +212,15 @@ ShellRoot {
         } else if (step === 4) {
           require(renderDetail.stale && renderDetail.updateMessage.indexOf("temporarily unavailable") !== -1,
             "retained error warning absent")
-          renderDetail.cursorIndex = 2
+          var retainedSourceIndex = renderDetail.indexForFocusId("source")
+          require(retainedSourceIndex >= 0, "retained detail source action unavailable")
+          renderDetail.cursorIndex = retainedSourceIndex
+          require(renderDetail.focusId === "source", "retained source focus was not selected")
           slate([game("scored", false)])
           step++
         } else if (step === 5) {
-          require(!renderDetail.sourceAvailable && renderDetail.cursorIndex === 0,
+          require(!renderDetail.sourceAvailable && renderDetail.focusId === "back"
+            && renderDetail.cursorIndex === renderDetail.indexForFocusId("back"),
             "disappearing source action failed to restore Back cursor")
           var back = descendants(renderDetail, function(item) {
             return "text" in item && "hasCursor" in item && item.text === "Back"

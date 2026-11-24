@@ -3,7 +3,10 @@ import QtTest
 
 TestCase {
   id: testCase
+  visible: true
   name: "LeagueStatus"
+  width: 360
+  height: 320
   property var item: null
 
   SignalSpy { id: retrySpy; signalName: "retry" }
@@ -25,8 +28,11 @@ TestCase {
       status: {displayName: "NHL", stale: true, loading: true, lastSuccessAt: "2026-11-23T23:05:00Z"}})
     verify(item !== null)
     retrySpy.target = item
-    var label = item.children.filter(function(child) { return typeof child.text === "string" })[0]
-    compare(label.text, "NHL · showing last update · 5 min ago · refreshing…")
+    var label = findChild(item, "statusNoticeSummary")
+    verify(label !== null)
+    compare(label.text, "NHL · last update 5 min ago · updating…")
+    compare(item.notice.severity, "warning")
+    verify(!item.notice.canRetry)
     verify(item.accessibleLabel.indexOf("stale scores") >= 0)
     verify(item.accessibleLabel.indexOf("5 min ago") >= 0)
     item.activatePrimaryAction()
@@ -34,7 +40,8 @@ TestCase {
     item.currentTime = Date.parse("2026-11-23T23:11:00Z")
     verify(label.text.indexOf("6 min ago") >= 0)
     item.status = {displayName: "NHL", stale: true, loading: false, lastSuccessAt: "2026-11-23T23:05:00Z"}
-    verify(label.text.endsWith(" · retry"))
+    compare(label.text, "NHL · last update 6 min ago")
+    verify(item.notice.canRetry)
     item.activatePrimaryAction()
     compare(retrySpy.count, 1)
   }
@@ -57,13 +64,39 @@ TestCase {
         errorCode: "partial-data", errorSummary: "Some scores could not be updated",
         lastSuccessAt: sample.lastSuccessAt}})
     verify(item !== null)
-    var label = item.children.filter(function(child) { return typeof child.text === "string" })[0]
-    compare(label.text, "NHL · Some scores could not be updated · " + sample.detail)
+    var label = findChild(item, "statusNoticeSummary")
+    verify(label !== null)
+    compare(label.text, "NHL · " + (sample.lastSuccessAt ? "last update 5 min ago" : "limited scores")
+      + (sample.loading ? " · updating…" : ""))
+    verify(item.notice.detail.indexOf("Some scores could not be updated") >= 0)
+    compare(item.notice.severity, "warning")
+    item.expanded = true
+    var detail = findChild(item, "statusNoticeDetail")
+    verify(detail !== null && detail.visible)
+    verify(detail.text.indexOf("Some scores could not be updated") >= 0)
     verify(item.accessibleLabel.indexOf("Some scores could not be updated") >= 0)
     verify(item.accessibleLabel.endsWith(sample.detail))
     if (!sample.lastSuccessAt) verify(label.text.indexOf("last update") < 0)
     retrySpy.target = item
     item.activatePrimaryAction()
     compare(retrySpy.count, sample.loading ? 0 : 1)
+  }
+
+  function test_aggregateNamesAndAgeRemainVisibleAndAccessible() {
+    var component = Qt.createComponent(Qt.resolvedUrl("../../components/LeagueStatus.qml"))
+    compare(component.status, Component.Ready, component.errorString())
+    item = component.createObject(testCase, {width: 320,
+      currentTime: Date.parse("2026-11-23T23:10:00Z"),
+      status: {displayName: "Following", hasData: true, loading: false, affectedLeagues: [
+        {displayName: "NHL", leagueId: "nhl", stale: true, lastSuccessAt: "2026-11-23T23:05:00Z"},
+        {displayName: "NFL", leagueId: "nfl", failed: true, errorSummary: "Scores unavailable"}]}})
+    verify(item !== null)
+    verify(item.notice.summary.indexOf("NHL, NFL") >= 0)
+    verify(item.notice.summary.indexOf("5 min ago") >= 0)
+    verify(item.accessibleLabel.indexOf("NHL, NFL") >= 0)
+    item.expanded = true
+    item.status = {displayName: "Following", hasData: true, loading: false, affectedLeagues: [
+      {displayName: "NHL", leagueId: "nhl", stale: true, lastSuccessAt: "2026-11-23T23:05:00Z"}]}
+    verify(item.expanded, "A recovering source collapsed aggregate details")
   }
 }

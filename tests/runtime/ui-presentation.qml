@@ -7,6 +7,8 @@ import "../.." as Plugin
 import "../../components" as Components
 import "../../model/SettingsModel.js" as SettingsModel
 import "../../model/DateModel.js" as DateModel
+import "../../providers/NhlTeamCatalog.js" as NhlTeamCatalog
+import "../../providers/EspnTeamCatalog.js" as EspnTeamCatalog
 
 // Capture current native views with illustrative state. No shared worker is
 // acquired, no provider request/notification is started, and no settings persist.
@@ -101,7 +103,20 @@ ShellRoot {
       var original = root.sample.games.filter(function(game) {
         return game.awayTeam.id === teamId || game.homeTeam.id === teamId
       })[0]
-      if (!original) return false
+      if (!original) {
+        // Admit any canonical enabled catalog team, including a nonfavorite
+        // opponent absent from today's score fixture. Never change preferences.
+        var catalog = NhlTeamCatalog.listTeams()
+        store.settings.enabledLeagues.forEach(function(league) {
+          if (league !== "nhl") catalog = catalog.concat(EspnTeamCatalog.listTeams(league))
+        })
+        var team = catalog.filter(function(value) { return value.id === teamId })[0]
+        if (!team) return false
+        var leagueGame = root.sample.games.filter(function(game) { return game.league === team.league })[0]
+        if (!leagueGame) return false
+        original = JSON.parse(JSON.stringify(leagueGame))
+        original.awayTeam = team
+      }
       var entries = [21, 22, 23, 24, 25, 26, 28, 30].map(function(distance, index) {
         var date = DateModel.addDays(root.sample.dateKey, distance)
         var game = JSON.parse(JSON.stringify(original))
@@ -266,10 +281,21 @@ ShellRoot {
         }
         check(false, "No visible rendered game row")
       }
+      function rowViewportY(panel, rowId) {
+        // ListView's origin/contentY may shift as virtual rows are measured.
+        // The canonical row's rendered position is the user's scroll context.
+        var index = panel.displayRows.findIndex(function(row) { return row.rowId === rowId })
+        check(index >= 0, "Restored row no longer exists: " + rowId)
+        var delegate = panel.testList.itemAtIndex(index)
+        check(delegate !== null, "Restored row is outside the rendered viewport: " + rowId)
+        return delegate.mapToItem(panel.testList, 0, 0).y
+      }
       function checkUpcomingPopup(panel) {
         var popup = panel.testUpcomingPopup
         var calendar = panel.testUpcomingCalendar
         var originalDate = panel.selectedDateKey
+        var originalRowId = panel.selectedRowId
+        var originalScrollOffset = panel.testList.contentY - panel.testList.originY
         var futureDate = DateModel.addDays(root.sample.dateKey, 21)
         var calls = fetch.refreshCalls
         var cancels = fetch.upcomingCancellations.length
@@ -319,8 +345,15 @@ ShellRoot {
         check(!popup.opened && panel.opened, "Global View day must close only its popup")
         same(panel.selectedDateKey, committedDate)
         same(panel.activeDestination, "following", "Global View day must open Following")
-        naturalKey(panel, Qt.Key_T)
+        naturalKey(panel, Qt.Key_Escape)
+        check(popup.opened && calendar.globalMode, "Back from View day did not reopen global calendar")
+        same(calendar.selectedDateKey, committedDate, "Back lost preview date")
+        naturalKey(panel, Qt.Key_Escape)
+        check(!popup.opened && panel.opened, "Calendar Escape did not restore scores")
         same(panel.selectedDateKey, originalDate)
+        same(panel.selectedRowId, originalRowId, "Calendar Back changed score selection")
+        if (!originalRowId) check(Math.abs(panel.testList.contentY - panel.testList.originY - originalScrollOffset) < 1,
+          "Calendar Back lost unselected normalized scroll position")
 
         // Native focus traverses the selector, featured Next, controls and all
         // later rows. No direct focus calls or programmatic popup opening.
@@ -369,6 +402,15 @@ ShellRoot {
         var point = lastRow.mapToItem(window.contentItem, 0, 0)
         check(point.y >= -1 && point.y + lastRow.height <= window.height + 1,
           "Last focused agenda row is outside the popup viewport")
+        var agendaContext = calendar.captureContext()
+        panel.openUtility("notifications")
+        settle(panel)
+        naturalKey(panel, Qt.Key_Escape)
+        check(popup.opened && calendar.teamId === expectedTeam, "Settings lost team agenda")
+        var restoredAgenda = calendar.captureContext()
+        same(restoredAgenda.focusKind, agendaContext.focusKind, "Settings lost agenda focus kind")
+        same(restoredAgenda.gameId, agendaContext.gameId, "Settings lost focused agenda game")
+        check(Math.abs(restoredAgenda.scrollY - agendaContext.scrollY) < 1, "Settings lost agenda scroll")
         naturalKey(panel, Qt.Key_PageDown)
         same(calendar.windowStartKey, DateModel.addDays(originalDate, 35), "Team PageDown did not browse35days")
         same(panel.selectedDateKey, originalDate)
@@ -380,17 +422,151 @@ ShellRoot {
         check(!popup.opened && panel.opened, "Team View day must close only popup")
         same(panel.selectedDateKey, futureDate)
         same(panel.activeDestination, expectedTeam.split(":")[0], "Team View day must select its league")
-        naturalKey(panel, Qt.Key_T)
+        naturalKey(panel, Qt.Key_Escape)
+        check(popup.opened && calendar.teamId === expectedTeam, "Back from team View day lost team agenda")
+        same(calendar.nextEntry.dateKey, futureDate)
+        naturalKey(panel, Qt.Key_Escape)
         same(panel.selectedDateKey, originalDate)
         naturalKey(panel, Qt.Key_G)
         check(calendar.globalMode && popup.opened, "Team selection leaked into next global opening")
         naturalKey(panel, Qt.Key_Escape)
         check(!popup.opened && panel.opened, "Escape must keep host open")
         check(fetch.upcomingCancellations.length > cancels, "Popup close did not cancel its owner")
+        var savedSettings = store.settings
+        store.settings = Object.assign({}, savedSettings, {favoriteTeamIds: []})
+        naturalKey(panel, Qt.Key_G)
+        check(popup.opened && calendar.globalMode && calendar.agendaEntries.length > 0,
+          "Global calendar requires favorites despite followed leagues")
+        naturalKey(panel, Qt.Key_Escape)
+        store.settings = Object.assign({}, savedSettings, {favoriteTeamIds: [], followedLeagueIds: []})
+        naturalKey(panel, Qt.Key_G)
+        check(popup.opened && calendar.globalMode && calendar.agendaEntries.length === 0,
+          "No-followed global calendar shows games outside admission")
+        check(calendar.teamOptions.length === 1 && calendar.teamOptions[0].value === "",
+          "No-favorites calendar lost global selector")
+        check(textItem(calendar, "Follow leagues to see their games") !== null
+          || calendar.notice.summary.toLowerCase().indexOf("follow") !== -1,
+          "No-followed global calendar lost its guidance")
+        naturalKey(panel, Qt.Key_Escape)
+        store.settings = savedSettings
+        settle(panel)
         // Restore only the fixture route; every calendar assertion above used
         // real keyboard events and actual production signal handlers.
         panel.selectDestination("following")
         settle(panel)
+      }
+      function checkFollowingPolish(panel) {
+        var originalSettings = JSON.stringify(store.settings)
+        var projection = panel.followingProjection
+        var allGames = panel.resultRows.filter(function(row) { return row.kind === "game" })
+        same(projection.counts.all, allGames.length, "Overview count differs from existing Following union")
+        same(projection.counts.live, allGames.filter(function(row) {
+          return row.game.status === "live" || row.game.status === "intermission"
+        }).length, "Live count differs from union")
+        check(panel.testFollowingOverview.visible && projection.summary.indexOf("loaded games") !== -1,
+          "Limited mixed slate summary did not qualify its counts")
+        check(allGames.every(function(row) { return row.game.presentation.showLeagueContext }),
+          "Mixed Following cards lost league context")
+        naturalKey(panel, Qt.Key_F)
+        same(panel.followingFilterId, "live", "F did not select Live")
+        check(panel.resultRows.filter(function(row) { return row.kind === "game" }).every(function(row) {
+          return row.game.status === "live" || row.game.status === "intermission"
+        }), "Live admitted another game state")
+        naturalKey(panel, Qt.Key_F)
+        same(panel.followingFilterId, "favorites", "F did not select Favorites")
+        var favorites = panel.resultRows.filter(function(row) { return row.kind === "game" })
+        check(favorites.length > 10 && favorites.every(function(row) { return row.game.presentation.isFavorite }),
+          "Favorites differs from favorite-side membership")
+        naturalKey(panel, Qt.Key_Down)
+        var index = -1
+        for (var i = panel.displayRows.length - 1; i >= 0; i--) {
+          var candidate = panel.displayRows[i]
+          if (candidate.kind === "game" && candidate.game.league === "nhl"
+              && store.settings.favoriteTeamIds.indexOf(candidate.game.awayTeam.id) === -1) { index = i; break }
+        }
+        check(index >= 0, "Missing nonfavorite away team in filtered busy fixture")
+        panel.setSelectedRow(index)
+        for (var pass = 0; pass < 3; pass++) {
+          panel.testList.forceLayout()
+          panel.testList.positionViewAtIndex(index, ListView.Center)
+          wait(80)
+        }
+        var selected = panel.selectedRowId, scroll = panel.testList.contentY
+        var selectedCard = find(panel.testList.itemAtIndex(index), function(item) { return item.visible && "awayLabel" in item })
+        var beforeCardY = selectedCard.mapToItem(panel.testList, 0, 0).y
+        check(scroll > 0, "Filtered fixture did not overflow")
+        panel.testCatcher.forceActiveFocus()
+        naturalKey(panel, Qt.Key_Return)
+        check(panel.detailOpen, "Filtered Enter did not open detail")
+        var detail = panel.testDetail
+        naturalKey(panel, Qt.Key_F)
+        same(panel.followingFilterId, "favorites", "Detail F changed hidden Following filter")
+        naturalKey(panel, Qt.Key_Down)
+        same(detail.cursorActions[detail.cursorIndex].id, "away-schedule")
+        var nonfavorite = detail.game.awayTeam.id
+        check(store.settings.favoriteTeamIds.indexOf(nonfavorite) === -1, "Away fixture must be nonfavorite")
+        var snapshot = detail.captureContext()
+        var favoriteCalls = store.favoriteCalls
+        naturalKey(panel, Qt.Key_Return)
+        check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === nonfavorite,
+          "Nonfavorite detail team did not open agenda")
+        same(panel.testUpcomingCalendar.windowStartKey, root.sample.dateKey, "Team schedule did not start Today")
+        naturalKey(panel, Qt.Key_Escape)
+        check(panel.detailOpen && !panel.testUpcomingPopup.opened, "Team Back lost detail origin")
+        same(detail.focusId, snapshot.focusId, "Team Back lost semantic detail action")
+        same(store.favoriteCalls, favoriteCalls, "Team navigation mutated favorites")
+        panel.openUtility("notifications")
+        settle(panel)
+        check(panel.settingsOpen, "Detail Settings did not open")
+        var utilitySnapshot = panel.utilityReturnContext
+        check(utilitySnapshot && utilitySnapshot.surface === "detail" && utilitySnapshot.detailGame,
+          "Settings did not capture detail frame: " + JSON.stringify(utilitySnapshot))
+        var hiddenDetailCursor = detail.cursorIndex
+        check(panel.testCatcher.activeFocus && !panel.testCatcher.blocked,
+          "Detail Settings did not acquire keyboard focus")
+        var settingsCursor = panel.testHub.sectionCursor
+        naturalKey(panel, Qt.Key_Down)
+        same(panel.testHub.sectionCursor, Math.min(settingsCursor + 1, panel.testHub.destinations.length - 1),
+          "Settings Down did not move visible section cursor")
+        naturalKey(panel, Qt.Key_Return)
+        check(panel.testHub.contentFocused, "Settings Enter did not reach visible settings content")
+        same(detail.cursorIndex, hiddenDetailCursor, "Settings Down moved hidden detail cursor")
+        naturalKey(panel, Qt.Key_Escape)
+        check(panel.detailOpen && !panel.settingsOpen, "Settings return lost detail")
+        same(detail.focusId, snapshot.focusId, "Settings return lost detail action")
+        naturalKey(panel, Qt.Key_Escape)
+        check(!panel.detailOpen && panel.followingFilterId === "favorites", "Detail Back lost Favorites")
+        same(panel.selectedRowId, selected, "Filtered Back lost selected game")
+        check(Math.abs(rowViewportY(panel, selected) - beforeCardY) < 1,
+          "Filtered Back moved selected row: " + beforeCardY + " -> " + rowViewportY(panel, selected))
+        panel.openUtility("notifications")
+        settle(panel)
+        naturalKey(panel, Qt.Key_F)
+        same(panel.followingFilterId, "favorites", "Settings F changed hidden Following filter")
+        naturalKey(panel, Qt.Key_Escape)
+        same(panel.followingFilterId, "favorites")
+        same(panel.selectedRowId, selected)
+        check(Math.abs(rowViewportY(panel, selected) - beforeCardY) < 1, "Filtered Settings return lost row position")
+        naturalKey(panel, Qt.Key_Menu)
+        check(panel.gameActionsOpen && panel.testCatcher.blocked, "Selected Menu did not open")
+        naturalKey(panel, Qt.Key_Return)
+        check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === nonfavorite,
+          "Score menu did not open nonfavorite agenda")
+        naturalKey(panel, Qt.Key_Escape)
+        same(panel.followingFilterId, "favorites")
+        same(panel.selectedRowId, selected, "Score menu Back lost row")
+        check(Math.abs(rowViewportY(panel, selected) - beforeCardY) < 1, "Score menu Back lost row position")
+        naturalKey(panel, Qt.Key_F)
+        same(panel.followingFilterId, "all", "F did not complete filter cycle")
+        panel.selectDestination("nhl")
+        settle(panel)
+        check(!panel.testFollowingOverview.visible, "Overview leaked into league view")
+        naturalKey(panel, Qt.Key_F)
+        same(panel.followingFilterId, "all", "League F changed hidden Following filter")
+        panel.selectDestination("following")
+        settle(panel)
+        same(JSON.stringify(store.settings), originalSettings, "Presentation navigation changed preferences")
+        same(panel.navigationStack.length, 0, "Completed Back routes leaked history")
       }
       function checkSettingsGeometry(panel, destination) {
         var hub = panel.testHub
@@ -454,22 +630,68 @@ ShellRoot {
           check(panel.displayRows.some(function(row) { return row.kind === "status" }),
             "Busy fixture must retain a league-specific failure notice alongside games")
           check(panel.testLeaguePicker.width > 0 && panel.testLeaguePicker.width <= root.uiCase.width)
+          var scheduledRow = visibleGame(panel, "nba").row
+          var baselineComponent = Qt.createComponent(Qt.resolvedUrl("../../components/LegacyDensityGameRow.qml"))
+          same(baselineComponent.status, Component.Ready, baselineComponent.errorString())
+          var baselineCard = baselineComponent.createObject(surface, {visible: false, width: scheduledRow.width,
+            game: scheduledRow.game, settingsStore: store, imageStore: logos, currentTime: root.demoNow})
+          check(baselineCard !== null, baselineComponent.errorString())
+          wait(80)
+          var controlCost = panel.testFollowingOverview.height + panel.testChrome.spacing
+          var newRows = Math.floor((panel.testList.height + panel.testList.spacing)
+            / (scheduledRow.height + panel.testList.spacing))
+          var oldRows = Math.floor((panel.testList.height + controlCost + panel.testList.spacing)
+            / (baselineCard.height + panel.testList.spacing))
+          console.info("UI_DENSITY " + JSON.stringify({case: root.uiCase.name,
+            overviewHeight: panel.testFollowingOverview.height, controlCost: controlCost,
+            scoreChromeHeight: panel.testChrome.height, listHeight: panel.testList.height,
+            viewportHeight: window.height, baselineScheduled: baselineCard.height,
+            scheduled: scheduledRow.height, oldRows: oldRows, newRows: newRows}))
+          if (root.uiCase.name === "light") {
+            check(controlCost <= 48, "Integrated Following controls exceed the native card density budget")
+            check(newRows >= oldRows + 1, "Actual Following controls erased the scheduled-card density gain")
+          }
+          baselineCard.destroy()
+          panel.testList.positionViewAtBeginning()
+          wait(80)
           capture("following")
           checkUpcomingPopup(panel)
+          checkFollowingPolish(panel)
 
           // Genuine pointer input on nested children must not also open detail.
           var first = visibleGame(panel, "nhl")
-          var watch = find(first.row, function(item) { return item.visible && "watchCount" in item && "activate" in item })
-          var source = find(first.row, function(item) { return item.visible && "sourceUrl" in item && "openSource" in item })
-          check(watch !== null && source !== null, "Score actions are missing")
+          naturalKey(panel, Qt.Key_Down)
+          panel.setSelectedRow(first.index)
+          panel.testCatcher.forceActiveFocus()
+          naturalKey(panel, Qt.Key_Menu)
+          check(panel.gameActionsOpen && panel.testCatcher.blocked, "Menu must own keyboard input")
+          var actions = find(first.row, function(item) { return "actions" in item && "menuGameId" in item })
+          check(actions !== null && actions.popupOpen, "Native game action popup missing")
+          var actionDate = panel.selectedDateKey
+          var actionRefresh = fetch.refreshCalls
+          naturalKey(panel, Qt.Key_BracketRight)
+          naturalKey(panel, Qt.Key_R)
+          naturalKey(panel, Qt.Key_F)
+          same(panel.followingFilterId, "all", "Menu F changed hidden Following filter")
+          same(panel.selectedDateKey, actionDate, "Menu changed hidden date")
+          same(fetch.refreshCalls, actionRefresh, "Menu refreshed hidden scores")
+          naturalKey(panel, Qt.Key_Down)
+          naturalKey(panel, Qt.Key_Down)
+          same(actions.actions[actions.cursorIndex].kind, "alerts")
           same(store.watchCalls, 0)
-          mouseClick(watch, watch.width / 2, watch.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
-          wait(50)
-          same(store.watchCalls, 1, "Watch must activate exactly once")
-          check(!panel.detailOpen, "Nested Watch also opened the row")
-          mouseClick(source, source.width / 2, source.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
-          wait(100)
-          check(!panel.detailOpen, "Nested source also opened the row")
+          naturalKey(panel, Qt.Key_Return)
+          same(store.watchCalls, 1, "Menu alert must activate exactly once")
+          check(!panel.detailOpen && !panel.gameActionsOpen, "Alert also opened detail or retained popup")
+          keyClick(Qt.Key_F10, Qt.ShiftModifier)
+          settle(panel)
+          check(panel.gameActionsOpen, "Shift F10 did not open selected game actions")
+          actions = find(first.row, function(item) { return "actions" in item && "menuGameId" in item })
+          naturalKey(panel, Qt.Key_Down)
+          naturalKey(panel, Qt.Key_Down)
+          naturalKey(panel, Qt.Key_Down)
+          same(actions.actions[actions.cursorIndex].kind, "source")
+          naturalKey(panel, Qt.Key_Return)
+          check(!panel.detailOpen && !panel.gameActionsOpen, "Source also opened detail or retained popup")
 
           // Keep real row selection and scroll across detail and Settings.
           var targetIndex = panel.displayRows.map(function(row) { return row.kind }).lastIndexOf("game") - 4
@@ -498,14 +720,14 @@ ShellRoot {
           key(panel, Qt.Key_Escape)
           check(!panel.detailOpen)
           same(panel.selectedRowId, savedId, "Back changed selected game")
-          check(Math.abs(panel.testList.contentY - savedY) < 1, "Back changed score scroll " + savedY + " -> " + panel.testList.contentY + " origin " + savedOriginY + " -> " + panel.testList.originY + " rowY " + savedRowY + " -> " + selectedGame.mapToItem(panel.testList, 0, 0).y)
+          check(Math.abs(rowViewportY(panel, savedId) - savedRowY) < 1, "Back moved score row " + savedRowY + " -> " + rowViewportY(panel, savedId))
           check(!panel.tabStripFocused, "Back lost row cursor")
           panel.openUtility("notifications")
           settle(panel)
           key(panel, Qt.Key_Escape)
           check(!panel.settingsOpen)
           same(panel.selectedRowId, savedId, "Settings return changed selected game")
-          check(Math.abs(panel.testList.contentY - savedY) < 1, "Settings return changed score scroll " + savedY + " -> " + panel.testList.contentY)
+          check(Math.abs(rowViewportY(panel, savedId) - savedRowY) < 1, "Settings return moved score row")
           check(!panel.tabStripFocused, "Settings return lost row cursor")
 
           // Long live state must stay fully readable at every tested width.
@@ -529,6 +751,11 @@ ShellRoot {
           var rich = JSON.parse(JSON.stringify(root.sample.games.filter(function(game) {
             return game.id === root.sample.detailGameId
           })[0]))
+          // Exercise the complete bounded detail surface, including its two
+          // admitted secondary links and a long, wrapping venue descriptor.
+          rich.links = [{key: "highlights", url: "https://www.espn.com/mlb/game/_/gameId/401999901"},
+            {key: "preview", url: "https://www.espn.com/mlb/game/_/gameId/401999902"}]
+          rich.venue = "Yankee Stadium · New York Yankees home ballpark in the Bronx, New York · Major League Baseball championship venue with listed seating and accessibility information"
           rich.lines = {away: [], home: []}
           for (var period = 1; period <= 12; period++) {
             rich.lines.away.push({period: period, value: period % 2})
@@ -561,7 +788,7 @@ ShellRoot {
               && item.flickableDirection === Flickable.VerticalFlick
           })
           check(detailScroll !== null && detailScroll.contentHeight > detailScroll.height,
-            "Rich fixture must have vertical overflow")
+            "Rich fixture must have vertical overflow: " + (detailScroll ? detailScroll.contentHeight + "/" + detailScroll.height : "missing"))
           var actionCursor = detail.cursorIndex
           var backgroundSelection = panel.selectedRowId
           same(lineScroll.contentX, 0, "New detail did not start at the first period")
@@ -646,9 +873,16 @@ ShellRoot {
           check(textItem(detail, detail.outcomeLabel()) !== null, "Final outcome text is not visible")
           check(textItem(detail, "Pregame odds") === null, "Final game shows the pregame odds section")
           naturalKey(panel, Qt.Key_Down)
-          same(detail.cursorIndex, 2, "Final detail did not skip disabled Watch toward source")
+          same(detail.cursorActions[detail.cursorIndex].id, "away-schedule", "Detail Down did not reach away schedule")
+          naturalKey(panel, Qt.Key_Down)
+          same(detail.cursorActions[detail.cursorIndex].id, "home-schedule")
+          naturalKey(panel, Qt.Key_Down)
+          same(detail.cursorActions[detail.cursorIndex].id, "source", "Final detail did not skip disabled Watch toward source")
           naturalKey(panel, Qt.Key_Up)
-          same(detail.cursorIndex, 0, "Source Up did not skip disabled Watch back to Back")
+          same(detail.cursorActions[detail.cursorIndex].id, "home-schedule")
+          naturalKey(panel, Qt.Key_Up)
+          naturalKey(panel, Qt.Key_Up)
+          same(detail.cursorActions[detail.cursorIndex].id, "back")
           naturalKey(panel, Qt.Key_Return)
           check(!panel.detailOpen, "Return after source Up did not activate Back")
 
@@ -693,7 +927,12 @@ ShellRoot {
             "Standings loading did not disable and label its Refresh action")
           table.loading = false
           settle(panel)
-          var standingIndex = panel.displayRows.findIndex(function(row) { return row.kind === "standings" })
+          var standingIndex = panel.displayRows.findIndex(function(row) {
+            return row.kind === "standings" && store.settings.favoriteTeamIds.indexOf(row.standing.team.id) === -1
+              && !root.sample.games.some(function(game) {
+                return game.awayTeam.id === row.standing.team.id || game.homeTeam.id === row.standing.team.id
+              })
+          })
           check(standingIndex >= 0)
           panel.testList.positionViewAtIndex(standingIndex, ListView.Beginning)
           wait(60)
@@ -708,9 +947,41 @@ ShellRoot {
           })
           check(favoriteAction !== null, "Standings has no explicit favorite action")
           var oldFavoriteCalls = store.favoriteCalls
-          mouseClick(standing, standing.width * 0.45, standing.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+          panel.setSelectedRow(standingIndex)
+          var standingRowId = panel.selectedRowId
+          var standingsScroll = rowViewportY(panel, standingRowId)
+          // Rank/metrics select the row; the named team is the pointer route.
+          mouseClick(standing, standing.geometry.padding + standing.geometry.rankWidth / 2,
+            standing.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
           wait(40)
           same(store.favoriteCalls, oldFavoriteCalls, "Clicking table body changed a favorite")
+          check(!panel.testUpcomingPopup.opened, "Standings metrics unexpectedly opened a schedule")
+          same(panel.selectedRowId, standingRowId, "Standings body did not select its row")
+          check(panel.testCatcher.activeFocus && !panel.testCatcher.blocked,
+            "Standings body selection did not acquire keyboard focus")
+          naturalKey(panel, Qt.Key_Return)
+          check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === standing.standing.team.id,
+            "Standings Enter did not open selected team schedule")
+          same(panel.testUpcomingCalendar.selectedDateKey, root.sample.dateKey, "Historical standings team schedule did not begin Today")
+          naturalKey(panel, Qt.Key_Escape)
+          check(panel.standingsOpen && !panel.testUpcomingPopup.opened, "Back from team lost standings")
+          same(panel.selectedDateKey, retainedDate, "Back from team lost standings date")
+          same(panel.selectedRowId, standingRowId, "Back from team lost standings row")
+          check(Math.abs(rowViewportY(panel, standingRowId) - standingsScroll) < 1, "Back moved standings row")
+          same(store.favoriteCalls, oldFavoriteCalls, "Back from standings team mutated favorites")
+          var standingLink = find(standing, function(item) {
+            return item.visible && "scheduleTeamId" in item && item.scheduleTeamId === standing.standing.team.id
+          })
+          check(standingLink !== null, "Standings team has no explicit schedule link")
+          mouseClick(standingLink, standingLink.width / 2, standingLink.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+          settle(panel)
+          check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === standing.standing.team.id,
+            "Standings team link did not open schedule")
+          same(store.favoriteCalls, oldFavoriteCalls, "Standings team link changed favorites")
+          naturalKey(panel, Qt.Key_Escape)
+          check(panel.standingsOpen && !panel.testUpcomingPopup.opened, "Team link Back lost standings")
+          same(panel.selectedRowId, standingRowId)
+          check(Math.abs(rowViewportY(panel, standingRowId) - standingsScroll) < 1, "Team link Back moved standings row")
           mouseClick(favoriteAction, favoriteAction.width / 2, favoriteAction.height / 2,
             Qt.LeftButton, Qt.NoModifier, 20)
           wait(50)

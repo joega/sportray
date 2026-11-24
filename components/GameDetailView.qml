@@ -1,13 +1,17 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
+import QtQuick.Window
 import "../model/UiTypography.js" as Typography
+import "../model/UiContrast.js" as UiContrast
 import Quickshell
 import QtQuick.Controls as QQC
-import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
 import "../model/GameDetailModel.js" as GameDetailModel
 import "../model/Formatters.js" as Formatters
 import "../model/LifecyclePolicy.js" as LifecyclePolicy
+import "../model/NoticePresentation.js" as NoticePresentation
 
 Item {
   id: root
@@ -16,12 +20,17 @@ Item {
   property var imageStore: null
   property string updateMessage: ""
   property bool stale: false
+  property bool loading: false
+  property string lastSuccessAt: ""
   property var settingsStore: null
   property double currentTime: Date.now()
   property int cursorIndex: 0
+  property string focusId: "back"
   readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
   Component.onDestruction: LifecyclePolicy.invalidate(root.callbackOwner)
   signal backRequested()
+  signal teamScheduleRequested(string teamId)
+  signal refreshRequested()
 
   readonly property var sourceMetadata: sourceMetadataFor(root.game)
   readonly property var detail: GameDetailModel.normalizeDetail(root.game, root.sourceMetadata)
@@ -78,16 +87,48 @@ Item {
   readonly property var situationData: root.detail.situation
   readonly property var oddsData: root.detail.odds
   readonly property var extraLinks: root.detail.links || []
-  readonly property int linkCursorOffset: 2 + (root.sourceAvailable ? 1 : 0)
-  readonly property int maxCursorIndex: root.linkCursorOffset + root.extraLinks.length - 1
+  readonly property var updateNotice: NoticePresentation.noticeFor({
+    kind: "detail", hasData: Boolean(root.game && root.game.isValid === true),
+    loading: root.loading, stale: root.stale, lastSuccessAt: root.lastSuccessAt,
+    errorSummary: root.stale ? root.updateMessage : "", failed: root.stale,
+    canRetry: root.stale && !root.loading
+  }, root.currentTime)
+  readonly property var cursorActions: root.buildCursorActions()
+  readonly property int linkCursorOffset: 4 + (root.sourceAvailable ? 1 : 0)
+  readonly property int maxCursorIndex: root.cursorActions.length - 1
 
-  onMaxCursorIndexChanged: {
-    if (root.cursorIndex > root.maxCursorIndex) {
-      // A refreshed sparse detail may remove the currently focused link.
-      // Fall back to Back so Enter cannot activate a different game action.
-      root.cursorIndex = 0
-      if (root.visible) root.focusCursor()
-    }
+  function buildCursorActions() {
+    var participants = root.detail.participants
+    var actions = [{id: "back", enabled: true},
+      {id: "away-schedule", enabled: Boolean(participants[0] && participants[0].team && participants[0].team.id)},
+      {id: "home-schedule", enabled: Boolean(participants[1] && participants[1].team && participants[1].team.id)},
+      {id: "watch", enabled: Boolean(watchAction && watchAction.available)}]
+    if (root.sourceAvailable) actions.push({id: "source", enabled: true})
+    root.extraLinks.forEach(function(link, index) {
+      actions.push({id: "link:" + link.url, extraIndex: index,
+        enabled: typeof link.url === "string" && link.url.indexOf("https://") === 0})
+    })
+    if (root.updateNotice.visible && root.updateNotice.detail)
+      actions.push({id: "status-details", enabled: true})
+    if (root.updateNotice.visible && root.updateNotice.canRetry)
+      actions.push({id: "status-retry", enabled: true})
+    return actions
+  }
+  function indexForFocusId(id) {
+    for (var i = 0; i < root.cursorActions.length; i++)
+      if (root.cursorActions[i].id === id && root.cursorActions[i].enabled) return i
+    return -1
+  }
+  onCursorIndexChanged: {
+    if (root.cursorIndex < 0 || root.cursorIndex >= root.cursorActions.length) root.cursorIndex = 0
+    var action = root.cursorActions[root.cursorIndex]
+    if (action) root.focusId = action.id
+  }
+  onCursorActionsChanged: {
+    var index = root.indexForFocusId(root.focusId)
+    if (index < 0) index = 0
+    if (root.cursorIndex !== index) root.cursorIndex = index
+    else if (root.cursorActions[index]) root.focusId = root.cursorActions[index].id
   }
 
   function openExternalUrl(url) {
@@ -144,18 +185,21 @@ Item {
   }
 
   function moveCursor(delta) {
-    var next = Math.max(0, Math.min(root.maxCursorIndex, root.cursorIndex + delta))
-    if (next === 1 && !watchAction.available)
-      next = delta < 0 ? 0 : root.maxCursorIndex >= 2 ? 2 : 0
-    root.cursorIndex = next
-    root.focusCursor()
+    var step = delta < 0 ? -1 : 1
+    for (var next = root.cursorIndex + step; next >= 0 && next <= root.maxCursorIndex; next += step) {
+      if (root.cursorActions[next].enabled) {
+        root.cursorIndex = next
+        root.focusCursor()
+        return
+      }
+    }
   }
 
   function scrollLines(delta) {
     if (!root.linesData || linesScroll.contentWidth <= linesScroll.width) return false
     root.ensureVisible(linesScroll)
     linesScroll.contentX = Math.max(0, Math.min(linesScroll.contentWidth - linesScroll.width,
-      linesScroll.contentX + delta * Style.space(96)))
+      linesScroll.contentX + delta * Commons.Style.space(96)))
     return true
   }
 
@@ -180,25 +224,73 @@ Item {
           detailScroll.contentY + bottom - detailScroll.height))
   }
 
-  function focusCursor() {
-    root.deferFocus(function() {
-      var target = null
-      if (root.cursorIndex === 0) {
-        target = backButton
-        target.forceActiveFocus()
-      } else if (root.cursorIndex === 1) {
-        target = watchAction
-        target.focusAction()
-      } else if (root.sourceAvailable && root.cursorIndex === 2) {
-        target = sourceLink
-        target.focusAction()
-      } else {
-        target = extraLinkButtons.itemAt(root.cursorIndex - root.linkCursorOffset)
-        if (target) target.forceActiveFocus()
+  function targetForAction(action) {
+    if (!action) return null
+    if (action.id === "back") return backButton
+    if (action.id === "away-schedule" || action.id === "home-schedule") {
+      var row = participantRows.itemAt(action.id === "away-schedule" ? 0 : 1)
+      return row ? row.teamLink : null
+    }
+    if (action.id === "watch") return watchAction
+    if (action.id === "source") return sourceLink
+    if (action.id === "status-details" || action.id === "status-retry") return detailNotice
+    return typeof action.extraIndex === "number" ? extraLinkButtons.itemAt(action.extraIndex) : null
+  }
+  function focusAction(ensureViewport) {
+    var action = root.cursorActions[root.cursorIndex]
+    var target = root.targetForAction(action)
+    if (!target) return
+    if (action.id === "watch" || action.id === "source") target.focusAction()
+    else if (action.id === "status-details" || action.id === "status-retry") {
+      detailNotice.activeAction = action.id === "status-details" ? "details" : "retry"
+      detailNotice.forceActiveFocus()
+    } else target.forceActiveFocus()
+    if (ensureViewport) root.ensureVisible(target)
+  }
+  function focusCursor() { root.deferFocus(function() { root.focusAction(true) }) }
+  function syncFocusId(item) {
+    if (!root.visible || !item) return
+    for (var i = 0; i < root.cursorActions.length; i++) {
+      var action = root.cursorActions[i]
+      if (!action.enabled) continue
+      if (action.id === "status-details" && detailNotice.activeAction !== "details"
+          || action.id === "status-retry" && detailNotice.activeAction !== "retry") continue
+      var target = root.targetForAction(action)
+      for (var ancestor = item, depth = 0; ancestor && depth < 64; ancestor = ancestor.parent, depth++) {
+        if (ancestor === target) {
+          root.cursorIndex = i
+          return
+        }
+        if (ancestor === root) break
       }
-      if (!target) return
-      root.ensureVisible(target)
+    }
+  }
+  Connections {
+    target: root.Window.window
+    function onActiveFocusItemChanged() {
+      if (root.Window.window) root.syncFocusId(root.Window.window.activeFocusItem)
+    }
+  }
+  function captureContext() {
+    return {scrollY: detailScroll.contentY, linesX: linesScroll.contentX,
+      focusId: root.focusId, cursorIndex: root.cursorIndex,
+      noticeExpanded: detailNotice.expanded, noticeAction: detailNotice.activeAction}
+  }
+  function restoreContext(snapshot) {
+    if (!snapshot || typeof snapshot !== "object") return false
+    var index = root.indexForFocusId(snapshot.focusId)
+    root.cursorIndex = index >= 0 ? index : 0
+    root.deferFocus(function() {
+      detailNotice.expanded = snapshot.noticeExpanded === true && Boolean(root.updateNotice.detail)
+      if (detailNotice.actions.indexOf(snapshot.noticeAction) !== -1)
+        detailNotice.activeAction = snapshot.noticeAction
+      root.focusAction(false)
+      detailScroll.contentY = Math.max(0, Math.min(detailScroll.contentHeight - detailScroll.height,
+        typeof snapshot.scrollY === "number" && isFinite(snapshot.scrollY) ? snapshot.scrollY : 0))
+      linesScroll.contentX = Math.max(0, Math.min(linesScroll.contentWidth - linesScroll.width,
+        typeof snapshot.linesX === "number" && isFinite(snapshot.linesX) ? snapshot.linesX : 0))
     })
+    return true
   }
 
   function deferFocus(callback) {
@@ -206,7 +298,8 @@ Item {
     var owner = root.callbackOwner
     var generation = LifecyclePolicy.captureGeneration(owner)
     Qt.callLater(function() {
-      if (LifecyclePolicy.canRun(owner, generation) && root.visible) callback()
+      if (!owner || owner.alive !== true || owner.generation !== generation) return
+      if (root.visible) callback()
     })
   }
 
@@ -217,12 +310,26 @@ Item {
     root.focusCursor()
   }
 
+  function requestTeam(index) {
+    var participant = root.detail.participants[index]
+    if (!participant || !participant.team || !participant.team.id) return
+    var cursor = root.indexForFocusId(index === 0 ? "away-schedule" : "home-schedule")
+    if (cursor >= 0) root.cursorIndex = cursor
+    root.teamScheduleRequested(participant.team.id)
+  }
   function activateCursor() {
-    if (root.cursorIndex === 0) root.backRequested()
-    else if (root.cursorIndex === 1) watchAction.activate()
-    else if (root.sourceAvailable && root.cursorIndex === 2) sourceLink.openSource()
-    else {
-      var link = root.extraLinks[root.cursorIndex - root.linkCursorOffset]
+    var action = root.cursorActions[root.cursorIndex]
+    if (!action || !action.enabled) return
+    if (action.id === "back") root.backRequested()
+    else if (action.id === "away-schedule") root.requestTeam(0)
+    else if (action.id === "home-schedule") root.requestTeam(1)
+    else if (action.id === "watch") watchAction.activate()
+    else if (action.id === "source") sourceLink.openSource()
+    else if (action.id === "status-details" || action.id === "status-retry") {
+      detailNotice.activeAction = action.id === "status-details" ? "details" : "retry"
+      detailNotice.activateCursor()
+    } else {
+      var link = root.extraLinks[action.extraIndex]
       if (link) root.openExternalUrl(link.url)
     }
   }
@@ -246,17 +353,17 @@ Item {
     Column {
       id: detailColumn
       width: detailScroll.width
-      spacing: Style.spacing.md
+      spacing: Commons.Style.spacing.md
 
       Row {
         width: parent.width
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
 
         SemanticActionButton {
           id: backButton
           text: "Back"
           tooltipText: "Return to scores"
-          textFontSize: Style.font.bodySmall
+          textFontSize: Commons.Style.font.bodySmall
           focusable: true
           hasCursor: root.cursorIndex === 0
           onClicked: root.backRequested()
@@ -271,47 +378,52 @@ Item {
           textFormat: Text.PlainText
           color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           horizontalAlignment: Text.AlignRight
           elide: Text.ElideRight
         }
       }
 
-      Text {
+      StatusNotice {
+        id: detailNotice
         width: parent.width
-        visible: root.updateMessage !== ""
-        text: root.updateMessage
-        textFormat: Text.PlainText
-        color: root.stale ? Commons.Color.urgent : Qt.alpha(Commons.Color.popups.text, 0.85)
-        font.family: Typography.family
-        font.pixelSize: Style.font.bodySmall
-        wrapMode: Text.WordWrap
-        Accessible.name: root.updateMessage
+        notice: root.updateNotice
+        hasCursor: root.focusId === "status-details" || root.focusId === "status-retry"
+        onRetryRequested: root.refreshRequested()
+        onContentFocusRequested: {
+          var index = root.indexForFocusId(detailNotice.activeAction === "retry" ? "status-retry" : "status-details")
+          if (index >= 0) root.cursorIndex = index
+        }
+        onBoundsChanged: {
+          if (detailNotice.activeFocus) root.ensureVisible(detailNotice)
+        }
       }
 
       Column {
         width: parent.width
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
 
         Repeater {
+          id: participantRows
           model: root.detail.participants
           delegate: Row {
             id: participantRow
             required property var modelData
             required property int index
+            property alias teamLink: participantTeamLink
             readonly property string logoSource: root.imageStore && modelData.team && modelData.team.logoUrl
               ? root.imageStore.sourceFor(modelData.team.logoUrl) : ""
             width: parent.width
-            spacing: Style.spacing.sm
+            spacing: Commons.Style.spacing.sm
 
             Item {
-              width: Style.space(36)
+              width: Commons.Style.space(36)
               height: width
               anchors.verticalCenter: parent.verticalCenter
               Rectangle {
                 anchors.fill: parent
-                anchors.margins: -Style.space(2)
-                radius: Style.space(4)
+                anchors.margins: -Commons.Style.space(2)
+                radius: Commons.Style.space(4)
                 color: "#f5f5f5"
                 visible: participantLogo.visible
               }
@@ -331,43 +443,46 @@ Item {
                 visible: !participantLogo.visible
                 color: Qt.alpha(Commons.Color.popups.text, 0.85)
                 font.family: Typography.family
-                font.pixelSize: Style.font.caption
+                font.pixelSize: Commons.Style.font.caption
               }
             }
 
             Column {
               width: Math.max(0, parent.width - teamScore.width
-                - Style.space(36) - parent.spacing * 2)
-              spacing: Style.spacing.xxs
+                - Commons.Style.space(36) - parent.spacing * 2)
+              spacing: Commons.Style.spacing.xxs
               anchors.verticalCenter: parent.verticalCenter
-              Text {
+              TeamScheduleLink {
+                id: participantTeamLink
                 width: parent.width
+                height: implicitHeight
+                team: participantRow.modelData.team
                 text: root.teamName(participantRow.modelData)
-                textFormat: Text.PlainText
-                color: Commons.Color.popups.text
-                font.family: Typography.family
-                font.pixelSize: Style.font.subtitle
-                font.weight: Font.DemiBold
-                wrapMode: Text.WordWrap
+                foreground: Commons.Color.popups.text
+                fontSize: Commons.Style.font.subtitle
+                bold: true
+                wrap: true
+                hasCursor: root.focusId === (participantRow.index === 0 ? "away-schedule" : "home-schedule")
+                onRequested: root.requestTeam(participantRow.index)
               }
               Text {
                 text: participantRow.index === 0 ? "Away" : "Home"
                 textFormat: Text.PlainText
                 color: Qt.alpha(Commons.Color.popups.text, 0.85)
                 font.family: Typography.family
-                font.pixelSize: Style.font.caption
+                font.pixelSize: Commons.Style.font.caption
               }
             }
 
             Text {
               id: teamScore
-              width: Style.space(64)
+              width: Commons.Style.space(64)
               anchors.verticalCenter: parent.verticalCenter
               text: root.scoreLabel(participantRow.modelData)
               textFormat: Text.PlainText
               color: Commons.Color.popups.text
               font.family: Typography.family
-              font.pixelSize: Style.font.display
+              font.pixelSize: Commons.Style.font.display
               font.features: ({"tnum": 1})
               font.bold: true
               horizontalAlignment: Text.AlignRight
@@ -379,9 +494,10 @@ Item {
           width: parent.width
           text: Formatters.formatDetailStatus(root.detail.status)
           textFormat: Text.PlainText
-          color: root.stale ? Commons.Color.urgent : Commons.Color.accent
+          color: root.stale ? Commons.Color.urgent
+            : UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
           font.family: Typography.family
-          font.pixelSize: Style.font.body
+          font.pixelSize: Commons.Style.font.body
           font.weight: Font.DemiBold
           wrapMode: Text.WordWrap
         }
@@ -389,18 +505,18 @@ Item {
 
       Flow {
         width: parent.width
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
         WatchAction {
           id: watchAction
           game: root.game
           settingsStore: root.settingsStore
           currentTime: root.currentTime
-          hasCursor: root.cursorIndex === 1
+          hasCursor: root.focusId === "watch"
         }
         SourceLinkButton {
           id: sourceLink
           game: root.game
-          hasCursor: root.sourceAvailable && root.cursorIndex === 2
+          hasCursor: root.focusId === "source"
         }
         Repeater {
           id: extraLinkButtons
@@ -411,10 +527,10 @@ Item {
             required property int index
             text: modelData.label
             tooltipText: "Open " + modelData.label + " page"
-            textFontSize: Style.font.bodySmall
+            textFontSize: Commons.Style.font.bodySmall
             focusable: true
             enabled: typeof modelData.url === "string" && modelData.url.indexOf("https://") === 0
-            hasCursor: root.cursorIndex === root.linkCursorOffset + extraLinkButton.index
+            hasCursor: root.focusId === "link:" + modelData.url
             onClicked: root.openExternalUrl(modelData.url)
             Accessible.name: "Open " + modelData.label + " page"
           }
@@ -425,7 +541,7 @@ Item {
 
       Column {
         width: parent.width
-        spacing: Style.spacing.xs
+        spacing: Commons.Style.spacing.xs
         Text {
           width: parent.width
           visible: Boolean(root.detail.timing.startTime)
@@ -434,7 +550,7 @@ Item {
           textFormat: Text.PlainText
           color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
         Text {
@@ -444,7 +560,7 @@ Item {
           textFormat: Text.PlainText
           color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
         Text {
@@ -454,7 +570,7 @@ Item {
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
       }
@@ -462,13 +578,13 @@ Item {
       Column {
         width: parent.width
         visible: root.situationData !== null
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
         Text {
           text: "Game situation"
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.body
+          font.pixelSize: Commons.Style.font.body
           font.weight: Font.DemiBold
         }
         Text {
@@ -477,16 +593,16 @@ Item {
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
         }
         Row {
-          spacing: Style.spacing.sm
+          spacing: Commons.Style.spacing.sm
           Text {
             text: "Bases"
             textFormat: Text.PlainText
             color: Qt.alpha(Commons.Color.popups.text, 0.85)
             font.family: Typography.family
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Commons.Style.font.bodySmall
             Accessible.name: root.situationAccessibleBases()
           }
           Repeater {
@@ -495,7 +611,7 @@ Item {
               root.situationData ? root.situationData.onThird : false]
             Rectangle {
               required property bool modelData
-              width: Style.space(9)
+              width: Commons.Style.space(9)
               height: width
               anchors.verticalCenter: parent.verticalCenter
               rotation: 45
@@ -513,7 +629,7 @@ Item {
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
       }
@@ -521,20 +637,20 @@ Item {
       Column {
         width: parent.width
         visible: root.linesData !== null
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
         Text {
           text: "Scoring by " + Formatters.scoringPeriodUnit(root.detail.league).toLowerCase()
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.body
+          font.pixelSize: Commons.Style.font.body
           font.weight: Font.DemiBold
         }
         Flickable {
           id: linesScroll
           width: parent.width
-          height: linesTable.implicitHeight + (contentWidth > width ? Style.space(10) : 0)
-          contentWidth: Math.max(width, Style.space(48) + root.linePeriods().length * Style.space(32))
+          height: linesTable.implicitHeight + (contentWidth > width ? Commons.Style.space(10) : 0)
+          contentWidth: Math.max(width, Commons.Style.space(48) + root.linePeriods().length * Commons.Style.space(32))
           contentHeight: linesTable.implicitHeight
           clip: true
           boundsBehavior: Flickable.StopAtBounds
@@ -544,27 +660,27 @@ Item {
           Column {
             id: linesTable
             width: linesScroll.contentWidth
-            spacing: Style.spacing.xs
+            spacing: Commons.Style.spacing.xs
             Row {
               width: parent.width
               Text {
-                width: Style.space(48)
+                width: Commons.Style.space(48)
                 text: "Team"
                 textFormat: Text.PlainText
                 color: Qt.alpha(Commons.Color.popups.text, 0.85)
                 font.family: Typography.family
-                font.pixelSize: Style.font.caption
+                font.pixelSize: Commons.Style.font.caption
               }
               Repeater {
                 model: root.linePeriods()
                 Text {
                   required property string modelData
-                  width: (linesTable.width - Style.space(48)) / Math.max(1, root.linePeriods().length)
+                  width: (linesTable.width - Commons.Style.space(48)) / Math.max(1, root.linePeriods().length)
                   text: modelData
                   textFormat: Text.PlainText
                   color: Qt.alpha(Commons.Color.popups.text, 0.85)
                   font.family: Typography.family
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: Commons.Style.font.caption
                   horizontalAlignment: Text.AlignRight
                 }
               }
@@ -576,24 +692,24 @@ Item {
                 required property string modelData
                 width: linesTable.width
                 Text {
-                  width: Style.space(48)
+                  width: Commons.Style.space(48)
                   text: root.teamLabel(root.detail.participants[linesSideRow.modelData === "away" ? 0 : 1])
                   textFormat: Text.PlainText
                   color: Commons.Color.popups.text
                   font.family: Typography.family
-                  font.pixelSize: Style.font.bodySmall
+                  font.pixelSize: Commons.Style.font.bodySmall
                   elide: Text.ElideRight
                 }
                 Repeater {
                   model: root.lineValues(linesSideRow.modelData)
                   Text {
                     required property string modelData
-                    width: (linesTable.width - Style.space(48)) / Math.max(1, root.linePeriods().length)
+                    width: (linesTable.width - Commons.Style.space(48)) / Math.max(1, root.linePeriods().length)
                     text: modelData
                     textFormat: Text.PlainText
                     color: Commons.Color.popups.text
                     font.family: Typography.family
-                    font.pixelSize: Style.font.bodySmall
+                    font.pixelSize: Commons.Style.font.bodySmall
                     font.features: ({"tnum": 1})
                     horizontalAlignment: Text.AlignRight
                   }
@@ -609,7 +725,7 @@ Item {
           textFormat: Text.PlainText
           color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Style.font.caption
+          font.pixelSize: Commons.Style.font.caption
           wrapMode: Text.WordWrap
         }
       }
@@ -617,28 +733,28 @@ Item {
       Column {
         width: parent.width
         visible: root.statsData !== null
-        spacing: Style.spacing.sm
+        spacing: Commons.Style.spacing.sm
         Row {
           width: parent.width
           Text {
-            width: parent.width - Style.space(100)
+            width: parent.width - Commons.Style.space(100)
             text: "Team stats"
             textFormat: Text.PlainText
             color: Commons.Color.popups.text
             font.family: Typography.family
-            font.pixelSize: Style.font.body
+            font.pixelSize: Commons.Style.font.body
             font.weight: Font.DemiBold
           }
           Repeater {
             model: root.detail.participants
             Text {
               required property var modelData
-              width: Style.space(50)
+              width: Commons.Style.space(50)
               text: root.teamLabel(modelData)
               textFormat: Text.PlainText
               color: Qt.alpha(Commons.Color.popups.text, 0.85)
               font.family: Typography.family
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Commons.Style.font.caption
               horizontalAlignment: Text.AlignRight
               elide: Text.ElideRight
             }
@@ -651,24 +767,24 @@ Item {
             required property var modelData
             width: parent.width
             Text {
-              width: parent.width - Style.space(100)
+              width: parent.width - Commons.Style.space(100)
               text: statRow.modelData.label
               textFormat: Text.PlainText
               color: Qt.alpha(Commons.Color.popups.text, 0.85)
               font.family: Typography.family
-              font.pixelSize: Style.font.bodySmall
+              font.pixelSize: Commons.Style.font.bodySmall
               wrapMode: Text.WordWrap
             }
             Repeater {
               model: [statRow.modelData.away, statRow.modelData.home]
               Text {
                 required property string modelData
-                width: Style.space(50)
+                width: Commons.Style.space(50)
                 text: modelData
                 textFormat: Text.PlainText
                 color: Commons.Color.popups.text
                 font.family: Typography.family
-                font.pixelSize: Style.font.bodySmall
+                font.pixelSize: Commons.Style.font.bodySmall
                 font.features: ({"tnum": 1})
                 horizontalAlignment: Text.AlignRight
                 elide: Text.ElideRight
@@ -681,13 +797,13 @@ Item {
       Column {
         width: parent.width
         visible: root.oddsData !== null && root.detail.status.state === "scheduled"
-        spacing: Style.spacing.xs
+        spacing: Commons.Style.spacing.xs
         Text {
           text: "Pregame odds"
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Style.font.body
+          font.pixelSize: Commons.Style.font.body
           font.weight: Font.DemiBold
         }
         Text {
@@ -696,7 +812,7 @@ Item {
           textFormat: Text.PlainText
           color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
       }
