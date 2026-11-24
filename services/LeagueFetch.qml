@@ -35,6 +35,9 @@ Item {
   property int partialErrorCount: 0
   property string lastSuccessAt: ""
   property string lastAttemptAt: ""
+  property bool externalRequestBusy: false
+  readonly property bool networkBusy: requestProcess.running || root.stoppingRequest
+    || lookaheadProcess.running || root.stoppingLookahead
   property bool lookaheadEnabled: false
   property var nextGame: null
   property string nextGameDateKey: ""
@@ -62,6 +65,7 @@ Item {
   property int activeLookaheadGeneration: 0
   property int lookaheadHopCount: 0
   property string lookaheadRequestDateKey: ""
+  property string deferredLookaheadDateKey: ""
   property string requestDateKey: ""
   property string snapshotDateKey: ""
   property string activeProviderId: ""
@@ -255,6 +259,7 @@ Item {
     root.lookaheadBodyReceived = false
     root.lookaheadHopCount = 0
     root.lookaheadRequestDateKey = ""
+    root.deferredLookaheadDateKey = ""
     root.nextGame = null
     root.nextGameDateKey = ""
     root.nextGameStatus = "idle"
@@ -291,6 +296,7 @@ Item {
   }
 
   function finishLookahead(status, cacheIntervalMs) {
+    root.deferredLookaheadDateKey = ""
     root.nextGame = null
     root.nextGameDateKey = ""
     root.nextGameStatus = status || "unavailable"
@@ -318,6 +324,14 @@ Item {
     }
     if (lookaheadProcess.running) return false
 
+    // A team schedule may acquire the league slot while this admitted
+    // lookahead is finishing. Preserve its validated next cursor and hop
+    // budget until the shared slot is released.
+    if (root.externalRequestBusy) {
+      root.deferredLookaheadDateKey = dateKey
+      return false
+    }
+
     var url = root.lookaheadUrl(dateKey)
     if (!url) {
       root.finishLookahead("unavailable")
@@ -325,6 +339,7 @@ Item {
     }
 
     root.lookaheadGeneration++
+    root.deferredLookaheadDateKey = ""
     root.activeLookaheadGeneration = root.lookaheadGeneration
     root.lookaheadRequestDateKey = dateKey
     root.lookaheadStreamFinished = false
@@ -344,6 +359,11 @@ Item {
     if (!root.lookaheadEnabled || !root.leagueEnabled) return
     if (root.loading || root.errorCode !== "" || root.games.length > 0) {
       root.resetLookahead()
+      return
+    }
+    if (root.externalRequestBusy) return
+    if (root.deferredLookaheadDateKey) {
+      root.startLookahead(root.deferredLookaheadDateKey)
       return
     }
     if (root.nextGameStatus === "idle" && !root.restoreLookaheadCache())
@@ -445,6 +465,12 @@ Item {
     if (!root.requestDue(refreshReason, Date.now())) {
       console.debug("Sportray league fetch", root.leagueId,
         "cache-hit", refreshReason, root.dateKey)
+      return false
+    }
+
+    if (root.externalRequestBusy) {
+      root.refreshQueued = true
+      root.queuedRefreshReason = refreshReason
       return false
     }
 
@@ -668,6 +694,13 @@ Item {
       days.push({dateKey: dateKey, games: entry.games.slice(), complete: true})
     }
     return {leagueId: root.leagueId, displayName: root.displayName, days: days}
+  }
+
+  onExternalRequestBusyChanged: {
+    if (!root.externalRequestBusy && root.initialized && !root.ownerDestroyed && root.leagueEnabled) {
+      root.finishQueuedRefresh()
+      root.syncLookahead()
+    }
   }
 
   onLeagueEnabledChanged: root.handleEnabledChanged()

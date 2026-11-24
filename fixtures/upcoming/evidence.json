@@ -1,0 +1,135 @@
+{
+  "transform": "Public fields only; all source events retained. Optional presentation fields, links, references, logos arrays, records and stats removed. Source byte counts are measured before sanitization; fixtures do not establish transport sizes.",
+  "sources": [
+    {
+      "fixture": "nfl-buf-2026-regular.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/2/schedule?season=2026&seasontype=2",
+      "fetchedAt": "2026-11-24T17:34:33.465439+00:00",
+      "status": 200,
+      "sourceBytes": 313247,
+      "sourceChars": 313247,
+      "sourceEventCount": 17,
+      "fixtureEventCount": 17
+    },
+    {
+      "fixture": "nfl-buf-2026-post-unpublished.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/2/schedule?season=2026&seasontype=3",
+      "fetchedAt": "2026-11-24T17:34:33.465658+00:00",
+      "status": 200,
+      "sourceBytes": 613,
+      "sourceChars": 613,
+      "sourceEventCount": 0,
+      "fixtureEventCount": 0
+    },
+    {
+      "fixture": "nba-bos-2027-regular.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/2/schedule?season=2027&seasontype=2",
+      "fetchedAt": "2026-11-24T17:34:33.607182+00:00",
+      "status": 200,
+      "sourceBytes": 925641,
+      "sourceChars": 925641,
+      "sourceEventCount": 80,
+      "fixtureEventCount": 80
+    },
+    {
+      "fixture": "cfb-mich-2026-regular.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams/130/schedule?season=2026&seasontype=2",
+      "fetchedAt": "2026-11-24T17:34:33.883347+00:00",
+      "status": 200,
+      "sourceBytes": 519629,
+      "sourceChars": 519629,
+      "sourceEventCount": 12,
+      "fixtureEventCount": 12
+    },
+    {
+      "fixture": "ncaab-mich-2027-regular.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/130/schedule?season=2027&seasontype=2",
+      "fetchedAt": "2026-11-24T17:34:34.072872+00:00",
+      "status": 200,
+      "sourceBytes": 309448,
+      "sourceChars": 309446,
+      "sourceEventCount": 30,
+      "fixtureEventCount": 30
+    },
+    {
+      "fixture": "epl-man-2026-fixture.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/teams/360/schedule?season=2026&fixture=true",
+      "fetchedAt": "2026-11-24T17:34:34.485685+00:00",
+      "status": 200,
+      "sourceBytes": 233554,
+      "sourceChars": 233554,
+      "sourceEventCount": 27,
+      "fixtureEventCount": 27
+    },
+    {
+      "fixture": "mls-por-mismatched-fixture.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/9723/schedule?fixture=true",
+      "fetchedAt": "2026-11-24T17:31:49.114388+00:00",
+      "status": 200,
+      "sourceBytes": 192898,
+      "sourceChars": 192898,
+      "sourceEventCount": 14,
+      "fixtureEventCount": 14
+    },
+    {
+      "fixture": "mls-por-next-hint.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/9723",
+      "fetchedAt": "2026-11-24T17:32:45.356804+00:00",
+      "status": 200,
+      "sourceBytes": 26788,
+      "sourceChars": 26788,
+      "sourceEventCount": 1,
+      "fixtureEventCount": 1
+    },
+    {
+      "fixture": "nfl-buf-stale-hint.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/2",
+      "fetchedAt": "2026-11-24T17:32:45.179525+00:00",
+      "status": 200,
+      "sourceBytes": 23486,
+      "sourceChars": 23486,
+      "sourceEventCount": 1,
+      "fixtureEventCount": 1
+    },
+    {
+      "fixture": "nhl-vgk-2026-11.json",
+      "url": "https://api-web.nhle.com/v1/club-schedule/VGK/month/2026-11",
+      "fetchedAt": "2026-11-24T17:31:09.558398+00:00",
+      "status": 200,
+      "sourceBytes": 24833,
+      "sourceChars": 24827,
+      "sourceEventCount": 13,
+      "fixtureEventCount": 13
+    },
+    {
+      "fixture": "mlb-nyy-march-window.json",
+      "url": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=147&startDate=2027-02-28&endDate=2027-04-05&hydrate=team,linescore",
+      "fetchedAt": "2026-11-24T17:41:22.857245+00:00",
+      "status": 200,
+      "sourceBytes": 106092,
+      "sourceChars": 106092,
+      "sourceEventCount": 33,
+      "fixtureEventCount": 0
+    },
+    {
+      "fixture": "mlb-nyy-empty-window.json",
+      "url": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId=147&startDate=2026-11-23&endDate=2026-12-29&hydrate=team,linescore",
+      "fetchedAt": "2026-11-24T17:41:22.856611+00:00",
+      "status": 200,
+      "sourceBytes": 262,
+      "sourceChars": 262,
+      "sourceEventCount": 0,
+      "fixtureEventCount": 0
+    },
+    {
+      "fixture": "ncaab-ucla-2027-regular.json",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/26/schedule?season=2027&seasontype=2",
+      "fetchedAt": "2026-11-24T17:47:34.937085+00:00",
+      "status": 200,
+      "sourceBytes": 324071,
+      "sourceChars": 324069,
+      "sourceEventCount": 31,
+      "fixtureEventCount": 31
+    }
+  ]
+}

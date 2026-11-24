@@ -1,5 +1,7 @@
 import QtQuick
 import "../model/LifecyclePolicy.js" as LifecyclePolicy
+import "../providers/NhlTeamCatalog.js" as NhlTeamCatalog
+import "../providers/EspnTeamCatalog.js" as EspnTeamCatalog
 import "../model/ScoreboardModel.js" as ScoreboardModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
 import "../model/CalendarModel.js" as CalendarModel
@@ -55,6 +57,26 @@ Item {
       root.updateAggregateState()
     })
   }
+  readonly property var upcomingState: calendarFetch.upcomingState
+  readonly property var upcomingCatalogTeams: NhlTeamCatalog.listTeams().concat(
+    EspnTeamCatalog.listTeamsForLeagues(root.enabledLeagues)).filter(function(team) {
+      return root.enabledLeagues.indexOf(team.league) !== -1
+        && root.favoriteTeamIds.indexOf(team.id) !== -1
+    })
+  readonly property var upcomingBusyLeagues: [nhlFetch, nflFetch, mlbFetch, nbaFetch,
+    ncaafFetch, eplFetch, mlsFetch, ncaabFetch].filter(function(fetch) {
+      return fetch && fetch.networkBusy
+    }).map(function(fetch) { return fetch.leagueId })
+
+  function requestUpcoming(owner, teamId, startDate, endDate, force) {
+    if (!root.settingsReady || !root.panelOpen || !root.upcomingCatalogTeams.some(function(team) {
+      return team.id === teamId
+    })) return false
+    return calendarFetch.requestUpcoming(owner, teamId, startDate, endDate, force === true)
+  }
+
+  function cancelUpcoming(owner) { return calendarFetch.cancelUpcoming(owner) }
+
   readonly property var calendarScheduleState: calendarFetch.snapshotFor("nhl")
   readonly property bool calendarCacheReady: calendarDiskCache.ready
   readonly property bool calendarRehydrating: calendarFetch.rehydrating
@@ -394,6 +416,9 @@ Item {
 
   CalendarFetch {
     id: calendarFetch
+    upcomingEnabled: root.settingsReady && root.panelOpen
+    upcomingCatalogTeams: root.upcomingCatalogTeams
+    upstreamBusyLeagues: root.upcomingBusyLeagues
     calendarEnabled: root.calendarFeatureEnabled && root.enabledLeagues.length > 0
     calendarFeatureEnabled: root.calendarFeatureEnabled
     enabledLeagues: root.enabledLeagues
@@ -406,6 +431,7 @@ Item {
   LeagueFetch {
     id: nhlFetch
     leagueId: "nhl"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("nhl") !== -1
     displayName: "NHL"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("nhl")
@@ -418,6 +444,7 @@ Item {
   LeagueFetch {
     id: nflFetch
     leagueId: "nfl"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("nfl") !== -1
     displayName: "NFL"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("nfl")
@@ -430,6 +457,7 @@ Item {
   LeagueFetch {
     id: mlbFetch
     leagueId: "mlb"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("mlb") !== -1
     displayName: "MLB"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("mlb")
@@ -442,6 +470,7 @@ Item {
   LeagueFetch {
     id: nbaFetch
     leagueId: "nba"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("nba") !== -1
     displayName: "NBA"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("nba")
@@ -454,6 +483,7 @@ Item {
   LeagueFetch {
     id: ncaafFetch
     leagueId: "college-football"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("college-football") !== -1
     displayName: "NCAA Football"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("college-football")
@@ -466,6 +496,7 @@ Item {
   LeagueFetch {
     id: eplFetch
     leagueId: "eng.1"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("eng.1") !== -1
     displayName: "Premier League"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("eng.1")
@@ -478,6 +509,7 @@ Item {
   LeagueFetch {
     id: mlsFetch
     leagueId: "usa.1"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("usa.1") !== -1
     displayName: "MLS"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("usa.1")
@@ -490,6 +522,7 @@ Item {
   LeagueFetch {
     id: ncaabFetch
     leagueId: "mens-college-basketball"
+    externalRequestBusy: calendarFetch.upcomingLockedLeagues.indexOf("mens-college-basketball") !== -1
     displayName: "NCAA Men's Basketball"
     dateKey: root.selectedDateKey
     leagueEnabled: root.isLeagueEnabled("mens-college-basketball")

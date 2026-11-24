@@ -3,6 +3,8 @@ import Quickshell.Io
 import "../providers/NhlProvider.js" as NhlProvider
 import "../providers/EspnProvider.js" as EspnProvider
 import "../providers/LeagueCatalog.js" as LeagueCatalog
+import "../providers/MlbStatsProvider.js" as MlbStatsProvider
+import "../providers/UpcomingScheduleProvider.js" as UpcomingScheduleProvider
 import "../model/CalendarModel.js" as CalendarModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
 import "../model/ChunkPolicy.js" as ChunkPolicy
@@ -51,6 +53,213 @@ Item {
   property int rehydrationTotal: 0
   readonly property bool rehydrating: root.planKind === "rehydration"
     || root.queuedPlanKind === "rehydration"
+
+  // The team calendar is on-demand and shares the existing sequential
+  // process. The dormant range/hydration route remains separately disabled.
+  property bool upcomingEnabled: false
+  property var upcomingCatalogTeams: []
+  property var upstreamBusyLeagues: []
+  property var upcomingState: ({owner: "", teamId: "", loading: false, hasData: false,
+    partial: false, stale: false, errorSummary: "", entries: [], coverageStart: "", coverageEnd: "", lastSuccessAt: ""})
+  property string upcomingOwner: ""
+  property var upcomingPlan: null
+  property var queuedUpcoming: null
+  property var upcomingEntries: []
+  property var upcomingRetainedEntries: []
+  property bool upcomingPartial: false
+  property int upcomingResponses: 0
+  property int upcomingFailures: 0
+  property string upcomingLastSuccessAt: ""
+  property string upcomingProcessLeague: ""
+  property var upcomingCache: ({})
+  property var upcomingCacheOrder: []
+  readonly property int upcomingCacheLimit: 8
+  readonly property int upcomingCacheTtlMs: 15 * 60 * 1000
+  readonly property var upcomingLockedLeagues: {
+    var leagues = []
+    if (root.upcomingProcessLeague) leagues.push(root.upcomingProcessLeague)
+    if (root.planKind === "upcoming" && root.upcomingPlan
+        && leagues.indexOf(root.upcomingPlan.leagueId) === -1) leagues.push(root.upcomingPlan.leagueId)
+    if (root.queuedUpcoming && root.queuedUpcoming.plan
+        && leagues.indexOf(root.queuedUpcoming.plan.leagueId) === -1) leagues.push(root.queuedUpcoming.plan.leagueId)
+    return leagues
+  }
+
+  function upcomingKey(plan) { return plan.teamId + ":" + plan.startDate + ":" + plan.endDate }
+
+  function mergeUpcomingEntries(previous, additions) {
+    var merged = [], indices = Object.create(null)
+    ;(previous || []).concat(additions || []).forEach(function(entry) {
+      if (!entry || !entry.game || !entry.game.id) return
+      var id = entry.game.id
+      if (indices[id] !== undefined) merged[indices[id]] = entry
+      else { indices[id] = merged.length; merged.push(entry) }
+    })
+    // Reject a union overflow; never turn a truncated schedule into success.
+    return merged.length <= 256 ? merged : null
+  }
+
+  function upcomingCached(plan) {
+    var hit = root.upcomingCache[root.upcomingKey(plan)]
+    var age = hit ? Date.now() - hit.updatedAtMs : -1
+    return hit && age >= 0 && age < hit.ttlMs ? hit.state : null
+  }
+
+  function requestUpcoming(owner, teamId, startDate, endDate, force) {
+    if (!root.upcomingEnabled || root.ownerDestroyed || !owner
+        || root.calendarFeatureEnabled && root.calendarEnabled) return false
+    var plan = UpcomingScheduleProvider.buildPlan(teamId, startDate, endDate,
+      root.upcomingCatalogTeams, MlbStatsProvider.TEAM_IDS_BY_STATS_ID)
+    if (!plan || plan.kind !== "plan" || !plan.requests.length || plan.requests.length > 8) return false
+    if (!force && root.planKind === "upcoming" && root.upcomingPlan
+        && root.upcomingKey(plan) === root.upcomingKey(root.upcomingPlan)) {
+      root.upcomingOwner = owner
+      root.upcomingState = Object.assign({}, root.upcomingState, {owner: owner})
+      return true
+    }
+    var hit = root.upcomingCached(plan)
+    var saved = root.upcomingCache[root.upcomingKey(plan)]
+    var retained = saved ? saved.state : null
+    root.upcomingOwner = owner
+    root.queuedUpcoming = null
+    root.cancel()
+    if (hit && !force) {
+      root.upcomingState = Object.assign({}, hit, {owner: owner, loading: false})
+      return true
+    }
+    var intent = {owner: owner, plan: plan, retained: retained ? retained.entries : []}
+    root.upcomingState = {owner: owner, teamId: teamId, loading: true, hasData: Boolean(retained),
+      partial: retained ? retained.partial : false, stale: Boolean(retained), errorSummary: "",
+      entries: retained ? retained.entries : [], coverageStart: startDate, coverageEnd: endDate,
+      lastSuccessAt: retained ? retained.lastSuccessAt : ""}
+    if (root.stoppingRequest || calendarProcess.running || root.upcomingProcessLeague !== "") {
+      root.queuedUpcoming = intent
+      return true
+    }
+    root.beginUpcoming(intent)
+    return true
+  }
+
+  function beginUpcoming(intent) {
+    if (!intent || !root.upcomingEnabled || root.ownerDestroyed
+        || intent.owner !== root.upcomingOwner) return false
+    root.upcomingPlan = intent.plan
+    root.upcomingEntries = []
+    root.upcomingRetainedEntries = intent.retained || []
+    root.upcomingResponses = 0
+    root.upcomingFailures = 0
+    root.upcomingPartial = false
+    root.upcomingLastSuccessAt = root.upcomingState.lastSuccessAt || ""
+    root.planWindows = intent.plan.requests
+    root.planIndex = 0
+    root.planKind = "upcoming"
+    root.startUpcomingNext()
+    return true
+  }
+
+  function cancelUpcoming(owner) {
+    if (owner && owner !== root.upcomingOwner) return false
+    root.upcomingOwner = ""
+    root.queuedUpcoming = null
+    if (root.planKind === "upcoming") root.cancel()
+    if (root.upcomingState.loading)
+      root.upcomingState = Object.assign({}, root.upcomingState, {loading: false})
+    return true
+  }
+
+  function publishUpcoming(loading) {
+    var plan = root.upcomingPlan
+    if (!plan || !root.upcomingOwner) return
+    var retained = root.upcomingRetainedEntries
+    var entries = root.upcomingResponses > 0 ? root.upcomingEntries : retained
+    var partial = root.upcomingPartial || root.upcomingFailures > 0
+    var retaining = retained.length > 0 && (loading || partial || root.upcomingResponses === 0)
+    if (retaining) {
+      var union = root.mergeUpcomingEntries(retained, root.upcomingEntries)
+      if (union) entries = union
+      else { entries = retained; partial = true }
+    }
+    var message = root.upcomingFailures > 0
+      ? (entries.length ? "Some schedule requests failed. Saved games are shown." : "Schedule unavailable. Try again.")
+      : partial && retaining ? "Schedule is incomplete. Previously listed games are retained."
+      : partial ? "Only published games are shown. More dates may be announced." : ""
+    root.upcomingState = {owner: root.upcomingOwner, teamId: plan.teamId, loading: loading,
+      hasData: root.upcomingResponses > 0 || entries.length > 0,
+      partial: partial, stale: retaining, failed: root.upcomingFailures > 0,
+      errorSummary: message, entries: entries, coverageStart: plan.startDate, coverageEnd: plan.endDate,
+      coverageComplete: !loading && !partial, lastSuccessAt: root.upcomingLastSuccessAt}
+  }
+
+  function rememberUpcoming() {
+    if (!root.upcomingPlan || !root.upcomingState.hasData) return
+    var key = root.upcomingKey(root.upcomingPlan)
+    var cache = Object.assign({}, root.upcomingCache)
+    cache[key] = {updatedAtMs: Date.now(), ttlMs: root.upcomingFailures > 0 ? 30000 : root.upcomingCacheTtlMs,
+      state: Object.assign({}, root.upcomingState, {loading: false})}
+    var order = root.upcomingCacheOrder.filter(function(value) { return value !== key })
+    order.push(key)
+    while (order.length > root.upcomingCacheLimit) delete cache[order.shift()]
+    root.upcomingCache = cache
+    root.upcomingCacheOrder = order
+  }
+
+  function startUpcomingNext() {
+    if (!root.upcomingEnabled || !root.upcomingOwner || root.ownerDestroyed
+        || root.planKind !== "upcoming" || root.stoppingRequest || calendarProcess.running
+        || root.upcomingProcessLeague !== "") return
+    if (root.planIndex >= root.planWindows.length) {
+      root.publishUpcoming(false)
+      root.rememberUpcoming()
+      root.planKind = ""
+      return
+    }
+    // An already-running score/lookahead request keeps its slot. The shared
+    // league lock blocks new requests until this plan (or its stop) settles.
+    if (root.upstreamBusyLeagues.indexOf(root.upcomingPlan.leagueId) !== -1) return
+    var request = root.planWindows[root.planIndex]
+    root.pendingBody = ""
+    root.bodyReceived = false
+    root.responseTooLarge = false
+    root.upcomingProcessLeague = root.upcomingPlan.leagueId
+    calendarProcess.requestGeneration = root.activeGeneration
+    calendarProcess.command = ["/usr/bin/python3", root.transportHelperPath, request.url]
+    calendarProcess.running = true
+  }
+
+  function finishUpcomingResponse(exitCode, body, oversized) {
+    var request = root.planWindows[root.planIndex]
+    var result = null
+    if (exitCode === 0 && !oversized && request) {
+      try {
+        result = UpcomingScheduleProvider.parseResponse(request, body, {
+          parseEspn: EspnProvider.parseScoreboardResponse,
+          parseNhl: NhlProvider.parseScheduleResponse,
+          parseMlb: MlbStatsProvider.parseScoreResponse})
+      } catch (error) { result = null }
+    }
+    if (!result || result.accepted !== true) root.upcomingFailures++
+    else {
+      var merged = root.mergeUpcomingEntries(root.upcomingEntries, result.entries)
+      if (merged === null) root.upcomingFailures++
+      else {
+        root.upcomingEntries = merged
+        root.upcomingResponses++
+        root.upcomingLastSuccessAt = new Date().toISOString()
+      }
+      if (result.complete !== true) root.upcomingPartial = true
+    }
+    root.planIndex++
+    root.publishUpcoming(true)
+    root.startUpcomingNext()
+  }
+
+  onUpcomingEnabledChanged: if (!root.upcomingEnabled) root.cancelUpcoming()
+  onUpcomingCatalogTeamsChanged: {
+    if (root.upcomingOwner && !root.upcomingCatalogTeams.some(function(team) {
+      return team.id === root.upcomingState.teamId
+    })) root.cancelUpcoming()
+  }
+  onUpstreamBusyLeaguesChanged: if (root.planKind === "upcoming") root.startUpcomingNext()
 
   function providerIdFor(leagueId) {
     if (leagueId === "nhl") return "nhl"
@@ -194,6 +403,7 @@ Item {
   }
 
   function cancelSchedule() {
+    if (root.planKind === "upcoming" || root.queuedUpcoming) return
     // Closing the view must not kill a one-time startup rehydration. It is a
     // shared cache repair owned by this service, not by the panel lifecycle.
     if (root.planKind === "rehydration") {
@@ -221,7 +431,7 @@ Item {
 
   onCalendarEnabledChanged: {
     if (!root.calendarEnabled) {
-      root.cancel()
+      if (root.planKind !== "upcoming") root.cancel()
     } else if (root.requestedMonthKey && root.planKind === "") {
       // Settings can finish loading after the panel asks for its first
       // calendar month. Retry that bounded request once the owner becomes
@@ -417,7 +627,10 @@ Item {
   function appendChunk(value) {
     if (root.responseTooLarge) return
     var chunk = String(value || "")
-    if (!ResponsePolicy.canAppend(root.pendingBody, chunk)) {
+    var fits = root.planKind === "upcoming"
+      ? UpcomingScheduleProvider.canAppend(root.pendingBody, chunk, root.planWindows[root.planIndex])
+      : ResponsePolicy.canAppend(root.pendingBody, chunk)
+    if (!fits) {
       root.responseTooLarge = true
       if (calendarProcess.running) calendarProcess.signal(9)
       return
@@ -459,6 +672,8 @@ Item {
 
   Component.onDestruction: {
     root.ownerDestroyed = true
+    root.upcomingOwner = ""
+    root.queuedUpcoming = null
     root.cancel()
     if (calendarProcess.running) calendarProcess.running = false
   }
@@ -483,10 +698,25 @@ Item {
       root.stoppingRequest = false
       var window = root.planWindows[root.planIndex]
       var body = root.pendingBody.trim()
+      var oversized = root.responseTooLarge
       root.pendingBody = ""
       root.bodyReceived = false
+      root.responseTooLarge = false
+      root.upcomingProcessLeague = ""
+      if (root.ownerDestroyed) return
+      if (root.queuedUpcoming) {
+        var queued = root.queuedUpcoming
+        root.queuedUpcoming = null
+        root.beginUpcoming(queued)
+        return
+      }
+      if (root.planKind === "upcoming") {
+        if (!stopped && root.upcomingEnabled && root.upcomingOwner)
+          root.finishUpcomingResponse(exitCode, body, oversized)
+        return
+      }
       var payload = null
-      if (!root.responseTooLarge && body !== "") {
+      if (!oversized && body !== "") {
         try { payload = JSON.parse(body) } catch (error) { payload = null }
       }
       root.responseTooLarge = false

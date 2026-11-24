@@ -86,6 +86,19 @@ carousel, previous/next arrows, and Today reset let you browse completed and
 upcoming slates. On an empty league day, **View day** jumps to its next scheduled
 game.
 
+Open the **calendar button** beside the dates, or press **G**, to find an upcoming
+game for a favorite team. Choose a team to see marked game days and a dated
+**Next up** matchup; select the matchup or a day to jump straight to its scores.
+Month arrows let you browse further without stepping through empty days.
+
+The team calendar loads a 35-day window on demand and reuses recent results
+during the shell session. Providers may publish only part of a season, especially
+playoffs and college schedules. In that case it says **Next listed game** and
+labels the incomplete schedule. Unmarked dates mean no game is listed, and
+unannounced start times show **Time TBD**. Failed updates identify retained data.
+
+<p><a href="screenshots/sportray-calendar.png"><img src="screenshots/sportray-calendar.png" alt="Team calendar with marked game days and a direct jump to a matchup three weeks away" width="320"></a></p>
+
 | League | Scores | Standings |
 | --- | :---: | :---: |
 | NHL | ✓ | ✓ |
@@ -148,6 +161,7 @@ up to 2.5 seconds to finish.
 | --- | --- |
 | `[` / `]` | Previous / next day. |
 | `T` | Return to today. |
+| `G` | Open the team calendar from scores. |
 | `S` | Toggle Scores / Standings on a supported league view. |
 | `R` | Refresh scores or the open standings table. |
 | `N` | Open Settings from scores. |
@@ -162,11 +176,17 @@ In Favorite teams, press Down or Enter from search to browse results; Enter on a
 result toggles its favorite state. Editors and open dropdowns own their keys. Tab follows Omarchy's neighboring-panel
 navigation rather than cycling through Sportray's actions.
 
+Inside the team calendar, arrows move between dates, Page Up / Page Down change
+months, and Enter opens the focused day. Tab reaches the team chooser and matchup
+actions; Escape returns to scores.
+
 ## Data sources and privacy
 
 Scores and team data come directly from NHL, ESPN, and MLB StatsAPI endpoints.
 NHL uses its public scoreboard API; MLB uses ESPN with a StatsAPI fallback. Other
 supported league scoreboards and team lists use ESPN. Standings use ESPN or NHL.
+The team calendar uses NHL club schedules, ESPN team schedules, and MLB StatsAPI
+team/date queries. It avoids unsupported ESPN date-range scoreboard requests.
 
 Optional team logos are fetched from reviewed ESPN/NHL asset hosts, validated
 for format, byte size, and dimensions, and kept only for the shell session.
@@ -188,14 +208,15 @@ omarchy plugin remove io.github.joega.sportray
 Removal leaves preferences at
 `~/.local/state/omarchy/settings/sportray.json`, so reinstalling keeps your setup.
 Remove that file separately for a preference reset. Older Calendar cache files
-under `~/.cache/sportray/calendar`, if present, are also retained. The experimental
-Calendar feature remains disabled.
+under `~/.cache/sportray/calendar`, if present, are also retained. Team calendar
+results stay only for the shell session.
 
 ## Troubleshooting
 
 - **After a code update:** run `omarchy restart shell` to load the new QML.
 - **No games:** check that the league is enabled, choose another date, use
-  **View day**, or select **Refresh**.
+  the team calendar to find the next listed game, use **View day**, or select
+  **Refresh**.
 - **A provider is unavailable:** healthy leagues keep working. Following shows
   league-specific failures and marks retained scores as stale; a failed request
   is not treated as a confirmed empty day. Standings also label retained data
@@ -219,6 +240,13 @@ Without an output argument, the tool refreshes the README images and root
 HOME; it does not load or change the installed plugin, desktop theme, or user
 preferences. Team logos pass through Sportray's bounded raster helper.
 These captures document appearance, not desktop interaction testing.
+
+The calendar image comes from the native interaction fixture:
+
+```bash
+SPORTRAY_TEST_ARTIFACT_DIR=/tmp/sportray-ui python3 tests/test-ui-presentation.py
+cp /tmp/sportray-ui/ui-light/upcoming.png screenshots/sportray-calendar.png
+```
 
 </details>
 

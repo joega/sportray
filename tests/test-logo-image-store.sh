@@ -62,6 +62,8 @@ QtObject {
   property var stdout: null
   property int starts: 0
   property var commands: []
+  property var signalsSent: []
+  function signal(value) { signalsSent = signalsSent.concat([value]); running = false }
   signal exited(int exitCode, int exitStatus)
   onRunningChanged: if (running) {
     if (stdout && "text" in stdout) stdout.text = ""

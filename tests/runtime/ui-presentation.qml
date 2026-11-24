@@ -6,6 +6,7 @@ import qs.Commons as Commons
 import "../.." as Plugin
 import "../../components" as Components
 import "../../model/SettingsModel.js" as SettingsModel
+import "../../model/DateModel.js" as DateModel
 
 // Capture current native views with illustrative state. No shared worker is
 // acquired, no provider request/notification is started, and no settings persist.
@@ -89,6 +90,43 @@ ShellRoot {
     property int refreshCalls: 0
     function requestRefresh(reason) { refreshCalls++; return true }
     function cancelCalendarSchedule() {}
+    property var upcomingRequests: []
+    property var upcomingCancellations: []
+    property var upcomingState: ({owner: "", teamId: "", loading: false, hasData: false,
+      partial: false, stale: false, entries: [], errorSummary: "", coverageStart: "", coverageEnd: ""})
+    function requestUpcoming(owner, teamId, first, last, force) {
+      upcomingRequests = upcomingRequests.concat([{owner: owner, teamId: teamId,
+        startDate: first, endDate: last, force: force === true}])
+      var original = root.sample.games.filter(function(game) {
+        return game.awayTeam.id === teamId || game.homeTeam.id === teamId
+      })[0]
+      if (!original) return false
+      var entries = [21, 28].map(function(distance, index) {
+        var date = DateModel.addDays(root.sample.dateKey, distance)
+        var game = JSON.parse(JSON.stringify(original))
+        game.id = game.league + ":calendar-fixture-" + index
+        game.providerGameId = "calendar-fixture-" + index
+        game.startTime = date + "T20:00:00Z"
+        game.endTime = null
+        game.status = "scheduled"
+        game.statusDetail = null
+        game.period = 0
+        game.periodLabel = null
+        game.clock = null
+        game.awayScore = null
+        game.homeScore = null
+        return {game: game, dateKey: date, timeKnown: index === 0}
+      }).filter(function(entry) { return entry.dateKey >= first && entry.dateKey <= last })
+      upcomingState = {owner: owner, teamId: teamId, loading: false, hasData: true,
+        partial: false, stale: false, entries: entries, errorSummary: "",
+        coverageStart: first, coverageEnd: last, coverageComplete: true, lastSuccessAt: root.sample.now}
+      return true
+    }
+    function cancelUpcoming(owner) {
+      upcomingCancellations = upcomingCancellations.concat([owner])
+      upcomingState = Object.assign({}, upcomingState, {loading: false})
+      return true
+    }
   }
   QtObject {
     id: table
@@ -162,9 +200,9 @@ ShellRoot {
       function textItem(object, value) {
         return find(object, function(item) { return "text" in item && item.text === value && item.visible })
       }
-      function capture(name) {
+      function capture(name, item) {
         var done = false, saved = false
-        surface.grabToImage(function(result) {
+        ;(item || surface).grabToImage(function(result) {
           saved = result.saveToFile(Quickshell.env("SPORTRAY_TEST_CAPTURE") + "/" + name + ".png")
           done = true
         })
@@ -201,6 +239,88 @@ ShellRoot {
           if (row) return {index: i, row: row}
         }
         check(false, "No visible rendered game row")
+      }
+      function checkUpcomingPopup(panel) {
+        var popup = panel.testUpcomingPopup
+        var calendar = panel.testUpcomingCalendar
+        var originalDate = panel.selectedDateKey
+        var futureDate = DateModel.addDays(root.sample.dateKey, 21)
+        var calls = fetch.refreshCalls
+        var cancels = fetch.upcomingCancellations.length
+        check(panel.testCalendarButton.visible, "Team calendar button is unavailable")
+        naturalKey(panel, Qt.Key_G)
+        check(popup.opened && panel.opened, "G did not open the team calendar over the host panel")
+        check(panel.testCatcher.blocked, "Team popup did not take keyboard ownership")
+        check(calendar.width > 0 && calendar.width <= root.uiCase.width,
+          "Team calendar does not fit the viewport width")
+        check(popup.height <= window.height && popup.y >= 0, "Team popup exceeds the window")
+        check(fetch.upcomingRequests.length > 0, "Opening calendar did not request a selected-team window")
+        check(fetch.upcomingRequests.every(function(request) {
+          return request.owner === panel.panelToken && request.teamId
+            && DateModel.calendarDistance(request.endDate, request.startDate) === 34
+        }), "Calendar intents are not owner-scoped 35-day windows")
+        check(calendar.nextEntry !== null && calendar.nextEntry.dateKey === futureDate,
+          "Next listed game did not bridge the21-day/month gap")
+        check(futureDate.slice(0, 7) !== originalDate.slice(0, 7), "Upcoming fixture must cross a month")
+        naturalKey(panel, Qt.Key_BracketLeft)
+        naturalKey(panel, Qt.Key_BracketRight)
+        naturalKey(panel, Qt.Key_T)
+        naturalKey(panel, Qt.Key_S)
+        naturalKey(panel, Qt.Key_R)
+        same(panel.selectedDateKey, originalDate, "Popup text keys changed the hidden score date")
+        check(!panel.standingsOpen && !panel.settingsOpen, "Popup key changed a hidden panel route")
+        same(fetch.refreshCalls, calls, "Popup R refreshed hidden scores")
+        naturalKey(panel, Qt.Key_Right)
+        check(calendar.focusedDateKey !== originalDate, "Calendar arrows did not move its date cursor")
+        same(panel.selectedDateKey, originalDate, "Calendar cursor movement selected a hidden score day")
+        var originalMonth = calendar.displayedMonthKey
+        naturalKey(panel, Qt.Key_PageDown)
+        check(calendar.displayedMonthKey !== originalMonth, "PageDown did not browse the calendar month")
+        same(panel.selectedDateKey, originalDate, "Calendar month browsing changed score date")
+
+        // Native Tab/Enter reaches the team chooser from the calendar cursor;
+        // selection and popup dismissal keep the enclosing team calendar open.
+        var teamPicker = find(calendar, function(item) {
+          return item.visible && "popupOpen" in item && "options" in item
+        })
+        check(teamPicker !== null && teamPicker.options.length > 1, "Team chooser fixture is missing")
+        naturalKey(panel, Qt.Key_Tab)
+        naturalKey(panel, Qt.Key_Return)
+        check(teamPicker.popupOpen && popup.opened, "Native Tab/Enter did not open the team chooser")
+        var selectedIndex = teamPicker.options.findIndex(function(option) { return option.value === calendar.teamId })
+        var direction = selectedIndex < teamPicker.options.length - 1 ? 1 : -1
+        var expectedTeam = teamPicker.options[selectedIndex + direction].value
+        keyClick(direction > 0 ? Qt.Key_Down : Qt.Key_Up)
+        keyClick(Qt.Key_Return)
+        settle(panel)
+        same(calendar.teamId, expectedTeam, "Team chooser keyboard selection was lost")
+        same(fetch.upcomingState.teamId, expectedTeam, "Team selection did not request its own schedule")
+        check(popup.opened && !teamPicker.popupOpen, "Team selection dismissed the enclosing calendar")
+        naturalKey(panel, Qt.Key_Escape)
+        check(!popup.opened && panel.opened, "Calendar Escape also closed the host panel")
+        same(panel.selectedDateKey, originalDate, "Closing calendar changed score date")
+        check(fetch.upcomingCancellations.length > cancels, "Calendar close did not cancel its schedule owner")
+
+        naturalKey(panel, Qt.Key_G)
+        check(popup.opened)
+        same(calendar.nextEntry.dateKey, futureDate)
+        var jump = find(calendar, function(item) {
+          return item.visible && "tooltipText" in item && item.tooltipText === "Jump to the next listed game"
+        })
+        check(jump !== null, "Next listed game has no View day action")
+        for (var tab = 0; tab < 20 && !jump.activeFocus; tab++) naturalKey(panel, Qt.Key_Tab)
+        check(jump.activeFocus, "Next listed View day is not reachable by native Tab")
+        var point = jump.mapToItem(window.contentItem, 0, 0)
+        check(point.y >= -1 && point.y + jump.height <= window.height + 1,
+          "Focused View day is outside the popup viewport")
+        capture("upcoming", window.contentItem)
+        naturalKey(panel, Qt.Key_Return)
+        check(!popup.opened && panel.opened, "View day did not close only the team calendar")
+        same(panel.selectedDateKey, futureDate, "View day did not jump across the21-day/month gap")
+        check(!panel.detailOpen && !panel.settingsOpen && !panel.standingsOpen,
+          "View day activated a hidden score action")
+        naturalKey(panel, Qt.Key_T)
+        same(panel.selectedDateKey, originalDate, "Today did not restore the score fixture after a calendar jump")
       }
       function checkSettingsGeometry(panel, destination) {
         var hub = panel.testHub
@@ -265,6 +385,7 @@ ShellRoot {
             "Busy fixture must retain a league-specific failure notice alongside games")
           check(panel.testLeaguePicker.width > 0 && panel.testLeaguePicker.width <= root.uiCase.width)
           capture("following")
+          checkUpcomingPopup(panel)
 
           // Genuine pointer input on nested children must not also open detail.
           var first = visibleGame(panel, "nhl")

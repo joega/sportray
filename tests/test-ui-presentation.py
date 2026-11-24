@@ -5,6 +5,7 @@ The desktop-only KeyboardPanel is replaced by the existing capture wrapper.
 These checks prove rendered layout and input routing, not Wayland panel behavior.
 """
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -34,15 +35,23 @@ def stage(base, case):
         shutil.copytree(ROOT / name, plugin / name,
                         ignore=shutil.ignore_patterns("__pycache__"))
     shutil.copy2(ROOT / "Panel.qml", plugin / "Panel.qml")
-    # Match the README renderer's explicit singleton qualification. This avoids
-    # standalone QML context lookup differences without changing palette/layout.
+    # Preserve the legacy capture qualification outside this component's scope.
+    # The new calendar MUST execute its exact production imports and bindings:
+    # rewriting its Color lookup previously concealed an actual desktop error.
+    upcoming_path = Path("components/UpcomingCalendar.qml")
     for source in plugin.rglob("*.qml"):
+        if source.relative_to(plugin) == upcoming_path:
+            continue
         text = source.read_text()
         if re.search(r"(?<![\w.])Color\.", text) and "import qs.Commons\n" in text:
             text = text.replace("import qs.Commons\n",
                                 "import qs.Commons\nimport qs.Commons as TestCommons\n", 1)
             text = re.sub(r"(?<![\w.])Color\.", "TestCommons.Color.", text)
         source.write_text(text)
+    production_upcoming = (ROOT / upcoming_path).read_bytes()
+    staged_upcoming = (plugin / upcoming_path).read_bytes()
+    assert staged_upcoming == production_upcoming, "UpcomingCalendar source was rewritten for testing"
+    upcoming_source_hash = hashlib.sha256(production_upcoming).hexdigest()
     panel = plugin / "Panel.qml"
     text = panel.read_text()
     marker = "  property var anchorItem: null"
@@ -51,7 +60,9 @@ def stage(base, case):
                "testDetail": "gameDetailView", "testHub": "settingsHub",
                "testClock": "panelClockTimer", "testCatcher": "keyCatcher",
                "testUtilityScroll": "utilityScroll", "testChrome": "scoreChrome",
-               "testDates": "dateCarousel", "testLeaguePicker": "leaguePicker"}
+               "testDates": "dateCarousel", "testLeaguePicker": "leaguePicker",
+               "testUpcomingPopup": "upcomingPopup", "testUpcomingCalendar": "upcomingCalendar",
+               "testCalendarButton": "calendarButton"}
     text = text.replace(marker, "\n".join(
         "  property alias " + key + ": " + value for key, value in aliases.items())
         + "\n" + marker, 1)
@@ -75,6 +86,11 @@ def stage(base, case):
     home, runtime, binaries, captures = (base / name for name in ("home", "runtime", "bin", "captures"))
     for directory in (home, runtime, binaries, captures):
         directory.mkdir(mode=0o700)
+    (captures / "source-evidence.json").write_text(json.dumps({
+        "component": upcoming_path.as_posix(), "copiedByteForByte": True,
+        "productionSha256": upcoming_source_hash,
+        "stagedSha256": hashlib.sha256(staged_upcoming).hexdigest(),
+    }, indent=2) + "\n")
     (binaries / "hyprctl").write_text('#!/bin/sh\nprintf \'{"int":0,"bool":false,"custom":"0 0 0 0"}\\n\'\n')
     (binaries / "omarchy-launch-browser").write_text(
         '#!/bin/sh\nprintf \'%s\\n\' "$1" >> "$SPORTRAY_TEST_BROWSER_LOG"\n')
@@ -134,6 +150,9 @@ class UiPresentationTests(unittest.TestCase):
                     for capture in captures.iterdir():
                         shutil.copy2(capture, output / capture.name)
                     (output / "ui-presentation.log").write_text(transcript)
+                evidence = json.loads((captures / "source-evidence.json").read_text())
+                self.assertTrue(evidence["copiedByteForByte"])
+                self.assertEqual(evidence["productionSha256"], evidence["stagedSha256"])
                 self.assertEqual(result.returncode, 0, transcript)
                 for forbidden in ("UI_PRESENTATION_FAIL", "TypeError:", "ReferenceError:",
                                   "Binding loop detected", "Error loading configuration", "Unable to assign [undefined]"):
@@ -141,7 +160,7 @@ class UiPresentationTests(unittest.TestCase):
                 self.assertIn("UI_PRESENTATION_PASS " + case["name"], transcript, transcript)
                 self.assertEqual((base / "browser.log").read_text().splitlines(),
                                  ["https://www.nhl.com/gamecenter/2026020001"])
-                for name in ("following", "detail", "standings", "settings"):
+                for name in ("following", "detail", "standings", "settings", "upcoming"):
                     data = (captures / (name + ".png")).read_bytes()
                     self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
                     self.assertEqual(int.from_bytes(data[16:20], "big"), case["width"])

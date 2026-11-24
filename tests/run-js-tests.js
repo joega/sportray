@@ -4357,7 +4357,7 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   const panel = readSource("Panel.qml");
   const hub = readSource("components/SettingsHub.qml");
   const picker = readSource("components/TeamPicker.qml");
-  assert.match(panel, /blocked: KeyboardRoutingPolicy\.catcherBlocked\(/);
+  assert.match(panel, /blocked: upcomingPopup\.opened \|\| KeyboardRoutingPolicy\.catcherBlocked\(/);
   assert.match(panel, /settingsHub\.inputActive, sportsPicker && sportsPicker\.popupOpen/);
   assert.match(hub, /onEscapeRequested: root\.escapeRequested\(\)/);
   assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
@@ -4602,7 +4602,7 @@ test("league and standings activation use the visible chooser instead of an invi
 
 test("U2.1 section headers avoid a QQuickText implicit-height binding loop", () => {
   const panel = readSource("Panel.qml");
-  assert.equal(panel.includes("height: visible ? font.pixelSize : 0"), true);
+  assert.match(panel, /height: modelData && modelData\.kind === "section-header" \? font\.pixelSize : 0/);
   assert.equal(panel.includes("height: visible ? implicitHeight : 0\n                      visible: modelData && modelData.kind === \"section-header\""), false);
 });
 
