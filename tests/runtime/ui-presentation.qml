@@ -290,8 +290,25 @@ ShellRoot {
         check(delegate !== null, "Restored row is outside the rendered viewport: " + rowId)
         return delegate.mapToItem(panel.testList, 0, 0).y
       }
-      function checkUpcomingPopup(panel) {
-        var popup = panel.testUpcomingPopup
+      function checkScheduleSurface(panel, heading) {
+        var page = panel.testSchedulePage
+        check(panel.scheduleOpen && page.visible, "Schedule did not become the visible panel destination: "
+          + JSON.stringify({open: panel.scheduleOpen, visible: page.visible, parentVisible: page.parent.visible,
+            settings: panel.settingsOpen, details: panel.detailOpen, opened: panel.opened,
+            parentHeight: page.parent.height, height: page.height}))
+        check(!panel.testScoreContent.visible, "Scores remain visible behind the schedule page")
+        check(!panel.testDetail.visible, "Game details remain visible behind the schedule page")
+        same(panel.testHeaderTitle.text, heading, "Schedule did not own the shared header")
+        same(findAll(panel, function(item) {
+          return item.visible && "text" in item && item.text === heading
+        }).length, 1, "Schedule has a duplicate title")
+        var point = page.mapToItem(window.contentItem, 0, 0)
+        check(page.width > 0 && page.height > 0 && point.x >= -1 && point.y >= -1
+          && point.x + page.width <= window.width + 1 && point.y + page.height <= window.height + 1,
+          "Schedule page exceeds the shared panel body")
+        check(!panel.gameActionsOpen, "Game actions remain open over the schedule page")
+      }
+      function checkSchedulePage(panel) {
         var calendar = panel.testUpcomingCalendar
         var originalDate = panel.selectedDateKey
         var originalRowId = panel.selectedRowId
@@ -301,10 +318,14 @@ ShellRoot {
         var cancels = fetch.upcomingCancellations.length
         check(panel.testCalendarButton.visible, "Calendar button is unavailable")
         naturalKey(panel, Qt.Key_G)
-        check(popup.opened && panel.opened && calendar.globalMode, "G must open the global calendar")
+        check(panel.scheduleOpen && panel.opened && calendar.globalMode, "G must open the global calendar: "
+          + JSON.stringify({schedule: panel.scheduleOpen, opened: panel.opened,
+            globalMode: calendar.globalMode, team: panel.upcomingTeamId, settings: panel.settingsOpen,
+            details: panel.detailOpen, standings: panel.standingsOpen, focus: panel.testCatcher.activeFocus,
+            blocked: panel.testCatcher.blocked, history: panel.navigationStack}))
         check(panel.testCatcher.blocked, "Calendar did not take keyboard ownership")
         check(calendar.width > 0 && calendar.width <= root.uiCase.width, "Calendar exceeds viewport width")
-        check(popup.height <= window.height && popup.y >= 0, "Calendar exceeds viewport height")
+        checkScheduleSurface(panel, "Calendar")
         same(fetch.upcomingRequests.length, 0, "Default global calendar requested a favorite-team schedule")
         check(fetch.globalRequests.length > 0, "Global calendar did not request its selected day")
         same(fetch.globalRequests[0].leagues.join(","), store.settings.followedLeagueIds.join(","),
@@ -314,14 +335,40 @@ ShellRoot {
         check(findAll(calendar, function(item) { return item.visible && "selectedDay" in item }).length === 42,
           "Global calendar must show its complete month grid")
         capture("calendar-global", window.contentItem)
+        var leaguesAction = find(panel, function(item) {
+          return item.visible && "tooltipText" in item && item.tooltipText === "Choose followed leagues"
+        })
+        check(leaguesAction !== null, "Global calendar lost its shared-header Leagues action")
+        mouseClick(leaguesAction, leaguesAction.width / 2, leaguesAction.height / 2,
+          Qt.LeftButton, Qt.NoModifier, 20)
+        settle(panel)
+        check(panel.settingsOpen && !panel.testSchedulePage.visible,
+          "Calendar Leagues did not hand the panel to Settings")
+        same(panel.testHub.destination, "sports", "Leagues opened the wrong settings destination")
+        naturalKey(panel, Qt.Key_Escape)
+        checkScheduleSurface(panel, "Calendar")
+        same(calendar.selectedDateKey, originalDate, "Leagues Settings return lost the preview day")
+        var refreshSchedule = find(panel, function(item) {
+          return item.visible && "tooltipText" in item && item.tooltipText === "Refresh schedule"
+        })
+        check(refreshSchedule !== null, "Schedule has no context-specific header refresh")
+        var beforeRefresh = fetch.globalRequests.length
+        mouseClick(refreshSchedule, refreshSchedule.width / 2, refreshSchedule.height / 2,
+          Qt.LeftButton, Qt.NoModifier, 20)
+        settle(panel)
+        check(fetch.globalRequests.length > beforeRefresh
+          && fetch.globalRequests[fetch.globalRequests.length - 1].force === true,
+          "Schedule header refresh did not update its current day")
+        same(fetch.refreshCalls, calls, "Schedule header refresh updated hidden scores")
+        mouseMove(window.contentItem, 2, window.height - 2, 20)
         naturalKey(panel, Qt.Key_BracketLeft)
         naturalKey(panel, Qt.Key_BracketRight)
         naturalKey(panel, Qt.Key_T)
         naturalKey(panel, Qt.Key_S)
         naturalKey(panel, Qt.Key_R)
-        same(panel.selectedDateKey, originalDate, "Popup text keys changed hidden score date")
-        check(!panel.standingsOpen && !panel.settingsOpen, "Popup keys changed a hidden panel route")
-        same(fetch.refreshCalls, calls, "Popup R refreshed hidden scores")
+        same(panel.selectedDateKey, originalDate, "Schedule text keys changed hidden score date")
+        check(!panel.standingsOpen && !panel.settingsOpen, "Schedule keys changed a hidden panel route")
+        same(fetch.refreshCalls, calls, "Schedule R refreshed hidden scores")
         var requestCount = fetch.globalRequests.length
         naturalKey(panel, Qt.Key_Right)
         same(fetch.globalRequests.length, requestCount, "Moving a date cursor must not request that day yet")
@@ -342,21 +389,21 @@ ShellRoot {
         check(globalJump.activeFocus, "Global View day is not reachable by native Tab")
         var committedDate = calendar.selectedDateKey
         naturalKey(panel, Qt.Key_Return)
-        check(!popup.opened && panel.opened, "Global View day must close only its popup")
+        check(!panel.scheduleOpen && panel.opened, "Global View day must return to scores")
         same(panel.selectedDateKey, committedDate)
         same(panel.activeDestination, "following", "Global View day must open Following")
         naturalKey(panel, Qt.Key_Escape)
-        check(popup.opened && calendar.globalMode, "Back from View day did not reopen global calendar")
+        check(panel.scheduleOpen && calendar.globalMode, "Back from View day did not restore global calendar")
         same(calendar.selectedDateKey, committedDate, "Back lost preview date")
         naturalKey(panel, Qt.Key_Escape)
-        check(!popup.opened && panel.opened, "Calendar Escape did not restore scores")
+        check(!panel.scheduleOpen && panel.opened, "Calendar Escape did not restore scores")
         same(panel.selectedDateKey, originalDate)
         same(panel.selectedRowId, originalRowId, "Calendar Back changed score selection")
         if (!originalRowId) check(Math.abs(panel.testList.contentY - panel.testList.originY - originalScrollOffset) < 1,
           "Calendar Back lost unselected normalized scroll position")
 
         // Native focus traverses the selector, featured Next, controls and all
-        // later rows. No direct focus calls or programmatic popup opening.
+        // later rows. No direct focus calls or programmatic page opening.
         naturalKey(panel, Qt.Key_G)
         check(calendar.globalMode, "Every G opening must start in global mode")
         var teamPicker = find(calendar, function(item) {
@@ -365,13 +412,14 @@ ShellRoot {
         check(teamPicker !== null && teamPicker.options[0].value === "", "Global selector option missing")
         naturalKey(panel, Qt.Key_Tab)
         naturalKey(panel, Qt.Key_Return)
-        check(teamPicker.popupOpen && popup.opened, "Native Tab/Enter cannot open schedule selector")
+        check(teamPicker.popupOpen && panel.scheduleOpen, "Native Tab/Enter cannot open schedule selector")
         var expectedTeam = teamPicker.options[1].value
         keyClick(Qt.Key_Down)
         keyClick(Qt.Key_Return)
         settle(panel)
         same(calendar.teamId, expectedTeam)
-        check(!calendar.globalMode && !teamPicker.popupOpen && popup.opened, "Team selection lost popup ownership")
+        check(!calendar.globalMode && !teamPicker.popupOpen && panel.scheduleOpen, "Team selection lost schedule-page ownership")
+        checkScheduleSurface(panel, "Team schedule")
         same(fetch.upcomingState.scope, "team")
         check(fetch.upcomingRequests.every(function(request) {
           return request.owner === panel.panelToken && request.teamId
@@ -401,12 +449,12 @@ ShellRoot {
         check(lastRow.activeFocus, "Later game beyond the sixth is unreachable by native Tab")
         var point = lastRow.mapToItem(window.contentItem, 0, 0)
         check(point.y >= -1 && point.y + lastRow.height <= window.height + 1,
-          "Last focused agenda row is outside the popup viewport")
+          "Last focused agenda row is outside the schedule viewport")
         var agendaContext = calendar.captureContext()
         panel.openUtility("notifications")
         settle(panel)
         naturalKey(panel, Qt.Key_Escape)
-        check(popup.opened && calendar.teamId === expectedTeam, "Settings lost team agenda")
+        check(panel.scheduleOpen && calendar.teamId === expectedTeam, "Settings lost team agenda")
         var restoredAgenda = calendar.captureContext()
         same(restoredAgenda.focusKind, agendaContext.focusKind, "Settings lost agenda focus kind")
         same(restoredAgenda.gameId, agendaContext.gameId, "Settings lost focused agenda game")
@@ -419,28 +467,28 @@ ShellRoot {
         for (tab = 0; tab < 25 && !jump.activeFocus; tab++) naturalKey(panel, Qt.Key_Tab)
         check(jump.activeFocus, "Team View day is unreachable by native Tab")
         naturalKey(panel, Qt.Key_Return)
-        check(!popup.opened && panel.opened, "Team View day must close only popup")
+        check(!panel.scheduleOpen && panel.opened, "Team View day must return to scores")
         same(panel.selectedDateKey, futureDate)
         same(panel.activeDestination, expectedTeam.split(":")[0], "Team View day must select its league")
         naturalKey(panel, Qt.Key_Escape)
-        check(popup.opened && calendar.teamId === expectedTeam, "Back from team View day lost team agenda")
+        check(panel.scheduleOpen && calendar.teamId === expectedTeam, "Back from team View day lost team agenda")
         same(calendar.nextEntry.dateKey, futureDate)
         naturalKey(panel, Qt.Key_Escape)
         same(panel.selectedDateKey, originalDate)
         naturalKey(panel, Qt.Key_G)
-        check(calendar.globalMode && popup.opened, "Team selection leaked into next global opening")
+        check(calendar.globalMode && panel.scheduleOpen, "Team selection leaked into next global opening")
         naturalKey(panel, Qt.Key_Escape)
-        check(!popup.opened && panel.opened, "Escape must keep host open")
-        check(fetch.upcomingCancellations.length > cancels, "Popup close did not cancel its owner")
+        check(!panel.scheduleOpen && panel.opened, "Escape must keep host open")
+        check(fetch.upcomingCancellations.length > cancels, "Schedule exit did not cancel its owner")
         var savedSettings = store.settings
         store.settings = Object.assign({}, savedSettings, {favoriteTeamIds: []})
         naturalKey(panel, Qt.Key_G)
-        check(popup.opened && calendar.globalMode && calendar.agendaEntries.length > 0,
+        check(panel.scheduleOpen && calendar.globalMode && calendar.agendaEntries.length > 0,
           "Global calendar requires favorites despite followed leagues")
         naturalKey(panel, Qt.Key_Escape)
         store.settings = Object.assign({}, savedSettings, {favoriteTeamIds: [], followedLeagueIds: []})
         naturalKey(panel, Qt.Key_G)
-        check(popup.opened && calendar.globalMode && calendar.agendaEntries.length === 0,
+        check(panel.scheduleOpen && calendar.globalMode && calendar.agendaEntries.length === 0,
           "No-followed global calendar shows games outside admission")
         check(calendar.teamOptions.length === 1 && calendar.teamOptions[0].value === "",
           "No-favorites calendar lost global selector")
@@ -508,11 +556,12 @@ ShellRoot {
         var snapshot = detail.captureContext()
         var favoriteCalls = store.favoriteCalls
         naturalKey(panel, Qt.Key_Return)
-        check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === nonfavorite,
+        check(panel.scheduleOpen && panel.upcomingTeamId === nonfavorite,
           "Nonfavorite detail team did not open agenda")
+        checkScheduleSurface(panel, "Team schedule")
         same(panel.testUpcomingCalendar.windowStartKey, root.sample.dateKey, "Team schedule did not start Today")
         naturalKey(panel, Qt.Key_Escape)
-        check(panel.detailOpen && !panel.testUpcomingPopup.opened, "Team Back lost detail origin")
+        check(panel.detailOpen && !panel.scheduleOpen, "Team Back lost detail origin")
         same(detail.focusId, snapshot.focusId, "Team Back lost semantic detail action")
         same(store.favoriteCalls, favoriteCalls, "Team navigation mutated favorites")
         panel.openUtility("notifications")
@@ -550,7 +599,7 @@ ShellRoot {
         naturalKey(panel, Qt.Key_Menu)
         check(panel.gameActionsOpen && panel.testCatcher.blocked, "Selected Menu did not open")
         naturalKey(panel, Qt.Key_Return)
-        check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === nonfavorite,
+        check(panel.scheduleOpen && panel.upcomingTeamId === nonfavorite,
           "Score menu did not open nonfavorite agenda")
         naturalKey(panel, Qt.Key_Escape)
         same(panel.followingFilterId, "favorites")
@@ -655,7 +704,7 @@ ShellRoot {
           panel.testList.positionViewAtBeginning()
           wait(80)
           capture("following")
-          checkUpcomingPopup(panel)
+          checkSchedulePage(panel)
           checkFollowingPolish(panel)
 
           // Genuine pointer input on nested children must not also open detail.
@@ -955,16 +1004,16 @@ ShellRoot {
             standing.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
           wait(40)
           same(store.favoriteCalls, oldFavoriteCalls, "Clicking table body changed a favorite")
-          check(!panel.testUpcomingPopup.opened, "Standings metrics unexpectedly opened a schedule")
+          check(!panel.scheduleOpen, "Standings metrics unexpectedly opened a schedule")
           same(panel.selectedRowId, standingRowId, "Standings body did not select its row")
           check(panel.testCatcher.activeFocus && !panel.testCatcher.blocked,
             "Standings body selection did not acquire keyboard focus")
           naturalKey(panel, Qt.Key_Return)
-          check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === standing.standing.team.id,
+          check(panel.scheduleOpen && panel.upcomingTeamId === standing.standing.team.id,
             "Standings Enter did not open selected team schedule")
           same(panel.testUpcomingCalendar.selectedDateKey, root.sample.dateKey, "Historical standings team schedule did not begin Today")
           naturalKey(panel, Qt.Key_Escape)
-          check(panel.standingsOpen && !panel.testUpcomingPopup.opened, "Back from team lost standings")
+          check(panel.standingsOpen && !panel.scheduleOpen, "Back from team lost standings")
           same(panel.selectedDateKey, retainedDate, "Back from team lost standings date")
           same(panel.selectedRowId, standingRowId, "Back from team lost standings row")
           check(Math.abs(rowViewportY(panel, standingRowId) - standingsScroll) < 1, "Back moved standings row")
@@ -975,11 +1024,11 @@ ShellRoot {
           check(standingLink !== null, "Standings team has no explicit schedule link")
           mouseClick(standingLink, standingLink.width / 2, standingLink.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
           settle(panel)
-          check(panel.testUpcomingPopup.opened && panel.upcomingTeamId === standing.standing.team.id,
+          check(panel.scheduleOpen && panel.upcomingTeamId === standing.standing.team.id,
             "Standings team link did not open schedule")
           same(store.favoriteCalls, oldFavoriteCalls, "Standings team link changed favorites")
           naturalKey(panel, Qt.Key_Escape)
-          check(panel.standingsOpen && !panel.testUpcomingPopup.opened, "Team link Back lost standings")
+          check(panel.standingsOpen && !panel.scheduleOpen, "Team link Back lost standings")
           same(panel.selectedRowId, standingRowId)
           check(Math.abs(rowViewportY(panel, standingRowId) - standingsScroll) < 1, "Team link Back moved standings row")
           mouseClick(favoriteAction, favoriteAction.width / 2, favoriteAction.height / 2,

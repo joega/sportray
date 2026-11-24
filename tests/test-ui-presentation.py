@@ -26,7 +26,7 @@ CASES = (
 
 
 EXACT_COMPONENTS = tuple(Path("components") / name for name in (
-    "UpcomingCalendar.qml", "GameRow.qml", "GameActions.qml", "TeamScheduleLink.qml",
+    "UpcomingCalendar.qml", "AgendaGameRow.qml", "GameRow.qml", "GameActions.qml", "TeamScheduleLink.qml",
     "FollowingOverview.qml", "StatusNotice.qml", "LeagueStatus.qml", "StandingsStatus.qml", "NextGameCard.qml",
     "GameDetailView.qml", "StandingsRow.qml", "TicketStrip.qml", "TicketOverlay.qml"))
 
@@ -84,7 +84,8 @@ def stage(base, case):
                "testClock": "panelClockTimer", "testCatcher": "keyCatcher",
                "testUtilityScroll": "utilityScroll", "testChrome": "scoreChrome",
                "testDates": "dateCarousel", "testLeaguePicker": "leaguePicker",
-               "testUpcomingPopup": "upcomingPopup", "testUpcomingCalendar": "upcomingCalendar",
+               "testSchedulePage": "upcomingPage", "testUpcomingCalendar": "upcomingCalendar",
+               "testHeaderTitle": "headerTitle", "testScoreContent": "scoreContent",
                "testCalendarButton": "calendarButton", "testFollowingOverview": "followingOverview"}
     instrumentation = "\n".join("  property alias " + key + ": " + value
         for key, value in aliases.items()) + "\n"

@@ -91,7 +91,8 @@ upcoming slates. On an empty league day, **View day** jumps to its next schedule
 game.
 
 Open the **calendar button** beside the dates, or press **G**, for **All followed
-leagues**. The month grid lets you choose a day and see its listed games across
+leagues**. Calendar opens as its own page in the same panel, with one header and
+a Back action. The month grid lets you choose a day and see its listed games across
 enabled leagues you follow. Selecting a day previews its agenda; **View day**
 opens that date in Following. **Leagues** opens the controls for choosing what to
 follow. Unloaded days remain unknown; markers identify previously loaded games.
@@ -101,7 +102,9 @@ game details, or standings, for its **team schedule**. Opening a team's schedule
 does not add it to favorites. This view
 puts the dated **Next up** matchup first, followed by a list of later games.
 There is no month picker in the team view. **View day** opens the team's league
-on that date; range arrows let you browse the next or previous 35 days.
+on that date; range arrows let you browse the next or previous 35 days. Aligned
+dates, opponents, logos, and start times make the agenda easy to scan; **This
+week**, **Next week**, and dated week headings organize longer team schedules.
 
 The global calendar loads only the selected day, with at most one request per
 followed league. Team schedules load a 35-day window. Both reuse recent results

@@ -50,6 +50,8 @@ Panel {
   property bool calendarFavoritesOnly: false
   property string calendarLeagueId: ""
   property string calendarMonthKey: ""
+  property bool scheduleOpen: false
+  property int scheduleGeneration: 0
   property string upcomingTeamId: ""
   property string upcomingMonthKey: ""
   property string upcomingWindowStart: ""
@@ -72,7 +74,6 @@ Panel {
   property var resultContextOrder: []
   property var navigationStack: []
   property var utilityReturnContext: null
-  property bool upcomingNavigationTransition: false
   property string resultActionFocus: ""
   property var activeGameActionsRow: null
   property var pendingResultFocus: null
@@ -288,7 +289,12 @@ Panel {
     root.selectedDateKey, root.todayDateKey)
 
   function refresh() {
-    if (root.standingsOpen && root.standingsService)
+    if (root.scheduleOpen) {
+      var context = upcomingCalendar.captureContext()
+      root.requestUpcoming(true)
+      upcomingCalendar.restoreContext(context)
+    }
+    else if (root.standingsOpen && root.standingsService)
       root.standingsService.refresh(root.activeDestination)
     else if (root.fetchService) root.fetchService.requestRefresh("manual")
   }
@@ -309,14 +315,14 @@ Panel {
 
   function openUpcomingCalendar() {
     if (root.settingsOpen || root.detailOpen || root.standingsOpen) return
-    if (upcomingPopup.opened) { upcomingPopup.close(); return }
+    if (root.scheduleOpen) { root.closeSchedule(); return }
     root.closeGameActions()
     root.pushNavigation(root.captureNavigationContext())
     root.upcomingTeamId = ""
     root.upcomingBrowseDate = root.selectedDateKey
     root.upcomingMonthKey = CalendarModel.monthKey(root.selectedDateKey)
     root.upcomingWindowStart = root.todayDateKey
-    upcomingPopup.open()
+    root.showSchedule()
     root.requestUpcoming(false)
   }
 
@@ -380,7 +386,7 @@ Panel {
   function captureNavigationContext(focusId) {
     root.saveResultPosition(root.activeDestination)
     var selectedItem = resultList.itemAtIndex(root.selectedRowIndex)
-    return {surface: upcomingPopup.opened ? (root.upcomingTeamId ? "team" : "calendar")
+    return {surface: root.scheduleOpen ? (root.upcomingTeamId ? "team" : "calendar")
         : root.detailOpen ? "detail" : root.standingsOpen ? "standings" : "scores",
       destination: root.activeDestination, dateKey: root.selectedDateKey,
       baseSurface: root.detailOpen ? "detail" : root.standingsOpen ? "standings" : "scores",
@@ -399,9 +405,39 @@ Panel {
 
   function pushNavigation(frame) { root.navigationStack = NavigationContext.push(root.navigationStack, frame) }
 
-  function closeUpcomingForNavigation() {
-    root.upcomingNavigationTransition = true
-    upcomingPopup.close()
+  function showSchedule() {
+    root.scheduleGeneration++
+    var generation = root.scheduleGeneration
+    root.scheduleOpen = true
+    root.detailOpen = false
+    root.recalculatePanelHeight()
+    root.deferPanelCallback(function() {
+      if (!root.scheduleOpen || root.scheduleGeneration !== generation) return
+      if (root.upcomingReturnContext) {
+        var context = root.upcomingReturnContext
+        root.upcomingReturnContext = null
+        upcomingCalendar.restoreContext(context)
+      } else upcomingCalendar.focusCalendar()
+    })
+  }
+
+  function hideSchedule() {
+    root.scheduleGeneration++
+    root.scheduleOpen = false
+    root.upcomingReturnContext = null
+    upcomingCalendar.pendingContext = null
+    if (root.panelToken && root.fetchService && typeof root.fetchService.cancelUpcoming === "function")
+      root.fetchService.cancelUpcoming(root.panelToken)
+  }
+
+  function closeUpcomingForNavigation() { root.hideSchedule() }
+
+  function closeSchedule() {
+    root.hideSchedule()
+    if (!root.goBack()) {
+      root.recalculatePanelHeight()
+      root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+    }
   }
 
   function restoreNavigationContext(frame) {
@@ -446,7 +482,7 @@ Panel {
       root.upcomingWindowStart = frame.upcomingWindowStart || root.todayDateKey
       root.upcomingBrowseDate = frame.upcomingBrowseDate || root.todayDateKey
       root.upcomingReturnContext = frame.upcomingContext || null
-      upcomingPopup.open()
+      root.showSchedule()
       root.requestUpcoming(false)
     }
     root.recalculatePanelHeight()
@@ -454,13 +490,13 @@ Panel {
       scoreChrome.forceLayout()
       contentColumn.forceLayout()
       root.restoreResultPosition(true, frame)
-      if (!upcomingPopup.opened && root.detailOpen) gameDetailView.restoreContext(frame.detailContext)
+      if (!root.scheduleOpen && root.detailOpen) gameDetailView.restoreContext(frame.detailContext)
     })
   }
 
   function restorePendingResultFocus() {
     var pending = root.pendingResultFocus
-    if (!pending || root.detailOpen || upcomingPopup.opened || root.settingsOpen) return
+    if (!pending || root.detailOpen || root.scheduleOpen || root.settingsOpen) return
     if (pending.key !== root.resultContextKey(root.activeDestination)) { root.pendingResultFocus = null; return }
     if (pending.rowId && pending.rowId !== root.selectedRowId) {
       if (!root.activeView.loading) root.pendingResultFocus = null
@@ -484,19 +520,19 @@ Panel {
   function openTeamSchedule(teamId, focusId) {
     var team = TeamSchedulePolicy.resolve(teamId, root.pickerTeams, root.enabledLeagues)
     if (!team || !root.opened) return false
-    if (!upcomingPopup.opened) root.pushNavigation(root.captureNavigationContext(focusId))
+    if (!root.scheduleOpen) root.pushNavigation(root.captureNavigationContext(focusId))
     root.closeGameActions()
     root.upcomingTeamId = team.id
     root.upcomingWindowStart = root.todayDateKey
     root.upcomingBrowseDate = root.selectedDateKey
     root.upcomingMonthKey = CalendarModel.monthKey(root.todayDateKey)
-    upcomingPopup.open()
+    root.showSchedule()
     root.requestUpcoming(false)
     return true
   }
 
   onUpcomingTeamOptionsChanged: {
-    if (!upcomingPopup || !upcomingPopup.opened) return
+    if (!root.scheduleOpen) return
     if (root.upcomingTeamOptions.some(function(option) { return option.value === root.upcomingTeamId })) return
     if (root.fetchService && typeof root.fetchService.cancelUpcoming === "function")
       root.fetchService.cancelUpcoming(root.panelToken)
@@ -505,12 +541,12 @@ Panel {
   }
 
   onFollowedLeagueIdsChanged: {
-    if (upcomingPopup && upcomingPopup.opened && !root.upcomingTeamId)
-      root.deferPanelCallback(function() { if (upcomingPopup.opened) root.requestUpcoming(false) })
+    if (root.scheduleOpen && !root.upcomingTeamId)
+      root.deferPanelCallback(function() { if (root.scheduleOpen) root.requestUpcoming(false) })
   }
   onEnabledLeaguesChanged: {
-    if (upcomingPopup && upcomingPopup.opened && !root.upcomingTeamId)
-      root.deferPanelCallback(function() { if (upcomingPopup.opened) root.requestUpcoming(false) })
+    if (root.scheduleOpen && !root.upcomingTeamId)
+      root.deferPanelCallback(function() { if (root.scheduleOpen) root.requestUpcoming(false) })
   }
 
   function openStandings() {
@@ -692,6 +728,11 @@ Panel {
   }
 
   function recalculatePanelHeight() {
+    if (root.scheduleOpen) {
+      root.panelContentHeightRequest = PanelLayout.clamp(header.height + contentColumn.spacing
+        + upcomingCalendar.implicitHeight, Style.space(320), Style.space(640))
+      return
+    }
     if (root.detailOpen) {
       root.panelContentHeightRequest = PanelLayout.detailContentRequest(
         gameDetailView.implicitHeight,
@@ -1056,8 +1097,7 @@ Panel {
       root.resultActionFocus = ""
       root.utilityReturnContext = null
       root.closeGameActions()
-      root.upcomingNavigationTransition = true
-      upcomingPopup.close()
+      root.hideSchedule()
       if (root.fetchService && typeof root.fetchService.cancelCalendarSchedule === "function")
         root.fetchService.cancelCalendarSchedule()
       root.detailOpen = false
@@ -1066,7 +1106,6 @@ Panel {
       return
     }
     root.nowMs = Date.now()
-    root.upcomingNavigationTransition = false
     root.followingFilterId = "all"
     root.standingsOpen = false
     root.calendarOpen = false
@@ -1121,7 +1160,7 @@ Panel {
   }
 
   onStandingsOpenChanged: {
-    if (root.standingsOpen) upcomingPopup.close()
+    if (root.standingsOpen) root.hideSchedule()
     root.selectedRowIndex = -1
     root.selectedRowId = ""
     root.recalculatePanelHeight()
@@ -1146,7 +1185,7 @@ Panel {
   }
 
   onSettingsOpenChanged: {
-    if (root.settingsOpen) upcomingPopup.close()
+    if (root.settingsOpen) root.hideSchedule()
     root.deferPanelCallback(root.recalculatePanelHeight)
     root.syncSharedContext()
   }
@@ -1161,8 +1200,7 @@ Panel {
     root.resultActionFocus = ""
     root.utilityReturnContext = null
     root.closeGameActions()
-    root.upcomingNavigationTransition = true
-    upcomingPopup.close()
+    root.hideSchedule()
     root.choosingStandingsLeague = false
     // The bar remains an ambient current-day indicator; browsing another day
     // is a panel session, so closing returns the next ambient refresh to today.
@@ -1200,7 +1238,7 @@ Panel {
     root.utilityReturnContext = root.captureNavigationContext()
     root.detailOpen = false
     root.closeGameActions()
-    if (upcomingPopup.opened) root.closeUpcomingForNavigation()
+    if (root.scheduleOpen) root.closeUpcomingForNavigation()
     root.saveResultPosition(root.activeDestination)
     root.utilityReturnTabFocused = root.tabStripFocused
     root.utilityReturnDestination = root.activeDestination
@@ -1393,7 +1431,7 @@ Panel {
       // The installed catcher runs BeforeItem and otherwise consumes panel
       // navigation keys before an active editor can receive them. Let the
       // editor own all keys, including Escape, while it has focus.
-      blocked: upcomingPopup.opened || root.gameActionsOpen || KeyboardRoutingPolicy.catcherBlocked(
+      blocked: root.scheduleOpen || root.gameActionsOpen || KeyboardRoutingPolicy.catcherBlocked(
         settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen)
       onCloseRequested: root.detailOpen ? root.closeDetail()
         : root.settingsOpen ? root.closeUtility()
@@ -1465,6 +1503,16 @@ Panel {
       // Keep only the extra viewport navigation keys here; the installed
       // Omarchy handler does not emit semantic signals for these keys.
       Keys.onPressed: function(event) {
+        if (event.accepted) return
+        if (root.scheduleOpen) {
+          if (upcomingCalendar.chooserOpen) return
+          if (event.key === Qt.Key_Escape) root.closeSchedule()
+          else if (!upcomingCalendar.inputActive && event.key === Qt.Key_R) root.refresh()
+          else if (!upcomingCalendar.inputActive && event.key === Qt.Key_N) root.openSettings()
+          else return
+          event.accepted = true
+          return
+        }
         if (keyCatcher.blocked) return
         if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
           event.accepted = root.openSelectedGameActions()
@@ -1504,139 +1552,6 @@ Panel {
         event.accepted = true
       }
 
-      Popup {
-        id: upcomingPopup
-        parent: Overlay.overlay
-        modal: true
-        focus: true
-        padding: Style.spacing.popupPadding
-        width: Math.min(Style.space(400), parent ? parent.width : panel.contentWidth)
-        readonly property real maximumHeight: Math.min(Style.space(600), Math.max(Style.space(200),
-          (parent ? parent.height : Style.space(640)) - Style.spacing.md * 2))
-        height: root.upcomingTeamId ? Math.min(maximumHeight, Math.max(Style.space(240),
-          upcomingCalendar.implicitHeight + upcomingHeading.height + Style.spacing.md + padding * 2))
-          : maximumHeight
-        x: parent ? Math.max(0, Math.min(parent.width - width,
-          calendarButton.mapToItem(parent, calendarButton.width, 0).x - width)) : 0
-        y: parent ? Math.max(0, Math.min(parent.height - height,
-          calendarButton.mapToItem(parent, 0, calendarButton.height).y + Style.spacing.xs)) : 0
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        Overlay.modal: Item {}
-        background: BorderSurface {
-          color: Commons.Color.popups.background
-          borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2)))
-          radius: Style.cornerRadius
-        }
-        onOpened: root.deferPanelCallback(function() {
-          if (!upcomingPopup.opened) return
-          if (root.upcomingReturnContext) {
-            var context = root.upcomingReturnContext
-            root.upcomingReturnContext = null
-            upcomingCalendar.restoreContext(context)
-          } else if (root.upcomingTeamOptions.length) upcomingCalendar.focusCalendar()
-        })
-        onClosed: {
-          root.upcomingReturnContext = null
-          upcomingCalendar.pendingContext = null
-          if (root.fetchService && typeof root.fetchService.cancelUpcoming === "function")
-            root.fetchService.cancelUpcoming(root.panelToken)
-          var navigating = root.upcomingNavigationTransition
-          root.upcomingNavigationTransition = false
-          if (!navigating && root.opened && root.navigationStack.length) root.goBack()
-          root.deferPanelCallback(function() {
-            if (root.opened && !root.settingsOpen && !root.detailOpen && !upcomingPopup.opened)
-              keyCatcher.forceActiveFocus()
-          })
-        }
-
-        contentItem: Column {
-          spacing: Style.spacing.md
-          Item {
-            id: upcomingHeading
-            width: parent.width
-            height: upcomingClose.height
-            Text {
-              textFormat: Text.PlainText
-              anchors.left: parent.left
-              anchors.right: upcomingLeagues.visible ? upcomingLeagues.left : upcomingClose.left
-              anchors.rightMargin: Style.spacing.sm
-              anchors.verticalCenter: parent.verticalCenter
-              text: root.upcomingTeamId ? "Team schedule" : "Calendar"
-              font.family: Typography.family
-              font.pixelSize: Style.font.subtitle
-              font.bold: true
-              color: Commons.Color.popups.text
-              elide: Text.ElideRight
-            }
-            SemanticActionButton {
-              id: upcomingLeagues
-              anchors.right: upcomingClose.left
-              anchors.rightMargin: Style.spacing.sm
-              visible: !root.upcomingTeamId
-              text: "Leagues"
-              textFontSize: Style.font.caption
-              tooltipText: "Choose followed leagues"
-              focusable: true
-              onClicked: root.openUtility("sports")
-              Accessible.name: "Choose followed leagues in Sports & leagues"
-              Accessible.role: Accessible.Button
-            }
-            SemanticActionButton {
-              id: upcomingClose
-              anchors.right: parent.right
-              iconName: root.navigationStack.length ? "chevronLeft" : "close"
-              fallbackText: root.navigationStack.length ? "<" : "X"
-              tooltipText: root.navigationStack.length ? root.returnLabel : "Close calendar"
-              focusable: true
-              onClicked: upcomingPopup.close()
-              Accessible.name: upcomingClose.tooltipText
-              Accessible.role: Accessible.Button
-            }
-          }
-          UpcomingCalendar {
-            id: upcomingCalendar
-            width: parent.width
-            height: Math.max(0, upcomingPopup.availableHeight - upcomingHeading.height - parent.spacing)
-            teamOptions: root.upcomingTeamOptions
-            teamId: root.upcomingTeamId
-            globalSelectionEmpty: root.followedLeagueIds.filter(function(id) {
-              return root.enabledLeagues.indexOf(id) !== -1
-            }).length === 0
-            selectedDateKey: root.upcomingTeamId ? root.upcomingWindowStart : root.upcomingBrowseDate
-            todayDateKey: root.todayDateKey
-            currentTime: root.nowMs
-            monthKey: root.upcomingMonthKey
-            scheduleState: root.upcomingScheduleState
-            imageStore: root.logoImageStore
-            onTeamSelected: function(teamId) {
-              upcomingCalendar.pendingContext = null
-              root.upcomingTeamId = teamId
-              if (teamId) root.upcomingWindowStart = root.todayDateKey
-              root.requestUpcoming(false)
-            }
-            onMonthRequested: function(monthKey) {
-              upcomingCalendar.pendingContext = null
-              root.upcomingMonthKey = monthKey
-              root.upcomingBrowseDate = monthKey
-              root.requestUpcoming(false)
-            }
-            onDaySelected: function(dateKey) {
-              upcomingCalendar.pendingContext = null
-              root.upcomingBrowseDate = dateKey
-              root.upcomingMonthKey = CalendarModel.monthKey(dateKey)
-              root.requestUpcoming(false)
-            }
-            onWindowRequested: function(startDateKey) {
-              upcomingCalendar.pendingContext = null
-              root.upcomingWindowStart = startDateKey
-              root.requestUpcoming(false)
-            }
-            onDateSelected: function(dateKey) { root.jumpToUpcomingDate(dateKey) }
-            onRetryRequested: root.requestUpcoming(true)
-            onCloseRequested: upcomingPopup.close()
-          }
-        }
-      }
 
       Column {
         id: contentColumn
@@ -1659,7 +1574,7 @@ Panel {
             anchors.right: headerActions.left
             anchors.rightMargin: header.spacing
             height: parent.height
-            text: root.settingsOpen ? "Settings" : root.detailOpen ? "Game details"
+            text: root.settingsOpen ? "Settings" : root.scheduleOpen ? (root.upcomingTeamId ? "Team schedule" : "Calendar") : root.detailOpen ? "Game details"
               : root.calendarOpen ? "Calendar" : root.standingsOpen ? "Standings"
               : root.selectedDateKey === root.todayDateKey ? "Today"
               : DateModel.shortDateLabel(root.selectedDateKey)
@@ -1678,19 +1593,31 @@ Panel {
             spacing: header.spacing
 
             SemanticActionButton {
-              visible: root.navigationStack.length > 0 && !root.settingsOpen && !root.detailOpen
+              visible: (root.scheduleOpen || root.navigationStack.length > 0) && !root.settingsOpen && !root.detailOpen
               iconName: "chevronLeft"
               fallbackText: "<"
               tooltipText: root.returnLabel
               focusable: true
-              onClicked: root.goBack()
+              onClicked: root.scheduleOpen ? root.closeSchedule() : root.goBack()
               Accessible.name: root.returnLabel
               Accessible.role: Accessible.Button
             }
 
             SemanticActionButton {
+              id: upcomingLeagues
+              visible: root.scheduleOpen && !root.upcomingTeamId && !root.settingsOpen
+              text: "Leagues"
+              textFontSize: Style.font.caption
+              tooltipText: "Choose followed leagues"
+              focusable: true
+              onClicked: root.openUtility("sports")
+              Accessible.name: "Choose followed leagues in Sports & leagues"
+              Accessible.role: Accessible.Button
+            }
+
+            SemanticActionButton {
             id: todayButton
-            visible: !root.settingsOpen && !root.detailOpen
+            visible: !root.settingsOpen && !root.detailOpen && !root.scheduleOpen
               && !root.standingsOpen
               && root.selectedDateKey !== root.todayDateKey
             iconName: ""
@@ -1709,7 +1636,7 @@ Panel {
 
             SemanticActionButton {
             id: standingsButton
-            visible: !root.settingsOpen && !root.detailOpen
+            visible: !root.settingsOpen && !root.detailOpen && !root.scheduleOpen
             bordered: true
             iconName: root.standingsOpen ? "scores" : "list"
             fallbackText: root.standingsOpen ? "S" : "T"
@@ -1785,12 +1712,13 @@ Panel {
 
             SemanticActionButton {
             id: refreshButton
-            readonly property bool refreshing: root.standingsOpen
-              ? root.standingsState.loading === true : fetchService.loading
+            readonly property bool refreshing: root.scheduleOpen ? root.upcomingScheduleState.loading === true
+              : root.standingsOpen ? root.standingsState.loading === true : fetchService.loading
             visible: !root.settingsOpen && !root.detailOpen
             iconName: "refresh"
             fallbackText: refreshButton.refreshing ? "..." : "R"
-            tooltipText: root.standingsOpen
+            tooltipText: root.scheduleOpen ? (refreshButton.refreshing ? "Updating schedule" : "Refresh schedule")
+              : root.standingsOpen
               ? (refreshButton.refreshing ? "Refreshing standings" : "Refresh standings")
               : (refreshButton.refreshing ? "Refreshing scores" : "Refresh scores")
             enabled: !refreshButton.refreshing
@@ -1818,6 +1746,54 @@ Panel {
           id: panelBody
           width: parent.width
           height: Math.max(0, parent.height - header.height - contentColumn.spacing)
+
+          FocusScope {
+            id: upcomingPage
+            anchors.fill: parent
+            visible: root.scheduleOpen && !root.settingsOpen
+          UpcomingCalendar {
+            id: upcomingCalendar
+            anchors.fill: parent
+            teamOptions: root.upcomingTeamOptions
+            teamId: root.upcomingTeamId
+            globalSelectionEmpty: root.followedLeagueIds.filter(function(id) {
+              return root.enabledLeagues.indexOf(id) !== -1
+            }).length === 0
+            selectedDateKey: root.upcomingTeamId ? root.upcomingWindowStart : root.upcomingBrowseDate
+            todayDateKey: root.todayDateKey
+            currentTime: root.nowMs
+            monthKey: root.upcomingMonthKey
+            scheduleState: root.upcomingScheduleState
+            imageStore: root.logoImageStore
+            onImplicitHeightChanged: if (root.scheduleOpen) root.deferPanelCallback(root.recalculatePanelHeight)
+            onTeamSelected: function(teamId) {
+              upcomingCalendar.pendingContext = null
+              root.upcomingTeamId = teamId
+              if (teamId) root.upcomingWindowStart = root.todayDateKey
+              root.requestUpcoming(false)
+            }
+            onMonthRequested: function(monthKey) {
+              upcomingCalendar.pendingContext = null
+              root.upcomingMonthKey = monthKey
+              root.upcomingBrowseDate = monthKey
+              root.requestUpcoming(false)
+            }
+            onDaySelected: function(dateKey) {
+              upcomingCalendar.pendingContext = null
+              root.upcomingBrowseDate = dateKey
+              root.upcomingMonthKey = CalendarModel.monthKey(dateKey)
+              root.requestUpcoming(false)
+            }
+            onWindowRequested: function(startDateKey) {
+              upcomingCalendar.pendingContext = null
+              root.upcomingWindowStart = startDateKey
+              root.requestUpcoming(false)
+            }
+            onDateSelected: function(dateKey) { root.jumpToUpcomingDate(dateKey) }
+            onRetryRequested: root.requestUpcoming(true)
+            onCloseRequested: root.closeSchedule()
+          }
+          }
 
           Flickable {
             id: utilityScroll
@@ -1857,7 +1833,7 @@ Panel {
             Item {
         id: scoreContent
               anchors.fill: parent
-              visible: !root.settingsOpen && !root.detailOpen
+              visible: !root.settingsOpen && !root.detailOpen && !root.scheduleOpen
         clip: true
 
         SportAtmosphere {
@@ -2342,7 +2318,7 @@ Panel {
             id: gameDetailView
             imageStore: root.logoImageStore
             anchors.fill: parent
-            visible: root.detailOpen
+            visible: root.detailOpen && !root.scheduleOpen
             game: root.detailState.game
             updateMessage: root.detailState.message
             stale: root.detailState.stale

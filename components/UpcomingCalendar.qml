@@ -4,6 +4,8 @@ import QtQuick.Controls as QQC
 import qs.Commons as Commons
 import qs.Ui
 import "../model/CalendarModel.js" as CalendarModel
+import "../model/AgendaPresentation.js" as AgendaPresentation
+import "../providers/LeagueCatalog.js" as LeagueCatalog
 import "../model/DateModel.js" as DateModel
 import "../model/UiTypography.js" as Typography
 import "../model/UiContrast.js" as UiContrast
@@ -27,6 +29,8 @@ FocusScope {
   property var imageStore: null
   property string focusedDateKey: ""
   property var pendingContext: null
+  property string lastFocusKind: "dates"
+  property string lastAgendaGameId: ""
   readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
   readonly property string displayedMonthKey: CalendarModel.monthKey(root.monthKey
     || root.selectedDateKey || root.todayDateKey)
@@ -43,7 +47,8 @@ FocusScope {
     && root.scheduleState.coverageStart <= root.anchorDateKey
     && DateModel.isDateKey(root.scheduleState.coverageEnd || "")
     && (!root.nextEntry || root.nextEntry.dateKey <= root.scheduleState.coverageEnd)
-  readonly property bool inputActive: teamScope.activeFocus || teamPicker.popupOpen
+  readonly property bool chooserOpen: teamPicker.popupOpen
+  readonly property bool inputActive: teamScope.activeFocus || root.chooserOpen
   readonly property var entries: root.sortedEntries()
   readonly property var upcomingEntries: root.entries.filter(function(entry) {
     var status = entry.game.status
@@ -59,6 +64,7 @@ FocusScope {
     && Array.isArray(root.scheduleState.daySummaries) ? root.scheduleState.daySummaries.slice(0, 8) : []
   readonly property var selectedDayEntries: root.entriesOn(root.selectedDateKey || root.todayDateKey)
   readonly property var agendaEntries: root.globalMode ? root.selectedDayEntries : root.laterEntries
+  readonly property var agendaSectionLabels: root.globalMode ? [] : AgendaPresentation.sectionLabels(root.agendaEntries, root.todayDateKey)
   readonly property string windowStartKey: root.stateMatchesTeam && DateModel.isDateKey(root.scheduleState.coverageStart || "")
     ? root.scheduleState.coverageStart : root.anchorDateKey
   readonly property real cellHeight: Math.max(Commons.Style.space(32), Commons.Style.font.body + Commons.Style.space(15))
@@ -185,6 +191,21 @@ FocusScope {
       : status === "live" && !root.loading && root.scheduleState.stale !== true ? "Live" : root.entryTime(entry))
   }
 
+  function agendaTime(entry) {
+    if (!entry || !entry.game) return "Time TBD"
+    var status = entry.game.status
+    if (status === "final") return "Final"
+    if (status === "postponed") return "Postponed"
+    if ((status === "live" || status === "intermission") && !root.loading && root.scheduleState.stale !== true)
+      return status === "live" ? "Live" : "Intermission"
+    return root.entryTime(entry)
+  }
+
+  function agendaLeague(entry) {
+    var league = entry && entry.game ? LeagueCatalog.getLeague(entry.game.league) : null
+    return league ? league.displayName : "League unavailable"
+  }
+
   function changeWindow(delta) {
     var next = DateModel.addDays(root.windowStartKey, delta * 35)
     if (next) root.windowRequested(next)
@@ -240,17 +261,23 @@ FocusScope {
     })
   }
 
-  function captureContext() {
-    var focusKind = jumpButton.activeFocus ? "next" : root.inputActive ? "selector" : "dates"
+  function currentFocusContext() {
+    var focusKind = jumpButton.activeFocus ? "next" : root.inputActive ? "selector"
+      : calendarKeys.activeFocus ? "dates" : ""
     var gameId = ""
     for (var i = 0; i < root.agendaEntries.length; i++) {
       var row = agendaRepeater.itemAt(i)
       if (row && row.activeFocus) { focusKind = "agenda"; gameId = row.modelData.game.id; break }
     }
     if (scheduleNotice.activeFocus) focusKind = "notice"
+    return focusKind ? {focusKind: focusKind, gameId: gameId} : null
+  }
+
+  function captureContext() {
+    var focus = root.currentFocusContext() || {focusKind: root.lastFocusKind, gameId: root.lastAgendaGameId}
     return {teamId: root.teamId, selectedDateKey: root.selectedDateKey,
       scrollY: viewport.contentY, focusedDateKey: root.focusedDateKey,
-      focusKind: focusKind, gameId: gameId, noticeExpanded: scheduleNotice.expanded,
+      focusKind: focus.focusKind, gameId: focus.gameId, noticeExpanded: scheduleNotice.expanded,
       noticeAction: scheduleNotice.activeAction}
   }
 
@@ -341,6 +368,8 @@ FocusScope {
   onSelectedDateKeyChanged: root.focusedDateKey = root.selectedDateKey
   onMonthKeyChanged: root.defer(root.focusCalendar)
   onTeamIdChanged: {
+    root.lastFocusKind = "dates"
+    root.lastAgendaGameId = ""
     root.focusedDateKey = root.selectedDateKey || root.todayDateKey
     // Native Dropdown updates its own value when selected. Keep subsequent
     // caller-owned selection changes visible after that binding is replaced.
@@ -385,7 +414,11 @@ FocusScope {
     target: root.Window.window
     function onActiveFocusItemChanged() {
       var window = root.Window.window
-      if (window && root.ownsItem(window.activeFocusItem)) root.ensureVisible(window.activeFocusItem)
+      if (window && root.ownsItem(window.activeFocusItem)) {
+        var focus = root.currentFocusContext()
+        if (focus) { root.lastFocusKind = focus.focusKind; root.lastAgendaGameId = focus.gameId }
+        root.ensureVisible(window.activeFocusItem)
+      }
     }
   }
 
@@ -713,7 +746,8 @@ FocusScope {
         spacing: Commons.Style.spacing.sm
         Text {
           width: parent.width
-          text: root.globalMode ? DateModel.shortDateLabel(root.selectedDateKey || root.todayDateKey) : "Upcoming games"
+          visible: root.globalMode
+          text: DateModel.shortDateLabel(root.selectedDateKey || root.todayDateKey)
           textFormat: Text.PlainText
           color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
@@ -740,65 +774,16 @@ FocusScope {
         Repeater {
           id: agendaRepeater
           model: root.agendaEntries
-          Item {
-            id: laterRow
-            required property var modelData
+          AgendaGameRow {
+            required property int index
             width: parent.width
-            height: Math.max(Commons.Style.space(32), laterText.implicitHeight + Commons.Style.spacing.sm * 2)
-            activeFocusOnTab: true
-            Keys.onReturnPressed: root.dateSelected(laterRow.modelData.dateKey)
-            Keys.onEnterPressed: root.dateSelected(laterRow.modelData.dateKey)
-            Keys.onSpacePressed: root.dateSelected(laterRow.modelData.dateKey)
-            BorderSurface {
-              anchors.fill: parent
-              color: laterRow.activeFocus ? Commons.Style.focusFillFor(Commons.Color.popups.text, Commons.Color.accent)
-                : laterHover.hovered ? Commons.Style.hoverFillFor(Commons.Color.popups.text, Commons.Color.accent) : "transparent"
-              borderSpec: laterRow.activeFocus ? Commons.Border.controlSpec("focus", Commons.Color.popups.text, Commons.Color.accent) : Commons.Border.none()
-              radius: Commons.Style.cornerRadius
-            }
-            Column {
-              id: laterText
-              width: parent.width
-              spacing: Commons.Style.spacing.xxs
-              Text {
-                width: parent.width
-                text: root.agendaDetail(laterRow.modelData)
-                textFormat: Text.PlainText
-                color: Commons.Color.popups.text
-                font.family: Typography.family
-                font.pixelSize: Commons.Style.font.caption
-                wrapMode: Text.WordWrap
-              }
-              Text {
-                width: parent.width
-                text: root.matchup(laterRow.modelData)
-                textFormat: Text.PlainText
-                color: Commons.Color.popups.text
-                font.family: Typography.family
-                font.pixelSize: Commons.Style.font.bodySmall
-                wrapMode: Text.WordWrap
-              }
-            }
-            Rectangle {
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.bottom: parent.bottom
-              height: 1
-              color: Commons.Color.popups.text
-              opacity: 0.10
-            }
-            MouseArea {
-              anchors.fill: parent
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                laterRow.forceActiveFocus()
-                root.dateSelected(laterRow.modelData.dateKey)
-              }
-            }
-            HoverHandler { id: laterHover }
-            Accessible.name: DateModel.shortDateLabel(modelData.dateKey) + ", " + root.agendaDetail(modelData) + ", " + root.matchup(modelData)
-            Accessible.role: Accessible.Button
-            Accessible.onPressAction: root.dateSelected(laterRow.modelData.dateKey)
+            teamId: root.teamId
+            sectionLabel: root.globalMode ? "" : root.agendaSectionLabels[index] || ""
+            timeText: root.agendaTime(modelData)
+            leagueLabel: root.agendaLeague(modelData)
+            stale: root.scheduleState.stale === true
+            imageStore: root.imageStore
+            onActivated: function(dateKey) { root.dateSelected(dateKey) }
           }
         }
       }

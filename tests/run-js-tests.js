@@ -1570,7 +1570,8 @@ test("U2.4 keeps semantic icons local and maps every active league", () => {
   assert.equal(panel.includes('import "model/Iconography.js" as Iconography'), true);
   assert.equal(panel.includes("SemanticActionButton {"), true);
   assert.equal(panel.includes("SportAtmosphere {"), true);
-  assert.equal(panel.includes('root.settingsOpen ? "Settings" : root.detailOpen ? "Game details"'), true);
+  assert.match(panel, /root\.settingsOpen \? "Settings"[\s\S]*root\.scheduleOpen/);
+  assert.match(panel, /root\.detailOpen \? "Game details"/);
   assert.equal(panel.includes('font.family: Typography.family'), true);
   assert.equal(panel.includes('iconName: "refresh"'), true);
   assert.equal(panel.includes('iconName: fetchService.loading ? "overflow" : "refresh"'), false);
@@ -3720,7 +3721,7 @@ test("W3 wires one bounded watch action through rows, detail, and SettingsStore"
   assert.equal(row.includes("settingsStore: root.settingsStore"), true);
   assert.equal(detail.includes("WatchAction {"), true);
   assert.equal(detail.includes('action.id === "watch") watchAction.activate()'), true);
-  assert.equal(store.includes("function toggleWatch(game)"), true);
+  assert.match(store, /function toggleWatch\(game(?:,\s*label)?\)/);
   assert.equal(store.includes("WatchPolicy.removeExpired"), true);
   assert.equal(store.includes("WatchPolicy.createWatch"), true);
   assert.equal(store.includes("root.preservedRawStateText.length > 0"), true);
@@ -4361,7 +4362,10 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   const panel = readSource("Panel.qml");
   const hub = readSource("components/SettingsHub.qml");
   const picker = readSource("components/TeamPicker.qml");
-  assert.match(panel, /blocked: upcomingPopup\.opened \|\| root\.gameActionsOpen \|\| KeyboardRoutingPolicy\.catcherBlocked\(/);
+  assert.match(panel, /blocked: root\.scheduleOpen \|\| root\.gameActionsOpen \|\| KeyboardRoutingPolicy\.catcherBlocked\(/);
+  assert.match(panel, /property bool scheduleOpen: false/);
+  assert.match(panel, /id: upcomingPage/);
+  assert.doesNotMatch(panel, /id: upcomingPopup/);
   assert.match(panel, /settingsHub\.inputActive, sportsPicker && sportsPicker\.popupOpen/);
   assert.match(hub, /onEscapeRequested: root\.escapeRequested\(\)/);
   assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
@@ -4561,16 +4565,19 @@ test("the visible league chooser exposes every enabled destination including the
   assert.match(panel, /label: "League"\s+showLabel: false/);
 });
 
-test("header refresh state follows the visible score or standings request", () => {
+test("header refresh state follows the visible scores, standings, or schedule request", () => {
   const panel = readSource("Panel.qml");
   const expression = panel.match(/readonly property bool refreshing: ([\s\S]*?)\n\s+visible:/)[1].trim();
-  const resolve = (standingsOpen, tableLoading, scoresLoading) => vm.runInNewContext(expression,
-    {root: {standingsOpen, standingsState: {loading: tableLoading}}, fetchService: {loading: scoresLoading}});
+  const resolve = (standingsOpen, tableLoading, scoresLoading, scheduleOpen = false, scheduleLoading = false) => vm.runInNewContext(expression,
+    {root: {standingsOpen, scheduleOpen, standingsState: {loading: tableLoading},
+      upcomingScheduleState: {loading: scheduleLoading}}, fetchService: {loading: scoresLoading}});
   assert.equal(resolve(true, false, true), false, "score request must not disable table refresh");
   assert.equal(resolve(true, true, false), true, "table refresh owns the standings busy state");
   assert.equal(resolve(false, true, false), false, "table request must not disable score refresh");
   assert.equal(resolve(false, false, true), true);
-  assert.match(panel, /tooltipText: root\.standingsOpen[\s\S]*?"Refresh standings"/);
+  assert.equal(resolve(true, true, true, true, false), false, "hidden score/table requests must not disable schedule refresh");
+  assert.equal(resolve(false, false, false, true, true), true, "visible schedule request owns its busy state");
+  assert.match(panel, /tooltipText: root\.scheduleOpen[\s\S]*?root\.standingsOpen[\s\S]*?"Refresh standings"/);
 });
 
 test("the standings action has a visible label and explains its Following state", () => {
@@ -7235,7 +7242,8 @@ test("standings states retain tables and expose only available retry actions", (
 // Focused UI policies run under the standard deterministic acceptance command.
 // Each suite also remains directly runnable during isolated development.
 for (const suite of ["test-following-presentation.js", "test-navigation-context.js",
-    "test-notice-presentation.js", "test-ticket-model.js", "test-ui-contrast.js"]) {
+    "test-notice-presentation.js", "test-ticket-model.js", "test-ui-contrast.js", "test-agenda-presentation.js",
+    "test-settings-preservation.js"]) {
   require(path.join(__dirname, suite));
 }
 
