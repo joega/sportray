@@ -552,7 +552,9 @@ Panel {
     var owner = root.callbackOwner
     var generation = LifecyclePolicy.captureGeneration(owner)
     Qt.callLater(function() {
-      if (!LifecyclePolicy.canRun(owner, generation)) return
+      // The QML import namespace may already be gone after a monitor removes
+      // this panel. Inspect only the captured plain owner before touching it.
+      if (!owner || owner.alive !== true || owner.generation !== generation) return
       callback()
     })
   }
@@ -565,8 +567,8 @@ Panel {
     var panelGeneration = LifecyclePolicy.captureGeneration(panelOwner)
     var listGeneration = LifecyclePolicy.captureGeneration(listLifecycle)
     Qt.callLater(function() {
-      if (!LifecyclePolicy.canRun(panelOwner, panelGeneration)
-          || !LifecyclePolicy.canRun(listLifecycle, listGeneration)
+      if (!panelOwner || panelOwner.alive !== true || panelOwner.generation !== panelGeneration
+          || !listLifecycle || listLifecycle.alive !== true || listLifecycle.generation !== listGeneration
           || resultList !== list) return
       callback(list)
     })
