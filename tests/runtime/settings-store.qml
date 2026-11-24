@@ -28,7 +28,7 @@ ShellRoot {
     // or requesting FileView.text()/data(), which would itself initiate a read.
     for (var i = 0; i < store.data.length; i++) {
       var item = store.data[i]
-      if (item.path === store.statePath && item.watchChanges === true) watcher = item
+      if ("watchChanges" in item && item.watchChanges === true) watcher = item
     }
     if (!watcher) { fail("watcher not found"); return }
     poll.start()
@@ -45,6 +45,7 @@ ShellRoot {
         return
       }
       if (!root.store.ready || root.store.helperOperation !== "" || root.store.writePending) return
+      if (root.watcher.path !== root.store.statePath) { root.fail("watcher path not admitted"); return }
       if (root.stage === "creation" && root.store.loadStatus === "valid") {
         // Initial missing-file recovery writes defaults. A valid reload proves
         // the real parent-directory watcher delivered file-creation notification.

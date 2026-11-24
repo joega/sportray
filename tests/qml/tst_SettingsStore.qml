@@ -39,45 +39,60 @@ TestCase {
     wait(0)
   }
 
+  function armWatcher(code, text) {
+    compare(watcher.path, "")
+    process.finish(code, text)
+    compare(watcher.path, store.statePath)
+    compare(store.ready, false)
+    compare(store.helperOperation, "read")
+    compare(process.command, ["/usr/bin/python3", store.helperPath, "read"])
+    compare(process.starts, 2)
+  }
+
+  function loadInitialState(code, text) {
+    armWatcher(code, text)
+    process.finish(code, text)
+  }
+
   function test_startupUsesOnlyHelperForContents() {
     compare(watcher.preload, false)
     compare(watcher.watchChanges, true)
-    compare(watcher.path, "/fixture-home/.local/state/omarchy/settings/sportray.json")
+    compare(watcher.path, "")
     compare(process.starts, 1)
     compare(process.command, ["/usr/bin/python3", store.helperPath, "read"])
-    process.finish(0, stateText("slow"))
+    loadInitialState(0, stateText("slow"))
     compare(store.loadStatus, "valid")
     compare(store.settings.ticker.speed, "slow")
-    compare(process.starts, 1)
+    compare(process.starts, 2)
   }
 
   function test_changeNotificationReloadsOnlyAfterActiveWrite() {
-    process.finish(0, stateText("slow"))
+    loadInitialState(0, stateText("slow"))
     store.setTicker("speed", "fast")
     compare(store.helperOperation, "write")
     compare(JSON.parse(process.command[4]).ticker.speed, "fast")
     // File replacement notifications during a write coalesce into one read.
     watcher.fileChanged()
     watcher.fileChanged()
-    compare(process.starts, 2)
+    compare(process.starts, 3)
     compare(store.readQueued, true)
     process.finish(0, "")
-    compare(process.starts, 3)
+    compare(process.starts, 4)
     compare(store.helperOperation, "read")
     process.finish(0, stateText("normal"))
     compare(store.settings.ticker.speed, "normal")
     compare(store.readQueued, false)
-    compare(process.starts, 3)
+    compare(process.starts, 4)
   }
 
   function test_notificationsKeepSerializedLatestWrite() {
-    process.finish(0, stateText("slow"))
+    loadInitialState(0, stateText("slow"))
     store.setTicker("speed", "normal")
     store.setTicker("speed", "fast")
     watcher.fileChanged()
-    compare(process.starts, 2)
-    process.finish(0, "")
     compare(process.starts, 3)
+    process.finish(0, "")
+    compare(process.starts, 4)
     compare(store.helperOperation, "write")
     compare(JSON.parse(process.command[4]).ticker.speed, "fast")
     process.finish(0, "")
@@ -96,7 +111,7 @@ TestCase {
   }
 
   function test_recovery(data) {
-    process.finish(data.code, data.text)
+    loadInitialState(data.code, data.text)
     compare(store.ready, true)
     compare(store.loadStatus, data.status)
     compare(store.recovered, true)
@@ -114,11 +129,11 @@ TestCase {
 
   function test_futureStateRemainsOpaqueUntilCompatibleReload() {
     var future = " {\"schemaVersion\":99,\"privateFutureField\":true}\n"
-    process.finish(0, future)
+    loadInitialState(0, future)
     compare(store.loadStatus, "unsupported-schema")
     compare(store.preservedRawStateText, future)
     store.setTicker("speed", "fast")
-    compare(process.starts, 1)
+    compare(process.starts, 2)
     watcher.fileChanged()
     process.finish(0, stateText("slow"))
     compare(store.preservedRawStateText, "")
@@ -130,15 +145,54 @@ TestCase {
 
   function test_rejectedObjectCannotBeOverwritten() {
     ignoreWarning("Sportray settings state rejected")
-    process.finish(4, "")
+    loadInitialState(4, "")
     compare(store.loadStatus, "rejected")
     compare(store.ready, true)
     store.setTicker("speed", "fast")
-    compare(process.starts, 1)
+    compare(process.starts, 2)
     compare(store.writePending, false)
     watcher.fileChanged()
     process.finish(0, stateText("slow"))
     compare(store.loadStatus, "valid")
     compare(store.preservedRawStateText, "")
+  }
+
+  function test_initialSnapshotCannotOverwriteReplacement_data() {
+    return [
+      {tag: "valid", code: 0, text: stateText("slow"), status: "valid"},
+      {tag: "future", code: 0, text: "{\"schemaVersion\":99}", status: "unsupported-schema"},
+      {tag: "rejected", code: 4, text: "", status: "rejected"}
+    ]
+  }
+
+  function test_initialSnapshotCannotOverwriteReplacement(data) {
+    // The first missing snapshot may be obsolete by the time the helper has
+    // created the parent and the metadata watcher is admitted. Reconcile before
+    // any automatic recovery write can replace externally published state.
+    armWatcher(2, "")
+    if (data.code === 4) ignoreWarning("Sportray settings state rejected")
+    process.finish(data.code, data.text)
+    compare(store.loadStatus, data.status)
+    compare(store.ready, true)
+    compare(process.starts, 2)
+    compare(store.helperOperation, "")
+    compare(store.writePending, false)
+    if (data.status === "valid") compare(store.settings.ticker.speed, "slow")
+    if (data.status === "unsupported-schema") compare(store.preservedRawStateText, data.text)
+  }
+
+  function test_helperReadFailureKeepsExistingParentWatcherRecoverable() {
+    armWatcher(5, "")
+    ignoreWarning("Sportray settings helper failed read")
+    process.finish(5, "")
+    compare(store.ready, false)
+    compare(watcher.path, store.statePath)
+    watcher.fileChanged()
+    compare(store.helperOperation, "read")
+    process.finish(0, stateText("slow"))
+    compare(store.ready, true)
+    compare(store.loadStatus, "valid")
+    compare(store.settings.ticker.speed, "slow")
+    compare(process.starts, 3)
   }
 }

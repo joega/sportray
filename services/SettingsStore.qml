@@ -16,6 +16,7 @@ Item {
   property bool writePending: false
   property var pendingWrite: null
   property bool readQueued: false
+  property bool metadataWatchEnabled: false
   property string helperOperation: ""
   property var settings: SettingsModel.createDefaults()
   property var transitionDedupe: TransitionDedupe.createDefaults()
@@ -223,7 +224,9 @@ Item {
     // Watch metadata only. Default preloading would read settings by pathname
     // outside the descriptor-bound helper's validation and byte limit.
     preload: false
-    path: root.statePath
+    // The helper creates/validates the parent on first install. Registering
+    // before that happens leaves FileView without a directory to watch.
+    path: root.metadataWatchEnabled ? root.statePath : ""
     watchChanges: true
     printErrors: false
     onFileChanged: root.reloadSettings()
@@ -241,10 +244,18 @@ Item {
       var operation = root.helperOperation
       root.helperOperation = ""
       if (operation === "read") {
-        if (exitCode === 0) root.applyText(stateHelperOutput.text)
-        else if (exitCode === 2) root.applyText("")
-        else if (exitCode === 4) root.rejectState()
-        else root.failStateHelper("read")
+        if (!root.metadataWatchEnabled) {
+          root.metadataWatchEnabled = true
+          // A replacement between the first snapshot and registration has no
+          // watcher event. Reconcile once through the same bounded helper before
+          // applying data or publishing missing/malformed-state recovery.
+          root.readQueued = true
+        } else {
+          if (exitCode === 0) root.applyText(stateHelperOutput.text)
+          else if (exitCode === 2) root.applyText("")
+          else if (exitCode === 4) root.rejectState()
+          else root.failStateHelper("read")
+        }
       } else if (operation === "write") {
         if (exitCode === 0) {
           root.writePending = false

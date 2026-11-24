@@ -16,13 +16,24 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class SettingsStoreRuntimeTests(unittest.TestCase):
-    def test_metadata_watcher_never_loads_contents_and_reloads_helper(self):
+    def test_existing_parent_metadata_watcher_and_helper_reload(self):
+        self.exercise_metadata_watcher(parent_exists=True)
+
+    def test_first_install_metadata_watcher_and_helper_reload(self):
+        self.exercise_metadata_watcher(parent_exists=False)
+
+    def exercise_metadata_watcher(self, parent_exists):
         with tempfile.TemporaryDirectory(prefix="sportray-settings-test-") as temporary:
             isolated = Path(temporary)
             fixture_home = isolated / "home"
+            fixture_home.mkdir(mode=0o700)
             state_dir = fixture_home / ".local/state/omarchy/settings"
-            # Parent exists, state file does not. No owner state is copied.
-            state_dir.mkdir(parents=True, mode=0o700)
+            # Both normal startup and a genuinely fresh settings hierarchy.
+            # No owner state is copied; only the real helper may create it.
+            if parent_exists:
+                state_dir.mkdir(parents=True, mode=0o700)
+            else:
+                self.assertFalse(state_dir.exists())
             state_file = state_dir / "sportray.json"
             runtime_dir = isolated / "runtime"
             runtime_dir.mkdir(mode=0o700)
