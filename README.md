@@ -297,6 +297,27 @@ cp /tmp/sportray-ui/ui-light/calendar-global.png screenshots/sportray-calendar-g
 
 </details>
 
+<details>
+<summary>Explore the proposed visual direction</summary>
+
+A separate native design preview explores a featured matchup, quieter
+navigation, scoreboard details, and weekly team schedules. It uses illustrative
+games and an isolated HOME; it does not change the installed plugin or saved
+preferences. Render light, dark, narrow, and larger-text review images, or open
+the connected preview on an active Wayland desktop:
+
+```bash
+python3 tools/preview-ui.py /tmp/sportray-direction
+python3 tools/preview-ui.py --live --theme catppuccin
+```
+
+Logos use the same bounded raster helper as documentation captures. Use
+`--logo-cache /path/to/logos.json` to reuse a previously validated capture cache.
+This is a visual prototype; its illustrative data and simplified actions do
+not replace the installed sports views.
+
+</details>
+
 ## License
 
 [MIT](LICENSE). See [CHANGELOG.md](CHANGELOG.md) for release notes.
