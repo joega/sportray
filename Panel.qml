@@ -737,7 +737,7 @@ Panel {
       root.panelContentHeightRequest = PanelLayout.detailContentRequest(
         gameDetailView.implicitHeight,
         panel && panel.screen ? panel.screen.height : 0, {
-          minimum: Style.space(320),
+          minimum: gameDetailView.scheduledPresentation ? Style.space(280) : Style.space(320),
           fixedCap: Style.space(600),
           viewportFraction: 0.5
         })

@@ -289,6 +289,58 @@ ShellRoot {
           same(detail.indexForFocusId("status-details"), -1, "Healthy detail creates updated-message noise")
           detail.resetCursor(); wait(30)
           capture("detail-links")
+          // State composition uses the same normalized game identity. Unknown
+          // pregame scores must not become giant zero/dash placeholders, and
+          // existing scores/results remain primary once the game is played.
+          function node(name) {
+            return find(detail, function(item) { return item.objectName === name }, [])
+          }
+          var originalDetail = detail.game
+          var liveHeight = detail.implicitHeight
+          var pregame = JSON.parse(JSON.stringify(originalDetail))
+          pregame.status = "scheduled"; pregame.statusDetail = "Scheduled"
+          pregame.period = null; pregame.periodLabel = null; pregame.clock = null
+          pregame.awayScore = 0; pregame.homeScore = 0
+          pregame.lines = null; pregame.stats = null; pregame.situation = null
+          pregame.venue = "Fixture arena"
+          pregame.odds = {details: "NYY -110", overUnder: 8.5, provider: "Fixture bookmaker"}
+          detail.game = pregame; detail.resetCursor(); wait(40)
+          check(detail.scheduledPresentation && !detail.livePresentation && !detail.finalPresentation,
+            "Pregame uses the wrong presentation")
+          check(!node("detailScore0").visible && !node("detailScore1").visible,
+            "Pregame exposes unplayed score placeholders")
+          check(node("detailPregame").visible && node("detailStartTime").text.indexOf("Oct 11") !== -1,
+            "Pregame does not feature its normalized start")
+          check(node("detailPregame").mapToItem(detail, 0, 0).y
+            < node("detailActions").mapToItem(detail, 0, 0).y,
+            "Pregame timing, venue and odds follow actions")
+          check(detail.implicitHeight < liveHeight - Commons.Style.space(40),
+            "Sparse pregame did not become more compact")
+          capture("detail-scheduled")
+          var noTime = JSON.parse(JSON.stringify(pregame)); noTime.startTime = null
+          detail.game = noTime; wait(30)
+          same(node("detailStartTime").text, "Start time unavailable", "Missing time was inferred")
+          var finalGame = JSON.parse(JSON.stringify(originalDetail))
+          finalGame.status = "final"; finalGame.statusDetail = "Final"
+          finalGame.awayScore = 4; finalGame.homeScore = 2
+          detail.game = finalGame; detail.resetCursor(); wait(40)
+          check(detail.finalPresentation && node("detailOutcome").visible,
+            "Final result has no primary outcome")
+          same(node("detailScore0").text, "4"); same(node("detailScore1").text, "2")
+          check(node("detailOutcome").mapToItem(detail, 0, 0).y
+            < node("detailActions").mapToItem(detail, 0, 0).y,
+            "Final outcome is buried below secondary actions")
+          check(!node("detailPregame").visible, "Final retained pregame timing/odds")
+          capture("detail-final")
+          for (var administrative of ["postponed", "canceled", "unknown"]) {
+            var other = JSON.parse(JSON.stringify(pregame)); other.status = administrative
+            other.statusDetail = null; detail.game = other; wait(25)
+            check(!detail.scheduledPresentation && !detail.finalPresentation && !node("detailOutcome").visible,
+              "Administrative/unknown state invents a result")
+          }
+          detail.game = originalDetail; detail.resetCursor(); wait(30)
+          check(detail.livePresentation && node("detailScore0").visible && !node("detailPregame").visible,
+            "Live composition did not restore scores/current action")
           root.mode = "standings"; wait(40)
           teamsBefore = root.teams.length
           var standingLink = find(standing, function(item) { return "scheduleTeamId" in item && item.scheduleTeamId !== "" }, [])

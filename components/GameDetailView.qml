@@ -34,6 +34,9 @@ Item {
 
   readonly property var sourceMetadata: sourceMetadataFor(root.game)
   readonly property var detail: GameDetailModel.normalizeDetail(root.game, root.sourceMetadata)
+  readonly property bool scheduledPresentation: root.detail.status.state === "scheduled"
+  readonly property bool finalPresentation: root.detail.status.state === "final"
+  readonly property bool livePresentation: root.detail.status.state === "live" || root.detail.status.state === "intermission"
   readonly property bool sourceAvailable: Boolean(root.detail.source
     && typeof root.detail.source.url === "string" && root.detail.source.url !== "")
 
@@ -400,6 +403,7 @@ Item {
       }
 
       Column {
+        objectName: "detailHero"
         width: parent.width
         spacing: Commons.Style.spacing.sm
 
@@ -438,8 +442,11 @@ Item {
               }
               Text {
                 anchors.centerIn: parent
-                text: root.teamLabel(participantRow.modelData)
+                width: parent.width
+                text: participantRow.modelData.team ? root.teamLabel(participantRow.modelData).slice(0, 3) : "?"
                 textFormat: Text.PlainText
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
                 visible: !participantLogo.visible
                 color: Qt.alpha(Commons.Color.popups.text, 0.85)
                 font.family: Typography.family
@@ -476,7 +483,9 @@ Item {
 
             Text {
               id: teamScore
-              width: Commons.Style.space(64)
+              objectName: "detailScore" + participantRow.index
+              visible: !root.scheduledPresentation
+              width: root.scheduledPresentation ? 0 : Commons.Style.space(64)
               anchors.verticalCenter: parent.verticalCenter
               text: root.scoreLabel(participantRow.modelData)
               textFormat: Text.PlainText
@@ -491,19 +500,84 @@ Item {
         }
 
         Text {
+          objectName: "detailStatus"
           width: parent.width
           text: Formatters.formatDetailStatus(root.detail.status)
           textFormat: Text.PlainText
-          color: root.stale ? Commons.Color.urgent
-            : UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
+          color: root.stale ? Commons.Color.urgent : root.livePresentation
+            ? UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
+            : Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Commons.Style.font.body
+          font.pixelSize: root.scheduledPresentation ? Commons.Style.font.bodySmall : Commons.Style.font.body
+          font.weight: root.livePresentation ? Font.DemiBold : Font.Normal
+          wrapMode: Text.WordWrap
+        }
+        Text {
+          objectName: "detailOutcome"
+          width: parent.width
+          visible: root.finalPresentation && root.outcomeLabel() !== null
+          text: root.outcomeLabel() || ""
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Commons.Style.font.subtitle
           font.weight: Font.DemiBold
           wrapMode: Text.WordWrap
         }
       }
 
+      Column {
+        objectName: "detailPregame"
+        width: parent.width
+        visible: root.scheduledPresentation
+        spacing: Commons.Style.spacing.sm
+        Text {
+          objectName: "detailStartTime"
+          width: parent.width
+          text: root.detail.timing.startTime ? root.timeLabel(root.detail.timing.startTime) : "Start time unavailable"
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Commons.Style.font.subtitle
+          font.weight: Font.DemiBold
+          wrapMode: Text.WordWrap
+        }
+        Text {
+          width: parent.width
+          visible: Boolean(root.detail.venue)
+          text: root.detail.venue || ""
+          textFormat: Text.PlainText
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Commons.Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+        Column {
+          width: parent.width
+          visible: root.oddsData !== null
+          spacing: Commons.Style.spacing.xs
+          Text {
+            text: "Pregame odds"
+            textFormat: Text.PlainText
+            color: Commons.Color.popups.text
+            font.family: Typography.family
+            font.pixelSize: Commons.Style.font.bodySmall
+            font.weight: Font.DemiBold
+          }
+          Text {
+            width: parent.width
+            text: root.oddsLabel()
+            textFormat: Text.PlainText
+            color: Qt.alpha(Commons.Color.popups.text, 0.85)
+            font.family: Typography.family
+            font.pixelSize: Commons.Style.font.bodySmall
+            wrapMode: Text.WordWrap
+          }
+        }
+      }
+
       Flow {
+        objectName: "detailActions"
         width: parent.width
         spacing: Commons.Style.spacing.sm
         WatchAction {
@@ -537,50 +611,21 @@ Item {
         }
       }
 
-      Rectangle { width: parent.width; height: 1; color: Commons.Color.popups.text; opacity: 0.12 }
-
-      Column {
+      Rectangle {
         width: parent.width
-        spacing: Commons.Style.spacing.xs
-        Text {
-          width: parent.width
-          visible: Boolean(root.detail.timing.startTime)
-          text: Formatters.formatDetailTiming(root.timeLabel(root.detail.timing.startTime),
-            root.timeLabel(root.detail.timing.endTime))
-          textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
-          font.family: Typography.family
-          font.pixelSize: Commons.Style.font.bodySmall
-          wrapMode: Text.WordWrap
-        }
-        Text {
-          width: parent.width
-          visible: Boolean(root.detail.venue)
-          text: root.valueOrDash(root.detail.venue)
-          textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
-          font.family: Typography.family
-          font.pixelSize: Commons.Style.font.bodySmall
-          wrapMode: Text.WordWrap
-        }
-        Text {
-          width: parent.width
-          visible: root.outcomeLabel() !== null
-          text: root.valueOrDash(root.outcomeLabel())
-          textFormat: Text.PlainText
-          color: Commons.Color.popups.text
-          font.family: Typography.family
-          font.pixelSize: Commons.Style.font.bodySmall
-          wrapMode: Text.WordWrap
-        }
+        height: 1
+        visible: !root.scheduledPresentation || root.linesData !== null || root.statsData !== null || root.situationData !== null
+        color: Commons.Color.popups.text
+        opacity: 0.12
       }
+
 
       Column {
         width: parent.width
         visible: root.situationData !== null
         spacing: Commons.Style.spacing.sm
         Text {
-          text: "Game situation"
+          text: root.finalPresentation ? "Last game situation" : "Game situation"
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
@@ -795,20 +840,25 @@ Item {
       }
 
       Column {
+        objectName: "detailMetadata"
         width: parent.width
-        visible: root.oddsData !== null && root.detail.status.state === "scheduled"
+        visible: !root.scheduledPresentation && Boolean(root.detail.timing.startTime || root.detail.timing.endTime || root.detail.venue)
         spacing: Commons.Style.spacing.xs
         Text {
-          text: "Pregame odds"
+          width: parent.width
+          visible: Boolean(root.detail.timing.startTime)
+          text: Formatters.formatDetailTiming(root.timeLabel(root.detail.timing.startTime),
+            root.timeLabel(root.detail.timing.endTime))
           textFormat: Text.PlainText
-          color: Commons.Color.popups.text
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
-          font.pixelSize: Commons.Style.font.body
-          font.weight: Font.DemiBold
+          font.pixelSize: Commons.Style.font.bodySmall
+          wrapMode: Text.WordWrap
         }
         Text {
           width: parent.width
-          text: root.oddsLabel()
+          visible: Boolean(root.detail.venue)
+          text: root.valueOrDash(root.detail.venue)
           textFormat: Text.PlainText
           color: Qt.alpha(Commons.Color.popups.text, 0.85)
           font.family: Typography.family
@@ -816,6 +866,7 @@ Item {
           wrapMode: Text.WordWrap
         }
       }
+
     }
   }
 }

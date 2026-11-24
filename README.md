@@ -148,6 +148,9 @@ or inning totals, team stats, and live situation where the provider supplies the
 Upcoming games can show a bookmaker line and over/under with attribution.
 Missing optional sections stay out of the way; long play descriptions wrap and
 long period tables scroll horizontally.
+Upcoming details emphasize the matchup, start time, venue, and available odds.
+Live details put the score and current situation first; completed games show
+the result before their scoring breakdown and stats.
 
 Open details follow the existing score feed, preserving scroll and action focus
 as data updates. An update message identifies retained scores if a request fails

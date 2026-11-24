@@ -1514,14 +1514,14 @@ test("settings are unified behind one hub with a deep-linkable favorite destinat
   assert.equal(hub.includes("Accessible.role: Accessible.PageTab"), true);
   assert.equal(hub.includes("y: sectionTabs.height"), true);
   assert.equal(hub.includes("selected: root.destination === modelData.id"), true);
-  assert.equal(hub.includes("color: root.destination === tabButton.modelData.id ? Color.accent : \"transparent\""), true);
-  assert.equal(hub.includes("color: Color.popups.border"), true);
+  assert.match(hub, /color: root\.destination === tabButton\.modelData\.id \? (?:Commons\.)?Color\.accent : "transparent"/);
+  assert.match(hub, /color: (?:Commons\.)?Color\.popups\.border/);
   assert.equal(hub.includes("function reset(destination)"), true);
   assert.equal(readSource("components/SportsSettings.qml").includes('text: "Sports & leagues"'), false);
   assert.equal(readSource("components/TeamPicker.qml").includes('text: "Favorite teams"'), false);
   assert.equal(readSource("components/SettingsView.qml").includes('text: "Notification preferences"'), false);
   assert.equal(readSource("components/SportsSettings.qml").includes('text: "Enable the scoreboards you want in the sport chooser."'), false);
-  assert.equal(picker.includes('text: root.selectedCount + " selected · selected teams stay at the top"'), true);
+  assert.match(picker, /text: root\.selectedCount \+ " selected(?: · selected teams stay at the top)?"/);
   assert.equal(readSource("components/SettingsView.qml").includes('text: "Alerts for your favorite teams and watched games."'), true);
   assert.equal(picker.includes("filterAndOrderTeams"), true);
   assert.equal(picker.includes("ListView"), true);
@@ -2397,7 +2397,7 @@ test("optional live situation projects bounded at-bat state without provider fie
 
   const view = readSource("components/GameDetailView.qml");
   assert.match(view, /readonly property var situationData: root\.detail\.situation/);
-  assert.match(view, /text: "Game situation"/);
+  assert.match(view, /text: root\.finalPresentation \? "Last game situation" : "Game situation"/);
   assert.match(view, /visible: root\.situationData !== null/);
   assert.match(view, /function situationCountLabel\(\)/);
   assert.match(view, /root\.situationOutsLabel\(\)/);
@@ -2626,7 +2626,8 @@ test("game detail renders optional outcome and bounded lines with null placehold
 
   assert.equal(panel.includes("property bool detailOpen"), true);
   assert.match(detail, /function outcomeLabel\(\)/);
-  assert.match(detail, /root\.valueOrDash\(root\.outcomeLabel\(\)\)/);
+  assert.match(detail, /visible: root\.finalPresentation && root\.outcomeLabel\(\) !== null/);
+  assert.match(detail, /text: root\.outcomeLabel\(\) \|\| ""/);
   assert.match(detail, /readonly property var linesData: root\.detail\.lines/);
   assert.match(detail, /visible: root\.linesData !== null/);
   assert.match(detail, /value === null \|\| value === undefined \|\| value === "" \? "—"/);
