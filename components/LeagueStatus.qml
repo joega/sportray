@@ -1,10 +1,11 @@
 import QtQuick
-import qs.Commons
+import qs.Commons as Commons
 
 Item {
   id: root
 
   required property var status
+  property double currentTime: Date.now()
   signal retry()
   width: parent ? parent.width : implicitWidth
   implicitHeight: label.implicitHeight
@@ -16,10 +17,10 @@ Item {
   Keys.onEnterPressed: if (!root.status.loading) root.retry()
   Keys.onSpacePressed: if (!root.status.loading) root.retry()
 
-  readonly property string accessibleLabel: root.status.loading
-    ? root.status.displayName + ", refreshing scores"
-    : root.status.stale
-      ? root.status.displayName + ", stale scores. Retry scores"
+  readonly property string accessibleLabel: root.status.stale
+    ? root.status.displayName + ", stale scores, " + root.staleText()
+    : root.status.loading
+      ? root.status.displayName + ", refreshing scores"
       : root.status.displayName + ", "
         + (root.status.errorSummary || "scores unavailable") + ". Retry scores"
 
@@ -35,15 +36,15 @@ Item {
     textFormat: Text.PlainText
     id: label
     width: parent.width
-    text: root.status.loading
-      ? root.status.displayName + " · refreshing…"
-      : root.status.stale
-        ? root.status.displayName + " · " + root.staleText()
+    text: root.status.stale
+      ? root.status.displayName + " · " + root.staleText()
+      : root.status.loading
+        ? root.status.displayName + " · refreshing…"
         : root.status.displayName + " · "
           + (root.status.errorSummary || "scores unavailable") + " · retry"
-    color: root.status.loading ? Color.muted : Color.urgent
-    font.family: Style.font.family
-    font.pixelSize: Style.font.bodySmall
+    color: root.status.loading ? Commons.Color.muted : Commons.Color.urgent
+    font.family: Commons.Style.font.family
+    font.pixelSize: Commons.Style.font.bodySmall
     wrapMode: Text.WordWrap
   }
 
@@ -57,11 +58,13 @@ Item {
 
   function staleText() {
     var timestamp = root.status.lastSuccessAt
-    if (typeof timestamp !== "string" || timestamp === "") return "showing last update · retry"
-    var elapsed = Math.max(0, Date.now() - new Date(timestamp).getTime())
-    if (!isFinite(elapsed)) return "showing last update · retry"
+    var action = root.status.loading ? " · refreshing…" : " · retry"
+    var warning = root.status.errorSummary ? root.status.errorSummary + " · " : ""
+    if (typeof timestamp !== "string" || timestamp === "") return warning + "showing limited scores" + action
+    var elapsed = Math.max(0, root.currentTime - new Date(timestamp).getTime())
+    if (!isFinite(elapsed)) return warning + "showing limited scores" + action
     var minutes = Math.floor(elapsed / 60000)
     var age = minutes < 1 ? "less than a minute ago" : minutes + " min ago"
-    return "showing last update · " + age + " · retry"
+    return warning + "showing last update · " + age + action
   }
 }

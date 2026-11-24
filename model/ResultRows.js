@@ -63,7 +63,7 @@ function statusRow(view) {
       loading: view.loading === true,
       errorCode: view.errorCode || "",
       errorSummary: view.errorSummary || "",
-      stale: view.stale === true,
+      stale: view.stale === true || Boolean(view.errorCode && view.hasData),
       partialErrorCount: Number(view.partialErrorCount) || 0,
       lastSuccessAt: view.lastSuccessAt || null
     },
@@ -118,7 +118,8 @@ function nextGameRow(id, game, dateKey) {
 
 function appendGames(rows, games, stale) {
   (Array.isArray(games) ? games : []).forEach(function(game) {
-    var row = gameRow(game, stale);
+    var row = gameRow(game, stale === true
+      || (isRecord(stale) && stale[game.league] === true));
     if (row) rows.push(row);
   });
 }
@@ -148,13 +149,15 @@ function appendSlateGroups(rows, games, destination, stale) {
   });
 }
 
-function flatten(view, destination) {
+function flatten(view, destination, selectedDateLabel) {
   var rows = [];
   if (!isRecord(view)) return rows;
 
   var id = destination || view.leagueId || view.kind || "scores";
   if (view.kind === "following") {
-    if (!view.hasFavorites && (!Array.isArray(view.followedLeagueIds) || view.followedLeagueIds.length === 0)) {
+    if (!view.hasFavorites && !view.hasGames
+        && (!Array.isArray(view.followedLeagueIds) || view.followedLeagueIds.length === 0)
+        && (!Array.isArray(view.leagueStates) || view.leagueStates.length === 0)) {
       rows.push(emptyRow(id + ":no-favorites", "Choose favorite teams to pin their games here.",
         "choose-teams", {
           title: "Follow teams to pin their games here",
@@ -162,18 +165,29 @@ function flatten(view, destination) {
         }));
       return rows;
     }
+    var staleLeagues = Object.create(null);
+    (Array.isArray(view.leagueStates) ? view.leagueStates : []).forEach(function(state) {
+      staleLeagues[state.leagueId] = state.stale === true
+        || Boolean(state.errorCode && state.hasData);
+      if (state.errorCode || state.stale) rows.push(statusRow(state));
+    });
     if (!view.hasGames) {
       if (view.loading) {
         rows.push(loadingRow(id + ":initial", false));
         return rows;
       }
-      rows.push(emptyRow(id + ":no-games", "Nothing followed on this date.", "browse-leagues", {
-        title: view.hasFavorites ? "Your teams are off today" : "Nothing followed on this date",
+      // A failed/retained league has not established that its teams are off.
+      if (rows.length > 0) return rows;
+      var dateLabel = typeof selectedDateLabel === "string" && selectedDateLabel !== ""
+        ? selectedDateLabel : "this date";
+      rows.push(emptyRow(id + ":no-games", "No games match your Following choices.", "browse-leagues", {
+        title: dateLabel.toLowerCase() === "today" ? "No followed games today"
+          : "No followed games · " + dateLabel,
         supportingText: "Browse a league for the full slate."
       }));
       return rows;
     }
-    appendSlateGroups(rows, view.games, id, false);
+    appendSlateGroups(rows, view.games, id, staleLeagues);
     return rows;
   }
 

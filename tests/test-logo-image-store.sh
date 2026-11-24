@@ -11,6 +11,29 @@ trap 'rm -rf "$IMPORT_DIR"' EXIT
 # and run their bindings, callbacks, queues and transitions in the real Qt engine.
 # FileView notifications are driven explicitly, not claimed as filesystem proof.
 mkdir -p "$IMPORT_DIR/Quickshell/Io"
+# Rendering tests use the actual Qt Text and component logic, with only the
+# host palette/font tokens replaced. This is not an Omarchy theme acceptance.
+mkdir -p "$IMPORT_DIR/qs/Commons"
+cat > "$IMPORT_DIR/qs/Commons/qmldir" <<'QMLDIR'
+module qs.Commons
+singleton Color 1.0 Color.qml
+singleton Style 1.0 Style.qml
+QMLDIR
+cat > "$IMPORT_DIR/qs/Commons/Color.qml" <<'QML'
+pragma Singleton
+import QtQuick
+QtObject {
+  readonly property color muted: "#666666"
+  readonly property color urgent: "#bb2222"
+}
+QML
+cat > "$IMPORT_DIR/qs/Commons/Style.qml" <<'QML'
+pragma Singleton
+import QtQuick
+QtObject {
+  readonly property var font: ({family: "sans-serif", bodySmall: 14})
+}
+QML
 cat > "$IMPORT_DIR/Quickshell/qmldir" <<'QMLDIR'
 module Quickshell
 singleton Quickshell 1.0 Quickshell.qml

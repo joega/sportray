@@ -4159,6 +4159,51 @@ test("U2.1 flattens provider-neutral section, game, status, and empty rows", () 
     {type: "choose-teams", label: "Choose favorite teams", enabled: true});
 });
 
+test("Following preserves relevant per-league freshness and truthful empty states", () => {
+  const fixture = JSON.parse(readSource("fixtures/presentation/following-freshness.json"));
+  fixture.cases.forEach((sample) => {
+    const composed = scoreboard.compose(sample.states, sample.enabled, sample.favorites);
+    const view = panelPresentation.build(composed, sample.favorites, null, null,
+      sample.followed, 0, sample.watches, Date.parse(fixture.now)).following;
+    const rows = resultRows.flatten(view, "following", sample.dateLabel || "Today");
+    assert.deepEqual(rows.filter((r) => r.kind === "status").map((r) => r.status.leagueId),
+      sample.statusLeagues, sample.name);
+    assert.deepEqual(rows.filter((r) => r.kind === "game").map((r) => r.game.id), sample.gameIds, sample.name);
+    assert.deepEqual(rows.filter((r) => r.kind === "game").map((r) => r.stale), sample.stale, sample.name);
+    assert.equal(view.loading, sample.loading, sample.name);
+    assert.equal(rows.some((r) => r.kind === "loading"), sample.loading && !sample.gameIds.length, sample.name);
+    assert.deepEqual(rows.filter((r) => r.kind === "empty").map((r) => r.title),
+      sample.emptyTitle ? [sample.emptyTitle] : [], sample.name);
+    rows.filter((r) => r.kind === "status").forEach((row) => {
+      const source = sample.states.find((s) => s.leagueId === row.status.leagueId);
+      assert.equal(row.status.lastSuccessAt, source.lastSuccessAt);
+      assert.equal(row.status.errorCode, source.errorCode);
+      assert.equal(row.status.partialErrorCount, source.partialErrorCount || 0);
+      assert.equal(row.status.stale, source.stale || Boolean(source.errorCode && source.hasData));
+      assert.equal(row.action.type, "retry");
+      assert.equal(row.action.enabled, !source.loading);
+    });
+  });
+});
+
+test("Following recovery clears only the recovered league warning without mutating retained input", () => {
+  const sample = JSON.parse(readSource("fixtures/presentation/following-freshness.json")).cases[0];
+  const raw = JSON.stringify(sample);
+  const project = (states) => resultRows.flatten(panelPresentation.build(
+    scoreboard.compose(states, sample.enabled, sample.favorites), sample.favorites,
+    null, null, sample.followed).following, "following", "Today");
+  const before = project(sample.states);
+  assert.equal(before.filter((r) => r.kind === "game" && r.stale).length, 1);
+  const recovered = sample.states.map((state) => state.leagueId === "nhl"
+    ? {...state, stale: false, errorCode: "", lastSuccessAt: "2026-11-23T23:06:00Z"} : state);
+  const after = project(recovered);
+  assert.equal(after.some((r) => r.kind === "status"), false);
+  assert.equal(after.filter((r) => r.kind === "game").every((r) => !r.stale), true);
+  assert.deepEqual(after.filter((r) => r.kind === "game").map((r) => r.rowId),
+    before.filter((r) => r.kind === "game").map((r) => r.rowId));
+  assert.equal(JSON.stringify(sample), raw);
+});
+
 test("U3.1 gives actionable rows typed primary actions and safe fallbacks", () => {
   const game = Object.assign({}, normalizeFixtureGames(readPresentationFixture())[0], {
     link: "https://www.espn.com/nhl/game/_/gameId/123"

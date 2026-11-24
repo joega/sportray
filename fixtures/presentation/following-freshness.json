@@ -1,0 +1,837 @@
+{
+  "cases": [
+    {
+      "name": "mixed retained failure and healthy live scores",
+      "enabled": [
+        "nhl",
+        "nfl",
+        "mlb"
+      ],
+      "followed": [
+        "nhl",
+        "nfl"
+      ],
+      "favorites": [
+        "nhl:6"
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [
+            {
+              "id": "nhl:one",
+              "providerGameId": "one",
+              "league": "nhl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nhl:6",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nhl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": true,
+          "errorCode": "timeout",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "nfl",
+          "displayName": "NFL",
+          "games": [
+            {
+              "id": "nfl:two",
+              "providerGameId": "two",
+              "league": "nfl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nfl:12",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nfl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "mlb",
+          "displayName": "MLB",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "unavailable",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [
+        "nhl:one",
+        "nfl:two"
+      ],
+      "stale": [
+        true,
+        false
+      ],
+      "emptyTitle": null,
+      "loading": false
+    },
+    {
+      "name": "failure is not an empty day",
+      "enabled": [
+        "nhl",
+        "nfl"
+      ],
+      "followed": [
+        "nhl",
+        "nfl"
+      ],
+      "favorites": [
+        "nhl:6"
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "unavailable",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "nfl",
+          "displayName": "NFL",
+          "games": [],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": null,
+      "loading": false
+    },
+    {
+      "name": "favorite league error without followed league",
+      "enabled": [
+        "nhl"
+      ],
+      "followed": [],
+      "favorites": [
+        "nhl:6"
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "invalid-data",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": null,
+      "loading": false
+    },
+    {
+      "name": "initial relevant loading",
+      "enabled": [
+        "nhl"
+      ],
+      "followed": [
+        "nhl"
+      ],
+      "favorites": [],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": false,
+          "loading": true,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": null,
+      "loading": true
+    },
+    {
+      "name": "unrelated league loading does not hide verified empty date",
+      "enabled": [
+        "nhl",
+        "mlb"
+      ],
+      "followed": [
+        "nhl"
+      ],
+      "favorites": [],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "mlb",
+          "displayName": "MLB",
+          "games": [],
+          "hasData": false,
+          "loading": true,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "dateLabel": "Yesterday",
+      "statusLeagues": [],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": "No followed games · Yesterday",
+      "loading": false
+    },
+    {
+      "name": "retained refresh preserves each stale row",
+      "enabled": [
+        "nhl",
+        "nfl"
+      ],
+      "followed": [
+        "nhl",
+        "nfl"
+      ],
+      "favorites": [
+        "nhl:6"
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [
+            {
+              "id": "nhl:one",
+              "providerGameId": "one",
+              "league": "nhl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nhl:6",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nhl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": true,
+          "stale": true,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "nfl",
+          "displayName": "NFL",
+          "games": [
+            {
+              "id": "nfl:two",
+              "providerGameId": "two",
+              "league": "nfl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nfl:12",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nfl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [
+        "nhl:one",
+        "nfl:two"
+      ],
+      "stale": [
+        true,
+        false
+      ],
+      "emptyTitle": null,
+      "loading": true
+    },
+    {
+      "name": "watch-only retained game is visible with its freshness",
+      "enabled": [
+        "nhl"
+      ],
+      "followed": [],
+      "favorites": [],
+      "watches": [
+        {
+          "gameId": "nhl:one",
+          "league": "nhl",
+          "status": "active",
+          "providerGameId": "one",
+          "startTime": "2026-11-23T23:00:00Z",
+          "createdAt": "2026-11-23T22:00:00Z",
+          "expiresAt": "2026-11-23T23:11:00Z"
+        }
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [
+            {
+              "id": "nhl:one",
+              "providerGameId": "one",
+              "league": "nhl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nhl:6",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nhl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": true,
+          "errorCode": "timeout",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [
+        "nhl:one"
+      ],
+      "stale": [
+        true
+      ],
+      "emptyTitle": null,
+      "loading": false
+    },
+    {
+      "name": "disabled and expired watches cannot add failure notices",
+      "enabled": [
+        "nhl"
+      ],
+      "followed": [],
+      "favorites": [],
+      "watches": [
+        {
+          "gameId": "nhl:one",
+          "league": "nhl",
+          "status": "expired",
+          "providerGameId": "one",
+          "startTime": "2026-11-23T23:00:00Z",
+          "createdAt": "2026-11-23T22:00:00Z",
+          "expiresAt": "2026-11-23T23:11:00Z"
+        },
+        {
+          "gameId": "nfl:two",
+          "league": "nfl",
+          "status": "active",
+          "providerGameId": "two",
+          "startTime": "2026-11-23T23:00:00Z",
+          "createdAt": "2026-11-23T22:00:00Z",
+          "expiresAt": "2026-11-23T23:11:00Z"
+        }
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "nfl",
+          "displayName": "NFL",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "unavailable",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": "Follow teams to pin their games here",
+      "loading": false
+    },
+    {
+      "name": "watch-only failed league cannot become onboarding",
+      "enabled": [
+        "nhl"
+      ],
+      "followed": [],
+      "favorites": [],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "invalid-data",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": null,
+      "loading": false,
+      "watches": [
+        {
+          "gameId": "nhl:one",
+          "status": "active",
+          "league": "nhl",
+          "providerGameId": "one",
+          "startTime": "2026-11-23T23:00:00Z",
+          "createdAt": "2026-11-23T22:00:00Z",
+          "expiresAt": "2026-11-23T23:11:00Z"
+        }
+      ]
+    },
+    {
+      "name": "partial response retains only its league stale warning",
+      "enabled": [
+        "nhl",
+        "nfl",
+        "mlb"
+      ],
+      "followed": [
+        "nhl",
+        "nfl"
+      ],
+      "favorites": [
+        "nhl:6"
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [
+            {
+              "id": "nhl:one",
+              "providerGameId": "one",
+              "league": "nhl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nhl:6",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nhl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": true,
+          "errorCode": "partial-data",
+          "errorSummary": "",
+          "lastSuccessAt": null,
+          "partialErrorCount": 2
+        },
+        {
+          "leagueId": "nfl",
+          "displayName": "NFL",
+          "games": [
+            {
+              "id": "nfl:two",
+              "providerGameId": "two",
+              "league": "nfl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nfl:12",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nfl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "mlb",
+          "displayName": "MLB",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "unavailable",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [
+        "nhl:one",
+        "nfl:two"
+      ],
+      "stale": [
+        true,
+        false
+      ],
+      "emptyTitle": null,
+      "loading": false
+    },
+    {
+      "name": "failed and still-loading leagues remain distinct from empty",
+      "enabled": [
+        "nhl",
+        "nfl"
+      ],
+      "followed": [
+        "nhl",
+        "nfl"
+      ],
+      "favorites": [
+        "nhl:6"
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "unavailable",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "nfl",
+          "displayName": "NFL",
+          "games": [],
+          "hasData": false,
+          "loading": true,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": null,
+      "loading": true
+    },
+    {
+      "name": "time-expired active watch contributes no status",
+      "enabled": [
+        "nhl"
+      ],
+      "followed": [],
+      "favorites": [],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "invalid-data",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": "Follow teams to pin their games here",
+      "loading": false,
+      "watches": [
+        {
+          "gameId": "nhl:one",
+          "status": "active",
+          "league": "nhl",
+          "providerGameId": "one",
+          "startTime": "2026-11-23T23:00:00Z",
+          "createdAt": "2026-11-23T22:00:00Z",
+          "expiresAt": "2026-11-23T23:09:00Z"
+        }
+      ]
+    },
+    {
+      "name": "hard-age-expired active watch contributes no status",
+      "enabled": [
+        "nhl"
+      ],
+      "followed": [],
+      "favorites": [],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "invalid-data",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [],
+      "gameIds": [],
+      "stale": [],
+      "emptyTitle": "Follow teams to pin their games here",
+      "loading": false,
+      "watches": [
+        {
+          "gameId": "nhl:one",
+          "status": "active",
+          "league": "nhl",
+          "providerGameId": "one",
+          "startTime": "2026-11-23T23:00:00Z",
+          "createdAt": "2026-10-01T22:00:00Z",
+          "expiresAt": "2026-12-23T23:11:00Z"
+        }
+      ]
+    },
+    {
+      "name": "error with retained data marks status and rows stale consistently",
+      "enabled": [
+        "nhl",
+        "nfl",
+        "mlb"
+      ],
+      "followed": [
+        "nhl",
+        "nfl"
+      ],
+      "favorites": [
+        "nhl:6"
+      ],
+      "states": [
+        {
+          "leagueId": "nhl",
+          "displayName": "NHL",
+          "games": [
+            {
+              "id": "nhl:one",
+              "providerGameId": "one",
+              "league": "nhl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nhl:6",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nhl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "timeout",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "nfl",
+          "displayName": "NFL",
+          "games": [
+            {
+              "id": "nfl:two",
+              "providerGameId": "two",
+              "league": "nfl",
+              "isValid": true,
+              "status": "live",
+              "startTime": "2026-11-23T23:00:00Z",
+              "periodLabel": "2nd",
+              "clock": "08:42",
+              "awayTeam": {
+                "id": "nfl:12",
+                "abbreviation": "AWY"
+              },
+              "homeTeam": {
+                "id": "nfl:99",
+                "abbreviation": "HME"
+              },
+              "awayScore": 2,
+              "homeScore": 1
+            }
+          ],
+          "hasData": true,
+          "loading": false,
+          "stale": false,
+          "errorCode": "",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        },
+        {
+          "leagueId": "mlb",
+          "displayName": "MLB",
+          "games": [],
+          "hasData": false,
+          "loading": false,
+          "stale": false,
+          "errorCode": "unavailable",
+          "errorSummary": "",
+          "lastSuccessAt": "2026-11-23T23:05:00Z"
+        }
+      ],
+      "statusLeagues": [
+        "nhl"
+      ],
+      "gameIds": [
+        "nhl:one",
+        "nfl:two"
+      ],
+      "stale": [
+        true,
+        false
+      ],
+      "emptyTitle": null,
+      "loading": false
+    }
+  ],
+  "now": "2026-11-23T23:10:00Z"
+}

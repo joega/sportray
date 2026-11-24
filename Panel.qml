@@ -11,6 +11,7 @@ import "model/Formatters.js" as Formatters
 import "model/LiveFavoriteRotationPolicy.js" as LiveFavoriteRotationPolicy
 import "model/PanelPresentation.js" as PanelPresentation
 import "model/ResultRows.js" as ResultRows
+import "model/WatchPolicy.js" as WatchPolicy
 import "model/ScoreboardModel.js" as ScoreboardModel
 import "model/Iconography.js" as Iconography
 import "model/DateModel.js" as DateModel
@@ -114,7 +115,7 @@ Panel {
   readonly property var panelPresentation: PanelPresentation.build(
     scoreboard, root.favoriteTeamIds, FavoritePresentation.orderGames,
     FavoritePresentation.isFavoriteGame, root.followedLeagueIds, root.presentationRevision,
-    root.settingsStore ? root.settingsStore.watchedGames : [])
+    root.settingsStore ? root.settingsStore.watchedGames : [], root.nowMs, WatchPolicy.normalizeWatches)
   readonly property var tabItems: buildTabItems()
   readonly property var sportOptions: buildSportOptions()
   readonly property var sportsPicker: leaguePicker
@@ -1469,6 +1470,7 @@ Panel {
                       height: visible ? implicitHeight : 0
                       visible: modelData && modelData.kind === "status"
                       status: statusValue
+                      currentTime: root.nowMs
                       onRetry: root.refresh()
                     }
 

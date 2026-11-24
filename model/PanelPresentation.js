@@ -1,5 +1,7 @@
 var FavoritePresentation = null;
 if (typeof require === "function") FavoritePresentation = require("./FavoritePresentation.js");
+var WatchPolicy = null;
+if (typeof require === "function") WatchPolicy = require("./WatchPolicy.js");
 
 var FAVORITE_ID_PATTERN = /^[a-z0-9.-]{1,24}:[a-z0-9-]{1,32}$/;
 
@@ -171,8 +173,13 @@ function leagueView(state, favoriteIds, orderer, matcher) {
   };
 }
 
-function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, revision, watchedGames) {
+function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, revision, watchedGames, currentTime, watchNormalizer) {
   var favorites = normalizeFavoriteIds(favoriteTeamIds);
+  var normalizeWatches = typeof watchNormalizer === "function" ? watchNormalizer
+    : WatchPolicy ? WatchPolicy.normalizeWatches : null;
+  var activeWatches = normalizeWatches ? normalizeWatches(watchedGames, currentTime).watches.filter(function(watch) {
+    return watch.status !== "expired";
+  }) : [];
   var leagueStates = composed && Array.isArray(composed.leagueStates)
     ? composed.leagueStates : [];
   var enabledLeagueIds = leagueStates.map(function(state) { return state.leagueId; });
@@ -184,11 +191,33 @@ function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, r
   var leagueViews = orderedStates.map(function(state) {
     return leagueView(state, favorites, orderer, matcher);
   });
+  // Following must carry the health of each relevant enabled league, including
+  // one whose failed request supplied no games. Never infer an empty date from
+  // missing provider data or mark healthy leagues stale because another failed.
+  var followingStates = orderedStates.filter(function(state) {
+    if (followed.indexOf(state.leagueId) !== -1) return true;
+    if (favorites.some(function(id) { return id.indexOf(state.leagueId + ":") === 0; })) return true;
+    return activeWatches.some(function(watch) {
+      return watch.league === state.leagueId;
+    });
+  }).map(function(state) {
+    return {
+      leagueId: state.leagueId,
+      displayName: state.displayName,
+      hasData: state.hasData === true,
+      loading: state.loading === true,
+      stale: state.stale === true,
+      errorCode: state.errorCode || "",
+      errorSummary: state.errorSummary || "",
+      partialErrorCount: state.partialErrorCount || 0,
+      lastSuccessAt: state.lastSuccessAt || null
+    };
+  });
   var followingGames = [];
   var followingLeagueIds = [];
   leagueStates.forEach(function(state) {
     state.games.forEach(function(game) {
-      if (isFavoriteGame(game, favorites, matcher) || isWatchedGame(game, watchedGames)) {
+      if (isFavoriteGame(game, favorites, matcher) || isWatchedGame(game, activeWatches)) {
         followingGames.push(game);
         if (followingLeagueIds.indexOf(state.leagueId) === -1)
           followingLeagueIds.push(state.leagueId);
@@ -227,10 +256,11 @@ function build(composed, favoriteTeamIds, orderer, matcher, followedLeagueIds, r
       title: "Following",
       games: followingGames,
       sections: followingSections,
-      loading: leagueStates.some(function(state) { return state.loading === true; }),
+      leagueStates: followingStates,
+      loading: followingStates.some(function(state) { return state.loading === true; }),
       hasFavorites: favorites.length > 0,
       followedLeagueIds: followed,
-      watchedGames: Array.isArray(watchedGames) ? watchedGames : [],
+      watchedGames: activeWatches,
       hasGames: followingGames.length > 0,
       emptyState: favorites.length === 0 && followed.length === 0 && followingGames.length === 0 ? "no-favorites"
         : followingGames.length === 0 ? "no-favorite-games" : "",

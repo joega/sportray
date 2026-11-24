@@ -156,6 +156,9 @@ sports, and leagues are welcome.
   another date in the carousel, or use the **Refresh** action.
 - If a provider is temporarily unavailable, that league shows an unavailable
   state while healthy leagues keep working.
+- Following shows league-specific failures and marks retained scores as stale;
+  a failed request is not treated as a confirmed empty day. Healthy leagues
+  remain usable while another league recovers.
 - If the widget is not visible, re-enable the plugin and restart the shell.
 - Do not delete the state file unless you intentionally want to reset leagues,
   favorites, and notification preferences.
