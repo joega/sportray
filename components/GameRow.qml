@@ -1,8 +1,8 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Ui
 import "../model/Formatters.js" as Formatters
-import "../model/GameRowLayout.js" as GameRowLayout
 
 Item {
   id: root
@@ -50,7 +50,7 @@ Item {
     && typeof root.game.odds.details === "string" && root.game.odds.details !== ""
     ? " · " + root.game.odds.details : ""
   readonly property string detailLabel: Formatters.formatGameStateLabel(root.game, {
-    includeStartTime: true,
+    includeStartTime: root.game.status === "scheduled",
     startTimeText: root.resolvedStartTimeText(root.game.startTime),
     stale: root.stale
   }) + root.oddsSuffix
@@ -68,10 +68,6 @@ Item {
   readonly property string stateLabel: root.detailLabel
   readonly property string venueName: root.game.venue || ""
   readonly property string venueLabel: root.venueName ? "At " + root.venueName : ""
-  readonly property bool hasHomeTint: Boolean(root.game.homeTeam
-    && root.game.homeTeam.primaryColor)
-  readonly property color homeTint: root.hasHomeTint
-    ? root.game.homeTeam.primaryColor : "transparent"
   readonly property string accessibleLabel: root.awayLabel + " " + root.awayScoreLabel
     + " at " + root.homeLabel + " " + root.homeScoreLabel + ". "
     + (root.awayIsFavorite ? "Followed away team. " : "")
@@ -97,36 +93,26 @@ Item {
   // local-detail route as the existing TapHandler/keyboard path; the nested
   // source button remains the only external-page route.
   Accessible.onPressAction: root.activatePrimaryAction()
-  readonly property real logoSize: Style.space(root.featured ? 28 : 22)
-  readonly property real scoreColumnWidth: Style.space(root.featured ? 58 : 52)
+  readonly property real logoSize: Style.space(24)
+  readonly property real scoreColumnWidth: Style.space(58)
 
   BorderSurface {
     id: card
     width: parent.width
     clip: true
     height: row.implicitHeight + Style.spacing.md * 2
-    color: root.featured ? Style.selectedFillFor(Color.popups.text, Color.accent)
-      : "transparent"
+    color: "transparent"
     borderSpec: root.selected
       ? Border.controlSpec("focus", Color.popups.text, Color.accent)
-      : root.featured
-      ? Border.controlSpec("selected", Color.popups.text, Color.accent)
       : Border.none()
     radius: 0
 
-    Rectangle {
-      anchors.fill: parent
-      color: root.homeTint
-      opacity: root.hasHomeTint ? (root.featured ? 0.07 : 0.11) : 0
-    }
-
     Column {
       id: row
-      anchors.fill: parent
-       anchors.leftMargin: Style.spacing.xs
-       anchors.rightMargin: Style.spacing.xs
-       anchors.topMargin: Style.spacing.xs
-       anchors.bottomMargin: Style.spacing.xs
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      anchors.margins: Style.spacing.sm
       spacing: Style.spacing.xs
 
       Row {
@@ -137,6 +123,14 @@ Item {
         Item {
           width: parent.width - root.scoreColumnWidth - parent.spacing
           height: parent.height
+
+          Rectangle {
+            anchors.fill: awayLogo
+            anchors.margins: -Style.space(2)
+            radius: Style.space(4)
+            color: "#f5f5f5"
+            visible: awayLogo.visible
+          }
 
           Image {
             id: awayLogo
@@ -158,8 +152,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             width: root.logoSize
             text: root.awayLabel.slice(0, 3)
-            color: Color.muted
-            font.family: Style.font.family
+            color: Qt.alpha(Color.popups.text, 0.85)
+            font.family: Typography.family
             font.pixelSize: Style.font.caption
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
@@ -175,7 +169,7 @@ Item {
             width: root.awayIsFavorite ? Style.space(14) : 0
             text: root.awayIsFavorite ? "★" : ""
             color: Color.accent
-            font.family: Style.font.family
+            font.family: Typography.family
             font.pixelSize: Style.font.bodySmall
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
@@ -193,10 +187,9 @@ Item {
             textFormat: Text.PlainText
             color: Formatters.isWinningTeam(root.game, "away")
               ? Color.accent : Color.popups.text
-            font.family: Style.font.family
-            font.pixelSize: root.featured ? Style.font.subtitle : Style.font.body
+            font.family: Typography.family
+            font.pixelSize: Style.font.subtitle
             font.bold: root.awayIsFavorite || Formatters.isWinningTeam(root.game, "away")
-            font.underline: root.awayIsFavorite
             elide: Text.ElideRight
           }
         }
@@ -205,9 +198,10 @@ Item {
           textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.awayScoreLabel
-          color: root.live ? Color.urgent : Color.popups.text
-          font.family: Style.font.family
-          font.pixelSize: root.featured ? Style.font.display : Style.font.subtitle
+          color: Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.title
+          font.features: ({"tnum": 1})
           font.bold: true
           horizontalAlignment: Text.AlignRight
           verticalAlignment: Text.AlignVCenter
@@ -222,6 +216,14 @@ Item {
         Item {
           width: parent.width - root.scoreColumnWidth - parent.spacing
           height: parent.height
+
+          Rectangle {
+            anchors.fill: homeLogo
+            anchors.margins: -Style.space(2)
+            radius: Style.space(4)
+            color: "#f5f5f5"
+            visible: homeLogo.visible
+          }
 
           Image {
             id: homeLogo
@@ -243,8 +245,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             width: root.logoSize
             text: root.homeLabel.slice(0, 3)
-            color: Color.muted
-            font.family: Style.font.family
+            color: Qt.alpha(Color.popups.text, 0.85)
+            font.family: Typography.family
             font.pixelSize: Style.font.caption
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
@@ -260,7 +262,7 @@ Item {
             width: root.homeIsFavorite ? Style.space(14) : 0
             text: root.homeIsFavorite ? "★" : ""
             color: Color.accent
-            font.family: Style.font.family
+            font.family: Typography.family
             font.pixelSize: Style.font.bodySmall
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
@@ -278,10 +280,9 @@ Item {
             textFormat: Text.PlainText
             color: Formatters.isWinningTeam(root.game, "home")
               ? Color.accent : Color.popups.text
-            font.family: Style.font.family
-            font.pixelSize: root.featured ? Style.font.subtitle : Style.font.body
+            font.family: Typography.family
+            font.pixelSize: Style.font.subtitle
             font.bold: root.homeIsFavorite || Formatters.isWinningTeam(root.game, "home")
-            font.underline: root.homeIsFavorite
             horizontalAlignment: Text.AlignLeft
             elide: Text.ElideRight
           }
@@ -291,107 +292,40 @@ Item {
           textFormat: Text.PlainText
           width: root.scoreColumnWidth
           text: root.homeScoreLabel
-          color: root.live ? Color.urgent : Color.popups.text
-          font.family: Style.font.family
-          font.pixelSize: root.featured ? Style.font.display : Style.font.subtitle
+          color: Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.title
+          font.features: ({"tnum": 1})
           font.bold: true
           horizontalAlignment: Text.AlignRight
           verticalAlignment: Text.AlignVCenter
         }
       }
 
-      Item {
+      Column {
         id: footer
         width: parent.width
-        implicitHeight: Math.max(footerDetails.implicitHeight, actionsRow.implicitHeight)
-        height: implicitHeight
+        spacing: Style.spacing.xxs
 
-        readonly property var footerGeometry: GameRowLayout.footerLayout(
-          width,
-          root.showLeagueContext && root.leagueLabel !== ""
-            ? leagueContextText.implicitWidth : 0,
-          root.favorite ? Style.space(14) : 0,
-          actionsRow.implicitWidth,
-          Style.spacing.xs,
-          Style.space(1))
-
-        Item {
-          id: footerContent
-          anchors.left: parent.left
-          anchors.top: parent.top
-          anchors.right: actionsRow.left
-          anchors.rightMargin: Style.spacing.xs
-
-          Column {
-            id: footerDetails
-            width: parent.width
-            spacing: Style.spacing.xxs
-
-            Row {
-              id: footerMeta
-              width: parent.width
-              spacing: Style.spacing.xs
-
-              Text {
-                id: leagueContextText
-                visible: root.showLeagueContext && root.leagueLabel !== ""
-                  && footer.footerGeometry.contextWidth > 0
-                width: footer.footerGeometry.contextWidth
-                text: root.showLeagueContext && root.leagueLabel !== ""
-                  ? root.leagueLabel + " ·" : ""
-                textFormat: Text.PlainText
-                color: Color.muted
-                font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
-                elide: Text.ElideRight
-              }
-
-              SemanticIcon {
-                visible: root.favorite && footer.footerGeometry.favoriteWidth > 0
-                width: footer.footerGeometry.favoriteWidth
-                height: Style.space(14)
-                iconName: "star"
-                fontSize: Style.font.bodySmall
-                color: Color.accent
-                decorative: true
-              }
-
-              Text {
-                id: detailText
-                width: footer.footerGeometry.detailWidth
-                text: root.detailLabel
-                textFormat: Text.PlainText
-                color: root.unavailable || root.stale || root.live
-                  || root.game.status === "postponed" || root.game.status === "canceled"
-                  ? Color.urgent : Color.muted
-                font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
-                font.bold: root.live || root.featured || root.stale
-                elide: Text.ElideRight
-              }
-            }
-
-            Text {
-              id: venueText
-              width: parent.width
-              text: root.venueLabel
-              textFormat: Text.PlainText
-               visible: false
-              color: Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              wrapMode: Text.Wrap
-              maximumLineCount: 2
-              elide: Text.ElideRight
-            }
-          }
+        Text {
+          id: detailText
+          width: parent.width
+          text: (root.showLeagueContext && root.leagueLabel !== ""
+            ? root.leagueLabel + " · " : "") + root.detailLabel
+          textFormat: Text.PlainText
+          color: root.unavailable || root.stale || root.game.status === "postponed"
+            || root.game.status === "canceled" ? Color.urgent
+            : root.live ? Color.accent : Qt.alpha(Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          font.weight: root.live ? Font.DemiBold : Font.Normal
+          wrapMode: Text.WordWrap
         }
 
         Row {
           id: actionsRow
           anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
-          spacing: Style.spacing.xs
+          spacing: Style.spacing.sm
 
           WatchAction {
             id: watchAction
@@ -407,7 +341,15 @@ Item {
           }
         }
       }
+    }
 
+    Rectangle {
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      height: 1
+      color: Color.popups.text
+      opacity: 0.10
     }
   }
 }

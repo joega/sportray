@@ -1,4 +1,5 @@
 import QtQuick
+import "model/UiTypography.js" as Typography
 import QtQuick.Controls
 import Quickshell
 import qs.Commons
@@ -54,6 +55,7 @@ Panel {
     root.fetchService ? root.fetchService.leagueStates : [], root.selectedDateKey, root.ambientNowMs)
 
   property string utilityReturnDestination: "following"
+  property bool utilityReturnTabFocused: true
   property string settingsDestination: "sports"
   property string activeDestination: "following"
   property int tabCursor: 0
@@ -850,6 +852,8 @@ Panel {
   }
 
   function openUtility(destination) {
+    root.saveResultPosition(root.activeDestination)
+    root.utilityReturnTabFocused = root.tabStripFocused
     root.utilityReturnDestination = root.activeDestination
     root.settingsDestination = destination || "sports"
     root.settingsOpen = true
@@ -861,9 +865,12 @@ Panel {
 
   function closeUtility() {
     root.settingsOpen = false
-    root.activeDestination = root.utilityReturnDestination
+    // The selected league may have been disabled in Settings.
+    root.activeDestination = root.tabItems.some(function(item) {
+      return item.id === root.utilityReturnDestination
+    }) ? root.utilityReturnDestination : "following"
     root.tabCursor = root.destinationIndex(root.activeDestination)
-    root.tabStripFocused = true
+    root.tabStripFocused = root.utilityReturnTabFocused
     root.restoreResultPosition()
     root.recalculatePanelHeight()
     root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
@@ -984,6 +991,11 @@ Panel {
 
   Connections {
     target: settingsHub
+    function onContentFocusRequested() {
+      root.deferPanelCallback(function() {
+        if (root.settingsOpen) keyCatcher.forceActiveFocus()
+      })
+    }
     function onEscapeRequested() { root.closeUtility() }
     function onContentBoundsRequested(top, bottom) {
       var contentTop = settingsHub.y + top
@@ -1027,7 +1039,10 @@ Panel {
         : root.settingsOpen ? root.closeUtility()
         : root.calendarOpen ? root.closeCalendar() : root.close()
       onMoveRequested: function(dx, dy) {
-        if (root.detailOpen) root.moveDetailCursor(dy !== 0 ? dy : dx)
+        if (root.detailOpen) {
+          if (dy !== 0 || !gameDetailView.scrollLines(dx))
+            root.moveDetailCursor(dy !== 0 ? dy : dx)
+        }
         else if (root.settingsOpen) settingsHub.moveCursor(dx, dy)
         else if (root.calendarOpen) monthCalendar.moveFocus(dx, dy)
         else if (dx !== 0) {
@@ -1035,6 +1050,11 @@ Panel {
           root.moveTabCursor(dx)
         }
         else if (dy !== 0) { root.tabStripFocused = false; root.moveResultCursor(dy) }
+        // A pointer-selected native button may still own Qt focus. Once the
+        // user moves the panel cursor, activation must follow that cursor.
+        root.deferPanelCallback(function() {
+          if (!keyCatcher.blocked) keyCatcher.forceActiveFocus()
+        })
       }
       onActivateRequested: {
         if (root.detailOpen) root.activateDetailCursor()
@@ -1047,6 +1067,10 @@ Panel {
       onTextKey: function(text) {
         if (settingsHub.inputActive) return
         if (root.detailOpen) return
+        if (root.settingsOpen) {
+          settingsHub.handleTextKey(text)
+          return
+        }
         if (text === "r" || text === "R") root.refresh()
         if (text === "n" || text === "N") root.openSettings()
         if (root.calendarFeatureEnabled && (text === "c" || text === "C")
@@ -1063,9 +1087,9 @@ Panel {
           root.cycleCalendarLeague()
         if ((text === "s" || text === "S") && !root.settingsOpen)
           root.toggleStandings()
-        if (text === "[" || text === "{") root.selectRelativeDate(-1)
-        if (text === "]" || text === "}") root.selectRelativeDate(1)
-        if (text === "t" || text === "T") root.selectDate(root.todayDateKey)
+        if (!root.standingsOpen && (text === "[" || text === "{")) root.selectRelativeDate(-1)
+        if (!root.standingsOpen && (text === "]" || text === "}")) root.selectRelativeDate(1)
+        if (!root.standingsOpen && (text === "t" || text === "T")) root.selectDate(root.todayDateKey)
       }
 
       // PanelKeyCatcher owns arrows, tab, activation, Escape, and text keys.
@@ -1073,7 +1097,16 @@ Panel {
       // Omarchy handler does not emit semantic signals for these keys.
       Keys.onPressed: function(event) {
         if (keyCatcher.blocked) return
-        if (root.settingsOpen || root.detailOpen) return
+        if (root.settingsOpen) return
+        if (root.detailOpen) {
+          if (event.key === Qt.Key_PageDown) gameDetailView.scrollPage(1)
+          else if (event.key === Qt.Key_PageUp) gameDetailView.scrollPage(-1)
+          else if (event.key === Qt.Key_Home) gameDetailView.scrollEdge(-1)
+          else if (event.key === Qt.Key_End) gameDetailView.scrollEdge(1)
+          else return
+          event.accepted = true
+          return
+        }
         if (root.calendarOpen && event.key === Qt.Key_PageDown) {
           root.changeCalendarMonth(1)
           event.accepted = true
@@ -1110,7 +1143,7 @@ Panel {
           width: parent.width
           property real spacing: Style.spacing.sm
           property bool compactActions: width < Style.space(900)
-          height: Math.max(headerTitle.implicitHeight, headerActions.implicitHeight)
+          height: Math.max(Style.space(32), headerTitle.implicitHeight, headerActions.implicitHeight)
 
           Text {
             textFormat: Text.PlainText
@@ -1119,16 +1152,13 @@ Panel {
             anchors.right: headerActions.left
             anchors.rightMargin: header.spacing
             height: parent.height
-            text: (Iconography.displayText(
-              root.settingsOpen ? "settings" : root.detailOpen ? "scores" : "calendar",
-              Style.font.family) || "S")
-            + (root.settingsOpen ? "  Settings"
-              : root.detailOpen ? "  Game details"
-              : root.calendarOpen ? "  Calendar"
-              : root.standingsOpen ? "  Standings" : "  " + root.selectedDateLabel)
-            font.family: Style.font.family
+            text: root.settingsOpen ? "Settings" : root.detailOpen ? "Game details"
+              : root.calendarOpen ? "Calendar" : root.standingsOpen ? "Standings"
+              : root.selectedDateKey === root.todayDateKey ? "Today"
+              : DateModel.shortDateLabel(root.selectedDateKey)
+            font.family: Typography.family
             font.pixelSize: Style.font.title
-            color: Color.accent
+            color: Color.popups.text
             font.bold: true
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
@@ -1143,6 +1173,7 @@ Panel {
             SemanticActionButton {
             id: todayButton
             visible: !root.settingsOpen && !root.detailOpen
+              && !root.standingsOpen
               && root.selectedDateKey !== root.todayDateKey
             iconName: ""
             text: header.compactActions ? "" : "Show Today"
@@ -1236,14 +1267,18 @@ Panel {
 
             SemanticActionButton {
             id: refreshButton
+            readonly property bool refreshing: root.standingsOpen
+              ? root.standingsState.loading === true : fetchService.loading
             visible: !root.settingsOpen && !root.detailOpen
             iconName: "refresh"
-            fallbackText: fetchService.loading ? "..." : "R"
-            tooltipText: fetchService.loading ? "Refreshing scores" : "Refresh scores"
-            enabled: !fetchService.loading
+            fallbackText: refreshButton.refreshing ? "..." : "R"
+            tooltipText: root.standingsOpen
+              ? (refreshButton.refreshing ? "Refreshing standings" : "Refresh standings")
+              : (refreshButton.refreshing ? "Refreshing scores" : "Refresh scores")
+            enabled: !refreshButton.refreshing
             focusable: true
             onClicked: root.refresh()
-            Accessible.name: fetchService.loading ? "Refreshing scores" : "Refresh scores"
+            Accessible.name: refreshButton.tooltipText
             Accessible.role: Accessible.Button
             }
 
@@ -1314,7 +1349,7 @@ Panel {
               anchors.top: parent.top
               height: Math.min(parent.height, Style.space(136))
               leagueId: root.activeDestination
-              visible: !root.settingsOpen && !root.detailOpen
+              visible: false
               z: 0
             }
 
@@ -1327,9 +1362,10 @@ Panel {
               DateCarousel {
                 id: dateCarousel
                 width: parent.width
-                visible: !root.calendarOpen
-                height: root.calendarOpen ? 0 : implicitHeight
+                visible: !root.calendarOpen && !root.standingsOpen
+                height: visible ? implicitHeight : 0
                 selectedDateKey: root.selectedDateKey
+                todayDateKey: root.todayDateKey
                 compact: parent.width < Style.space(360)
                 onDateSelected: function(dateKey) { root.selectDate(dateKey) }
               }
@@ -1388,7 +1424,8 @@ Panel {
                   anchors.leftMargin: Style.spacing.sm
                   anchors.right: parent.right
                   label: "League"
-                  showLabel: true
+                  showLabel: false
+                  fontFamily: Typography.family
                   value: root.activeDestination
                   options: root.sportOptions
                   hasCursor: root.tabStripFocused
@@ -1415,7 +1452,7 @@ Panel {
                 anchors.fill: parent
                 model: root.displayRows
                 currentIndex: root.selectedRowIndex
-                spacing: Style.spacing.md
+                spacing: root.standingsOpen ? Style.spacing.xxs : Style.spacing.md
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: contentHeight > height
@@ -1460,31 +1497,30 @@ Panel {
                       // Do not bind a QQuickText height to its own
                       // implicitHeight. The delegate's bounded row height
                       // makes that self-dependency surface as a runtime loop.
-                      height: visible ? font.pixelSize : 0
+                      height: modelData && modelData.kind === "section-header" ? font.pixelSize : 0
                       visible: modelData && modelData.kind === "section-header"
                       text: modelData.label || "Scores"
                       color: Color.accent
-                      font.family: Style.font.family
+                      font.family: Typography.family
                       font.pixelSize: Style.font.caption
                       font.bold: true
                     }
 
-                    Text {
-                      textFormat: Text.PlainText
+                    StandingsHeader {
                       width: parent.width
-                      height: visible ? font.pixelSize : 0
+                      height: modelData && modelData.kind === "standings-section" ? implicitHeight : 0
                       visible: modelData && modelData.kind === "standings-section"
-                      text: modelData.label || "Standings"
-                      color: Color.accent
-                      font.family: Style.font.family
-                      font.pixelSize: Style.font.caption
-                      font.bold: true
+                      label: modelData.label || "Standings"
+                      leagueId: root.activeDestination
+                      seeded: root.standingsState.rows && root.standingsState.rows.some(function(row) {
+                        return row.rankKind === "seed"
+                      })
                     }
 
                     GameRow {
                       id: gameRow
                       width: parent.width
-                      height: visible ? implicitHeight : 0
+                      height: modelData && modelData.kind === "game" ? implicitHeight : 0
                       visible: modelData && modelData.kind === "game"
                       game: gameValue
                       settingsStore: root.settingsStore
@@ -1504,7 +1540,7 @@ Panel {
                     LeagueStatus {
                       id: leagueStatus
                       width: parent.width
-                      height: visible ? implicitHeight : 0
+                      height: modelData && modelData.kind === "status" ? implicitHeight : 0
                       visible: modelData && modelData.kind === "status"
                       status: statusValue
                       currentTime: root.nowMs
@@ -1514,7 +1550,8 @@ Panel {
                     StandingsStatus {
                       id: standingsStatus
                       width: parent.width
-                      height: visible ? implicitHeight : 0
+                      height: modelData && (modelData.kind === "standings-loading"
+                        || modelData.kind === "standings-status" || modelData.kind === "standings-empty") ? implicitHeight : 0
                       visible: modelData && (modelData.kind === "standings-loading"
                         || modelData.kind === "standings-status" || modelData.kind === "standings-empty")
                       row: modelData
@@ -1524,7 +1561,7 @@ Panel {
 
                     LoadingState {
                       width: parent.width
-                      height: visible ? implicitHeight : 0
+                      height: modelData && modelData.kind === "loading" ? implicitHeight : 0
                       visible: modelData && modelData.kind === "loading"
                       retained: modelData && modelData.retained === true
                       labelText: modelData && modelData.label ? modelData.label : "Loading scores…"
@@ -1533,7 +1570,7 @@ Panel {
                     BorderSurface {
                       id: emptyCard
                       width: parent.width
-                      height: visible ? emptyColumn.implicitHeight + Style.spacing.md * 2 : 0
+                      height: modelData && modelData.kind === "empty" ? emptyColumn.implicitHeight + Style.spacing.md * 2 : 0
                       visible: modelData && modelData.kind === "empty"
                       color: Util.alpha(Color.popups.background, 0.72)
                       borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
@@ -1550,7 +1587,7 @@ Panel {
                           width: parent.width
                           text: modelData.title || modelData.text || "No games on this date"
                           color: Color.popups.text
-                          font.family: Style.font.family
+                          font.family: Typography.family
                           font.pixelSize: Style.font.subtitle
                           font.bold: Boolean(modelData.title)
                           wrapMode: Text.WordWrap
@@ -1561,8 +1598,8 @@ Panel {
                           width: parent.width
                           text: modelData.title ? modelData.text : ""
                           visible: text !== ""
-                          color: Color.muted
-                          font.family: Style.font.family
+                          color: Qt.alpha(Color.popups.text, 0.85)
+                          font.family: Typography.family
                           font.pixelSize: Style.font.bodySmall
                           wrapMode: Text.WordWrap
                         }
@@ -1573,7 +1610,7 @@ Panel {
                           text: modelData.supportingText || ""
                           visible: text !== ""
                           color: Color.accent
-                          font.family: Style.font.family
+                          font.family: Typography.family
                           font.pixelSize: Style.font.caption
                         }
 
@@ -1604,7 +1641,7 @@ Panel {
                     StandingsRow {
                       id: standingsRow
                       width: parent.width
-                      height: visible ? implicitHeight : 0
+                      height: modelData && modelData.kind === "standings" ? implicitHeight : 0
                       visible: modelData && modelData.kind === "standings"
                       standing: modelData && modelData.standing ? modelData.standing : ({team: {}})
                       favorite: modelData && modelData.favorite === true
@@ -1622,7 +1659,7 @@ Panel {
                     onTapped: {
                       if (!PointerInteractionPolicy.allowsRowActivation(parent.nestedActionPressed)) return
                       root.setSelectedRow(index)
-                      root.activateRow(index)
+                      if (modelData.kind !== "standings") root.activateRow(index)
                     }
                   }
 
@@ -1683,7 +1720,7 @@ Panel {
                     width: parent.width - refreshToastRow.spacing - Style.space(18)
                     text: "Refreshing scores…"
                     color: Color.popups.text
-                    font.family: Style.font.family
+                    font.family: Typography.family
                     font.pixelSize: Style.font.bodySmall
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
@@ -1700,6 +1737,7 @@ Panel {
 
           GameDetailView {
             id: gameDetailView
+            imageStore: root.logoImageStore
             anchors.fill: parent
             visible: root.detailOpen
             game: root.detailState.game

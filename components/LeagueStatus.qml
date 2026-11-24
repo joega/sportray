@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons as Commons
 
 Item {
@@ -42,8 +43,8 @@ Item {
         ? root.status.displayName + " · refreshing…"
         : root.status.displayName + " · "
           + (root.status.errorSummary || "scores unavailable") + " · retry"
-    color: root.status.loading ? Commons.Color.muted : Commons.Color.urgent
-    font.family: Commons.Style.font.family
+    color: root.status.loading ? Qt.alpha(Commons.Color.popups.text, 0.85) : Commons.Color.urgent
+    font.family: Typography.family
     font.pixelSize: Commons.Style.font.bodySmall
     wrapMode: Text.WordWrap
   }

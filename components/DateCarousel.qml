@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Ui
 import "../model/DateModel.js" as DateModel
@@ -7,6 +8,7 @@ Item {
   id: root
 
   property string selectedDateKey: ""
+  property string todayDateKey: DateModel.localDateKey(new Date())
   property int radius: 2
    property bool compact: false
 
@@ -29,7 +31,7 @@ Item {
     Row {
       id: dateRail
       width: parent.width
-      height: Math.max(Style.space(48), Style.spacing.controlHeight)
+      height: Math.max(Style.space(36), Style.spacing.controlHeight)
       spacing: Style.spacing.xxs
 
       SemanticActionButton {
@@ -50,11 +52,12 @@ Item {
           width: Math.max(Style.space(40), (dateRail.width - previousButton.width
             - nextButton.width - dateRail.spacing * 6) / root.dates.length)
           height: dateRail.height
-          text: modelData.weekday + "\n" + modelData.day
+          text: modelData.weekday + " " + modelData.day
           selected: modelData.key === root.selectedDateKey
           active: selected
           focusable: true
-          fontSize: Style.font.caption
+          fontFamily: Typography.family
+          fontSize: Style.font.bodySmall
           verticalPadding: Style.spacing.xxs
           onClicked: root.selectDate(modelData.key)
           Accessible.name: modelData.weekday + " " + modelData.month + " " + modelData.day
@@ -69,9 +72,9 @@ Item {
           - nextButton.width - dateRail.spacing * 2)
         height: dateRail.height
         text: DateModel.displayLabel(root.selectedDateKey,
-          DateModel.localDateKey(new Date())) + ", " + DateModel.shortDateLabel(root.selectedDateKey)
+          root.todayDateKey) + ", " + DateModel.shortDateLabel(root.selectedDateKey)
         color: Color.popups.text
-        font.family: Style.font.family
+        font.family: Typography.family
         font.pixelSize: Style.font.body
         font.bold: true
         horizontalAlignment: Text.AlignHCenter

@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Ui
 
@@ -44,9 +45,10 @@ Item {
   }
 
   function cursorBounds() {
-    var top = Style.font.caption + Style.spacing.sm
-      + Math.floor(root.cursorIndex / root.actionsPerLeague) * Style.space(92)
-    return {top: top, bottom: top + Style.space(84)}
+    var item = leagueRepeater.itemAt(Math.floor(root.cursorIndex / root.actionsPerLeague))
+    if (!item) return {top: 0, bottom: 0}
+    var point = item.mapToItem(root, 0, 0)
+    return {top: point.y, bottom: point.y + item.height}
   }
 
   function activateCursor() {
@@ -56,11 +58,12 @@ Item {
     if (!league || !root.settingsStore) return
     if (action === 0 && typeof root.settingsStore.toggleLeague === "function")
       root.settingsStore.toggleLeague(league.id)
-    else if (action === 1 && typeof root.settingsStore.toggleFollowedLeague === "function")
+    else if (action === 1 && root.isEnabled(league) && typeof root.settingsStore.toggleFollowedLeague === "function")
       root.settingsStore.toggleFollowedLeague(league.id)
-    else if (action === 2 && typeof root.settingsStore.moveFollowedLeague === "function")
+    else if (action === 2 && root.isFollowed(league) && root.followedIndex(league) > 0 && typeof root.settingsStore.moveFollowedLeague === "function")
       root.settingsStore.moveFollowedLeague(league.id, "up")
-    else if (action === 3 && typeof root.settingsStore.moveFollowedLeague === "function")
+    else if (action === 3 && root.isFollowed(league)
+        && root.followedIndex(league) < root.settingsStore.settings.followedLeagueIds.length - 1 && typeof root.settingsStore.moveFollowedLeague === "function")
       root.settingsStore.moveFollowedLeague(league.id, "down")
   }
 
@@ -97,18 +100,29 @@ Item {
         return count + " of " + root.leagues.length + " enabled · " + followed + " followed"
       }
       color: Color.accent
-      font.family: Style.font.family
+      font.family: Typography.family
       font.pixelSize: Style.font.caption
     }
 
+    Text {
+      width: parent.width
+      text: "Enable scores for a league. Follow it to include its games in Following."
+      textFormat: Text.PlainText
+      wrapMode: Text.WordWrap
+      color: Qt.alpha(Color.popups.text, 0.85)
+      font.family: Typography.family
+      font.pixelSize: Style.font.bodySmall
+    }
+
     Repeater {
+      id: leagueRepeater
       model: root.leagues
 
       Item {
         required property var modelData
         required property int index
         width: sportsColumn.width
-        height: leagueColumn.implicitHeight
+        height: leagueColumn.implicitHeight + Style.spacing.md
 
         Column {
           id: leagueColumn
@@ -119,8 +133,8 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: modelData ? (modelData.displayName || modelData.name || modelData.id) : ""
-            color: Color.foreground
-            font.family: Style.font.family
+            color: Color.popups.text
+            font.family: Typography.family
             font.pixelSize: Style.font.body
             font.bold: true
           }
@@ -131,8 +145,8 @@ Item {
             text: root.isEnabled(modelData)
               ? (root.isFollowed(modelData) ? "Enabled · followed" : "Enabled · not followed")
               : "Disabled · unavailable in navigation"
-            color: Color.muted
-            font.family: Style.font.family
+            color: Qt.alpha(Color.popups.text, 0.85)
+            font.family: Typography.family
             font.pixelSize: Style.font.caption
           }
 
@@ -141,25 +155,33 @@ Item {
             spacing: Style.spacing.xs
 
             SemanticActionButton {
-              width: (parent.width - parent.spacing * 3) / 4
-              text: root.isEnabled(modelData) ? "Disable" : "Enable"
+              width: (parent.width - Style.space(64) - parent.spacing * 3) / 2
+              text: root.isEnabled(modelData) ? "Enabled" : "Enable"
+              selected: root.isEnabled(modelData)
               textFontSize: Style.font.caption
               textBold: true
-              bordered: true
+              focusable: true
+              bordered: false
               hasCursor: root.cursorIndex === index * root.actionsPerLeague
               tooltipText: root.isEnabled(modelData) ? "Disable league" : "Enable league"
               onClicked: root.toggle(modelData)
               Accessible.name: root.isEnabled(modelData) ? "Disable " + modelData.displayName
                 : "Enable " + modelData.displayName
-              Accessible.role: Accessible.Button
+              Accessible.role: Accessible.CheckBox
+              Accessible.checkable: true
+              Accessible.checked: root.isEnabled(modelData)
+              Accessible.onToggleAction: root.toggle(modelData)
             }
 
             SemanticActionButton {
-              width: (parent.width - parent.spacing * 3) / 4
+              width: (parent.width - Style.space(64) - parent.spacing * 3) / 2
               text: root.isFollowed(modelData) ? "Following" : "Follow"
+              selected: root.isFollowed(modelData)
+              foreground: root.isFollowed(modelData) ? Color.accent : Color.popups.text
               textFontSize: Style.font.caption
               textBold: true
-              bordered: true
+              focusable: true
+              bordered: false
               enabled: root.isEnabled(modelData)
               hasCursor: root.cursorIndex === index * root.actionsPerLeague + 1
               tooltipText: enabled ? (root.isFollowed(modelData) ? "Unfollow league" : "Follow league")
@@ -167,15 +189,19 @@ Item {
               onClicked: root.toggleFollow(modelData)
               Accessible.name: enabled ? (root.isFollowed(modelData) ? "Unfollow " : "Follow ")
                 + modelData.displayName : "Follow unavailable until enabled"
-              Accessible.role: Accessible.Button
+              Accessible.role: Accessible.CheckBox
+              Accessible.checkable: true
+              Accessible.checked: root.isFollowed(modelData)
+              Accessible.onToggleAction: if (root.isEnabled(modelData)) root.toggleFollow(modelData)
             }
 
             SemanticActionButton {
-              width: (parent.width - parent.spacing * 3) / 4
-              text: "Move up"
+              width: Style.space(32)
+              text: "↑"
               textFontSize: Style.font.caption
               textBold: true
-              bordered: true
+              focusable: true
+              bordered: false
               enabled: root.isFollowed(modelData) && root.followedIndex(modelData) > 0
               hasCursor: root.cursorIndex === index * root.actionsPerLeague + 2
               tooltipText: enabled ? "Move league up" : "Move up unavailable"
@@ -185,11 +211,12 @@ Item {
             }
 
             SemanticActionButton {
-              width: (parent.width - parent.spacing * 3) / 4
-              text: "Move down"
+              width: Style.space(32)
+              text: "↓"
               textFontSize: Style.font.caption
               textBold: true
-              bordered: true
+              focusable: true
+              bordered: false
               enabled: root.isFollowed(modelData)
                 && root.followedIndex(modelData) < root.settingsStore.settings.followedLeagueIds.length - 1
               hasCursor: root.cursorIndex === index * root.actionsPerLeague + 3
@@ -199,6 +226,14 @@ Item {
               Accessible.role: Accessible.Button
             }
           }
+        }
+        Rectangle {
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          height: 1
+          color: Color.popups.text
+          opacity: 0.10
         }
       }
     }

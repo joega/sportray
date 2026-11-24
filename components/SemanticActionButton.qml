@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
@@ -14,22 +15,25 @@ Item {
   property real textHorizontalPadding: Style.spacing.controlPaddingX
   property real textVerticalPadding: Style.spacing.controlPaddingY / 2
   property string tooltipText: ""
-  property color foreground: Commons.Color.foreground
+  property color foreground: Commons.Color.popups.text
   property color hoverColor: foreground
-  property string fontFamily: Style.font.family
+  property string fontFamily: Typography.family
+  property string iconFontFamily: Style.font.family
   property real fontSize: Style.font.icon
   property real size: Math.max(Style.space(22), fontSize + Style.spacing.sm * 2)
   property bool focusable: false
   property bool hasCursor: false
   property bool bordered: false
+  property bool selected: false
   readonly property bool pointerPressed: actionMouse.pressed
 
   signal clicked()
 
+  opacity: root.enabled ? 1 : 0.35
   activeFocusOnTab: focusable
-  Keys.onReturnPressed: if (focusable) root.clicked()
-  Keys.onEnterPressed: if (focusable) root.clicked()
-  Keys.onSpacePressed: if (focusable) root.clicked()
+  Keys.onReturnPressed: if (root.enabled && focusable) root.clicked()
+  Keys.onEnterPressed: if (root.enabled && focusable) root.clicked()
+  Keys.onSpacePressed: if (root.enabled && focusable) root.clicked()
 
   implicitWidth: root.text === ""
     ? size : textLabel.implicitWidth + root.textHorizontalPadding * 2
@@ -48,7 +52,8 @@ Item {
     anchors.fill: parent
     color: root._showFocusRing
       ? Style.focusFillFor(root.hoverColor, root.hoverColor)
-      : (root._hot ? Style.hoverFillFor(root.hoverColor, root.hoverColor) : "transparent")
+      : root._hot ? Style.hoverFillFor(root.hoverColor, root.hoverColor)
+      : root.selected ? Style.selectedFillFor(root.foreground, Commons.Color.accent) : "transparent"
     borderSpec: root._borderSpec
     radius: Style.cornerRadius
 
@@ -57,11 +62,9 @@ Item {
       anchors.fill: parent
       iconName: root.iconName
       fallbackText: root.fallbackText
-      fontFamily: root.fontFamily
+      fontFamily: root.iconFontFamily
       fontSize: root.fontSize
-      color: root.enabled
-        ? (root._hot ? root.hoverColor : root.foreground)
-        : Qt.darker(root.foreground, 2.0)
+      color: root._hot ? root.hoverColor : root.foreground
       decorative: true
     }
 
@@ -71,9 +74,7 @@ Item {
       visible: root.text !== ""
       anchors.centerIn: parent
       text: root.text
-      color: root.enabled
-        ? (root._hot ? root.hoverColor : root.foreground)
-        : Qt.darker(root.foreground, 2.0)
+      color: root._hot ? root.hoverColor : root.foreground
       font.family: root.fontFamily
       font.pixelSize: root.textFontSize
       font.bold: root.textBold

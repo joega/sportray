@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons as Commons
 
 Item {
@@ -36,10 +37,10 @@ Item {
     width: parent.width
     text: root.message
     wrapMode: Text.WordWrap
-    font.family: Commons.Style.font.family
+    font.family: Typography.family
     font.pixelSize: Commons.Style.font.bodySmall
     color: root.row && root.row.kind === "standings-status" && !root.row.loading
-      ? Commons.Color.urgent : Commons.Color.muted
+      ? Commons.Color.urgent : Qt.alpha(Commons.Color.popups.text, 0.85)
   }
 
   MouseArea {

@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Ui
 import "../model/DateModel.js" as DateModel
@@ -96,7 +97,7 @@ Item {
             textFormat: Text.PlainText
             text: "NEXT GAME"
             color: Color.accent
-            font.family: Style.font.family
+            font.family: Typography.family
             font.pixelSize: Style.font.caption
             font.bold: true
           }
@@ -105,7 +106,7 @@ Item {
             textFormat: Text.PlainText
             text: DateModel.shortDateLabel(root.dateKey)
             color: Color.popups.text
-            font.family: Style.font.family
+            font.family: Typography.family
             font.pixelSize: Style.font.subtitle
             font.bold: true
           }
@@ -128,7 +129,7 @@ Item {
             width: parent.width
             text: Formatters.teamLabel(root.game.awayTeam)
             color: Color.popups.text
-            font.family: Style.font.family
+            font.family: Typography.family
             font.pixelSize: Style.font.subtitle
             font.bold: true
             elide: Text.ElideRight
@@ -138,8 +139,8 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: root.teamName(root.game.awayTeam)
-            color: Color.muted
-            font.family: Style.font.family
+            color: Qt.alpha(Color.popups.text, 0.85)
+            font.family: Typography.family
             font.pixelSize: Style.font.bodySmall
             elide: Text.ElideRight
           }
@@ -147,8 +148,8 @@ Item {
           Text {
             textFormat: Text.PlainText
             text: "AWAY"
-            color: Color.muted
-            font.family: Style.font.family
+            color: Qt.alpha(Color.popups.text, 0.85)
+            font.family: Typography.family
             font.pixelSize: Style.font.caption
           }
         }
@@ -159,7 +160,7 @@ Item {
           anchors.verticalCenter: parent.verticalCenter
           text: "VS"
           color: Color.accent
-          font.family: Style.font.family
+          font.family: Typography.family
           font.pixelSize: Style.font.caption
           font.bold: true
         }
@@ -173,7 +174,7 @@ Item {
             width: parent.width
             text: Formatters.teamLabel(root.game.homeTeam)
             color: Color.popups.text
-            font.family: Style.font.family
+            font.family: Typography.family
             font.pixelSize: Style.font.subtitle
             font.bold: true
             elide: Text.ElideRight
@@ -183,8 +184,8 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: root.teamName(root.game.homeTeam)
-            color: Color.muted
-            font.family: Style.font.family
+            color: Qt.alpha(Color.popups.text, 0.85)
+            font.family: Typography.family
             font.pixelSize: Style.font.bodySmall
             elide: Text.ElideRight
           }
@@ -192,51 +193,43 @@ Item {
           Text {
             textFormat: Text.PlainText
             text: "HOME"
-            color: Color.muted
-            font.family: Style.font.family
+            color: Qt.alpha(Color.popups.text, 0.85)
+            font.family: Typography.family
             font.pixelSize: Style.font.caption
           }
         }
       }
 
-      Row {
+      Column {
         width: parent.width
         spacing: Style.spacing.sm
-
         Text {
-          textFormat: Text.PlainText
           id: startTimeLabel
-          anchors.verticalCenter: parent.verticalCenter
+          width: parent.width
           text: root.localStartTime(root.game.startTime)
             + (root.venueName ? "   ·   " + root.venueName : "")
-          color: Color.muted
-          font.family: Style.font.family
+          textFormat: Text.PlainText
+          color: Qt.alpha(Color.popups.text, 0.85)
+          font.family: Typography.family
           font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
         }
-
-        Item {
-          width: Math.max(0, parent.width - startTimeLabel.implicitWidth
-            - sourceLink.implicitWidth - jumpButton.implicitWidth - parent.spacing * 2)
-          height: 1
-        }
-
-        SourceLinkButton {
-          id: sourceLink
-          game: root.game
-        }
-
-        SemanticActionButton {
-          id: jumpButton
-          text: "View day"
-          tooltipText: "Jump to the next game"
-          textBold: true
-          textFontSize: Style.font.bodySmall
-          textHorizontalPadding: Style.spacing.md
-          textVerticalPadding: Style.spacing.xs
-          focusable: true
-          onClicked: root.jumpRequested()
-          Accessible.name: "View " + DateModel.shortDateLabel(root.dateKey)
-          Accessible.role: Accessible.Button
+        Row {
+          anchors.right: parent.right
+          spacing: Style.spacing.sm
+          SourceLinkButton {
+            id: sourceLink
+            game: root.game
+          }
+          SemanticActionButton {
+            id: jumpButton
+            text: "View day"
+            tooltipText: "Jump to the next game"
+            textFontSize: Style.font.bodySmall
+            focusable: true
+            onClicked: root.jumpRequested()
+            Accessible.name: "View " + DateModel.shortDateLabel(root.dateKey)
+          }
         }
       }
     }

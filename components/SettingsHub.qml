@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Shapes
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Ui
 import "../model/LifecyclePolicy.js" as LifecyclePolicy
@@ -31,6 +31,22 @@ Item {
 
   signal escapeRequested()
   signal contentBoundsRequested(real top, real bottom)
+  signal contentFocusRequested()
+
+  function handleTextKey(text) {
+    if (root.destination !== "teams") return false
+    if (text === "f" || text === "F") {
+      root.contentFocused = true
+      favoriteTeams.openLeagueFilter()
+      return true
+    }
+    if (text === "/") {
+      root.contentFocused = true
+      favoriteTeams.focusSearch()
+      return true
+    }
+    return false
+  }
 
   implicitHeight: hubColumn.implicitHeight
   height: visible ? implicitHeight : 0
@@ -96,11 +112,12 @@ Item {
   }
 
   function ensureCursorVisible() {
-    var bounds = root.destination === "teams" ? favoriteTeams.cursorBounds()
-      : root.destination === "sports" ? sportsSettings.cursorBounds()
-      : root.destination === "notifications" ? notificationSettings.cursorBounds()
-      : tickerSettings.cursorBounds()
-    root.contentBoundsRequested(bounds.top, bounds.bottom)
+    var content = root.destination === "teams" ? favoriteTeams
+      : root.destination === "sports" ? sportsSettings
+      : root.destination === "notifications" ? notificationSettings : tickerSettings
+    var bounds = content.cursorBounds()
+    var origin = content.mapToItem(root, 0, 0)
+    root.contentBoundsRequested(origin.y + bounds.top, origin.y + bounds.bottom)
   }
 
   function reset(destination) {
@@ -134,65 +151,23 @@ Item {
             required property var modelData
             required property int index
             width: sectionTabs.width / root.destinations.length
-             text: modelData.shortLabel
-            selected: false
-            foreground: root.destination === modelData.id ? Color.popups.text : Color.muted
+            text: modelData.shortLabel
+            selected: root.destination === modelData.id
+            foreground: root.destination === modelData.id ? Color.popups.text : Qt.alpha(Color.popups.text, 0.85)
             hasCursor: !root.contentFocused && root.sectionCursor === index
             focusable: true
-            fontSize: Style.font.bodySmall
+            fontFamily: Typography.family
+            fontSize: Style.font.body
             horizontalPadding: Style.spacing.xs
             radius: 0
-            color: "transparent"
-            borderSpec: Border.none()
+            color: activeFocus ? Style.focusFillFor(foreground, Color.accent)
+              : hot ? Style.hoverFillFor(foreground, Color.accent) : "transparent"
+            borderSpec: activeFocus ? Border.controlSpec("focus", foreground, Color.accent)
+              : hasCursor ? Border.controlSpec("hover-cursor", foreground, Color.accent) : Border.none()
             onClicked: root.selectDestination(modelData.id)
             Accessible.name: modelData.label
-            Accessible.role: Accessible.Button
-
-            readonly property bool tabSurfaceVisible: tabButton.hasCursor || tabButton.activeFocus || tabHover.hovered
-            readonly property bool tabSurfaceFocused: tabButton.activeFocus
-            readonly property real tabSurfaceRadius: Math.min(Style.cornerRadius, tabButton.width / 2, tabButton.height / 2)
-            readonly property var tabSurfaceBorder: Border.controlSpec(
-              tabSurfaceFocused ? "focus" : "hover-cursor", tabButton.foreground, tabButton.accent)
-            readonly property color tabSurfaceFill: tabSurfaceFocused
-              ? Style.focusFillFor(tabButton.foreground, tabButton.accent)
-              : Style.hoverFillFor(tabButton.foreground, tabButton.accent)
-
-            HoverHandler {
-              id: tabHover
-            }
-
-            Shape {
-              anchors.fill: parent
-              z: 0
-              visible: tabButton.tabSurfaceVisible
-              preferredRendererType: Shape.CurveRenderer
-
-              ShapePath {
-                fillColor: tabButton.tabSurfaceFill
-                strokeColor: Border.color(tabButton.tabSurfaceBorder)
-                strokeWidth: Math.max(1, Border.uniformWidth(tabButton.tabSurfaceBorder))
-
-                PathMove { x: tabButton.tabSurfaceRadius; y: 0 }
-                PathLine { x: tabButton.width - tabButton.tabSurfaceRadius; y: 0 }
-                PathArc {
-                  x: tabButton.width
-                  y: tabButton.tabSurfaceRadius
-                  radiusX: tabButton.tabSurfaceRadius
-                  radiusY: tabButton.tabSurfaceRadius
-                  direction: PathArc.Clockwise
-                }
-                PathLine { x: tabButton.width; y: tabButton.height }
-                PathLine { x: 0; y: tabButton.height }
-                PathLine { x: 0; y: tabButton.tabSurfaceRadius }
-                PathArc {
-                  x: tabButton.tabSurfaceRadius
-                  y: 0
-                  radiusX: tabButton.tabSurfaceRadius
-                  radiusY: tabButton.tabSurfaceRadius
-                  direction: PathArc.Clockwise
-                }
-              }
-            }
+            Accessible.role: Accessible.PageTab
+            Accessible.selected: root.destination === modelData.id
 
             Rectangle {
               anchors.left: parent.left
@@ -234,6 +209,10 @@ Item {
       callbackOwner: root.callbackOwner
       imageStore: root.imageStore
       onEscapeRequested: root.escapeRequested()
+      onBrowseRequested: {
+        root.contentFocused = true
+        root.contentFocusRequested()
+      }
     }
 
     SettingsView {

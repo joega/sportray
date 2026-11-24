@@ -1511,9 +1511,9 @@ test("settings are unified behind one hub with a deep-linkable favorite destinat
   assert.equal(hub.includes("id: sectionTabs"), true);
   assert.equal(hub.includes("id: sectionTabBlock"), true);
   assert.equal(hub.includes("radius: 0"), true);
-  assert.equal(hub.includes("PathArc.Clockwise"), true);
+  assert.equal(hub.includes("Accessible.role: Accessible.PageTab"), true);
   assert.equal(hub.includes("y: sectionTabs.height"), true);
-  assert.equal(hub.includes("selected: false"), true);
+  assert.equal(hub.includes("selected: root.destination === modelData.id"), true);
   assert.equal(hub.includes("color: root.destination === tabButton.modelData.id ? Color.accent : \"transparent\""), true);
   assert.equal(hub.includes("color: Color.popups.border"), true);
   assert.equal(hub.includes("function reset(destination)"), true);
@@ -1522,11 +1522,11 @@ test("settings are unified behind one hub with a deep-linkable favorite destinat
   assert.equal(readSource("components/SettingsView.qml").includes('text: "Notification preferences"'), false);
   assert.equal(readSource("components/SportsSettings.qml").includes('text: "Enable the scoreboards you want in the sport chooser."'), false);
   assert.equal(picker.includes('text: root.selectedCount + " selected · selected teams stay at the top"'), true);
-  assert.equal(readSource("components/SettingsView.qml").includes('text: "↑/↓ or j/k to move · Enter/Space to toggle · n to open"'), true);
+  assert.equal(readSource("components/SettingsView.qml").includes('text: "Alerts for your favorite teams and watched games."'), true);
   assert.equal(picker.includes("filterAndOrderTeams"), true);
   assert.equal(picker.includes("ListView"), true);
   assert.equal(picker.includes("logo.status"), true);
-  assert.equal(picker.includes("if (!root.visible) searchInput.focus = false"), true);
+  assert.match(picker, /onVisibleChanged:[\s\S]*?if \(!root\.visible\) \{[\s\S]*?searchInput\.focus = false/);
 });
 
 test("U2.4 keeps semantic icons local and maps every active league", () => {
@@ -1570,19 +1570,18 @@ test("U2.4 keeps semantic icons local and maps every active league", () => {
   assert.equal(panel.includes('import "model/Iconography.js" as Iconography'), true);
   assert.equal(panel.includes("SemanticActionButton {"), true);
   assert.equal(panel.includes("SportAtmosphere {"), true);
-  assert.equal(panel.includes(
-    'root.settingsOpen ? "settings" : root.detailOpen ? "scores" : "calendar"'), true);
-  assert.equal(panel.includes('root.settingsOpen ? "  Settings"'), true);
+  assert.equal(panel.includes('root.settingsOpen ? "Settings" : root.detailOpen ? "Game details"'), true);
+  assert.equal(panel.includes('font.family: Typography.family'), true);
   assert.equal(panel.includes('iconName: "refresh"'), true);
   assert.equal(panel.includes('iconName: fetchService.loading ? "overflow" : "refresh"'), false);
   assert.equal(panel.includes('iconName: root.settingsOpen ? "close" : "settings"'), true);
   assert.equal(panel.includes('fallbackText: root.settingsOpen ? "X" : "[ ]"'), true);
   assert.equal(panel.includes('tooltipText: root.settingsOpen ? "Close settings" : "Sportray settings"'), true);
-  assert.equal(panel.includes("Iconography.displayText"), true);
+  assert.equal(panel.includes("Iconography.iconNameForLeague"), true);
   assert.equal(hub.includes('text: "Settings"'), false);
   assert.equal(hub.includes('text: "Choose a settings area, then use Back or Escape to return to scores."'), false);
   assert.equal(picker.includes('iconName: root.isFavorite(modelData) ? "star" : "starOutline"'), true);
-  assert.equal(gameRow.includes('iconName: "star"'), true);
+  assert.equal(gameRow.includes('text: root.awayIsFavorite ? "★" : ""'), true);
   assert.equal(icon.includes("Iconography.displayText"), true);
   assert.equal(action.includes("Accessible.name: root.tooltipText"), true);
   assert.equal(action.includes('property string text: ""'), true);
@@ -1677,33 +1676,29 @@ test("panel presentation keeps canonical favorites when its QML import has no re
   ]), ["nhl:6"]);
 });
 
-test("featured game cards use a readable theme-aware selected fill", () => {
+test("score rows reserve theme focus chrome while keeping scores calm", () => {
   const source = readSource("components/GameRow.qml");
-  assert.match(source,
-    /color: root\.featured \? Style\.selectedFillFor\(Color\.popups\.text, Color\.accent\)/);
-  assert.doesNotMatch(source, /color: root\.featured \? Style\.selectedStateColor/);
+  assert.match(source, /Border\.controlSpec\("focus", Color\.popups\.text, Color\.accent\)/);
+  assert.match(source, /color: "transparent"/);
+  assert.doesNotMatch(source, /color: root\.live \? Color\.urgent/);
+  assert.match(source, /font\.features: \(\{"tnum": 1\}\)/);
 });
 
-test("game cards use a bounded home-team tint and expose venue text", () => {
+test("score context has its own wrapping row above reachable actions", () => {
   const source = readSource("components/GameRow.qml");
-  assert.match(source, /root\.game\.homeTeam\.primaryColor/);
-  assert.match(source, /root\.hasHomeTint \? \(root\.featured \? 0\.07 : 0\.11\) : 0/);
   assert.match(source, /readonly property string venueLabel: root\.venueName \? "At " \+ root\.venueName : ""/);
-  assert.match(source, /id: venueText/);
-  assert.match(source, /text: root\.venueLabel/);
-  assert.match(source, /wrapMode: Text\.Wrap/);
-  assert.match(source,
-    /implicitHeight: Math\.max\(footerDetails\.implicitHeight, actionsRow\.implicitHeight\)/);
-  assert.match(source, /anchors\.verticalCenter: parent\.verticalCenter/);
   assert.match(source, /root\.venueName \? "At " \+ root\.venueName/);
+  assert.match(source, /Column \{\s+id: footer/);
+  assert.match(source, /id: detailText[\s\S]*?width: parent\.width[\s\S]*?wrapMode: Text\.WordWrap/);
+  assert.match(source, /id: actionsRow[\s\S]*?anchors\.right: parent\.right/);
+  assert.doesNotMatch(source, /anchors\.right: actionsRow\.left/);
 });
 
-test("game cards show local start dates for every known game state", () => {
+test("score rows prioritize live context and retain scheduled local start times", () => {
   const source = readSource("components/GameRow.qml");
   assert.match(source, /Qt\.formatDateTime\(date, "MMM d, h:mm AP"\)/);
-  assert.match(source, /includeStartTime: true/);
-  assert.match(source,
-    /startTimeText: root\.resolvedStartTimeText\(root\.game\.startTime\)/);
+  assert.match(source, /includeStartTime: root\.game\.status === "scheduled"/);
+  assert.match(source, /startTimeText: root\.resolvedStartTimeText\(root\.game\.startTime\)/);
   assert.match(source, /property string startTimeTextOverride: ""/);
 });
 
@@ -1834,7 +1829,7 @@ test("scoring period units use sport-aware nouns per league", () => {
   assert.equal(formatters.scoringPeriodUnit(42), "Period");
 
   const view = readSource("components/GameDetailView.qml");
-  assert.match(view, /Formatters\.scoringPeriodUnit\(root\.detail\.league\)\.toUpperCase\(\)/);
+  assert.match(view, /Formatters\.scoringPeriodUnit\(root\.detail\.league\)\.toLowerCase\(\)/);
   assert.equal(view.includes('"SCORING BY PERIOD"'), false);
 });
 
@@ -2116,6 +2111,33 @@ test("standings provider rejects malformed input while keeping valid sibling gro
     "invalid-standings-response");
 });
 
+test("standings columns use existing sport metrics with aligned bounded table geometry", () => {
+  const view = require("../model/StandingsPresentation.js");
+  const fixture = JSON.parse(readSource("fixtures/presentation/standings-columns.json"));
+  fixture.columns.forEach(({league, labels, keys}) => {
+    const columns = view.columnsForLeague(league);
+    assert.deepEqual(columns.map(column => column.label), labels, league);
+    assert.deepEqual(columns.map(column => column.key), keys, league);
+    const parsed = league === "nhl" ? nhl.parseStandingsResponse(readNhlStandingsFixture())
+      : espn.parseStandingsResponse(JSON.parse(readSource("fixtures/espn/standings/" + league + ".json")).payload, league);
+    assert.ok(parsed.rows.length > 0, league + " must exercise normalized provider fixtures");
+    parsed.rows.forEach(row => columns.forEach(column => {
+      const value = row[column.key];
+      assert.equal(view.metricValue(row, column.key), typeof value === "number" ? String(value) : "—");
+    }));
+    fixture.widths.forEach(width => fixture.scales.forEach(scale => {
+      const g = view.layout(width, scale, league);
+      const total = g.padding * 2 + g.gap * 3 + g.rankWidth + g.favoriteWidth + g.metricsWidth + g.teamWidth;
+      assert.ok(Math.abs(total - width) < 0.001, league + " columns must fit " + width + " @ " + scale);
+      assert.ok(g.teamWidth > 0 && g.favoriteWidth >= 22, "team and favorite remain reachable");
+    }));
+  });
+  assert.equal(view.metricValue({wins: 0}, "wins"), "0");
+  assert.equal(view.metricValue({points: NaN}, "points"), "—");
+  assert.equal(view.metricValue({points: Infinity}, "points"), "—");
+  assert.equal(view.metricValue({}, "points"), "—");
+});
+
 test("standings rows keep existing favorite routing and expose bounded actions", () => {
   const result = espn.parseStandingsResponse(readStandingsFixture(), "nfl");
   const rows = standingsRows.flatten(result, ["nfl:17"]);
@@ -2371,7 +2393,7 @@ test("optional live situation projects bounded at-bat state without provider fie
 
   const view = readSource("components/GameDetailView.qml");
   assert.match(view, /readonly property var situationData: root\.detail\.situation/);
-  assert.match(view, /text: "SITUATION"/);
+  assert.match(view, /text: "Game situation"/);
   assert.match(view, /visible: root\.situationData !== null/);
   assert.match(view, /function situationCountLabel\(\)/);
   assert.match(view, /root\.situationOutsLabel\(\)/);
@@ -2438,7 +2460,7 @@ test("optional betting odds project bounded attributed lines without provider fi
 
   const view = readSource("components/GameDetailView.qml");
   assert.match(view, /readonly property var oddsData: root\.detail\.odds/);
-  assert.match(view, /text: "ODDS"/);
+  assert.match(view, /text: "Pregame odds"/);
   assert.match(view, /visible: root\.oddsData !== null/);
   assert.match(view, /function oddsLabel\(\)/);
 
@@ -2581,13 +2603,13 @@ test("loaded game rows route to local detail while keeping the safe source actio
   assert.match(source, /Quickshell\.execDetached\(\["omarchy-launch-browser", safeUrl\]\)/);
 });
 
-test("game detail presentation keeps sparse fields as neutral placeholders", () => {
+test("game detail keeps missing scores neutral and hides unavailable optional sections", () => {
   const fixture = readGameDetailRouteFixture();
   const detail = readSource("components/GameDetailView.qml");
   fixture.sparsePlaceholders.forEach((placeholder) => assert.equal(detail.includes(placeholder), true));
   assert.match(detail, /function valueOrDash\(value\)/);
-  assert.match(detail, /root\.scoreLabel\(root\.detail\.participants\[0\]\)/);
-  assert.match(detail, /root\.scoreLabel\(root\.detail\.participants\[1\]\)/);
+  assert.match(detail, /model: root\.detail\.participants/);
+  assert.match(detail, /root\.scoreLabel\(participantRow\.modelData\)/);
   assert.match(detail, /root\.detail\.status/);
   assert.match(detail, /root\.detail\.timing\.startTime/);
   assert.match(detail, /root\.detail\.venue/);
@@ -2602,14 +2624,14 @@ test("game detail renders optional outcome and bounded lines with null placehold
   assert.match(detail, /function outcomeLabel\(\)/);
   assert.match(detail, /root\.valueOrDash\(root\.outcomeLabel\(\)\)/);
   assert.match(detail, /readonly property var linesData: root\.detail\.lines/);
-  assert.match(detail, /visible: !root\.linesData/);
-  assert.match(detail, /text: "—"/);
+  assert.match(detail, /visible: root\.linesData !== null/);
+  assert.match(detail, /value === null \|\| value === undefined \|\| value === "" \? "—"/);
   assert.match(detail, /root\.linePeriods\(\)/);
   assert.match(detail, /root\.lineValues\(linesSideRow\.modelData\)/);
   assert.match(gameDetail, /MAX_LINE_PERIODS = 12/);
   assert.match(detail, /readonly property var statsData: root\.detail\.stats/);
-  assert.match(detail, /text: "TEAM STATS"/);
-  assert.match(detail, /visible: !root\.statsData/);
+  assert.match(detail, /text: "Team stats"/);
+  assert.match(detail, /visible: root\.statsData !== null/);
   assert.match(detail, /root\.statRows\(\)/);
 
   const final = espn.parseGameDetailResponse(readEspnFixture("game-detail-lines"), "nfl")
@@ -2645,7 +2667,7 @@ test("game detail hides internal game ids and scrolls within the panel bounds", 
   assert.equal(detail.includes("root.detail.id"), false);
   assert.equal(detail.includes("gameIdLabel"), false);
   assert.equal((detail.match(/root\.detail\.providerGameId/g) || []).length, 0);
-  assert.match(detail, /text: root\.teamLabel\(root\.detail\.participants\[0\]\) \+ " at "/);
+  assert.match(detail, /Accessible\.name: "Game details for "/);
 
   assert.match(detail, /Flickable \{/);
   assert.match(detail, /id: detailScroll/);
@@ -4529,7 +4551,19 @@ test("the visible league chooser exposes every enabled destination including the
     const select = vm.runInNewContext("(" + functionSource + ")", {root: {tabItems: entry.tabs}});
     assert.deepEqual(JSON.parse(JSON.stringify(select())), entry.tabs.map((tab) => ({value: tab.id, label: tab.label})), entry.name);
   });
-  assert.match(panel, /label: "League"\s+showLabel: true/);
+  assert.match(panel, /label: "League"\s+showLabel: false/);
+});
+
+test("header refresh state follows the visible score or standings request", () => {
+  const panel = readSource("Panel.qml");
+  const expression = panel.match(/readonly property bool refreshing: ([\s\S]*?)\n\s+visible:/)[1].trim();
+  const resolve = (standingsOpen, tableLoading, scoresLoading) => vm.runInNewContext(expression,
+    {root: {standingsOpen, standingsState: {loading: tableLoading}}, fetchService: {loading: scoresLoading}});
+  assert.equal(resolve(true, false, true), false, "score request must not disable table refresh");
+  assert.equal(resolve(true, true, false), true, "table refresh owns the standings busy state");
+  assert.equal(resolve(false, true, false), false, "table request must not disable score refresh");
+  assert.equal(resolve(false, false, true), true);
+  assert.match(panel, /tooltipText: root\.standingsOpen[\s\S]*?"Refresh standings"/);
 });
 
 test("the standings action has a visible label and explains its Following state", () => {
@@ -4795,9 +4829,9 @@ test("U3.4 reserves a reachable trailing source action in mixed Following rows",
     });
   });
 
-  assert.match(source, /GameRowLayout\.footerLayout/);
+  assert.match(source, /Column \{\s+id: footer/);
   assert.match(source, /anchors\.right: parent\.right/);
-  assert.match(source, /anchors\.right: actionsRow\.left/);
+  assert.match(source, /id: detailText[\s\S]*?width: parent\.width[\s\S]*?wrapMode: Text\.WordWrap/);
   assert.match(sourceButton, /focusable: true/);
 });
 
@@ -4820,7 +4854,8 @@ test("U3.2 keeps every scoreboard state textual and separates stale age from sta
   assert.equal(source.includes("homeIsFavorite"), true);
   assert.equal(source.includes('text: root.awayIsFavorite ? "★" : ""'), true);
   assert.equal(source.includes('text: root.homeIsFavorite ? "★" : ""'), true);
-  assert.equal(source.includes("font.underline: root.awayIsFavorite"), true);
+  assert.equal(source.includes("font.underline: root.awayIsFavorite"), false);
+  assert.equal(source.includes("font.bold: root.awayIsFavorite"), true);
   assert.equal(source.includes("showLeagueContext"), true);
   assert.equal(source.includes("root.stateLabel"), true);
 });
@@ -7126,7 +7161,7 @@ test("source links, logos, aggregate updates, and favorite checks stay bounded",
   assert.equal((gameRow.match(/cache: true/g) || []).length >= 2, true);
   assert.equal(gameRow.includes("text: root.awayLabel\n            textFormat: Text.PlainText"), true);
   assert.equal(gameRow.includes("text: root.homeLabel\n            textFormat: Text.PlainText"), true);
-  assert.equal(gameRow.includes("text: root.detailLabel\n                textFormat: Text.PlainText"), true);
+  assert.match(gameRow, /id: detailText[\s\S]*?textFormat: Text\.PlainText/);
 
   const strip = readSource("components/TicketStrip.qml");
   assert.equal((strip.match(/textFormat: Text\.PlainText/g) || []).length >= 5, true);

@@ -15,6 +15,7 @@ Item {
     var url = root.sourceUrl.toLowerCase()
     if (url.indexOf("espn.com") !== -1) return "ESPN"
     if (url.indexOf("nhl.com") !== -1) return "NHL.com"
+    if (url.indexOf("mlb.com") !== -1) return "MLB.com"
     return "Source"
   }
   property bool hasCursor: false
@@ -41,7 +42,7 @@ Item {
     anchors.fill: parent
     text: root.sourceName
     tooltipText: "Open " + root.sourceName + " game page"
-    textBold: true
+    textBold: false
     textFontSize: Style.font.bodySmall
     textHorizontalPadding: Style.spacing.xs
     textVerticalPadding: Style.spacing.xs

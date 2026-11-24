@@ -1,184 +1,153 @@
 import QtQuick
 import qs.Commons
 import qs.Ui
+import "../model/UiTypography.js" as Typography
+import "../model/StandingsPresentation.js" as Presentation
 
 Item {
   id: root
-
   required property var standing
   property bool favorite: false
   property var settings: null
   property var imageStore: null
+  property bool selected: false
   readonly property string teamLogoSource: root.imageStore && root.standing.team && root.standing.team.logoUrl
     ? root.imageStore.sourceFor(root.standing.team.logoUrl) : ""
-  property bool selected: false
-  readonly property bool childActionPressed: rowMouse.pressed
-
+  readonly property var columns: Presentation.columnsForLeague(root.standing.league)
+  readonly property var geometry: Presentation.layout(width, Style.spaceReal(1), root.standing.league)
+  readonly property bool childActionPressed: favoriteButton.pointerPressed
   width: parent ? parent.width : implicitWidth
-  implicitHeight: card.height
+  implicitHeight: Math.max(Style.space(42), favoriteButton.implicitHeight + Style.spacing.xs * 2)
   height: implicitHeight
 
-  function valueOrDash(value) {
-    return value === null || value === undefined || value === "" ? "—" : String(value)
-  }
-
+  function valueOrDash(value) { return value === null || value === undefined || value === "" ? "—" : String(value) }
   function teamLabel() {
     var team = root.standing && root.standing.team ? root.standing.team : {}
     return team.name || team.shortName || team.abbreviation || "Unnamed team"
   }
-
-  function recordLabel() {
-    if (root.standing && root.standing.recordLabel) return root.standing.recordLabel
-    var standing = root.standing || {}
-    if (standing.wins === null || standing.losses === null) return ""
-    var result = String(standing.wins) + "-" + String(standing.losses)
-    if (standing.draws !== null && standing.draws !== undefined) result += "-" + String(standing.draws)
-    else if (standing.ties !== null && standing.ties !== undefined) result += "-" + String(standing.ties)
-    return result
-  }
-
   function activatePrimaryAction() {
     if (root.settings && root.standing && root.standing.team
         && typeof root.settings.toggleFavoriteTeam === "function")
       root.settings.toggleFavoriteTeam(root.standing.team.id)
   }
-
   Accessible.name: root.teamLabel() + ", " + (root.standing.rankKind === "seed" ? "seed " : "rank ")
-    + root.valueOrDash(root.standing.rank)
-    + (root.recordLabel() ? ", record " + root.recordLabel() : "")
-    + (root.favorite ? ", selected favorite team" : ", not selected")
-  Accessible.role: Accessible.CheckBox
-  Accessible.checkable: true
-  Accessible.checked: root.favorite
-  Accessible.onToggleAction: root.activatePrimaryAction()
+    + root.valueOrDash(root.standing.rank) + ". " + root.columns.map(function(column) {
+      return column.label + " " + Presentation.metricValue(root.standing, column.key)
+    }).join(", ") + (root.favorite ? ". Favorite team." : "")
+  Accessible.role: Accessible.StaticText
 
   BorderSurface {
-    id: card
-    width: parent.width
-    height: row.implicitHeight + Style.spacing.sm * 2
-    color: root.favorite ? Style.selectedFillFor(Color.popups.text, Color.accent) : "transparent"
-    borderSpec: root.selected
-      ? Border.controlSpec("focus", Color.popups.text, Color.accent)
-      : Border.controlSpec("normal", Color.popups.text, Color.popups.border)
+    anchors.fill: parent
+    color: root.favorite ? Qt.alpha(Color.accent, 0.05) : "transparent"
+    borderSpec: root.selected ? Border.controlSpec("focus", Color.popups.text, Color.accent) : Border.none()
     radius: Style.cornerRadius
-
-    Row {
-      id: row
-      anchors.left: parent.left
-      anchors.right: parent.right
-      anchors.top: parent.top
-      anchors.leftMargin: Style.spacing.sm
-      anchors.rightMargin: Style.spacing.sm
-      spacing: Style.spacing.sm
-      height: Style.space(40)
-
-      Text {
-        textFormat: Text.PlainText
-        width: Style.space(24)
+  }
+  Row {
+    width: parent.width - root.geometry.padding * 2
+    height: parent.height
+    x: root.geometry.padding
+    spacing: root.geometry.gap
+    Text {
+      width: root.geometry.rankWidth
+      anchors.verticalCenter: parent.verticalCenter
+      text: root.valueOrDash(root.standing.rank)
+      textFormat: Text.PlainText
+      color: Qt.alpha(Color.popups.text, 0.85)
+      font.family: Typography.family
+      font.pixelSize: Style.font.bodySmall
+      font.features: ({"tnum": 1})
+      horizontalAlignment: Text.AlignHCenter
+    }
+    Item {
+      width: root.geometry.teamWidth
+      height: parent.height
+      Rectangle {
+        anchors.fill: logo
+        anchors.margins: -Style.space(2)
+        radius: Style.space(4)
+        color: "#f5f5f5"
+        visible: logo.visible
+      }
+      Image {
+        id: logo
+        width: Style.space(22)
+        height: width
+        anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        text: root.valueOrDash(root.standing.rank)
-        color: Color.muted
-        font.family: Style.font.family
-        font.pixelSize: Style.font.bodySmall
-        horizontalAlignment: Text.AlignHCenter
+        source: root.teamLogoSource
+        sourceSize: Qt.size(width * 2, height * 2)
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+        visible: status === Image.Ready
       }
-
-      Item {
-        width: parent.width - Style.space(24) - metrics.width - parent.spacing * 3
-        height: parent.height
-
-        Image {
-          id: logo
-          width: Style.space(26)
-          height: width
-          anchors.left: parent.left
-          anchors.verticalCenter: parent.verticalCenter
-          source: root.teamLogoSource
-          fillMode: Image.PreserveAspectFit
-          asynchronous: true
-          visible: status === Image.Ready
-        }
-
+      Text {
+        width: Style.space(22)
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.standing.team && root.standing.team.abbreviation ? root.standing.team.abbreviation : "?"
+        textFormat: Text.PlainText
+        visible: !logo.visible
+        color: Qt.alpha(Color.popups.text, 0.85)
+        font.family: Typography.family
+        font.pixelSize: Style.font.caption
+        elide: Text.ElideRight
+      }
+      Text {
+        anchors.left: logo.right
+        anchors.leftMargin: Style.spacing.xs
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.geometry.teamWidth < Style.space(140) && root.standing.team && root.standing.team.abbreviation
+          ? root.standing.team.abbreviation : root.teamLabel()
+        textFormat: Text.PlainText
+        color: Color.popups.text
+        font.family: Typography.family
+        font.pixelSize: Style.font.body
+        font.weight: root.favorite ? Font.DemiBold : Font.Normal
+        elide: Text.ElideRight
+      }
+    }
+    Row {
+      width: root.geometry.metricsWidth
+      anchors.verticalCenter: parent.verticalCenter
+      Repeater {
+        model: root.columns
         Text {
+          required property var modelData
+          width: root.geometry.metricsWidth / root.columns.length
+          text: Presentation.metricValue(root.standing, modelData.key)
           textFormat: Text.PlainText
-          anchors.left: parent.left
-          anchors.verticalCenter: parent.verticalCenter
-          width: Style.space(26)
-          text: root.standing.team && root.standing.team.abbreviation
-            ? root.standing.team.abbreviation : "?"
-          color: Color.muted
-          font.family: Style.font.family
-          font.pixelSize: Style.font.caption
-          font.bold: true
-          horizontalAlignment: Text.AlignHCenter
-          visible: !logo.visible
-        }
-
-        Text {
-          textFormat: Text.PlainText
-          anchors.left: parent.left
-          anchors.leftMargin: Style.space(26) + Style.spacing.xs
-          anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
-          text: root.teamLabel()
           color: Color.popups.text
-          font.family: Style.font.family
-          font.pixelSize: Style.font.body
-          font.bold: root.favorite
-          elide: Text.ElideRight
-        }
-      }
-
-      Row {
-        id: metrics
-        width: Math.min(parent.width * 0.42, Style.space(178))
-        height: parent.height
-        spacing: Style.spacing.xs
-
-        Repeater {
-          model: [
-            {label: "GP", value: root.standing.played},
-            {label: "W", value: root.standing.wins},
-            {label: "L", value: root.standing.losses},
-            {label: "PTS", value: root.standing.points}
-          ]
-
-          Column {
-            required property var modelData
-            width: (metrics.width - metrics.spacing * 3) / 4
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 0
-
-            Text {
-              textFormat: Text.PlainText
-              width: parent.width
-              text: modelData.label
-              color: Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-              horizontalAlignment: Text.AlignHCenter
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              width: parent.width
-              text: root.valueOrDash(modelData.value)
-              color: Color.popups.text
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              font.bold: true
-              horizontalAlignment: Text.AlignHCenter
-            }
-          }
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          font.features: ({"tnum": 1})
+          horizontalAlignment: Text.AlignRight
         }
       }
     }
-
-    MouseArea {
-      id: rowMouse
-      anchors.fill: parent
+    SemanticActionButton {
+      id: favoriteButton
+      width: root.geometry.favoriteWidth
+      anchors.verticalCenter: parent.verticalCenter
+      iconName: root.favorite ? "star" : "starOutline"
+      size: Style.space(28)
+      fontSize: Style.font.body
+      foreground: root.favorite ? Color.accent : Qt.alpha(Color.popups.text, 0.85)
+      tooltipText: (root.favorite ? "Remove " : "Add ") + root.teamLabel() + (root.favorite ? " from favorites" : " to favorites")
+      focusable: true
       onClicked: root.activatePrimaryAction()
-      cursorShape: Qt.PointingHandCursor
+      Accessible.name: tooltipText
+      Accessible.role: Accessible.CheckBox
+      Accessible.checkable: true
+      Accessible.checked: root.favorite
+      Accessible.onToggleAction: root.activatePrimaryAction()
     }
+  }
+  Rectangle {
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    height: 1
+    color: Color.popups.text
+    opacity: 0.08
   }
 }

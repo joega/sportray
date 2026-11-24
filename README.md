@@ -43,7 +43,8 @@ compact scores panel and a scrolling ticker.
 
 _Select an image to enlarge it. Screenshots show illustrative games, standings,
 and preferences in the stock Catppuccin Latte theme. Sportray follows your
-active Omarchy theme._
+active Omarchy colors and sizing, with Adwaita Sans in the popup. The bar and
+ticker retain the shell font._
 
 ## Install
 
@@ -75,13 +76,12 @@ slates from leagues you follow. Under **Settings → Sports & leagues**:
 | **Follow** | Include the enabled league in Following and promote it in navigation. |
 | **Reorder** | Change followed-league order. Disabling a league also removes it from the followed set. |
 
-Use **Watch** on a score row or in game details to receive alerts for that game
-without favoriting either team. **Alerts on** marks an active watch. Watch means
-game notifications, not video streaming.
+Use **Alerts** on a score row or in game details to receive alerts for that game
+without favoriting either team. **Alerts on** marks an active watch. These controls manage game notifications.
 
 ## Scores and standings
 
-Use the **League** dropdown below the dates to switch views. The five-day date
+Use the league dropdown below the dates to switch views. The five-day date
 carousel, previous/next arrows, and Today reset let you browse completed and
 upcoming slates. On an empty league day, **View day** jumps to its next scheduled
 game.
@@ -105,13 +105,17 @@ NFL, MLB, and NBA tables use the provider's **playoff seed order** within each
 conference or league; soccer uses table ranks. ESPN tables show the season the
 provider returns, including offseason tables. NHL standings use the current local
 calendar date, independently of the selected score date. College standings remain
-unavailable.
+unavailable. Each group shares aligned column headers suited to its sport. Select
+a team's star to add or remove a favorite; selecting the table row leaves favorites
+unchanged.
 
 ### Open a game
 
 Select a loaded score row for its local detail view: score, status, venue, period
 or inning totals, team stats, and live situation where the provider supplies them.
 Upcoming games can show a bookmaker line and over/under with attribution.
+Missing optional sections stay out of the way; long play descriptions wrap and
+long period tables scroll horizontally.
 
 Open details follow the existing score feed, preserving scroll and action focus
 as data updates. An update message identifies retained scores if a request fails
@@ -147,11 +151,15 @@ up to 2.5 seconds to finish.
 | `S` | Toggle Scores / Standings on a supported league view. |
 | `R` | Refresh scores or the open standings table. |
 | `N` | Open Settings from scores. |
-| Arrow keys | Move through the active chooser, rows, or detail/settings actions. |
+| `F` / `/` | Filter leagues / search while browsing Favorite teams. |
+| Arrow keys | Move through the active chooser, rows, or detail/settings actions. Left/Right scrolls a long scoring table in details. |
+| Page Up / Page Down | Scroll game details or page through score rows. |
+| Home / End | Jump to the beginning or end of details or score rows. |
 | Enter / Space | Activate the selected action. |
 | Escape | Step back from details/settings, or close the panel. |
 
-Editors and open dropdowns own their keys. Tab follows Omarchy's neighboring-panel
+In Favorite teams, press Down or Enter from search to browse results; Enter on a
+result toggles its favorite state. Editors and open dropdowns own their keys. Tab follows Omarchy's neighboring-panel
 navigation rather than cycling through Sportray's actions.
 
 ## Data sources and privacy
@@ -198,13 +206,14 @@ Calendar feature remains disabled.
 <details>
 <summary>Refresh the documentation screenshots</summary>
 
-Requires the installed Omarchy UI modules, Quickshell, Qt Quick / QtTest, and
-JetBrainsMono Nerd Font. Render a review set with:
+Requires the installed Omarchy UI modules, Quickshell, Qt Quick / QtTest,
+Adwaita Sans, and JetBrainsMono Nerd Font. Render a review set with:
 
 ```bash
 python3 tools/capture-readme.py /tmp/sportray-readme
 ```
 
+Add `--theme catppuccin` for a dark-theme review.
 Without an output argument, the tool refreshes the README images and root
 `preview.png`. It uses illustrative state, stock theme files, and an isolated
 HOME; it does not load or change the installed plugin, desktop theme, or user

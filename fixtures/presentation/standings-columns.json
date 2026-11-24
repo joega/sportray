@@ -1,0 +1,12 @@
+{
+  "columns": [
+    {"league": "nhl", "labels": ["GP", "W", "L", "PTS"], "keys": ["played", "wins", "losses", "points"]},
+    {"league": "nfl", "labels": ["W", "L", "T"], "keys": ["wins", "losses", "ties"]},
+    {"league": "nba", "labels": ["W", "L"], "keys": ["wins", "losses"]},
+    {"league": "mlb", "labels": ["W", "L"], "keys": ["wins", "losses"]},
+    {"league": "eng.1", "labels": ["GP", "W", "D", "L", "PTS"], "keys": ["played", "wins", "draws", "losses", "points"]},
+    {"league": "usa.1", "labels": ["GP", "W", "D", "L", "PTS"], "keys": ["played", "wins", "draws", "losses", "points"]}
+  ],
+  "widths": [280, 320, 400],
+  "scales": [0.8, 1, 1.3333333333333333]
+}

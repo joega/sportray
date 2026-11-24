@@ -8,5 +8,15 @@
     "escapeWhileOpen": "close-detail",
     "escapeFromScores": "close-panel"
   },
-  "sparsePlaceholders": ["—", "Venue   ", "Outcome   ", "SCORING BY ", "TEAM STATS"]
+  "sparsePlaceholders": [
+    "\u2014"
+  ],
+  "hiddenUnavailableSections": [
+    "venue",
+    "outcome",
+    "lines",
+    "stats",
+    "odds",
+    "situation"
+  ]
 }

@@ -25,6 +25,7 @@ import QtQuick
 QtObject {
   readonly property color muted: "#666666"
   readonly property color urgent: "#bb2222"
+  readonly property var popups: ({text: "#222222"})
 }
 QML
 cat > "$IMPORT_DIR/qs/Commons/Style.qml" <<'QML'

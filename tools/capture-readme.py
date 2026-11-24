@@ -2,7 +2,7 @@
 """Capture native README examples without loading or changing the installed plugin.
 
 Usage: python3 tools/capture-readme.py [output-directory] [--logo-cache path]
-Uses installed Omarchy controls and stock Catppuccin Latte in an isolated HOME.
+Uses installed Omarchy controls and a stock theme in an isolated HOME.
 Sample data is illustrative. Only logo assets use the bounded production helper.
 The capture-only layer wrapper does not establish desktop/runtime acceptance.
 """
@@ -20,7 +20,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def capture(output, logo_cache=None):
+def capture(output, logo_cache=None, theme_name="catppuccin-latte"):
     shell = Path(os.environ.get("OMARCHY_PATH", "/usr/share/omarchy")) / "shell"
     with tempfile.TemporaryDirectory(prefix="sportray-readme-") as temporary:
         base = Path(temporary)
@@ -118,7 +118,7 @@ def capture(output, logo_cache=None):
         env["PATH"] = str(binaries) + ":/usr/bin"
         theme = config / "theme"
         theme.mkdir()
-        shutil.copy2(shell.parent / "themes/catppuccin-latte/colors.toml", theme / "colors.toml")
+        shutil.copy2(shell.parent / "themes" / theme_name / "colors.toml", theme / "colors.toml")
         templates = base / "templates"
         templates.mkdir()
         shutil.copy2(shell.parent / "default/themed/shell.toml.tpl", templates / "shell.toml.tpl")
@@ -156,5 +156,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", nargs="?", type=Path, default=ROOT / "screenshots")
     parser.add_argument("--logo-cache", type=Path)
+    parser.add_argument("--theme", choices=("catppuccin-latte", "catppuccin"), default="catppuccin-latte")
     args = parser.parse_args()
-    capture(args.output.resolve(), args.logo_cache)
+    capture(args.output.resolve(), args.logo_cache, args.theme)

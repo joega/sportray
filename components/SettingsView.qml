@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Ui
 
@@ -12,11 +13,11 @@ Item {
 
   readonly property var preferenceOptions: [
     {key: "enabled", label: "Notifications", description: "Allow Sportray to send desktop notifications."},
-    {key: "gameStart", label: "Game starts", description: "Notify when a favorite game becomes live."},
-    {key: "scoreChange", label: "Score changes", description: "Notify when a favorite team's score changes."},
-    {key: "gameFinal", label: "Game finals", description: "Notify when a favorite game ends."},
-    {key: "pregameReminder", label: "Pregame reminders", description: "Remind before a favorite game starts."},
-    {key: "closeGame", label: "Close-game alerts", description: "Alert when a favorite game reaches a one-score margin."}
+    {key: "gameStart", label: "Game starts", description: "When a favorite or watched game goes live."},
+    {key: "scoreChange", label: "Score changes", description: "When a favorite or watched game score changes."},
+    {key: "gameFinal", label: "Game finals", description: "When a favorite or watched game ends."},
+    {key: "pregameReminder", label: "Pregame reminders", description: "Before a favorite or watched game starts."},
+    {key: "closeGame", label: "Close-game alerts", description: "When a favorite or watched game is within one score."}
   ]
 
   implicitHeight: settingsColumn.implicitHeight
@@ -41,9 +42,11 @@ Item {
   }
 
   function cursorBounds() {
-    var top = Style.font.bodySmall + Style.spacing.sm
-      + root.cursorIndex * Style.space(64)
-    return {top: top, bottom: top + Style.space(56)}
+    var item = root.cursorIndex === root.preferenceOptions.length
+      ? testNotificationButton : preferenceRepeater.itemAt(root.cursorIndex)
+    if (!item) return {top: 0, bottom: 0}
+    var point = item.mapToItem(root, 0, 0)
+    return {top: point.y, bottom: point.y + item.height}
   }
 
   function activateCursor() {
@@ -75,17 +78,18 @@ Item {
     Text {
       textFormat: Text.PlainText
       width: parent.width
-      text: "↑/↓ or j/k to move · Enter/Space to toggle · n to open"
-      color: Color.muted
-      font.family: Style.font.family
+      text: "Alerts for your favorite teams and watched games."
+      color: Qt.alpha(Color.popups.text, 0.85)
+      font.family: Typography.family
       font.pixelSize: Style.font.bodySmall
       wrapMode: Text.WordWrap
     }
 
     Repeater {
+      id: preferenceRepeater
       model: root.preferenceOptions
 
-      delegate: Toggle {
+      delegate: SettingsToggle {
         required property var modelData
         required property int index
         width: settingsColumn.width
@@ -98,13 +102,14 @@ Item {
     }
 
     SemanticActionButton {
+      id: testNotificationButton
       width: settingsColumn.width
       height: Style.space(36)
       text: "Send test notification"
       hasCursor: root.cursorIndex === root.preferenceOptions.length
       textFontSize: Style.font.bodySmall
       textBold: true
-      bordered: true
+      bordered: false
       tooltipText: "Send a test notification"
       onClicked: root.sendTestNotification()
       Accessible.name: "Send test notification"
@@ -115,8 +120,8 @@ Item {
       textFormat: Text.PlainText
       width: parent.width
       text: "Sends a preview even when alerts are disabled."
-      color: Color.muted
-      font.family: Style.font.family
+      color: Qt.alpha(Color.popups.text, 0.85)
+      font.family: Typography.family
       font.pixelSize: Style.font.bodySmall
       wrapMode: Text.WordWrap
     }

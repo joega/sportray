@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import QtQuick.Controls as QQC
 import qs.Commons
 import qs.Ui
@@ -28,12 +29,14 @@ Item {
   readonly property var visibleTeams: PickerModel.filterAndOrderTeams(
     root.teams, root.query, root.leagueFilter, root.favoriteIds, root.leagues)
   readonly property int selectedCount: PickerModel.selectedCount(root.teams, root.favoriteIds)
-  readonly property bool inputActive: searchInput.activeFocus
+  readonly property bool inputActive: searchInput.activeFocus || clearButton.activeFocus
+    || filterFocus.activeFocus || leagueFilterPicker.popupOpen
 
   signal escapeRequested()
+  signal browseRequested()
 
   QQC.Action {
-    enabled: root.inputActive
+    enabled: searchInput.activeFocus && !leagueFilterPicker.popupOpen
     shortcut: "Escape"
     onTriggered: root.escapeRequested()
   }
@@ -41,6 +44,23 @@ Item {
   implicitHeight: pickerColumn.implicitHeight
   height: visible ? implicitHeight : 0
   width: parent ? parent.width : implicitWidth
+
+  function leagueName(id) {
+    for (var i = 0; i < root.leagues.length; i++) {
+      var league = root.leagues[i]
+      if (league && league.id === id) return league.displayName || league.name || id
+    }
+    return id || ""
+  }
+
+  function leagueOptions() {
+    var result = [{value: "all", label: "All leagues"}]
+    for (var i = 0; i < root.leagues.length; i++) {
+      var league = root.leagues[i]
+      if (league && league.id) result.push({value: league.id, label: root.leagueName(league.id)})
+    }
+    return result
+  }
 
   function isFavorite(team) {
     return team && typeof team.id === "string"
@@ -52,6 +72,10 @@ Item {
     root.cursorIndex = PickerModel.clampCursor(root.cursorIndex, delta, root.visibleTeams.length)
     teamList.positionViewAtIndex(root.cursorIndex, ListView.Contain)
     root.deferCallback(root.ensureCursorVisible)
+  }
+
+  function ensureCursorVisible() {
+    teamList.positionViewAtIndex(root.cursorIndex, ListView.Contain)
   }
 
   function deferCallback(callback) {
@@ -80,10 +104,19 @@ Item {
     searchInput.forceActiveFocus()
   }
 
+  function browseTeams() {
+    searchInput.focus = false
+    root.browseRequested()
+  }
+
+  function openLeagueFilter() {
+    leagueFilterPicker.open()
+  }
+
   function cursorBounds() {
     var item = teamList.itemAtIndex(root.cursorIndex)
-    var top = teamList.y + (item ? item.y : root.cursorIndex * Style.space(48))
-    return {top: top, bottom: top + (item ? item.height : Style.space(48))}
+    var point = item ? item.mapToItem(root, 0, 0) : teamList.mapToItem(root, 0, 0)
+    return {top: point.y, bottom: point.y + (item ? item.height : teamList.height)}
   }
 
   function clearSearch() {
@@ -107,7 +140,10 @@ Item {
   // The custom TextInput can retain active focus while the nested settings
   // destination is hidden. Release it explicitly so the panel key catcher
   // receives the next shortcut after Escape/Back returns to scores.
-  onVisibleChanged: if (!root.visible) searchInput.focus = false
+  onVisibleChanged: if (!root.visible) {
+    searchInput.focus = false
+    leagueFilterPicker.close()
+  }
 
   Component.onDestruction: LifecyclePolicy.invalidate(root.localCallbackOwner)
 
@@ -120,8 +156,8 @@ Item {
       textFormat: Text.PlainText
       width: parent.width
       text: root.selectedCount + " selected · selected teams stay at the top"
-      color: Color.muted
-      font.family: Style.font.family
+      color: Qt.alpha(Color.popups.text, 0.85)
+      font.family: Typography.family
       font.pixelSize: Style.font.bodySmall
       wrapMode: Text.WordWrap
     }
@@ -132,8 +168,10 @@ Item {
 
       TextField {
         id: searchInput
-        width: parent.width - clearButton.width - parent.spacing
+        width: parent.width - (clearButton.visible ? clearButton.width + parent.spacing : 0)
         placeholderText: "Search teams"
+        font.family: Typography.family
+        Accessible.name: "Search favorite teams"
         onTextChanged: {
           if (root.query !== text) root.query = text
           root.cursorIndex = 0
@@ -144,6 +182,10 @@ Item {
           if (event.key === Qt.Key_Escape) {
             root.escapeRequested()
             event.accepted = true
+          } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Return
+              || event.key === Qt.Key_Enter) {
+            root.browseTeams()
+            event.accepted = true
           }
         }
       }
@@ -152,6 +194,7 @@ Item {
         id: clearButton
         visible: root.query !== ""
         text: "Clear"
+        fontFamily: Typography.family
         focusable: true
         onClicked: root.clearSearch()
         Accessible.name: "Clear team search"
@@ -159,46 +202,34 @@ Item {
       }
     }
 
-    Text {
-      textFormat: Text.PlainText
+    FocusScope {
+      id: filterFocus
       width: parent.width
-      text: "League"
-      color: Color.popups.text
-      font.family: Style.font.family
-      font.pixelSize: Style.font.caption
-      font.bold: true
-    }
-
-    Flow {
-      width: parent.width
-      spacing: Style.spacing.xs
-
-      Button {
-        text: "All"
-        selected: root.leagueFilter === "all"
-        focusable: true
-        onClicked: root.setLeagueFilter("all")
-      }
-
-      Repeater {
-        model: root.leagues
-
-        Button {
-          required property var modelData
-          text: modelData ? (modelData.displayName || modelData.name || modelData.id) : ""
-          selected: modelData && root.leagueFilter === modelData.id
-          focusable: true
-          onClicked: root.setLeagueFilter(modelData ? modelData.id : "all")
-        }
+      height: leagueFilterPicker.implicitHeight
+      Dropdown {
+        id: leagueFilterPicker
+        anchors.fill: parent
+        label: "League"
+        showLabel: false
+        value: root.leagueFilter
+        options: root.leagueOptions()
+        fontFamily: Typography.family
+        onChanged: function(value) { root.setLeagueFilter(value) }
+        onPopupOpenChanged: if (!popupOpen && root.visible) root.browseTeams()
+        Accessible.name: "Filter favorite teams by league"
+        Accessible.role: Accessible.ComboBox
+        Accessible.onPressAction: leagueFilterPicker.open()
       }
     }
 
     Text {
       textFormat: Text.PlainText
       width: parent.width
-      text: root.visibleTeams.length === 0 ? "No teams match this search." : "Teams"
-      color: Color.muted
-      font.family: Style.font.family
+      text: root.visibleTeams.length === 0 ? "No teams match this search."
+        : "↓ Browse teams · F Filter league · / Search"
+      wrapMode: Text.WordWrap
+      color: Qt.alpha(Color.popups.text, 0.85)
+      font.family: Typography.family
       font.pixelSize: Style.font.caption
     }
 
@@ -207,7 +238,7 @@ Item {
       width: parent.width
       height: Math.min(contentHeight, Style.space(360))
       clip: true
-      spacing: Style.spacing.xs
+      spacing: 0
       model: root.visibleTeams
       boundsBehavior: Flickable.StopAtBounds
       interactive: contentHeight > height
@@ -230,8 +261,8 @@ Item {
             : root.isFavorite(modelData)
               ? Style.selectedFillFor(Color.popups.text, Color.accent)
               : "transparent"
-          borderSpec: Border.controlSpec(index === root.cursorIndex ? "focus" : "normal",
-            Color.popups.text, Color.accent)
+          borderSpec: index === root.cursorIndex
+            ? Border.controlSpec("hover-cursor", Color.popups.text, Color.accent) : Border.none()
 
           Row {
             anchors.fill: parent
@@ -244,6 +275,13 @@ Item {
               height: Style.space(28)
               anchors.verticalCenter: parent.verticalCenter
 
+              Rectangle {
+                anchors.fill: parent
+                anchors.margins: -Style.space(2)
+                radius: Style.space(4)
+                color: "#f5f5f5"
+                visible: logo.status === Image.Ready
+              }
               Image {
                 id: logo
                 anchors.fill: parent
@@ -258,8 +296,8 @@ Item {
                 anchors.fill: parent
                 visible: !logo.visible || logo.status !== Image.Ready
                 text: modelData.abbreviation || "?"
-                color: Color.muted
-                font.family: Style.font.family
+                color: Qt.alpha(Color.popups.text, 0.85)
+                font.family: Typography.family
                 font.pixelSize: Style.font.caption
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -277,7 +315,7 @@ Item {
                 width: parent.width
                 text: modelData.name || modelData.shortName || modelData.abbreviation || "Unnamed team"
                 color: Color.popups.text
-                font.family: Style.font.family
+                font.family: Typography.family
                 font.pixelSize: Style.font.body
                 elide: Text.ElideRight
               }
@@ -285,10 +323,11 @@ Item {
               Text {
                 textFormat: Text.PlainText
                 width: parent.width
-                text: (modelData.league || "").toUpperCase()
-                color: Color.muted
-                font.family: Style.font.family
+                text: root.leagueName(modelData.league)
+                color: Qt.alpha(Color.popups.text, 0.85)
+                font.family: Typography.family
                 font.pixelSize: Style.font.caption
+                elide: Text.ElideRight
               }
             }
 
@@ -299,9 +338,18 @@ Item {
               anchors.verticalCenter: parent.verticalCenter
               iconName: root.isFavorite(modelData) ? "star" : "starOutline"
               fontSize: Style.font.title
-              color: root.isFavorite(modelData) ? Color.accent : Color.muted
+              color: root.isFavorite(modelData) ? Color.accent : Qt.alpha(Color.popups.text, 0.85)
               decorative: true
             }
+          }
+
+          Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: Color.popups.text
+            opacity: 0.10
           }
 
           MouseArea {

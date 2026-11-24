@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import qs.Commons
 import qs.Ui
 
@@ -33,8 +34,8 @@ Item {
         textFormat: Text.PlainText
         width: parent.width - Style.space(18) - parent.spacing
         text: root.labelText
-        color: Color.muted
-        font.family: Style.font.family
+        color: Qt.alpha(Color.popups.text, 0.85)
+        font.family: Typography.family
         font.pixelSize: Style.font.body
         elide: Text.ElideRight
       }
@@ -48,7 +49,7 @@ Item {
         width: loadingColumn.width
         height: Style.space(64)
         color: Util.alpha(Color.popups.text, 0.04)
-        borderSpec: Border.controlSpec("normal", Color.popups.text, Color.accent)
+        borderSpec: Border.none()
         radius: Style.cornerRadius
 
         Column {

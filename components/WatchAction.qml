@@ -39,7 +39,7 @@ Item {
   }
   readonly property bool available: root.active || root.disabledReason === ""
    readonly property string actionLabel: root.active ? "Stop game alerts" : "Watch for game alerts"
-   readonly property string buttonText: root.active ? "Alerts on" : "Watch"
+   readonly property string buttonText: root.active ? "Alerts on" : "Alerts"
   readonly property bool pointerPressed: action.pointerPressed
 
   signal changed()
@@ -64,7 +64,7 @@ Item {
     anchors.fill: parent
     text: root.buttonText
     tooltipText: root.available ? root.actionLabel : root.disabledReason
-    textBold: true
+    textBold: false
     textFontSize: Style.font.bodySmall
     textHorizontalPadding: Style.spacing.xs
     textVerticalPadding: Style.spacing.xs

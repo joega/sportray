@@ -1,4 +1,5 @@
 import QtQuick
+import "../model/UiTypography.js" as Typography
 import Quickshell
 import QtQuick.Controls as QQC
 import qs.Commons
@@ -12,6 +13,7 @@ Item {
   id: root
 
   property var game: null
+  property var imageStore: null
   property string updateMessage: ""
   property bool stale: false
   property var settingsStore: null
@@ -32,6 +34,7 @@ Item {
     var url = value && typeof value.link === "string" ? value.link.toLowerCase() : ""
     if (url.indexOf("espn.com") !== -1) return {provider: "espn", label: "ESPN"}
     if (url.indexOf("nhl.com") !== -1) return {provider: "nhl", label: "NHL.com"}
+    if (url.indexOf("mlb.com") !== -1) return {provider: "mlb", label: "MLB.com"}
     return {provider: null, label: null}
   }
 
@@ -64,7 +67,7 @@ Item {
   function outcomeLabel() {
     var outcome = root.detail.outcome
     if (!outcome) return null
-    if (outcome.winner === "draw") return "Draw · winning margin " + outcome.margin
+    if (outcome.winner === "draw") return "Draw"
     var winner = outcome.winner === "away"
       ? root.detail.participants[0] : root.detail.participants[1]
     return root.teamLabel(winner) + " won by " + outcome.margin
@@ -141,8 +144,28 @@ Item {
   }
 
   function moveCursor(delta) {
-    root.cursorIndex = Math.max(0, Math.min(root.maxCursorIndex, root.cursorIndex + delta))
+    var next = Math.max(0, Math.min(root.maxCursorIndex, root.cursorIndex + delta))
+    if (next === 1 && !watchAction.available)
+      next = delta < 0 ? 0 : root.maxCursorIndex >= 2 ? 2 : 0
+    root.cursorIndex = next
     root.focusCursor()
+  }
+
+  function scrollLines(delta) {
+    if (!root.linesData || linesScroll.contentWidth <= linesScroll.width) return false
+    root.ensureVisible(linesScroll)
+    linesScroll.contentX = Math.max(0, Math.min(linesScroll.contentWidth - linesScroll.width,
+      linesScroll.contentX + delta * Style.space(96)))
+    return true
+  }
+
+  function scrollPage(direction) {
+    detailScroll.contentY = Math.max(0, Math.min(detailScroll.contentHeight - detailScroll.height,
+      detailScroll.contentY + direction * detailScroll.height * 0.8))
+  }
+
+  function scrollEdge(direction) {
+    detailScroll.contentY = direction < 0 ? 0 : Math.max(0, detailScroll.contentHeight - detailScroll.height)
   }
 
   function ensureVisible(item) {
@@ -190,6 +213,7 @@ Item {
   function resetCursor() {
     root.cursorIndex = 0
     detailScroll.contentY = 0
+    linesScroll.contentX = 0
     root.focusCursor()
   }
 
@@ -219,602 +243,463 @@ Item {
     interactive: contentHeight > height
     QQC.ScrollBar.vertical: QQC.ScrollBar { policy: QQC.ScrollBar.AsNeeded }
 
-  Column {
-    id: detailColumn
-    width: detailScroll.width
-    spacing: Style.spacing.md
+    Column {
+      id: detailColumn
+      width: detailScroll.width
+      spacing: Style.spacing.md
 
-        Row {
-          width: parent.width
-          spacing: Style.spacing.sm
+      Row {
+        width: parent.width
+        spacing: Style.spacing.sm
 
-          SemanticActionButton {
-            id: backButton
-            text: "Back"
-            tooltipText: "Return to scores"
-            textBold: true
-            textFontSize: Style.font.bodySmall
-            textVerticalPadding: Style.spacing.xs
-            bordered: true
-            focusable: true
-            hasCursor: root.cursorIndex === 0
-            onClicked: root.backRequested()
-            Accessible.name: "Back to scores"
-            Accessible.role: Accessible.Button
-          }
-
-          Column {
-            width: parent.width - backButton.implicitWidth - parent.spacing
-            spacing: Style.spacing.xxs
-
-            Text {
-              textFormat: Text.PlainText
-              width: parent.width
-              text: "GAME DETAILS"
-              color: Commons.Color.accent
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              width: parent.width
-              text: root.teamLabel(root.detail.participants[0]) + " at "
-                + root.teamLabel(root.detail.participants[1])
-              color: Commons.Color.popups.text
-              font.family: Style.font.family
-              font.pixelSize: Style.font.subtitle
-              font.bold: true
-              elide: Text.ElideRight
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              width: parent.width
-              text: root.valueOrDash(root.detail.league).toUpperCase()
-                + " · " + root.valueOrDash(root.detail.source.label)
-              color: Commons.Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              elide: Text.ElideRight
-            }
-          }
+        SemanticActionButton {
+          id: backButton
+          text: "Back"
+          tooltipText: "Return to scores"
+          textFontSize: Style.font.bodySmall
+          focusable: true
+          hasCursor: root.cursorIndex === 0
+          onClicked: root.backRequested()
+          Accessible.name: "Back to scores"
         }
 
-    Text {
-      textFormat: Text.PlainText
-      width: parent.width
-      visible: root.updateMessage !== ""
-      text: root.updateMessage
-      color: root.stale ? Commons.Color.urgent : Commons.Color.muted
-      font.family: Style.font.family
-      font.pixelSize: Style.font.bodySmall
-      wrapMode: Text.WordWrap
-      Accessible.name: root.updateMessage
-    }
+        Text {
+          width: Math.max(0, parent.width - backButton.width - parent.spacing)
+          anchors.verticalCenter: parent.verticalCenter
+          text: root.valueOrDash(root.detail.league).toUpperCase()
+            + " · " + root.valueOrDash(root.detail.source.label)
+          textFormat: Text.PlainText
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          horizontalAlignment: Text.AlignRight
+          elide: Text.ElideRight
+        }
+      }
 
-    BorderSurface {
-      width: parent.width
-      height: detailCardColumn.implicitHeight + Style.spacing.lg * 2
-      color: Commons.Color.popups.background
-      borderSpec: Border.controlSpec("normal", Commons.Color.popups.text, Commons.Color.accent)
-      radius: Style.cornerRadius
+      Text {
+        width: parent.width
+        visible: root.updateMessage !== ""
+        text: root.updateMessage
+        textFormat: Text.PlainText
+        color: root.stale ? Commons.Color.urgent : Qt.alpha(Commons.Color.popups.text, 0.85)
+        font.family: Typography.family
+        font.pixelSize: Style.font.bodySmall
+        wrapMode: Text.WordWrap
+        Accessible.name: root.updateMessage
+      }
 
       Column {
-        id: detailCardColumn
-        anchors.fill: parent
-        anchors.margins: Style.spacing.lg
-        spacing: Style.spacing.md
+        width: parent.width
+        spacing: Style.spacing.sm
 
-        Column {
-          width: parent.width
-          spacing: Style.spacing.xs
-
-          Row {
+        Repeater {
+          model: root.detail.participants
+          delegate: Row {
+            id: participantRow
+            required property var modelData
+            required property int index
+            readonly property string logoSource: root.imageStore && modelData.team && modelData.team.logoUrl
+              ? root.imageStore.sourceFor(modelData.team.logoUrl) : ""
             width: parent.width
             spacing: Style.spacing.sm
 
-            Text {
-              textFormat: Text.PlainText
-              width: Style.space(44)
-              text: "AWAY"
-              color: Commons.Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-
-            Column {
-              width: parent.width - scoreAway.implicitWidth - parent.spacing - Style.space(44)
-              spacing: Style.spacing.xxs
-
+            Item {
+              width: Style.space(36)
+              height: width
+              anchors.verticalCenter: parent.verticalCenter
+              Rectangle {
+                anchors.fill: parent
+                anchors.margins: -Style.space(2)
+                radius: Style.space(4)
+                color: "#f5f5f5"
+                visible: participantLogo.visible
+              }
+              Image {
+                id: participantLogo
+                anchors.fill: parent
+                source: participantRow.logoSource
+                sourceSize: Qt.size(width * 2, height * 2)
+                fillMode: Image.PreserveAspectFit
+                visible: status === Image.Ready
+                asynchronous: true
+              }
               Text {
+                anchors.centerIn: parent
+                text: root.teamLabel(participantRow.modelData)
                 textFormat: Text.PlainText
-                width: parent.width
-                text: root.teamLabel(root.detail.participants[0])
-                color: Commons.Color.popups.text
-                font.family: Style.font.family
-                font.pixelSize: Style.font.subtitle
-                font.bold: true
-                elide: Text.ElideRight
-              }
-
-              Text {
-                textFormat: Text.PlainText
-                width: parent.width
-                text: root.teamName(root.detail.participants[0])
-                color: Commons.Color.muted
-                font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
-                elide: Text.ElideRight
-              }
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              id: scoreAway
-              text: root.scoreLabel(root.detail.participants[0])
-              color: Commons.Color.popups.text
-              font.family: Style.font.family
-              font.pixelSize: Style.font.display
-              font.bold: true
-              horizontalAlignment: Text.AlignRight
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.spacing.sm
-
-            Text {
-              textFormat: Text.PlainText
-              width: Style.space(44)
-              text: "HOME"
-              color: Commons.Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-
-            Column {
-              width: parent.width - scoreHome.implicitWidth - parent.spacing - Style.space(44)
-              spacing: Style.spacing.xxs
-
-              Text {
-                textFormat: Text.PlainText
-                width: parent.width
-                text: root.teamLabel(root.detail.participants[1])
-                color: Commons.Color.popups.text
-                font.family: Style.font.family
-                font.pixelSize: Style.font.subtitle
-                font.bold: true
-                elide: Text.ElideRight
-              }
-
-              Text {
-                textFormat: Text.PlainText
-                width: parent.width
-                text: root.teamName(root.detail.participants[1])
-                color: Commons.Color.muted
-                font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
-                elide: Text.ElideRight
-              }
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              id: scoreHome
-              text: root.scoreLabel(root.detail.participants[1])
-              color: Commons.Color.popups.text
-              font.family: Style.font.family
-              font.pixelSize: Style.font.display
-              font.bold: true
-              horizontalAlignment: Text.AlignRight
-            }
-          }
-        }
-
-        Column {
-          width: parent.width
-          spacing: Style.spacing.xxs
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: Formatters.formatDetailStatus(root.detail.status)
-            color: Commons.Color.popups.text
-            font.family: Style.font.family
-            font.pixelSize: Style.font.body
-            font.bold: true
-            elide: Text.ElideRight
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: Formatters.formatDetailTiming(
-              root.timeLabel(root.detail.timing.startTime),
-              root.timeLabel(root.detail.timing.endTime))
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: "Venue   " + root.valueOrDash(root.detail.venue)
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: "Outcome   " + root.valueOrDash(root.outcomeLabel())
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-          }
-        }
-
-        Column {
-          width: parent.width
-          visible: root.situationData !== null
-          spacing: Style.spacing.xxs
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: "SITUATION"
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.caption
-            font.bold: true
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.spacing.sm
-
-            Text {
-              textFormat: Text.PlainText
-              width: Style.space(44)
-              text: "COUNT"
-              color: Commons.Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              text: root.situationCountLabel()
-              color: Commons.Color.popups.text
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              font.bold: true
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              width: Style.space(30)
-              text: "OUT"
-              color: Commons.Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              text: root.situationOutsLabel()
-              color: Commons.Color.popups.text
-              font.family: Style.font.family
-              font.pixelSize: Style.font.bodySmall
-              font.bold: true
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.spacing.sm
-
-            Text {
-              textFormat: Text.PlainText
-              width: Style.space(44)
-              text: "BASES"
-              color: Commons.Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-              Accessible.role: Accessible.StaticText
-              Accessible.name: root.situationAccessibleBases()
-            }
-
-            Repeater {
-              model: [
-                {occupied: root.situationData ? root.situationData.onFirst : false},
-                {occupied: root.situationData ? root.situationData.onSecond : false},
-                {occupied: root.situationData ? root.situationData.onThird : false}
-              ]
-
-              delegate: Rectangle {
-                required property var modelData
-                width: Style.space(8)
-                height: width
-                radius: width / 2
-                color: modelData.occupied ? Commons.Color.accent : "transparent"
-                border.color: modelData.occupied ? Commons.Color.accent : Commons.Color.muted
-                border.width: 1
-              }
-            }
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            visible: Boolean(root.situationData && root.situationData.lastPlay)
-            text: root.situationData && root.situationData.lastPlay
-              ? "Last play   " + root.situationData.lastPlay : ""
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-          }
-        }
-
-        Column {
-          width: parent.width
-          spacing: Style.spacing.xxs
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: "SCORING BY "
-              + Formatters.scoringPeriodUnit(root.detail.league).toUpperCase()
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.caption
-            font.bold: true
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            visible: !root.linesData
-            text: "—"
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.spacing.sm
-
-            Text {
-              textFormat: Text.PlainText
-              width: Style.space(44)
-              text: "#"
-              color: Commons.Color.muted
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-
-            Repeater {
-              model: root.linePeriods()
-
-              delegate: Text {
-                textFormat: Text.PlainText
-                required property string modelData
-                width: Style.space(30)
-                text: modelData
-                color: Commons.Color.muted
-                font.family: Style.font.family
+                visible: !participantLogo.visible
+                color: Qt.alpha(Commons.Color.popups.text, 0.85)
+                font.family: Typography.family
                 font.pixelSize: Style.font.caption
-                font.bold: true
-                horizontalAlignment: Text.AlignRight
               }
             }
-          }
 
+            Column {
+              width: Math.max(0, parent.width - teamScore.width
+                - Style.space(36) - parent.spacing * 2)
+              spacing: Style.spacing.xxs
+              anchors.verticalCenter: parent.verticalCenter
+              Text {
+                width: parent.width
+                text: root.teamName(participantRow.modelData)
+                textFormat: Text.PlainText
+                color: Commons.Color.popups.text
+                font.family: Typography.family
+                font.pixelSize: Style.font.subtitle
+                font.weight: Font.DemiBold
+                wrapMode: Text.WordWrap
+              }
+              Text {
+                text: participantRow.index === 0 ? "Away" : "Home"
+                textFormat: Text.PlainText
+                color: Qt.alpha(Commons.Color.popups.text, 0.85)
+                font.family: Typography.family
+                font.pixelSize: Style.font.caption
+              }
+            }
+
+            Text {
+              id: teamScore
+              width: Style.space(64)
+              anchors.verticalCenter: parent.verticalCenter
+              text: root.scoreLabel(participantRow.modelData)
+              textFormat: Text.PlainText
+              color: Commons.Color.popups.text
+              font.family: Typography.family
+              font.pixelSize: Style.font.display
+              font.features: ({"tnum": 1})
+              font.bold: true
+              horizontalAlignment: Text.AlignRight
+            }
+          }
+        }
+
+        Text {
+          width: parent.width
+          text: Formatters.formatDetailStatus(root.detail.status)
+          textFormat: Text.PlainText
+          color: root.stale ? Commons.Color.urgent : Commons.Color.accent
+          font.family: Typography.family
+          font.pixelSize: Style.font.body
+          font.weight: Font.DemiBold
+          wrapMode: Text.WordWrap
+        }
+      }
+
+      Flow {
+        width: parent.width
+        spacing: Style.spacing.sm
+        WatchAction {
+          id: watchAction
+          game: root.game
+          settingsStore: root.settingsStore
+          currentTime: root.currentTime
+          hasCursor: root.cursorIndex === 1
+        }
+        SourceLinkButton {
+          id: sourceLink
+          game: root.game
+          hasCursor: root.sourceAvailable && root.cursorIndex === 2
+        }
+        Repeater {
+          id: extraLinkButtons
+          model: root.extraLinks
+          delegate: SemanticActionButton {
+            id: extraLinkButton
+            required property var modelData
+            required property int index
+            text: modelData.label
+            tooltipText: "Open " + modelData.label + " page"
+            textFontSize: Style.font.bodySmall
+            focusable: true
+            enabled: typeof modelData.url === "string" && modelData.url.indexOf("https://") === 0
+            hasCursor: root.cursorIndex === root.linkCursorOffset + extraLinkButton.index
+            onClicked: root.openExternalUrl(modelData.url)
+            Accessible.name: "Open " + modelData.label + " page"
+          }
+        }
+      }
+
+      Rectangle { width: parent.width; height: 1; color: Commons.Color.popups.text; opacity: 0.12 }
+
+      Column {
+        width: parent.width
+        spacing: Style.spacing.xs
+        Text {
+          width: parent.width
+          visible: Boolean(root.detail.timing.startTime)
+          text: Formatters.formatDetailTiming(root.timeLabel(root.detail.timing.startTime),
+            root.timeLabel(root.detail.timing.endTime))
+          textFormat: Text.PlainText
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+        Text {
+          width: parent.width
+          visible: Boolean(root.detail.venue)
+          text: root.valueOrDash(root.detail.venue)
+          textFormat: Text.PlainText
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+        Text {
+          width: parent.width
+          visible: root.outcomeLabel() !== null
+          text: root.valueOrDash(root.outcomeLabel())
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+      }
+
+      Column {
+        width: parent.width
+        visible: root.situationData !== null
+        spacing: Style.spacing.sm
+        Text {
+          text: "Game situation"
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.body
+          font.weight: Font.DemiBold
+        }
+        Text {
+          width: parent.width
+          text: "Count " + root.situationCountLabel() + " · " + root.situationOutsLabel() + " out"
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+        }
+        Row {
+          spacing: Style.spacing.sm
+          Text {
+            text: "Bases"
+            textFormat: Text.PlainText
+            color: Qt.alpha(Commons.Color.popups.text, 0.85)
+            font.family: Typography.family
+            font.pixelSize: Style.font.bodySmall
+            Accessible.name: root.situationAccessibleBases()
+          }
           Repeater {
-            model: ["away", "home"]
+            model: [root.situationData ? root.situationData.onFirst : false,
+              root.situationData ? root.situationData.onSecond : false,
+              root.situationData ? root.situationData.onThird : false]
+            Rectangle {
+              required property bool modelData
+              width: Style.space(9)
+              height: width
+              anchors.verticalCenter: parent.verticalCenter
+              rotation: 45
+              color: modelData ? Commons.Color.accent : "transparent"
+              border.color: modelData ? Commons.Color.accent : Qt.alpha(Commons.Color.popups.text, 0.85)
+              border.width: 1
+              Accessible.ignored: true
+            }
+          }
+        }
+        Text {
+          width: parent.width
+          visible: Boolean(root.situationData && root.situationData.lastPlay)
+          text: root.situationData && root.situationData.lastPlay ? root.situationData.lastPlay : ""
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+      }
 
-            delegate: Row {
-              id: linesSideRow
-              required property string modelData
+      Column {
+        width: parent.width
+        visible: root.linesData !== null
+        spacing: Style.spacing.sm
+        Text {
+          text: "Scoring by " + Formatters.scoringPeriodUnit(root.detail.league).toLowerCase()
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.body
+          font.weight: Font.DemiBold
+        }
+        Flickable {
+          id: linesScroll
+          width: parent.width
+          height: linesTable.implicitHeight + (contentWidth > width ? Style.space(10) : 0)
+          contentWidth: Math.max(width, Style.space(48) + root.linePeriods().length * Style.space(32))
+          contentHeight: linesTable.implicitHeight
+          clip: true
+          boundsBehavior: Flickable.StopAtBounds
+          flickableDirection: Flickable.HorizontalFlick
+          interactive: contentWidth > width
+          QQC.ScrollBar.horizontal: QQC.ScrollBar { policy: QQC.ScrollBar.AsNeeded }
+          Column {
+            id: linesTable
+            width: linesScroll.contentWidth
+            spacing: Style.spacing.xs
+            Row {
               width: parent.width
-              spacing: Style.spacing.sm
-
               Text {
+                width: Style.space(48)
+                text: "Team"
                 textFormat: Text.PlainText
-                width: Style.space(44)
-                text: linesSideRow.modelData === "away" ? "AWAY" : "HOME"
-                color: Commons.Color.muted
-                font.family: Style.font.family
+                color: Qt.alpha(Commons.Color.popups.text, 0.85)
+                font.family: Typography.family
                 font.pixelSize: Style.font.caption
-                font.bold: true
               }
-
               Repeater {
-                model: root.lineValues(linesSideRow.modelData)
-
-                delegate: Text {
-                  textFormat: Text.PlainText
+                model: root.linePeriods()
+                Text {
                   required property string modelData
-                  width: Style.space(30)
+                  width: (linesTable.width - Style.space(48)) / Math.max(1, root.linePeriods().length)
                   text: modelData
-                  color: Commons.Color.popups.text
-                  font.family: Style.font.family
-                  font.pixelSize: Style.font.bodySmall
-                  font.bold: true
+                  textFormat: Text.PlainText
+                  color: Qt.alpha(Commons.Color.popups.text, 0.85)
+                  font.family: Typography.family
+                  font.pixelSize: Style.font.caption
                   horizontalAlignment: Text.AlignRight
+                }
+              }
+            }
+            Repeater {
+              model: ["away", "home"]
+              Row {
+                id: linesSideRow
+                required property string modelData
+                width: linesTable.width
+                Text {
+                  width: Style.space(48)
+                  text: root.teamLabel(root.detail.participants[linesSideRow.modelData === "away" ? 0 : 1])
+                  textFormat: Text.PlainText
+                  color: Commons.Color.popups.text
+                  font.family: Typography.family
+                  font.pixelSize: Style.font.bodySmall
+                  elide: Text.ElideRight
+                }
+                Repeater {
+                  model: root.lineValues(linesSideRow.modelData)
+                  Text {
+                    required property string modelData
+                    width: (linesTable.width - Style.space(48)) / Math.max(1, root.linePeriods().length)
+                    text: modelData
+                    textFormat: Text.PlainText
+                    color: Commons.Color.popups.text
+                    font.family: Typography.family
+                    font.pixelSize: Style.font.bodySmall
+                    font.features: ({"tnum": 1})
+                    horizontalAlignment: Text.AlignRight
+                  }
                 }
               }
             }
           }
         }
-
-        Column {
+        Text {
           width: parent.width
-          spacing: Style.spacing.xxs
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: "TEAM STATS"
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.caption
-            font.bold: true
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            visible: !root.statsData
-            text: "—"
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-          }
-
-          Repeater {
-            model: root.statRows()
-
-            delegate: Row {
-              id: statRow
-              required property var modelData
-              width: parent.width
-              spacing: Style.spacing.sm
-
-              Text {
-                textFormat: Text.PlainText
-                width: parent.width - Style.space(44) * 2 - parent.spacing * 2
-                text: statRow.modelData.label
-                color: Commons.Color.muted
-                font.family: Style.font.family
-                font.pixelSize: Style.font.caption
-                elide: Text.ElideRight
-              }
-
-              Text {
-                textFormat: Text.PlainText
-                width: Style.space(44)
-                text: statRow.modelData.away
-                color: Commons.Color.popups.text
-                font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
-                font.bold: true
-                horizontalAlignment: Text.AlignRight
-              }
-
-              Text {
-                textFormat: Text.PlainText
-                width: Style.space(44)
-                text: statRow.modelData.home
-                color: Commons.Color.popups.text
-                font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
-                font.bold: true
-                horizontalAlignment: Text.AlignRight
-              }
-            }
-          }
+          visible: linesScroll.contentWidth > linesScroll.width
+          text: "← / → to see more " + Formatters.scoringPeriodUnit(root.detail.league).toLowerCase() + "s"
+          textFormat: Text.PlainText
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.WordWrap
         }
+      }
 
-        Column {
-          width: parent.width
-          visible: root.oddsData !== null
-          spacing: Style.spacing.xxs
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: "ODDS"
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.caption
-            font.bold: true
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            width: parent.width
-            text: root.oddsLabel()
-            color: Commons.Color.popups.text
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            font.bold: true
-            elide: Text.ElideRight
-          }
-        }
-
+      Column {
+        width: parent.width
+        visible: root.statsData !== null
+        spacing: Style.spacing.sm
         Row {
           width: parent.width
-          spacing: Style.spacing.sm
-
           Text {
+            width: parent.width - Style.space(100)
+            text: "Team stats"
             textFormat: Text.PlainText
-            width: parent.width - actionsRow.implicitWidth - parent.spacing
-            text: root.valueOrDash(root.detail.source.label)
-            color: Commons.Color.muted
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            verticalAlignment: Text.AlignVCenter
+            color: Commons.Color.popups.text
+            font.family: Typography.family
+            font.pixelSize: Style.font.body
+            font.weight: Font.DemiBold
           }
-
+          Repeater {
+            model: root.detail.participants
+            Text {
+              required property var modelData
+              width: Style.space(50)
+              text: root.teamLabel(modelData)
+              textFormat: Text.PlainText
+              color: Qt.alpha(Commons.Color.popups.text, 0.85)
+              font.family: Typography.family
+              font.pixelSize: Style.font.caption
+              horizontalAlignment: Text.AlignRight
+              elide: Text.ElideRight
+            }
+          }
+        }
+        Repeater {
+          model: root.statRows()
           Row {
-            id: actionsRow
-            spacing: Style.spacing.xs
-
-            WatchAction {
-              id: watchAction
-              game: root.game
-              settingsStore: root.settingsStore
-              currentTime: root.currentTime
-              hasCursor: root.cursorIndex === 1
+            id: statRow
+            required property var modelData
+            width: parent.width
+            Text {
+              width: parent.width - Style.space(100)
+              text: statRow.modelData.label
+              textFormat: Text.PlainText
+              color: Qt.alpha(Commons.Color.popups.text, 0.85)
+              font.family: Typography.family
+              font.pixelSize: Style.font.bodySmall
+              wrapMode: Text.WordWrap
             }
-
-            SourceLinkButton {
-              id: sourceLink
-              game: root.game
-              hasCursor: root.sourceAvailable && root.cursorIndex === 2
-            }
-
             Repeater {
-              id: extraLinkButtons
-              model: root.extraLinks
-
-              delegate: SemanticActionButton {
-                id: extraLinkButton
-                required property var modelData
-                required property int index
-                text: modelData.label
-                tooltipText: "Open " + modelData.label + " page"
-                textBold: true
-                textFontSize: Style.font.bodySmall
-                textHorizontalPadding: Style.spacing.xs
-                textVerticalPadding: Style.spacing.xs
-                focusable: true
-                enabled: typeof modelData.url === "string"
-                  && modelData.url.indexOf("https://") === 0
-                hasCursor: root.cursorIndex === root.linkCursorOffset + extraLinkButton.index
-                onClicked: root.openExternalUrl(modelData.url)
-                Accessible.name: "Open " + modelData.label + " page"
-                Accessible.role: Accessible.Button
+              model: [statRow.modelData.away, statRow.modelData.home]
+              Text {
+                required property string modelData
+                width: Style.space(50)
+                text: modelData
+                textFormat: Text.PlainText
+                color: Commons.Color.popups.text
+                font.family: Typography.family
+                font.pixelSize: Style.font.bodySmall
+                font.features: ({"tnum": 1})
+                horizontalAlignment: Text.AlignRight
+                elide: Text.ElideRight
               }
             }
           }
         }
       }
+
+      Column {
+        width: parent.width
+        visible: root.oddsData !== null && root.detail.status.state === "scheduled"
+        spacing: Style.spacing.xs
+        Text {
+          text: "Pregame odds"
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.body
+          font.weight: Font.DemiBold
+        }
+        Text {
+          width: parent.width
+          text: root.oddsLabel()
+          textFormat: Text.PlainText
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+        }
+      }
     }
-  }
   }
 }
