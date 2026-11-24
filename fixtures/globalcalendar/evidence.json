@@ -1,0 +1,86 @@
+{
+  "transform": "Sanitized public daily samples. All source events retained; optional references/links/records/stats and league presentation/calendar metadata removed. Source byte/character counts measured before sanitization.",
+  "sources": [
+    {
+      "name": "daily-nhl",
+      "url": "https://api-web.nhle.com/v1/score/2026-11-24",
+      "fetchedAt": "2026-11-24T18:55:30.623038+00:00",
+      "status": 200,
+      "bytes": 6402,
+      "chars": 6402,
+      "eventCount": 1,
+      "fixtureEventCount": 1
+    },
+    {
+      "name": "daily-mlb",
+      "url": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2027-04-01&hydrate=team,linescore",
+      "fetchedAt": "2026-11-24T18:55:30.623318+00:00",
+      "status": 200,
+      "bytes": 25348,
+      "chars": 25348,
+      "eventCount": 8,
+      "fixtureEventCount": 8
+    },
+    {
+      "name": "daily-nfl",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=20261124",
+      "fetchedAt": "2026-11-24T18:55:30.623569+00:00",
+      "status": 200,
+      "bytes": 5115,
+      "chars": 5115,
+      "eventCount": 0,
+      "fixtureEventCount": 0
+    },
+    {
+      "name": "daily-nba",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20261124",
+      "fetchedAt": "2026-11-24T18:55:30.674276+00:00",
+      "status": 200,
+      "bytes": 62712,
+      "chars": 62712,
+      "eventCount": 3,
+      "fixtureEventCount": 3
+    },
+    {
+      "name": "daily-cfb",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=20261124",
+      "fetchedAt": "2026-11-24T18:55:30.681978+00:00",
+      "status": 200,
+      "bytes": 41962,
+      "chars": 41962,
+      "eventCount": 2,
+      "fixtureEventCount": 2
+    },
+    {
+      "name": "daily-ncaab",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=20261124",
+      "fetchedAt": "2026-11-24T18:55:30.729440+00:00",
+      "status": 200,
+      "bytes": 213992,
+      "chars": 213992,
+      "eventCount": 11,
+      "fixtureEventCount": 11
+    },
+    {
+      "name": "daily-epl",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20261128",
+      "fetchedAt": "2026-11-24T18:55:30.741127+00:00",
+      "status": 200,
+      "bytes": 39605,
+      "chars": 39605,
+      "eventCount": 3,
+      "fixtureEventCount": 3
+    },
+    {
+      "name": "daily-mls",
+      "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates=20261128",
+      "fetchedAt": "2026-11-24T18:55:30.789435+00:00",
+      "status": 200,
+      "bytes": 74156,
+      "chars": 74152,
+      "eventCount": 6,
+      "fixtureEventCount": 6
+    }
+  ],
+  "sourceCountMethod": "NHL: games.length. MLB StatsAPI: sum of dates[].games.length. ESPN: events.length. Counts checked against the sanitized fixture; no events were synthesized or omitted."
+}

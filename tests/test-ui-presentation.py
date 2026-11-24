@@ -138,7 +138,7 @@ class UiPresentationTests(unittest.TestCase):
                 config, env, captures = stage(base, case)
                 try:
                     result = subprocess.run(["/usr/bin/quickshell", "-n", "--no-color", "-p", str(config)],
-                                            env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=45)
+                                            env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=65)
                     transcript = result.stdout.decode(errors="replace")
                 except subprocess.TimeoutExpired as error:
                     transcript = (error.stdout or b"").decode(errors="replace")
@@ -160,7 +160,7 @@ class UiPresentationTests(unittest.TestCase):
                 self.assertIn("UI_PRESENTATION_PASS " + case["name"], transcript, transcript)
                 self.assertEqual((base / "browser.log").read_text().splitlines(),
                                  ["https://www.nhl.com/gamecenter/2026020001"])
-                for name in ("following", "detail", "standings", "settings", "upcoming"):
+                for name in ("following", "detail", "standings", "settings", "upcoming", "calendar-global"):
                     data = (captures / (name + ".png")).read_bytes()
                     self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
                     self.assertEqual(int.from_bytes(data[16:20], "big"), case["width"])

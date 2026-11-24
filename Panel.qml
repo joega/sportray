@@ -48,6 +48,7 @@ Panel {
   property string upcomingTeamId: ""
   property string upcomingMonthKey: ""
   property string upcomingWindowStart: ""
+  property string upcomingBrowseDate: ""
   property string upcomingLocalError: ""
   property bool detailOpen: false
   property var detailGame: null
@@ -241,16 +242,17 @@ Panel {
     return league && league.displayName ? league.displayName : root.calendarLeagueId
   }
   readonly property var pickerTeams: buildPickerTeams()
-  readonly property var upcomingTeamOptions: root.pickerTeams.filter(function(team) {
+  readonly property var upcomingTeamOptions: [{value: "", label: "All followed leagues"}].concat(root.pickerTeams.filter(function(team) {
     return root.favoriteTeamIds.indexOf(team.id) !== -1
       && root.enabledLeagues.indexOf(team.league) !== -1
   }).map(function(team) {
     var league = LeagueCatalog.getLeague(team.league)
     return {value: team.id, label: team.name + " · "
       + (league ? league.displayName : team.league.toUpperCase())}
-  })
+  }))
   readonly property var upcomingScheduleState: root.upcomingLocalError !== ""
-    ? {teamId: root.upcomingTeamId, loading: false, hasData: false,
+    ? {teamId: root.upcomingTeamId, scope: root.upcomingTeamId ? "team" : "global",
+      dateKey: root.upcomingBrowseDate, loading: false, hasData: false,
       partial: true, errorSummary: root.upcomingLocalError, entries: []}
     : root.fetchService && typeof root.fetchService.upcomingState !== "undefined"
       ? root.fetchService.upcomingState : ({})
@@ -269,7 +271,12 @@ Panel {
 
   function requestUpcoming(force) {
     root.upcomingLocalError = ""
-    if (!root.upcomingTeamId) return
+    if (!root.upcomingTeamId) {
+      if (!root.fetchService || typeof root.fetchService.requestGlobalCalendar !== "function"
+          || !root.fetchService.requestGlobalCalendar(root.panelToken, root.upcomingBrowseDate, force === true))
+        root.upcomingLocalError = "Calendar unavailable. Try again."
+      return
+    }
     if (!root.fetchService || typeof root.fetchService.requestUpcoming !== "function"
         || !root.fetchService.requestUpcoming(root.panelToken, root.upcomingTeamId,
           root.upcomingWindowStart, DateModel.addDays(root.upcomingWindowStart, 34), force === true))
@@ -279,15 +286,10 @@ Panel {
   function openUpcomingCalendar() {
     if (root.settingsOpen || root.detailOpen || root.standingsOpen) return
     if (upcomingPopup.opened) { upcomingPopup.close(); return }
-    if (!root.upcomingTeamOptions.some(function(option) { return option.value === root.upcomingTeamId })) {
-      var preferred = root.upcomingTeamOptions.filter(function(option) {
-        return option.value.split(":")[0] === root.activeDestination
-      })
-      root.upcomingTeamId = preferred.length ? preferred[0].value
-        : root.upcomingTeamOptions.length ? root.upcomingTeamOptions[0].value : ""
-    }
+    root.upcomingTeamId = ""
+    root.upcomingBrowseDate = root.selectedDateKey
     root.upcomingMonthKey = CalendarModel.monthKey(root.selectedDateKey)
-    root.upcomingWindowStart = root.selectedDateKey
+    root.upcomingWindowStart = root.todayDateKey
     upcomingPopup.open()
     root.requestUpcoming(false)
   }
@@ -296,7 +298,8 @@ Panel {
     if (!DateModel.isDateKey(dateKey)) return
     var league = root.upcomingTeamId.split(":")[0]
     upcomingPopup.close()
-    if (root.activeDestination !== "following" && root.activeDestination !== league)
+    if (!root.upcomingTeamId) root.selectDestination("following")
+    else if (root.activeDestination !== league)
       root.selectDestination(league)
     root.selectDate(dateKey)
   }
@@ -308,6 +311,15 @@ Panel {
       root.fetchService.cancelUpcoming(root.panelToken)
     root.upcomingTeamId = root.upcomingTeamOptions.length ? root.upcomingTeamOptions[0].value : ""
     root.requestUpcoming(false)
+  }
+
+  onFollowedLeagueIdsChanged: {
+    if (upcomingPopup && upcomingPopup.opened && !root.upcomingTeamId)
+      root.deferPanelCallback(function() { if (upcomingPopup.opened) root.requestUpcoming(false) })
+  }
+  onEnabledLeaguesChanged: {
+    if (upcomingPopup && upcomingPopup.opened && !root.upcomingTeamId)
+      root.deferPanelCallback(function() { if (upcomingPopup.opened) root.requestUpcoming(false) })
   }
 
   function openStandings() {
@@ -1204,8 +1216,11 @@ Panel {
         focus: true
         padding: Style.spacing.popupPadding
         width: Math.min(Style.space(400), parent ? parent.width : panel.contentWidth)
-        height: Math.min(Style.space(600), Math.max(Style.space(200),
+        readonly property real maximumHeight: Math.min(Style.space(600), Math.max(Style.space(200),
           (parent ? parent.height : Style.space(640)) - Style.spacing.md * 2))
+        height: root.upcomingTeamId ? Math.min(maximumHeight, Math.max(Style.space(240),
+          upcomingCalendar.implicitHeight + upcomingHeading.height + Style.spacing.md + padding * 2))
+          : maximumHeight
         x: parent ? Math.max(0, Math.min(parent.width - width,
           calendarButton.mapToItem(parent, calendarButton.width, 0).x - width)) : 0
         y: parent ? Math.max(0, Math.min(parent.height - height,
@@ -1237,10 +1252,10 @@ Panel {
             Text {
               textFormat: Text.PlainText
               anchors.left: parent.left
-              anchors.right: upcomingClose.left
+              anchors.right: upcomingLeagues.visible ? upcomingLeagues.left : upcomingClose.left
               anchors.rightMargin: Style.spacing.sm
               anchors.verticalCenter: parent.verticalCenter
-              text: "Team calendar"
+              text: root.upcomingTeamId ? "Team schedule" : "Calendar"
               font.family: Typography.family
               font.pixelSize: Style.font.subtitle
               font.bold: true
@@ -1248,14 +1263,27 @@ Panel {
               elide: Text.ElideRight
             }
             SemanticActionButton {
+              id: upcomingLeagues
+              anchors.right: upcomingClose.left
+              anchors.rightMargin: Style.spacing.sm
+              visible: !root.upcomingTeamId
+              text: "Leagues"
+              textFontSize: Style.font.caption
+              tooltipText: "Choose followed leagues"
+              focusable: true
+              onClicked: { upcomingPopup.close(); root.openUtility("sports") }
+              Accessible.name: "Choose followed leagues in Sports & leagues"
+              Accessible.role: Accessible.Button
+            }
+            SemanticActionButton {
               id: upcomingClose
               anchors.right: parent.right
               iconName: "close"
               fallbackText: "X"
-              tooltipText: "Close team calendar"
+              tooltipText: "Close calendar"
               focusable: true
               onClicked: upcomingPopup.close()
-              Accessible.name: "Close team calendar"
+              Accessible.name: "Close calendar"
               Accessible.role: Accessible.Button
             }
           }
@@ -1263,46 +1291,35 @@ Panel {
             id: upcomingCalendar
             width: parent.width
             height: Math.max(0, upcomingPopup.availableHeight - upcomingHeading.height - parent.spacing)
-            visible: root.upcomingTeamOptions.length > 0
             teamOptions: root.upcomingTeamOptions
             teamId: root.upcomingTeamId
-            selectedDateKey: root.selectedDateKey
+            selectedDateKey: root.upcomingTeamId ? root.upcomingWindowStart : root.upcomingBrowseDate
             todayDateKey: root.todayDateKey
             monthKey: root.upcomingMonthKey
             scheduleState: root.upcomingScheduleState
             imageStore: root.logoImageStore
             onTeamSelected: function(teamId) {
               root.upcomingTeamId = teamId
+              if (teamId) root.upcomingWindowStart = root.todayDateKey
               root.requestUpcoming(false)
             }
             onMonthRequested: function(monthKey) {
               root.upcomingMonthKey = monthKey
-              root.upcomingWindowStart = monthKey
+              root.upcomingBrowseDate = monthKey
+              root.requestUpcoming(false)
+            }
+            onDaySelected: function(dateKey) {
+              root.upcomingBrowseDate = dateKey
+              root.upcomingMonthKey = CalendarModel.monthKey(dateKey)
+              root.requestUpcoming(false)
+            }
+            onWindowRequested: function(startDateKey) {
+              root.upcomingWindowStart = startDateKey
               root.requestUpcoming(false)
             }
             onDateSelected: function(dateKey) { root.jumpToUpcomingDate(dateKey) }
             onRetryRequested: root.requestUpcoming(true)
             onCloseRequested: upcomingPopup.close()
-          }
-          Column {
-            width: parent.width
-            visible: !root.upcomingTeamOptions.length
-            spacing: Style.spacing.md
-            Text {
-              textFormat: Text.PlainText
-              width: parent.width
-              text: "Follow a team to see its upcoming games here. Enable its league in Sports & leagues."
-              font.family: Typography.family
-              font.pixelSize: Style.font.body
-              color: Color.popups.text
-              wrapMode: Text.WordWrap
-            }
-            Button {
-              text: "Choose favorite teams"
-              fontFamily: Typography.family
-              focusable: true
-              onClicked: { upcomingPopup.close(); root.openUtility("teams") }
-            }
           }
         }
       }
@@ -1559,11 +1576,11 @@ Panel {
                   size: dateCarousel.implicitHeight
                   iconName: "calendar"
                   fallbackText: "G"
-                  tooltipText: "Team calendar (G)"
+                  tooltipText: "Calendar (G)"
                   bordered: true
                   focusable: true
                   onClicked: root.openUpcomingCalendar()
-                  Accessible.name: "Team calendar. Find your next game"
+                  Accessible.name: "Calendar. Browse followed leagues or a team schedule"
                   Accessible.role: Accessible.Button
                 }
               }

@@ -13,6 +13,7 @@ Item {
   property var enabledLeagues: ["nhl"]
   property bool settingsReady: false
   property var favoriteTeamIds: []
+  property var followedLeagueIds: []
   property string selectedDateKey: ""
   property string lookaheadLeagueId: ""
   property bool panelOpen: false
@@ -76,6 +77,10 @@ Item {
   }
 
   function cancelUpcoming(owner) { return calendarFetch.cancelUpcoming(owner) }
+  function requestGlobalCalendar(owner, dateKey, force) {
+    if (!root.settingsReady || !root.panelOpen) return false
+    return calendarFetch.requestGlobal(owner, dateKey, force === true)
+  }
 
   readonly property var calendarScheduleState: calendarFetch.snapshotFor("nhl")
   readonly property bool calendarCacheReady: calendarDiskCache.ready
@@ -418,6 +423,7 @@ Item {
     id: calendarFetch
     upcomingEnabled: root.settingsReady && root.panelOpen
     upcomingCatalogTeams: root.upcomingCatalogTeams
+    followedLeagueIds: root.followedLeagueIds
     upstreamBusyLeagues: root.upcomingBusyLeagues
     calendarEnabled: root.calendarFeatureEnabled && root.enabledLeagues.length > 0
     calendarFeatureEnabled: root.calendarFeatureEnabled

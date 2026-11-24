@@ -180,7 +180,7 @@ TestCase {
     verify(fetchOwner.upcomingState.loading)
     compare(fetchOwner.upcomingLockedLeagues, ["nhl"])
     fetchOwner.upstreamBusyLeagues = ["nfl"]
-    compare(processRef.starts, 1)
+    tryCompare(processRef, "starts", 1)
     verify(processRef.running)
     finishPlan()
     compare(fetchOwner.upcomingLockedLeagues, [])
@@ -407,7 +407,7 @@ TestCase {
     compare(fetchOwner.upcomingLockedLeagues, ["nfl"])
     verify(fetchOwner.upcomingState.loading)
     fetchOwner.upstreamBusyLeagues = []
-    compare(processRef.starts, 2)
+    tryCompare(processRef, "starts", 2)
     verify(currentUrl().indexOf("/football/nfl/") !== -1)
     finishPlan()
     compare(fetchOwner.upcomingLockedLeagues, [])

@@ -5,11 +5,13 @@ import "../providers/EspnProvider.js" as EspnProvider
 import "../providers/LeagueCatalog.js" as LeagueCatalog
 import "../providers/MlbStatsProvider.js" as MlbStatsProvider
 import "../providers/UpcomingScheduleProvider.js" as UpcomingScheduleProvider
+import "../providers/GlobalCalendarProvider.js" as GlobalCalendarProvider
 import "../model/CalendarModel.js" as CalendarModel
 import "../model/CalendarCachePolicy.js" as CalendarCachePolicy
 import "../model/ChunkPolicy.js" as ChunkPolicy
 import "../model/DateModel.js" as DateModel
 import "../model/ResponsePolicy.js" as ResponsePolicy
+import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
 Item {
   id: root
@@ -36,6 +38,8 @@ Item {
   property bool responseTooLarge: false
   property bool stoppingRequest: false
   property bool ownerDestroyed: false
+  readonly property var callbackOwner: LifecyclePolicy.createOwnerState()
+  property bool upcomingPumpPending: false
   property string queuedMonthKey: ""
   property string queuedPlanKind: ""
   property bool calendarCacheReady: false
@@ -58,6 +62,7 @@ Item {
   // process. The dormant range/hydration route remains separately disabled.
   property bool upcomingEnabled: false
   property var upcomingCatalogTeams: []
+  property var followedLeagueIds: []
   property var upstreamBusyLeagues: []
   property var upcomingState: ({owner: "", teamId: "", loading: false, hasData: false,
     partial: false, stale: false, errorSummary: "", entries: [], coverageStart: "", coverageEnd: "", lastSuccessAt: ""})
@@ -78,14 +83,14 @@ Item {
   readonly property var upcomingLockedLeagues: {
     var leagues = []
     if (root.upcomingProcessLeague) leagues.push(root.upcomingProcessLeague)
-    if (root.planKind === "upcoming" && root.upcomingPlan
-        && leagues.indexOf(root.upcomingPlan.leagueId) === -1) leagues.push(root.upcomingPlan.leagueId)
-    if (root.queuedUpcoming && root.queuedUpcoming.plan
-        && leagues.indexOf(root.queuedUpcoming.plan.leagueId) === -1) leagues.push(root.queuedUpcoming.plan.leagueId)
+    var active = root.planKind === "upcoming" ? root.planWindows[root.planIndex] : null
+    if (active && leagues.indexOf(active.leagueId) === -1) leagues.push(active.leagueId)
+    var queued = root.queuedUpcoming && root.queuedUpcoming.plan.requests[0]
+    if (queued && leagues.indexOf(queued.leagueId) === -1) leagues.push(queued.leagueId)
     return leagues
   }
 
-  function upcomingKey(plan) { return plan.teamId + ":" + plan.startDate + ":" + plan.endDate }
+  function upcomingKey(plan) { return plan.cacheKey || plan.teamId + ":" + plan.startDate + ":" + plan.endDate }
 
   function mergeUpcomingEntries(previous, additions) {
     var merged = [], indices = Object.create(null)
@@ -96,7 +101,8 @@ Item {
       else { indices[id] = merged.length; merged.push(entry) }
     })
     // Reject a union overflow; never turn a truncated schedule into success.
-    return merged.length <= 256 ? merged : null
+    var limit = root.upcomingPlan && root.upcomingPlan.scope === "global" ? 2048 : 256
+    return merged.length <= limit ? merged : null
   }
 
   function upcomingCached(plan) {
@@ -110,6 +116,26 @@ Item {
         || root.calendarFeatureEnabled && root.calendarEnabled) return false
     var plan = UpcomingScheduleProvider.buildPlan(teamId, startDate, endDate,
       root.upcomingCatalogTeams, MlbStatsProvider.TEAM_IDS_BY_STATS_ID)
+    return root.requestUpcomingPlan(owner, plan, force)
+  }
+
+  function requestGlobal(owner, dateKey, force) {
+    if (!root.upcomingEnabled || root.ownerDestroyed || !owner
+        || root.calendarFeatureEnabled && root.calendarEnabled) return false
+    var plan = GlobalCalendarProvider.buildPlan(root.followedLeagueIds, root.enabledLeagues, dateKey)
+    if (plan && plan.kind === "empty") {
+      root.cancelUpcoming()
+      root.upcomingOwner = owner
+      root.upcomingState = {owner: owner, scope: "global", teamId: "", loading: false,
+        hasData: false, partial: false, stale: false, failed: false, entries: [], daySummaries: [],
+        dateKey: dateKey, coverageStart: dateKey, coverageEnd: dateKey,
+        errorSummary: "Follow a league in Sports & leagues to see its games here."}
+      return true
+    }
+    return root.requestUpcomingPlan(owner, plan, force)
+  }
+
+  function requestUpcomingPlan(owner, plan, force) {
     if (!plan || plan.kind !== "plan" || !plan.requests.length || plan.requests.length > 8) return false
     if (!force && root.planKind === "upcoming" && root.upcomingPlan
         && root.upcomingKey(plan) === root.upcomingKey(root.upcomingPlan)) {
@@ -124,13 +150,17 @@ Item {
     root.queuedUpcoming = null
     root.cancel()
     if (hit && !force) {
-      root.upcomingState = Object.assign({}, hit, {owner: owner, loading: false})
+      root.upcomingState = Object.assign({}, hit, {owner: owner, loading: false,
+        daySummaries: root.globalDaySummaries(plan)})
       return true
     }
     var intent = {owner: owner, plan: plan, retained: retained ? retained.entries : []}
-    root.upcomingState = {owner: owner, teamId: teamId, loading: true, hasData: Boolean(retained),
+    root.upcomingState = {owner: owner, scope: plan.scope || "team", teamId: plan.teamId,
+      dateKey: plan.scope === "global" ? plan.startDate : "", selectionKey: plan.selectionKey || "",
+      loading: true, hasData: Boolean(retained),
       partial: retained ? retained.partial : false, stale: Boolean(retained), errorSummary: "",
-      entries: retained ? retained.entries : [], coverageStart: startDate, coverageEnd: endDate,
+      entries: retained ? retained.entries : [], daySummaries: root.globalDaySummaries(plan),
+      coverageStart: plan.startDate, coverageEnd: plan.endDate,
       lastSuccessAt: retained ? retained.lastSuccessAt : ""}
     if (root.stoppingRequest || calendarProcess.running || root.upcomingProcessLeague !== "") {
       root.queuedUpcoming = intent
@@ -138,6 +168,21 @@ Item {
     }
     root.beginUpcoming(intent)
     return true
+  }
+
+  function globalDaySummaries(plan) {
+    if (!plan || plan.scope !== "global") return []
+    return root.upcomingCacheOrder.map(function(key) {
+      return root.upcomingCache[key]
+    }).filter(function(entry) {
+      return entry && entry.state.scope === "global" && entry.state.selectionKey === plan.selectionKey
+    }).map(function(entry) {
+      return {dateKey: entry.state.coverageStart, count: entry.state.entries.length,
+        loaded: true, partial: entry.state.partial === true, stale: entry.state.stale === true
+          || Date.now() - entry.updatedAtMs < 0 || Date.now() - entry.updatedAtMs >= entry.ttlMs,
+        complete: entry.state.coverageComplete === true && !entry.state.stale
+          && Date.now() - entry.updatedAtMs >= 0 && Date.now() - entry.updatedAtMs < entry.ttlMs}
+    })
   }
 
   function beginUpcoming(intent) {
@@ -180,13 +225,17 @@ Item {
       else { entries = retained; partial = true }
     }
     var message = root.upcomingFailures > 0
-      ? (entries.length ? "Some schedule requests failed. Saved games are shown." : "Schedule unavailable. Try again.")
+      ? (entries.length ? (retaining ? "Some schedule requests failed. Previously listed games are retained."
+        : "Some schedule requests failed. Available games are shown.") : "Schedule unavailable. Try again.")
       : partial && retaining ? "Schedule is incomplete. Previously listed games are retained."
-      : partial ? "Only published games are shown. More dates may be announced." : ""
-    root.upcomingState = {owner: root.upcomingOwner, teamId: plan.teamId, loading: loading,
+      : partial ? (plan.scope === "global" ? "Listed games from followed leagues. Some schedules may be incomplete."
+        : "Only published games are shown. More dates may be announced.") : ""
+    root.upcomingState = {owner: root.upcomingOwner, scope: plan.scope || "team", teamId: plan.teamId,
+      selectionKey: plan.selectionKey || "", dateKey: plan.scope === "global" ? plan.startDate : "", loading: loading,
       hasData: root.upcomingResponses > 0 || entries.length > 0,
       partial: partial, stale: retaining, failed: root.upcomingFailures > 0,
-      errorSummary: message, entries: entries, coverageStart: plan.startDate, coverageEnd: plan.endDate,
+      errorSummary: message, entries: entries, daySummaries: root.globalDaySummaries(plan),
+      coverageStart: plan.startDate, coverageEnd: plan.endDate,
       coverageComplete: !loading && !partial, lastSuccessAt: root.upcomingLastSuccessAt}
   }
 
@@ -215,12 +264,12 @@ Item {
     }
     // An already-running score/lookahead request keeps its slot. The shared
     // league lock blocks new requests until this plan (or its stop) settles.
-    if (root.upstreamBusyLeagues.indexOf(root.upcomingPlan.leagueId) !== -1) return
     var request = root.planWindows[root.planIndex]
+    if (root.upstreamBusyLeagues.indexOf(request.leagueId) !== -1) return
     root.pendingBody = ""
     root.bodyReceived = false
     root.responseTooLarge = false
-    root.upcomingProcessLeague = root.upcomingPlan.leagueId
+    root.upcomingProcessLeague = request.leagueId
     calendarProcess.requestGeneration = root.activeGeneration
     calendarProcess.command = ["/usr/bin/python3", root.transportHelperPath, request.url]
     calendarProcess.running = true
@@ -231,9 +280,11 @@ Item {
     var result = null
     if (exitCode === 0 && !oversized && request) {
       try {
-        result = UpcomingScheduleProvider.parseResponse(request, body, {
+        var globalRequest = root.upcomingPlan.scope === "global"
+        var parser = globalRequest ? GlobalCalendarProvider.parseResponse : UpcomingScheduleProvider.parseResponse
+        result = parser(request, body, {
           parseEspn: EspnProvider.parseScoreboardResponse,
-          parseNhl: NhlProvider.parseScheduleResponse,
+          parseNhl: globalRequest ? NhlProvider.parseScoreResponse : NhlProvider.parseScheduleResponse,
           parseMlb: MlbStatsProvider.parseScoreResponse})
       } catch (error) { result = null }
     }
@@ -255,11 +306,40 @@ Item {
 
   onUpcomingEnabledChanged: if (!root.upcomingEnabled) root.cancelUpcoming()
   onUpcomingCatalogTeamsChanged: {
-    if (root.upcomingOwner && !root.upcomingCatalogTeams.some(function(team) {
+    if (root.upcomingOwner && root.upcomingState.teamId && !root.upcomingCatalogTeams.some(function(team) {
       return team.id === root.upcomingState.teamId
     })) root.cancelUpcoming()
   }
-  onUpstreamBusyLeaguesChanged: if (root.planKind === "upcoming") root.startUpcomingNext()
+  function validateGlobalSelection() {
+    if (!root.upcomingOwner || root.upcomingState.scope !== "global") return
+    var plan = GlobalCalendarProvider.buildPlan(root.followedLeagueIds, root.enabledLeagues,
+      root.upcomingState.coverageStart)
+    if (!plan || plan.kind !== "plan" || plan.selectionKey !== root.upcomingState.selectionKey) {
+      var dateKey = root.upcomingState.coverageStart
+      root.cancelUpcoming()
+      root.upcomingState = {owner: "", scope: "global", teamId: "", dateKey: dateKey,
+        loading: false, hasData: false, partial: true, stale: false, failed: false,
+        entries: [], daySummaries: [], coverageStart: dateKey, coverageEnd: dateKey,
+        errorSummary: "Followed leagues changed. Select a day to load their games."}
+    }
+  }
+  onFollowedLeagueIdsChanged: root.validateGlobalSelection()
+  onEnabledLeaguesChanged: root.validateGlobalSelection()
+  function queueUpcomingPump() {
+    if (root.upcomingPumpPending || root.ownerDestroyed || root.planKind !== "upcoming") return
+    root.upcomingPumpPending = true
+    var owner = root.callbackOwner
+    var generation = LifecyclePolicy.captureGeneration(owner)
+    Qt.callLater(function() {
+      if (!LifecyclePolicy.canRun(owner, generation)) return
+      root.upcomingPumpPending = false
+      root.startUpcomingNext()
+    })
+  }
+  // Releasing a league lock may synchronously resume a queued score request.
+  // Pump after the current response publication so its busy signal cannot
+  // finalize a plan reentrantly and then be overwritten by loading=true.
+  onUpstreamBusyLeaguesChanged: root.queueUpcomingPump()
 
   function providerIdFor(leagueId) {
     if (leagueId === "nhl") return "nhl"
@@ -627,7 +707,7 @@ Item {
   function appendChunk(value) {
     if (root.responseTooLarge) return
     var chunk = String(value || "")
-    var fits = root.planKind === "upcoming"
+    var fits = root.planKind === "upcoming" && root.upcomingPlan.scope !== "global"
       ? UpcomingScheduleProvider.canAppend(root.pendingBody, chunk, root.planWindows[root.planIndex])
       : ResponsePolicy.canAppend(root.pendingBody, chunk)
     if (!fits) {
@@ -671,6 +751,7 @@ Item {
   }
 
   Component.onDestruction: {
+    LifecyclePolicy.invalidate(root.callbackOwner)
     root.ownerDestroyed = true
     root.upcomingOwner = ""
     root.queuedUpcoming = null

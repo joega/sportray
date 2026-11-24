@@ -11,6 +11,8 @@ ShellRoot {
   property var fixture: null
   property var uiCase: ({width: 400, fontSize: 12})
   property var selectedDates: []
+  property var previewDates: []
+  property var requestedWindows: []
   property int monthCalls: 0
   property int closeCalls: 0
   property int retryCalls: 0
@@ -38,13 +40,15 @@ ShellRoot {
         anchors.fill: parent
         anchors.margins: Commons.Style.space(16)
         teamOptions: root.fixture ? root.fixture.teamOptions : []
-        teamId: "nfl:2"
+        teamId: ""
         todayDateKey: root.fixture ? root.fixture.today : ""
         selectedDateKey: todayDateKey
         monthKey: "2026-11-01"
         scheduleState: root.fixture ? root.fixture.states[teamId] : ({})
         onMonthRequested: function(month) { root.monthCalls++; calendar.monthKey = month }
         onTeamSelected: function(team) { calendar.teamId = team }
+        onDaySelected: function(date) { root.previewDates = root.previewDates.concat([date]); calendar.selectedDateKey = date; calendar.monthKey = date.slice(0, 7) + "-01" }
+        onWindowRequested: function(date) { root.requestedWindows = root.requestedWindows.concat([date]) }
         onDateSelected: function(date) { root.selectedDates = root.selectedDates.concat([date]) }
         onCloseRequested: root.closeCalls++
         onRetryRequested: root.retryCalls++
@@ -91,49 +95,130 @@ ShellRoot {
           Commons.Style.cornerRadius = 8
           wait(120)
           same(calendar.dateKeys.length, 42, "calendar cell count")
-          same(calendar.nextEntry.dateKey, "2026-12-06", "bye-week next game")
-          same(calendar.laterEntries.length, 3, "later game count")
-          check(text(calendar, "In 12 days") !== null, "relative next-game date absent")
-          check(text(calendar, "Sun, Dec 13 · Time TBD") !== null, "TBD time invented a kickoff")
-          capture("calendar-november")
-
+          check(calendar.globalMode, "calendar did not default to all followed leagues")
+          same(calendar.agendaEntries.length, 2, "global agenda omitted followed-league game")
+          check(text(calendar, "November 2026") !== null, "global month grid absent")
+          check(text(calendar, "Next up") === null, "global view shows team next-game card")
+          same(calendar.listedCount("2026-11-25"), 3, "cached viewed-day marker absent")
+          check(calendar.cellName("2026-11-26").indexOf("not loaded") !== -1, "unknown date claimed empty")
+          var emptyPartial = JSON.parse(JSON.stringify(root.fixture.states[""]))
+          emptyPartial.entries = []
+          emptyPartial.partial = true
+          emptyPartial.daySummaries = [{dateKey: "2026-11-24", count: 0, complete: false, loaded: true}]
+          calendar.scheduleState = emptyPartial
+          wait(20)
+          check(calendar.cellName("2026-11-24").indexOf("coverage incomplete") !== -1, "loaded partial day called not loaded or empty")
+          calendar.scheduleState = Qt.binding(function() { return root.fixture ? root.fixture.states[calendar.teamId] : ({}) })
+          wait(20)
+          capture("calendar-global")
+          var globalFixture = root.fixture.states[""]
+          var many = JSON.parse(JSON.stringify(globalFixture))
+          many.entries = []
+          for (var gameIndex = 0; gameIndex < 257; gameIndex++) {
+            var gameEntry = JSON.parse(JSON.stringify(globalFixture.entries[0]))
+            gameEntry.game.id = "nhl:global-cap-" + gameIndex
+            many.entries.push(gameEntry)
+          }
+          calendar.scheduleState = many
+          wait(20)
+          same(calendar.entries.length, 257, "global presentation inherited single-league cap")
+          many = JSON.parse(JSON.stringify(many))
+          while (many.entries.length < 2049) many.entries.push(many.entries[0])
+          calendar.scheduleState = many
+          wait(20)
+          check(calendar.entriesOverflow && calendar.entries.length === 0, "global overflow was presented as complete")
+          calendar.scheduleState = null
+          wait(20)
+          same(calendar.entries.length, 0, "null global state unsafe")
+          calendar.scheduleState = Qt.binding(function() { return root.fixture ? root.fixture.states[calendar.teamId] : ({}) })
+          wait(20)
           calendar.focusCalendar()
           keyClick(Qt.Key_Right)
-          wait(40)
-          same(calendar.focusedDateKey, "2026-11-25", "date arrow navigation")
           keyClick(Qt.Key_Return)
-          same(root.selectedDates[root.selectedDates.length - 1], "2026-11-25", "keyboard day activation")
+          same(root.previewDates[root.previewDates.length - 1], "2026-11-25", "global keyboard day preview")
+          same(root.selectedDates.length, 0, "global day preview jumped to scores")
+          check(text(calendar, "Select a day to load its games.") !== null, "unloaded date lacks load hint")
+          check(text(calendar, "No games are listed in the loaded data.") === null, "unloaded date claimed empty")
           keyClick(Qt.Key_PageDown)
-          wait(80)
-          same(calendar.monthKey, "2026-12-01", "keyboard month navigation")
+          wait(40)
+          same(calendar.monthKey, "2026-12-01", "global keyboard month navigation")
+          var today = find(calendar, function(item) { return item.visible && "tooltipText" in item && item.tooltipText === "Return calendar to today" }, [])
+          check(today !== null, "global Today action absent")
+          var explicitMonthCalls = root.monthCalls
+          mouseClick(today, today.width / 2, today.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+          same(root.previewDates[root.previewDates.length - 1], "2026-11-24", "Today did not preview today's games")
+          same(root.monthCalls, explicitMonthCalls, "Today requested month and day twice")
+          same(calendar.monthKey, "2026-11-01", "Today did not return current month")
+          var adjacentDay = find(calendar, function(item) { return item.visible && "modelData" in item && item.modelData === "2026-12-01" && "borderSpec" in item }, [])
+          check(adjacentDay !== null, "adjacent month date absent")
+          mouseClick(adjacentDay, adjacentDay.width / 2, adjacentDay.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
+          same(root.previewDates[root.previewDates.length - 1], "2026-12-01", "adjacent month date did not preview")
+          same(root.monthCalls, explicitMonthCalls, "adjacent date requested month and day twice")
+          calendar.selectedDateKey = "2026-11-24"
+          calendar.monthKey = "2026-11-01"
+          wait(50)
+          var picker = find(calendar, function(item) { return "popupOpen" in item && "options" in item && "open" in item }, [])
+          calendar.focusCalendar()
+          keyClick(Qt.Key_Tab)
+          wait(40)
+          check(calendar.inputActive, "Tab did not reach native selector")
+          keyClick(Qt.Key_Return)
+          wait(40)
+          check(picker.popupOpen, "native selector did not open")
+          keyClick(Qt.Key_Down)
+          keyClick(Qt.Key_Return)
+          wait(60)
+          same(calendar.teamId, "nfl:2", "global-to-team native selection")
+          check(!calendar.globalMode, "team selection retained global mode")
+          check(!picker.popupOpen && !calendar.inputActive, "selector did not restore component input")
+          check(text(calendar, "November 2026") === null, "team view retained full month grid")
+          same(calendar.nextEntry.dateKey, "2026-12-06", "bye-week next game")
+          same(calendar.laterEntries.length, 5, "team agenda truncated later games")
+          check(text(calendar, "In 12 days") !== null, "relative next-game date absent")
+          check(text(calendar, "Sun, Dec 13 · Time TBD") !== null, "TBD time invented a kickoff")
+          var nextLabel = text(calendar, "Next up")
+          check(nextLabel !== null, "team feature card missing")
+          var feature = nextLabel.parent.parent.parent
+          check(feature.y <= picker.height + Commons.Style.spacing.md + 1, "team next card is not directly below chooser")
+          capture("calendar-team")
+          var retained = JSON.parse(JSON.stringify(root.fixture.states["nfl:2"]))
+          retained.loading = true
+          calendar.scheduleState = retained
+          wait(20)
+          check(!calendar.completeFromAnchor && text(calendar, "Next listed game") !== null, "loading team data claims definitive next game")
+          retained = JSON.parse(JSON.stringify(retained))
+          retained.loading = false
+          retained.stale = true
+          retained.entries[0].game.status = "live"
+          calendar.scheduleState = retained
+          wait(20)
+          check(!calendar.completeFromAnchor && text(calendar, "Live now") === null, "stale game claims current live status")
+          calendar.scheduleState = Qt.binding(function() { return root.fixture ? root.fixture.states[calendar.teamId] : ({}) })
+          wait(20)
+          calendar.focusCalendar()
+          keyClick(Qt.Key_PageDown)
+          same(root.requestedWindows[root.requestedWindows.length - 1], "2026-12-29", "next 35-day window")
+          keyClick(Qt.Key_PageUp)
+          same(root.requestedWindows[root.requestedWindows.length - 1], "2026-10-20", "previous 35-day window")
           var jump = find(calendar, function(item) { return item.visible && "text" in item && item.text === "View day" && "clicked" in item }, [])
           check(jump !== null, "next-game jump absent")
           mouseClick(jump, jump.width / 2, jump.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
           same(root.selectedDates[root.selectedDates.length - 1], "2026-12-06", "next game did not jump across month")
-          capture("calendar-december")
-
-          var picker = find(calendar, function(item) { return "popupOpen" in item && "options" in item && "open" in item }, [])
-          check(picker !== null, "native team chooser absent")
           calendar.focusCalendar()
           keyClick(Qt.Key_Tab)
-          wait(40)
-          check(calendar.inputActive, "Tab did not reach the native team trigger")
           keyClick(Qt.Key_Return)
-          wait(50)
-          check(picker.popupOpen, "native team trigger did not open by Enter")
+          wait(40)
           keyClick(Qt.Key_Down)
           keyClick(Qt.Key_Return)
-          wait(80)
+          wait(60)
           same(calendar.teamId, "nhl:6", "native team choice")
-          check(!picker.popupOpen && !calendar.inputActive, "team chooser did not restore calendar input")
           same(calendar.nextEntry.dateKey, "2026-11-25", "team schedule did not change")
-
           calendar.teamId = "nfl:2"
-          calendar.monthKey = "2026-11-01"
-          same(picker.value, "nfl:2", "native selector retained the wrong team")
+          same(picker.value, "nfl:2", "native selector retained wrong team")
           var partial = JSON.parse(JSON.stringify(root.fixture.states["nfl:2"]))
           partial.partial = true
           partial.errorSummary = "Some dates could not be refreshed. Listed games are retained."
+          partial.failed = true
           calendar.scheduleState = partial
           wait(80)
           check(text(calendar, "Next listed game") !== null, "partial schedule claims authoritative next game")
@@ -180,7 +265,7 @@ ShellRoot {
           calendar.scheduleState = mixed
           wait(20)
           same(calendar.nextEntry.dateKey, "2026-12-06", "canceled/final/postponed game became the next scheduled game")
-          same(calendar.upcomingEntries.length, 4, "duplicate schedule event remained in agenda")
+          same(calendar.upcomingEntries.length, 6, "duplicate schedule event remained in agenda")
           same(calendar.entriesOn("2026-12-01").length, 0, "canceled event left a game-day marker")
 
           calendar.scheduleState = {teamId: "nhl:6", hasData: true, entries: root.fixture.states["nhl:6"].entries}

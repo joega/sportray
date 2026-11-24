@@ -30,18 +30,25 @@ def fixture():
                      "status": "scheduled", "startTime": day + "T18:00:00Z",
                      "awayScore": None, "homeScore": None})
         return {"game": game, "dateKey": day, "timeKnown": time_known}
-    return {"today": "2026-11-24", "teamOptions": [
+    result = {"today": "2026-11-24", "teamOptions": [
+        {"value": "", "label": "All followed leagues"},
         {"value": "nfl:2", "label": "Buffalo Bills · NFL"},
         {"value": "nhl:6", "label": "Boston Bruins · NHL"}],
         "states": {
             "nfl:2": {"teamId": "nfl:2", "loading": False, "hasData": True,
                       "partial": False, "errorSummary": "", "coverageStart": "2026-11-24",
                       "coverageEnd": "2026-12-28", "entries": [entry(nfl, day, i, i != 1)
-                        for i, day in enumerate(("2026-12-06", "2026-12-13", "2026-12-20", "2026-12-27"))]},
+                        for i, day in enumerate(("2026-12-06", "2026-12-13", "2026-12-16", "2026-12-20", "2026-12-23", "2026-12-27"))]},
             "nhl:6": {"teamId": "nhl:6", "loading": False, "hasData": True,
                       "partial": False, "errorSummary": "", "coverageStart": "2026-11-24",
                       "coverageEnd": "2026-12-28", "entries": [entry(nhl, day, i)
                         for i, day in enumerate(("2026-11-25", "2026-11-27", "2026-12-01", "2026-12-04"))]}}}
+    result["states"][""] = {"teamId": "", "dateKey": "2026-11-24", "loading": False,
+        "hasData": True, "partial": False, "stale": False, "errorSummary": "",
+        "entries": [entry(nhl, "2026-11-24", 50), entry(nfl, "2026-11-24", 51)],
+        "daySummaries": [{"dateKey": "2026-11-24", "count": 2, "loaded": True, "complete": True},
+                         {"dateKey": "2026-11-25", "count": 3, "loaded": True, "complete": False}]}
+    return result
 
 
 def run(output):

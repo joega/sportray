@@ -151,6 +151,8 @@ Item {
           ? root.settingsStore.settings.enabledLeagues : []
         favoriteTeamIds: root.settingsStore && root.settingsStore.settings
           ? root.settingsStore.settings.favoriteTeamIds : []
+        followedLeagueIds: root.settingsStore && root.settingsStore.settings
+          ? root.settingsStore.settings.followedLeagueIds : []
         selectedDateKey: root.selectedDateKey
         lookaheadLeagueId: root.lookaheadLeagueId
         panelOpen: root.panelOpen
