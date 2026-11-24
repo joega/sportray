@@ -217,7 +217,7 @@ ShellRoot {
           ticker.width = Math.ceil(ticker.captureContentWidth + ticker.captureControlWidth
             + Commons.Style.spacing.sm * 2 + Commons.Style.spacing.md)
           wait(100)
-          ticker.captureViewport.x = 0
+          ticker.motionOffset = 0
           capture(ticker, "sportray-ticker", Math.ceil(ticker.width * 2), 64)
           ticker.visible = false
           board.visible = true

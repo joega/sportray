@@ -32,6 +32,18 @@ function teamId(team) {
   return text(team && team.id, "").toLowerCase();
 }
 
+function teamName(team) {
+  return cap(team && (team.name || team.shortName || team.abbreviation), 64) || "Team TBD";
+}
+
+function providerName(url) {
+  var value = text(url, "").toLowerCase();
+  if (value.indexOf("nhl.com") !== -1) return "NHL.com";
+  if (value.indexOf("mlb.com") !== -1) return "MLB.com";
+  if (value.indexOf("espn.com") !== -1) return "ESPN";
+  return "";
+}
+
 function isFavorite(game, favoriteTeamIds) {
   var values = Array.isArray(favoriteTeamIds) ? favoriteTeamIds : [];
   return values.indexOf(teamId(game && game.awayTeam)) !== -1
@@ -73,6 +85,13 @@ function liveStatus(game, sport) {
     if (label && details.indexOf(label) === -1) details.push(label);
   });
   return details.length > 0 ? details.join(" ") : "LIVE";
+}
+
+function livePrimaryStatus(game, sport) {
+  var fields = [game && game.periodLabel];
+  if (text(sport, "").toLowerCase() !== "baseball") fields.push(game && game.clock);
+  var details = fields.map(function(value) { return cap(value, 16); }).filter(function(value) { return value !== ""; });
+  return details.length ? details.join(" ") : cap(game && game.statusDetail, 24) || "LIVE";
 }
 
 function safeGameUrl(value) {
@@ -129,6 +148,11 @@ function segment(entry, formatStartTime, sport) {
     detail = status === "final" ? "FINAL" : liveStatus(game, sport);
   }
   return {
+    gameId: cap(game.id || game.providerGameId, 80),
+    status: status,
+    isLive: status === "live" || status === "intermission",
+    favorite: entry.favorite === true,
+    fullMatchup: teamName(game.awayTeam) + " at " + teamName(game.homeTeam),
     away: away,
     home: home,
     awayLogoUrl: text(game.awayTeam && game.awayTeam.logoUrl, ""),
@@ -137,6 +161,7 @@ function segment(entry, formatStartTime, sport) {
     homeScore: status === "scheduled" ? "" : homeScore,
     divider: status === "scheduled" ? "@" : "-",
     detail: detail,
+    displayDetail: status === "final" ? "Final" : status === "scheduled" ? detail : livePrimaryStatus(game, sport),
     sourceUrl: safeGameUrl(game.link),
     text: cap(matchup + "   " + detail)
   };
@@ -179,8 +204,13 @@ function build(input) {
       : (segments.length > 0 ? "     " : "")
         + league.emoji + "  " + league.label + "   ";
     var game = segment(entry, source.formatStartTime, league.sport);
+    game.providerName = providerName(game.sourceUrl);
+    game.tooltip = game.fullMatchup + " · " + league.label + " · " + game.detail
+      + (game.providerName ? ". Open " + game.providerName + " game page."
+        : ". Open scores; external game page unavailable.");
     segments.push(prefix + game.text);
     game.groupStart = groupStart;
+    game.leagueId = league.id;
     game.leagueEmoji = league.emoji;
     game.leagueLabel = league.label;
     game.separatorEmoji = league.emoji;

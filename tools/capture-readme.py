@@ -58,9 +58,9 @@ def capture(output, logo_cache=None, theme_name="catppuccin-latte"):
         ticker = strip.read_text()
         marker = "  property var games: []"
         assert ticker.count(marker) == 1
-        strip.write_text(ticker.replace(marker, "  property alias captureContentWidth: tickerContent.width\n"
+        strip.write_text(ticker.replace(marker, "  property alias captureContentWidth: gameRow.implicitWidth\n"
             "  property alias captureControlWidth: controls.width\n"
-            "  property alias captureViewport: tickerViewport\n" + marker, 1))
+            + marker, 1))
         panel = capture_imports((ROOT / "Panel.qml").read_text())
         marker = "  property var anchorItem: null"
         assert panel.count(marker) == 1

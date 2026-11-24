@@ -391,12 +391,12 @@ test("ticker strip opens per-game provider pages through the guarded source rout
   assert.match(strip, /Item \{\s+id: gameHit/);
   assert.match(strip, /id: gameHitRow/);
   assert.match(strip, /width: gameHitRow\.implicitWidth/);
-  assert.match(strip, /leagueLabel \+ "\\u00A0\\u00A0\\u00A0"/);
+  assert.match(strip, /Iconography.iconNameForLeague/);
   assert.ok(strip.indexOf("id: stripMouse") < strip.indexOf("id: tickerContent"));
   assert.match(strip, /root\.primaryActionRequested\(\)/);
-  assert.match(strip, /height: Style\.space\(32\)/);
-  assert.match(strip, /width: Style\.space\(56\)/);
-  assert.match(strip, /separatorEmoji/);
+  assert.match(strip, /height: Commons\.Style\.space\(32\)/);
+  assert.match(strip, /Rectangle \{\s+width: 1[\s\S]*visible: gameItem\.index > 0/);
+  assert.match(strip, /modelData\.favorite/);
 });
 
 function normalizeFixtureGames(fixture) {
@@ -4478,21 +4478,24 @@ test("ticker presentation is integrated into the shared bar widget", () => {
   const overlay = readSource("components/TicketOverlay.qml");
   assert.match(overlay, /screen: root\.targetScreen/);
   assert.match(overlay, /anchors\.bottom: root\.tickerPosition !== "top"/);
-  assert.match(overlay, /implicitHeight: root\.tickerHeight/);
+  assert.match(overlay, /implicitHeight: root\.tickerEnabled \? root\.tickerHeight : 0/);
+  assert.match(overlay, /visible: !!root\.targetScreen && root\.tickerEnabled/);
+  assert.match(overlay, /reducedMotion: Commons\.Style\.reduceMotion/);
   assert.match(overlay, /exclusionMode: ExclusionMode\.Auto/);
   assert.match(overlay, /WlrLayer\.Top/);
   assert.match(overlay, /WlrKeyboardFocus\.None/);
   const strip = readSource("components/TicketStrip.qml");
-  assert.match(strip, /NumberAnimation on x/);
-  assert.match(strip, /loops: Animation\.Infinite/);
+  assert.match(strip, /FrameAnimation/);
+  assert.match(strip, /property real motionOffset/);
+  assert.match(strip, /effectiveMotionPaused/);
   assert.match(strip, /root\.imageStore\.sourceFor\(gameItem\.modelData\.awayLogoUrl\)/);
   assert.match(strip, /root\.imageStore\.sourceFor\(gameItem\.modelData\.homeLogoUrl\)/);
-  assert.match(strip, /text: gameItem\.modelData\.detail[\s\S]*opacity: 0\.82/);
+  assert.match(strip, /text: gameItem\.modelData\.displayDetail[\s\S]*opacity: gameItem\.modelData\.isLive \? 1 : 0\.85/);
   assert.doesNotMatch(strip, /leagueLabel \+ "  \|"/);
   assert.doesNotMatch(strip, /"\|  " \+ gameItem\.modelData\.detail/);
-  assert.match(strip, /id: gameRow[\s\S]*spacing: Style\.spacing\.sm/);
-  assert.match(strip, /width: Style\.space\(56\)[\s\S]*gameItem\.index > 0 && gameItem\.modelData\.groupStart/);
-  assert.match(strip, /separatorEmoji/);
+  assert.match(strip, /id: gameRow[\s\S]*spacing: Commons\.Style\.spacing\.sm/);
+  assert.match(strip, /Rectangle \{\s+width: 1[\s\S]*visible: gameItem\.index > 0/);
+  assert.match(strip, /modelData\.favorite/);
   assert.doesNotMatch(strip, /: "   •   "/);
   assert.match(service, /readonly property var ambientGames/);
   assert.match(service, /readonly property string ambientTickerState/);
@@ -7221,5 +7224,7 @@ test("standings states retain tables and expose only available retry actions", (
     assert.equal(JSON.stringify(sample.state), before, "projection changed its input");
   });
 });
+
+for (const suite of ["test-ticket-model.js", "test-ui-contrast.js"]) require(path.join(__dirname, suite));
 
 process.stdout.write("M2.1, M2.2, M3.1, M3.2, M3.3, M4.1, M4.2, M4.3, M5.1, M5.2, M5.3, M6.1, M6.2, M6.3, M10.1, M10.2, M10.3, and M10.4 JavaScript fixtures passed.\n");

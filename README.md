@@ -151,6 +151,10 @@ context, while the ticker scrolls live scores, upcoming games, and recent finals
 
 - **Pause / Resume** controls ticker motion. Under **Settings → Ticker**, choose
   visibility, top/bottom placement, and scroll speed.
+- Hover pauses scrolling without changing manual Pause. Resume continues from
+  the same position. Reduced motion keeps the ticker still; a short slate that
+  fits on screen also stays still. Hover text includes the full matchup and source.
+- Turning the ticker off removes its reserved space at the screen edge.
 - Select a ticker game to open its provider page. Select other ticker space to
   open the scores panel. Games without a safe provider link keep the panel action.
 - Under **Settings → Notifications**, independently choose game starts, score
