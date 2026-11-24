@@ -87,7 +87,7 @@ function emptyRow(id, text, action, details) {
     supportingText: extra.supportingText || "",
     action: action ? {
       type: action,
-      label: action === "choose-teams" ? "Choose favorite teams"
+      label: action === "choose-teams" ? "Choose teams"
         : action === "browse-leagues" ? "Browse leagues" : action === "show-all" ? "Show all games" : action,
       enabled: true
     } : null
@@ -161,10 +161,10 @@ function flatten(view, destination, selectedDateLabel) {
     if (!view.hasFavorites && !view.hasGames
         && (!Array.isArray(view.followedLeagueIds) || view.followedLeagueIds.length === 0)
         && (!Array.isArray(view.leagueStates) || view.leagueStates.length === 0)) {
-      rows.push(emptyRow(id + ":no-favorites", "Choose favorite teams to pin their games here.",
+      rows.push(emptyRow(id + ":no-favorites", "Choose your teams to see their games in Following.",
         "choose-teams", {
-          title: "Follow teams to pin their games here",
-          supportingText: "8 leagues available."
+          title: "Make this your scoreboard",
+          supportingText: "Follow a league in Settings to include its full slate."
         }));
       return rows;
     }

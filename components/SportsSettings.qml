@@ -1,6 +1,8 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
+import "../model/UiContrast.js" as UiContrast
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Item {
@@ -99,17 +101,17 @@ Item {
           ? root.settingsStore.settings.followedLeagueIds.length : 0
         return count + " of " + root.leagues.length + " enabled · " + followed + " followed"
       }
-      color: Color.accent
+      color: UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
       font.family: Typography.family
       font.pixelSize: Style.font.caption
     }
 
     Text {
       width: parent.width
-      text: "Enable scores for a league. Follow it to include its games in Following."
+      text: "Enable: load scores and show the league.\nFollow: add its games to Following and Calendar."
       textFormat: Text.PlainText
       wrapMode: Text.WordWrap
-      color: Qt.alpha(Color.popups.text, 0.85)
+      color: Qt.alpha(Commons.Color.popups.text, 0.85)
       font.family: Typography.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -133,7 +135,7 @@ Item {
             textFormat: Text.PlainText
             width: parent.width
             text: modelData ? (modelData.displayName || modelData.name || modelData.id) : ""
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             font.family: Typography.family
             font.pixelSize: Style.font.body
             font.bold: true
@@ -145,7 +147,7 @@ Item {
             text: root.isEnabled(modelData)
               ? (root.isFollowed(modelData) ? "Enabled · followed" : "Enabled · not followed")
               : "Disabled · unavailable in navigation"
-            color: Qt.alpha(Color.popups.text, 0.85)
+            color: Qt.alpha(Commons.Color.popups.text, 0.85)
             font.family: Typography.family
             font.pixelSize: Style.font.caption
           }
@@ -177,7 +179,7 @@ Item {
               width: (parent.width - Style.space(64) - parent.spacing * 3) / 2
               text: root.isFollowed(modelData) ? "Following" : "Follow"
               selected: root.isFollowed(modelData)
-              foreground: root.isFollowed(modelData) ? Color.accent : Color.popups.text
+              foreground: Commons.Color.popups.text
               textFontSize: Style.font.caption
               textBold: true
               focusable: true
@@ -232,7 +234,7 @@ Item {
           anchors.right: parent.right
           anchors.bottom: parent.bottom
           height: 1
-          color: Color.popups.text
+          color: Commons.Color.popups.text
           opacity: 0.10
         }
       }

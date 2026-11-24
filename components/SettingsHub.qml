@@ -1,6 +1,7 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
@@ -34,7 +35,11 @@ Item {
   signal contentFocusRequested()
 
   function handleTextKey(text) {
-    if (root.destination !== "teams") return false
+    if (root.destination !== "teams" || root.inputActive) return false
+    if ((text === "v" || text === "V") && root.contentFocused) {
+      root.reviewLeagues()
+      return true
+    }
     if (text === "f" || text === "F") {
       root.contentFocused = true
       favoriteTeams.openLeagueFilter()
@@ -46,6 +51,12 @@ Item {
       return true
     }
     return false
+  }
+
+  function reviewLeagues() {
+    root.selectDestination("sports")
+    root.contentFocusRequested()
+    root.deferCallback(root.ensureCursorVisible)
   }
 
   implicitHeight: hubColumn.implicitHeight
@@ -71,7 +82,7 @@ Item {
     var owner = root.callbackOwner || root.localCallbackOwner
     var generation = LifecyclePolicy.captureGeneration(owner)
     Qt.callLater(function() {
-      if (!LifecyclePolicy.canRun(owner, generation)) return
+      if (!owner || owner.alive !== true || owner.generation !== generation) return
       callback()
     })
   }
@@ -121,6 +132,7 @@ Item {
   }
 
   function reset(destination) {
+    favoriteTeams.beginSession()
     root.destination = destination || "sports"
     root.sectionCursor = root.destinationIndex(root.destination)
     root.contentFocused = false
@@ -153,17 +165,17 @@ Item {
             width: sectionTabs.width / root.destinations.length
             text: modelData.shortLabel
             selected: root.destination === modelData.id
-            foreground: root.destination === modelData.id ? Color.popups.text : Qt.alpha(Color.popups.text, 0.85)
+            foreground: root.destination === modelData.id ? Commons.Color.popups.text : Qt.alpha(Commons.Color.popups.text, 0.85)
             hasCursor: !root.contentFocused && root.sectionCursor === index
             focusable: true
             fontFamily: Typography.family
             fontSize: Style.font.body
             horizontalPadding: Style.spacing.xs
             radius: 0
-            color: activeFocus ? Style.focusFillFor(foreground, Color.accent)
-              : hot ? Style.hoverFillFor(foreground, Color.accent) : "transparent"
-            borderSpec: activeFocus ? Border.controlSpec("focus", foreground, Color.accent)
-              : hasCursor ? Border.controlSpec("hover-cursor", foreground, Color.accent) : Border.none()
+            color: activeFocus ? Style.focusFillFor(foreground, Commons.Color.accent)
+              : hot ? Style.hoverFillFor(foreground, Commons.Color.accent) : "transparent"
+            borderSpec: activeFocus ? Border.controlSpec("focus", foreground, Commons.Color.accent)
+              : hasCursor ? Border.controlSpec("hover-cursor", foreground, Commons.Color.accent) : Border.none()
             onClicked: root.selectDestination(modelData.id)
             Accessible.name: modelData.label
             Accessible.role: Accessible.PageTab
@@ -174,7 +186,7 @@ Item {
               anchors.right: parent.right
               anchors.bottom: parent.bottom
               height: Math.max(1, Style.normalBorderWidth)
-              color: root.destination === tabButton.modelData.id ? Color.accent : "transparent"
+              color: root.destination === tabButton.modelData.id ? Commons.Color.accent : "transparent"
             }
           }
         }
@@ -185,7 +197,7 @@ Item {
         y: sectionTabs.height
         width: parent.width
         height: Math.max(1, Style.normalBorderWidth)
-        color: Color.popups.border
+        color: Commons.Color.popups.border
       }
     }
 
@@ -213,6 +225,7 @@ Item {
         root.contentFocused = true
         root.contentFocusRequested()
       }
+      onReviewLeaguesRequested: root.reviewLeagues()
     }
 
     SettingsView {

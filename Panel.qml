@@ -1,5 +1,7 @@
 import QtQuick
+import QtQuick.Window
 import "model/UiTypography.js" as Typography
+import "model/ShortcutPresentation.js" as ShortcutPresentation
 import "model/UiContrast.js" as UiContrast
 import QtQuick.Controls
 import Quickshell
@@ -41,6 +43,14 @@ Panel {
   property var anchorItem: null
   property var hostWidget: null
   property var service: Services.SportrayService
+  property Item lastContentFocus: null
+  property Item helpReturnFocus: null
+  readonly property bool helpOpen: shortcutPopup.opened
+  readonly property var shortcutGroups: ShortcutPresentation.forContext({
+    surface: root.settingsOpen ? "settings" : root.scheduleOpen ? (root.upcomingTeamId ? "team" : "calendar")
+      : root.detailOpen ? "detail" : root.standingsOpen ? "standings" : "scores",
+    section: settingsHub.destination, following: root.activeDestination === "following",
+    canUndo: root.actionUndoAvailable})
   property var settingsStore: null
   readonly property var actionFeedbackState: root.settingsStore
     && typeof root.settingsStore.feedbackAction !== "undefined" ? root.settingsStore.feedbackAction : null
@@ -301,6 +311,12 @@ Panel {
     else if (root.standingsOpen && root.standingsService)
       root.standingsService.refresh(root.activeDestination)
     else if (root.fetchService) root.fetchService.requestRefresh("manual")
+  }
+
+  function openShortcutHelp() {
+    if (root.gameActionsOpen || sportsPicker.popupOpen || (root.scheduleOpen && upcomingCalendar.chooserOpen)) return
+    root.helpReturnFocus = root.lastContentFocus || keyCatcher
+    shortcutPopup.open()
   }
 
   function undoLastAction(actionId) {
@@ -1102,6 +1118,9 @@ Panel {
   onOpenedChanged: {
     root.syncSharedContext()
     if (!root.opened) {
+      shortcutPopup.close()
+      root.lastContentFocus = null
+      root.helpReturnFocus = null
       root.navigationStack = []
       root.pendingResultFocus = null
       root.resultActionFocus = ""
@@ -1205,6 +1224,9 @@ Panel {
     root.activeDestination = "following"
 
   function close() {
+    shortcutPopup.close()
+    root.lastContentFocus = null
+    root.helpReturnFocus = null
     root.navigationStack = []
     root.pendingResultFocus = null
     root.resultActionFocus = ""
@@ -1398,7 +1420,21 @@ Panel {
   }
 
   Connections {
+    target: keyCatcher.Window.window
+    function onActiveFocusItemChanged() {
+      var window = keyCatcher.Window.window
+      var item = window ? window.activeFocusItem : null
+      if (root.opened && !root.helpOpen && item && item !== helpButton) root.lastContentFocus = item
+    }
+  }
+
+  Connections {
     target: settingsHub
+    function onDestinationChanged() {
+      root.settingsDestination = settingsHub.destination
+      utilityScroll.contentY = 0
+      if (root.settingsOpen) root.deferPanelCallback(root.recalculatePanelHeight)
+    }
     function onContentFocusRequested() {
       root.deferPanelCallback(function() {
         if (root.settingsOpen) keyCatcher.forceActiveFocus()
@@ -1441,7 +1477,7 @@ Panel {
       // The installed catcher runs BeforeItem and otherwise consumes panel
       // navigation keys before an active editor can receive them. Let the
       // editor own all keys, including Escape, while it has focus.
-      blocked: root.scheduleOpen || root.gameActionsOpen || KeyboardRoutingPolicy.catcherBlocked(
+      blocked: root.helpOpen || root.scheduleOpen || root.gameActionsOpen || KeyboardRoutingPolicy.catcherBlocked(
         settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen)
       onCloseRequested: root.detailOpen ? root.closeDetail()
         : root.settingsOpen ? root.closeUtility()
@@ -1478,6 +1514,7 @@ Panel {
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(text) {
         if (settingsHub.inputActive) return
+        if (text === "?") { root.openShortcutHelp(); return }
         if (root.detailOpen) return
         if (root.settingsOpen) {
           settingsHub.handleTextKey(text)
@@ -1513,7 +1550,7 @@ Panel {
       // Keep only the extra viewport navigation keys here; the installed
       // Omarchy handler does not emit semantic signals for these keys.
       Keys.onPressed: function(event) {
-        if (event.accepted) return
+        if (event.accepted || root.helpOpen) return
         if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier)
             && !settingsHub.inputActive && !root.gameActionsOpen && !sportsPicker.popupOpen
             && !(root.scheduleOpen && upcomingCalendar.chooserOpen)) {
@@ -1523,6 +1560,7 @@ Panel {
         if (root.scheduleOpen) {
           if (upcomingCalendar.chooserOpen) return
           if (event.key === Qt.Key_Escape) root.closeSchedule()
+          else if (!upcomingCalendar.inputActive && event.text === "?") root.openShortcutHelp()
           else if (!upcomingCalendar.inputActive && event.key === Qt.Key_R) root.refresh()
           else if (!upcomingCalendar.inputActive && event.key === Qt.Key_N) root.openSettings()
           else return
@@ -1568,6 +1606,88 @@ Panel {
         event.accepted = true
       }
 
+
+      Popup {
+        id: shortcutPopup
+        parent: Overlay.overlay
+        modal: true
+        focus: true
+        padding: Style.spacing.popupPadding
+        width: Math.min(Style.space(400), panel.contentWidth, parent ? parent.width : Style.space(400))
+        height: Math.min(Style.space(600), parent ? parent.height - Style.spacing.md * 2 : Style.space(600),
+          helpHeading.height + helpContents.implicitHeight + Style.spacing.md + padding * 2)
+        x: parent ? Math.max(0, Math.min(parent.width - width, header.mapToItem(parent, 0, 0).x)) : 0
+        y: parent ? Math.max(0, Math.min(parent.height - height, header.mapToItem(parent, 0, header.height + Style.spacing.md).y)) : 0
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        Overlay.modal: Item {}
+        background: BorderSurface {
+          color: Commons.Color.popups.background
+          borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2)))
+          radius: Style.cornerRadius
+        }
+        onOpened: { helpScroll.contentY = 0; helpScroll.forceActiveFocus() }
+        onClosed: root.deferPanelCallback(function() {
+          if (!root.opened) return
+          var target = root.helpReturnFocus
+          root.helpReturnFocus = null
+          if (target && target.visible) target.forceActiveFocus()
+          else if (root.scheduleOpen) upcomingCalendar.restoreContext(upcomingCalendar.captureContext())
+          else keyCatcher.forceActiveFocus()
+        })
+        contentItem: Column {
+          spacing: Style.spacing.md
+          Item {
+            id: helpHeading
+            width: parent.width
+            height: helpClose.implicitHeight
+            Text {
+              anchors.left: parent.left
+              anchors.right: helpClose.left
+              anchors.rightMargin: Style.spacing.sm
+              anchors.verticalCenter: parent.verticalCenter
+              text: "Keyboard shortcuts"
+              textFormat: Text.PlainText
+              font.family: Typography.family
+              font.pixelSize: Style.font.subtitle
+              font.bold: true
+              color: Commons.Color.popups.text
+              elide: Text.ElideRight
+            }
+            SemanticActionButton {
+              id: helpClose
+              anchors.right: parent.right
+              iconName: "close"
+              fallbackText: "X"
+              tooltipText: "Close keyboard help"
+              focusable: true
+              onClicked: shortcutPopup.close()
+            }
+          }
+          Flickable {
+            id: helpScroll
+            width: parent.width
+            height: Math.max(0, shortcutPopup.availableHeight - helpHeading.height - parent.spacing)
+            contentWidth: width
+            contentHeight: helpContents.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            Keys.onPressed: function(event) {
+              var next = contentY
+              if (event.key === Qt.Key_PageDown) next += height * 0.85
+              else if (event.key === Qt.Key_PageUp) next -= height * 0.85
+              else if (event.key === Qt.Key_Down) next += Style.space(32)
+              else if (event.key === Qt.Key_Up) next -= Style.space(32)
+              else if (event.key === Qt.Key_Home) next = 0
+              else if (event.key === Qt.Key_End) next = contentHeight
+              else return
+              contentY = Math.max(0, Math.min(next, contentHeight - height))
+              event.accepted = true
+            }
+            ShortcutHelp { id: helpContents; width: parent.width; groups: root.shortcutGroups }
+          }
+        }
+      }
 
       Column {
         id: contentColumn
@@ -1745,6 +1865,17 @@ Panel {
             }
 
             SemanticActionButton {
+              id: helpButton
+              visible: header.width >= Style.space(360) || root.settingsOpen
+              text: "?"
+              textFontSize: Style.font.caption
+              tooltipText: "Keyboard shortcuts (?)"
+              focusable: true
+              onClicked: root.openShortcutHelp()
+              Accessible.name: "Keyboard shortcuts"
+            }
+
+            SemanticActionButton {
             id: settingsButton
             visible: !root.detailOpen
             iconName: root.settingsOpen ? "close" : "settings"
@@ -1833,7 +1964,7 @@ Panel {
             flickableDirection: Flickable.VerticalFlick
             // Favorite teams owns the inner wheel/list. Other settings
             // destinations use this outer surface as their single owner.
-            interactive: root.settingsDestination !== "teams" && contentHeight > height
+            interactive: settingsHub.destination !== "teams" && contentHeight > height
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
             Column {
@@ -1850,6 +1981,10 @@ Panel {
                 settingsStore: root.settingsStore
                 imageStore: root.logoImageStore
                 notificationService: root.notificationService
+                onImplicitHeightChanged: if (root.settingsOpen) root.deferPanelCallback(function() {
+                  utilityColumn.forceLayout()
+                  root.recalculatePanelHeight()
+                })
                 settingsRevision: root.presentationRevision
                 callbackOwner: root.callbackOwner
                 compact: utilityScroll.width < Style.space(360)

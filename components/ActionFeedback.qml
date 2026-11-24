@@ -37,7 +37,7 @@ Item {
     color: root.action && root.action.severity === "error" ? Commons.Color.urgent : Commons.Color.popups.text
     font.family: Typography.family
     font.pixelSize: Commons.Style.font.bodySmall
-    wrapMode: Text.WordWrap
+    wrapMode: Text.Wrap
   }
   SemanticActionButton {
     id: undoAction

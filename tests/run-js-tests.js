@@ -4182,10 +4182,10 @@ test("U2.1 flattens provider-neutral section, game, status, and empty rows", () 
   const following = resultRows.flatten({kind: "following", hasFavorites: false, hasGames: false,
     followedLeagueIds: []}, "following");
   assert.equal(following.length, 1);
-  assert.equal(following[0].title, "Follow teams to pin their games here");
-  assert.equal(following[0].supportingText, "8 leagues available.");
+  assert.equal(following[0].title, "Make this your scoreboard");
+  assert.equal(following[0].supportingText, "Follow a league in Settings to include its full slate.");
   assert.deepEqual(following[0].action,
-    {type: "choose-teams", label: "Choose favorite teams", enabled: true});
+    {type: "choose-teams", label: "Choose teams", enabled: true});
 });
 
 test("Following preserves relevant per-league freshness and truthful empty states", () => {
@@ -4363,7 +4363,7 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   const panel = readSource("Panel.qml");
   const hub = readSource("components/SettingsHub.qml");
   const picker = readSource("components/TeamPicker.qml");
-  assert.match(panel, /blocked: root\.scheduleOpen \|\| root\.gameActionsOpen \|\| KeyboardRoutingPolicy\.catcherBlocked\(/);
+  assert.match(panel, /blocked: root\.helpOpen \|\| root\.scheduleOpen \|\| root\.gameActionsOpen \|\| KeyboardRoutingPolicy\.catcherBlocked\(/);
   assert.match(panel, /property bool scheduleOpen: false/);
   assert.match(panel, /id: upcomingPage/);
   assert.doesNotMatch(panel, /id: upcomingPopup/);
@@ -4941,7 +4941,7 @@ test("U3.3 keeps sparse states compact while dense and utility views stay bounde
   assert.equal(panel.includes("root.activeView && root.activeView.loading === true"), true);
   assert.equal(panel.includes("root.deferPanelCallback(root.recalculatePanelHeight)"), true);
   assert.equal(panel.includes("fittedContentHeight(Style.space(560)"), false);
-  assert.equal(panel.includes("interactive: root.settingsDestination !== \"teams\""), true);
+  assert.equal(panel.includes("interactive: settingsHub.destination !== \"teams\""), true);
   assert.equal(carousel.includes("root.compact ? 1 : root.radius"), true);
   assert.equal(hub.includes("shortLabel: \"Alerts\""), true);
   assert.equal(hub.includes("contentBoundsRequested"), true);
@@ -7244,7 +7244,8 @@ test("standings states retain tables and expose only available retry actions", (
 // Each suite also remains directly runnable during isolated development.
 for (const suite of ["test-following-presentation.js", "test-navigation-context.js",
     "test-notice-presentation.js", "test-ticket-model.js", "test-ui-contrast.js", "test-agenda-presentation.js",
-    "test-settings-preservation.js", "test-action-feedback.js", "test-score-change-presentation.js"]) {
+    "test-settings-preservation.js", "test-action-feedback.js", "test-score-change-presentation.js",
+    "test-shortcut-presentation.js"]) {
   require(path.join(__dirname, suite));
 }
 

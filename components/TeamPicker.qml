@@ -1,7 +1,9 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
+import "../model/UiContrast.js" as UiContrast
 import QtQuick.Controls as QQC
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../model/TeamPickerModel.js" as PickerModel
 import "../model/LifecyclePolicy.js" as LifecyclePolicy
@@ -18,6 +20,8 @@ Item {
   property string leagueFilter: "all"
   property var callbackOwner: null
   property var imageStore: null
+  property bool setupGuideVisible: false
+  property bool setupGuidePending: false
   readonly property var localCallbackOwner: LifecyclePolicy.createOwnerState()
 
   readonly property var favoriteIds: {
@@ -29,14 +33,22 @@ Item {
   readonly property var visibleTeams: PickerModel.filterAndOrderTeams(
     root.teams, root.query, root.leagueFilter, root.favoriteIds, root.leagues)
   readonly property int selectedCount: PickerModel.selectedCount(root.teams, root.favoriteIds)
+  readonly property int disabledSelectedCount: {
+    var revision = root.settingsRevision
+    var count = 0
+    for (var i = 0; i < root.teams.length; i++)
+      if (root.isFavorite(root.teams[i]) && !root.teamLeagueEnabled(root.teams[i])) count++
+    return count
+  }
   readonly property bool inputActive: searchInput.activeFocus || clearButton.activeFocus
-    || filterFocus.activeFocus || leagueFilterPicker.popupOpen
+    || filterFocus.activeFocus || leagueFilterPicker.popupOpen || reviewLeaguesButton.activeFocus
 
   signal escapeRequested()
   signal browseRequested()
+  signal reviewLeaguesRequested()
 
   QQC.Action {
-    enabled: searchInput.activeFocus && !leagueFilterPicker.popupOpen
+    enabled: root.inputActive && !leagueFilterPicker.popupOpen
     shortcut: "Escape"
     onTriggered: root.escapeRequested()
   }
@@ -67,6 +79,33 @@ Item {
       && root.favoriteIds.indexOf(team.id.toLowerCase()) !== -1
   }
 
+  function teamLeagueEnabled(team) {
+    if (!team) return false
+    if (root.settings && typeof root.settings.isLeagueEnabled === "function")
+      return root.settings.isLeagueEnabled(team.league)
+    for (var i = 0; i < root.leagues.length; i++)
+      if (root.leagues[i] && root.leagues[i].id === team.league)
+        return root.leagues[i].enabledByDefault === true
+    return false
+  }
+
+  function beginSession() {
+    root.setupGuidePending = Boolean(root.settings && root.settings.ready === false)
+    root.setupGuideVisible = !root.setupGuidePending && root.selectedCount === 0
+  }
+
+  function resolveSetupGuide() {
+    if (!root.setupGuidePending || !root.settings || root.settings.ready === false) return
+    root.setupGuidePending = false
+    root.setupGuideVisible = root.selectedCount === 0
+  }
+
+  Connections {
+    target: root.settings
+    ignoreUnknownSignals: true
+    function onReadyChanged() { root.resolveSetupGuide() }
+  }
+
   function moveCursor(delta) {
     if (root.visibleTeams.length === 0) return
     root.cursorIndex = PickerModel.clampCursor(root.cursorIndex, delta, root.visibleTeams.length)
@@ -83,7 +122,7 @@ Item {
     var owner = root.callbackOwner || root.localCallbackOwner
     var generation = LifecyclePolicy.captureGeneration(owner)
     Qt.callLater(function() {
-      if (!LifecyclePolicy.canRun(owner, generation)) return
+      if (!owner || owner.alive !== true || owner.generation !== generation) return
       callback()
     })
   }
@@ -91,8 +130,21 @@ Item {
   function activateCursor() {
     var team = PickerModel.teamAt(root.visibleTeams, root.cursorIndex)
     if (!team) return
-    if (root.settings && typeof root.settings.toggleFavoriteTeam === "function")
-      root.settings.toggleFavoriteTeam(team.id)
+    if (root.settings && typeof root.settings.toggleFavoriteTeam === "function") {
+      var changed = root.settings.toggleFavoriteTeam(team.id, team.name || team.shortName || team.abbreviation || "Team")
+      if (changed === false) return
+      // Favoriting reorders the list. Keep the cursor on the team the user
+      // just changed rather than silently selecting the replacement index.
+      root.deferCallback(function() {
+        for (var i = 0; i < root.visibleTeams.length; i++) {
+          if (root.visibleTeams[i].id === team.id) {
+            root.cursorIndex = i
+            root.ensureCursorVisible()
+            return
+          }
+        }
+      })
+    }
   }
 
   function activateIndex(index) {
@@ -142,6 +194,9 @@ Item {
   // receives the next shortcut after Escape/Back returns to scores.
   onVisibleChanged: if (!root.visible) {
     searchInput.focus = false
+    clearButton.focus = false
+    reviewLeaguesButton.focus = false
+    filterFocus.focus = false
     leagueFilterPicker.close()
   }
 
@@ -152,14 +207,79 @@ Item {
     width: parent.width
     spacing: Style.spacing.sm
 
-    Text {
-      textFormat: Text.PlainText
+    Column {
+      id: setupGuide
       width: parent.width
-      text: root.selectedCount + " selected · selected teams stay at the top"
-      color: Qt.alpha(Color.popups.text, 0.85)
-      font.family: Typography.family
-      font.pixelSize: Style.font.bodySmall
-      wrapMode: Text.WordWrap
+      visible: root.setupGuideVisible
+      spacing: Style.spacing.xxs
+      height: setupTitle.implicitHeight + setupBody.implicitHeight + spacing
+      Text {
+        id: setupTitle
+        width: parent.width
+        text: "Choose your teams"
+        textFormat: Text.PlainText
+        color: Commons.Color.popups.text
+        font.family: Typography.family
+        font.pixelSize: Style.font.subtitle
+        font.weight: Font.DemiBold
+      }
+      Text {
+        id: setupBody
+        width: parent.width
+        text: "Star teams to collect their games in Following. Enable their leagues for scores."
+        textFormat: Text.PlainText
+        color: Qt.alpha(Commons.Color.popups.text, 0.85)
+        font.family: Typography.family
+        font.pixelSize: Style.font.bodySmall
+        wrapMode: Text.Wrap
+      }
+    }
+
+    Item {
+      id: selectedSummary
+      width: parent.width
+      height: Math.max(selectedLabels.height, reviewLeaguesButton.height)
+      Column {
+        id: selectedLabels
+        anchors.left: parent.left
+        anchors.right: reviewLeaguesButton.left
+        anchors.rightMargin: Style.spacing.sm
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Style.spacing.xxs
+        height: selectedTotal.implicitHeight + (root.disabledSelectedCount > 0 ? selectedWarning.implicitHeight + spacing : 0)
+        Text {
+          id: selectedTotal
+          width: parent.width
+          text: root.selectedCount + " selected"
+          textFormat: Text.PlainText
+          color: Commons.Color.popups.text
+          font.family: Typography.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.Wrap
+        }
+        Text {
+          id: selectedWarning
+          width: parent.width
+          visible: root.disabledSelectedCount > 0
+          text: root.disabledSelectedCount + (root.disabledSelectedCount === 1 ? " needs league enabled" : " need leagues enabled")
+          textFormat: Text.PlainText
+          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          font.family: Typography.family
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.Wrap
+        }
+      }
+      SemanticActionButton {
+        id: reviewLeaguesButton
+        objectName: "reviewLeaguesButton"
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        text: "Review leagues"
+        textFontSize: Style.font.caption
+        tooltipText: "Review which leagues load scores and appear in Following (V)"
+        focusable: true
+        onClicked: root.reviewLeaguesRequested()
+      }
     }
 
     Row {
@@ -226,17 +346,22 @@ Item {
       textFormat: Text.PlainText
       width: parent.width
       text: root.visibleTeams.length === 0 ? "No teams match this search."
-        : "↓ Browse teams · F Filter league · / Search"
+        : "↓ Browse · F Filter · / Search · V Leagues"
       wrapMode: Text.WordWrap
-      color: Qt.alpha(Color.popups.text, 0.85)
+      color: Qt.alpha(Commons.Color.popups.text, 0.85)
       font.family: Typography.family
       font.pixelSize: Style.font.caption
     }
 
     ListView {
       id: teamList
+      objectName: "setupTeamList"
       width: parent.width
-      height: Math.min(contentHeight, Style.space(360))
+      // Guide/summary and results share a viewport budget. Large text grows
+      // the rows inside this area, not the unscrollable outer settings page.
+      height: Math.min(contentHeight, Math.max(Style.space(96), Math.min(360, Style.space(360))
+        - (root.setupGuideVisible ? setupGuide.height + pickerColumn.spacing : 0)
+        - selectedSummary.height - pickerColumn.spacing))
       clip: true
       spacing: 0
       model: root.visibleTeams
@@ -254,15 +379,16 @@ Item {
         height: Style.space(48)
 
         BorderSurface {
+          id: teamSurface
           anchors.fill: parent
           radius: Style.cornerRadius
           color: index === root.cursorIndex
-            ? Style.hoverFillFor(Color.popups.text, Color.accent)
+            ? Style.hoverFillFor(Commons.Color.popups.text, Commons.Color.accent)
             : root.isFavorite(modelData)
-              ? Style.selectedFillFor(Color.popups.text, Color.accent)
+              ? Style.selectedFillFor(Commons.Color.popups.text, Commons.Color.accent)
               : "transparent"
           borderSpec: index === root.cursorIndex
-            ? Border.controlSpec("hover-cursor", Color.popups.text, Color.accent) : Border.none()
+            ? Border.controlSpec("hover-cursor", Commons.Color.popups.text, Commons.Color.accent) : Border.none()
 
           Row {
             anchors.fill: parent
@@ -296,7 +422,8 @@ Item {
                 anchors.fill: parent
                 visible: !logo.visible || logo.status !== Image.Ready
                 text: modelData.abbreviation || "?"
-                color: Qt.alpha(Color.popups.text, 0.85)
+                color: UiContrast.foreground(Qt.alpha(Commons.Color.popups.text, 0.85), Commons.Color.popups.text,
+                  UiContrast.composite(teamSurface.color, Commons.Color.popups.background))
                 font.family: Typography.family
                 font.pixelSize: Style.font.caption
                 horizontalAlignment: Text.AlignHCenter
@@ -314,7 +441,7 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width
                 text: modelData.name || modelData.shortName || modelData.abbreviation || "Unnamed team"
-                color: Color.popups.text
+                color: Commons.Color.popups.text
                 font.family: Typography.family
                 font.pixelSize: Style.font.body
                 elide: Text.ElideRight
@@ -323,8 +450,9 @@ Item {
               Text {
                 textFormat: Text.PlainText
                 width: parent.width
-                text: root.leagueName(modelData.league)
-                color: Qt.alpha(Color.popups.text, 0.85)
+                text: root.leagueName(modelData.league) + (root.isFavorite(modelData) && !root.teamLeagueEnabled(modelData) ? " · league disabled" : "")
+                color: UiContrast.foreground(Qt.alpha(Commons.Color.popups.text, 0.85), Commons.Color.popups.text,
+                  UiContrast.composite(teamSurface.color, Commons.Color.popups.background))
                 font.family: Typography.family
                 font.pixelSize: Style.font.caption
                 elide: Text.ElideRight
@@ -338,7 +466,7 @@ Item {
               anchors.verticalCenter: parent.verticalCenter
               iconName: root.isFavorite(modelData) ? "star" : "starOutline"
               fontSize: Style.font.title
-              color: root.isFavorite(modelData) ? Color.accent : Qt.alpha(Color.popups.text, 0.85)
+              color: root.isFavorite(modelData) ? Commons.Color.accent : Qt.alpha(Commons.Color.popups.text, 0.85)
               decorative: true
             }
           }
@@ -348,7 +476,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: 1
-            color: Color.popups.text
+            color: Commons.Color.popups.text
             opacity: 0.10
           }
 
@@ -361,6 +489,7 @@ Item {
 
           Accessible.name: (modelData.name || modelData.shortName || modelData.abbreviation || "Unnamed team")
             + (root.isFavorite(modelData) ? ", selected favorite team" : ", not selected")
+            + (root.isFavorite(modelData) && !root.teamLeagueEnabled(modelData) ? ". League disabled; enable it in Review leagues for scores." : "")
           Accessible.role: Accessible.CheckBox
           Accessible.checkable: true
           Accessible.checked: root.isFavorite(modelData)

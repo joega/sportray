@@ -339,6 +339,17 @@ ShellRoot {
           return item.visible && "tooltipText" in item && item.tooltipText === "Undo last change (Ctrl+Z)"
         })
         check(undo !== null, "Visible feedback has no explicit Undo action")
+        store.feedbackAction = {id: 101, summary: "a".repeat(128) + " added to favorites", undone: false, severity: "info"}
+        wait(30)
+        var message = textItem(panel.testFeedback, store.feedbackAction.summary)
+        check(message !== null && message.paintedWidth <= message.width + 1,
+          "Unbroken feedback text escaped its assigned width")
+        var messagePoint = message.mapToItem(panel.testFeedback, 0, 0)
+        var undoPoint = undo.mapToItem(panel.testFeedback, 0, 0)
+        check(messagePoint.x + message.paintedWidth < undoPoint.x
+          && messagePoint.y + message.paintedHeight <= panel.testFeedback.height,
+          "Long feedback overlapped Undo or escaped the footer")
+        publish(101); wait(30)
         mouseClick(undo, undo.width / 2, undo.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
         wait(40)
         same(store.successfulUndos, undos + 1, "Pointer Undo did not activate exactly once")
@@ -358,6 +369,8 @@ ShellRoot {
         publish(401)
         naturalKey(panel, Qt.Key_Menu)
         check(panel.gameActionsOpen, "Menu ownership fixture did not open")
+        keyClick(Qt.Key_Question); wait(30)
+        check(!panel.helpOpen && panel.gameActionsOpen, "Game actions leaked Question to Help")
         keyClick(Qt.Key_Z, Qt.ControlModifier); wait(30)
         same(store.successfulUndos, undos + 2, "Game actions leaked Ctrl+Z to global Undo")
         check(panel.gameActionsOpen, "Ctrl+Z unexpectedly closed Game actions")
@@ -366,6 +379,8 @@ ShellRoot {
           panel.testLeaguePicker.height / 2, Qt.LeftButton, Qt.NoModifier, 20)
         settle(panel)
         check(panel.testLeaguePicker.popupOpen, "League dropdown ownership fixture did not open")
+        keyClick(Qt.Key_Question); wait(30)
+        check(!panel.helpOpen && panel.testLeaguePicker.popupOpen, "League dropdown leaked Question to Help")
         keyClick(Qt.Key_Z, Qt.ControlModifier); wait(30)
         same(store.successfulUndos, undos + 2, "League dropdown leaked Ctrl+Z to global Undo")
         naturalKey(panel, Qt.Key_Escape)
@@ -389,6 +404,143 @@ ShellRoot {
         same(panel.selectedRowId, rowId, "Feedback dismissal changed selected row")
         check(Math.abs(rowViewportY(panel, rowId) - beforeY) < 1, "Feedback dismissal moved the anchored row")
         same(JSON.stringify(store.settings), preferences, "Feedback presentation changed preferences")
+      }
+      function shortcutKeys(panel) {
+        var values = []
+        panel.shortcutGroups.forEach(function(group) {
+          group.rows.forEach(function(row) { values.push(row.keys) })
+        })
+        return values
+      }
+      function checkHelp(panel, expected, absent) {
+        var owner = window.activeFocusItem
+        var before = {selected: panel.selectedRowId, offset: panel.testList.contentY,
+          detailOffset: panel.testDetail.captureContext().scrollY, refresh: fetch.refreshCalls,
+          date: panel.selectedDateKey, preferences: JSON.stringify(store.settings)}
+        keyClick(Qt.Key_Question); settle(panel)
+        check(panel.helpOpen && panel.testShortcutPopup.opened && panel.testCatcher.blocked,
+          "Question key did not open modal keyboard help")
+        var keys = shortcutKeys(panel)
+        expected.forEach(function(value) { check(keys.indexOf(value) !== -1, "Help lacks context key " + value) })
+        absent.forEach(function(value) { check(keys.indexOf(value) === -1, "Help advertises inactive key " + value) })
+        var popup = panel.testShortcutPopup
+        var point = popup.parent.mapToItem(window.contentItem, popup.x, popup.y)
+        check(popup.width > 0 && popup.height > 0 && point.x >= -1 && point.y >= -1
+          && point.x + popup.width <= window.width + 1 && point.y + popup.height <= window.height + 1,
+          "Keyboard help exceeds the panel window")
+        var scroll = find(popup.contentItem, function(item) {
+          return "contentHeight" in item && "contentY" in item && "boundsBehavior" in item
+        })
+        check(scroll !== null && scroll.height > 0, "Help has no bounded native scroll surface")
+        keyClick(Qt.Key_End); wait(30)
+        if (scroll.contentHeight > scroll.height + 1)
+          check(scroll.contentY > 0, "End did not reveal overflowing help")
+        keyClick(Qt.Key_Home); wait(30)
+        same(scroll.contentY, 0, "Home did not return help to the top")
+        var attempts = store.undoAttempts.length
+        keyClick(Qt.Key_R); keyClick(Qt.Key_G); keyClick(Qt.Key_Z, Qt.ControlModifier); wait(30)
+        same(store.undoAttempts.length, attempts, "Help leaked Ctrl+Z to action Undo")
+        same(fetch.refreshCalls, before.refresh, "Help leaked R to underlying refresh")
+        same(panel.selectedDateKey, before.date, "Help changed the underlying date")
+        check(panel.helpOpen, "Content keys unexpectedly closed Help")
+        keyClick(Qt.Key_Escape); settle(panel)
+        check(!panel.helpOpen && panel.opened, "Help Escape closed the owning panel")
+        same(window.activeFocusItem, owner, "Help did not restore the exact prior focus owner")
+        same(panel.selectedRowId, before.selected, "Help changed row selection")
+        check(Math.abs(panel.testList.contentY - before.offset) < 1, "Help moved the score viewport")
+        check(Math.abs(panel.testDetail.captureContext().scrollY - before.detailOffset) < 1, "Help moved the detail viewport")
+        same(JSON.stringify(store.settings), before.preferences, "Help changed preferences")
+      }
+      function checkSetupAndHelp(panel) {
+        var preferences = JSON.stringify(store.settings)
+        var savedFeedback = store.feedbackAction
+        store.feedbackAction = {id: 501, summary: "Fixture active Undo during Help", undone: false, severity: "info"}
+        panel.selectDestination("following"); settle(panel)
+        panel.testCatcher.forceActiveFocus()
+        checkHelp(panel, ["F", "G", "N", "Ctrl+Z"], ["V"])
+        panel.selectDestination("nhl"); panel.openStandings(); settle(panel)
+        panel.testCatcher.forceActiveFocus()
+        checkHelp(panel, ["S", "N"], ["F", "G", "Menu / Shift+F10"])
+        panel.toggleStandings(); settle(panel)
+        var game = visibleGame(panel, "nhl")
+        panel.setSelectedRow(game.index); panel.openGameDetail(game.row.game); settle(panel)
+        panel.testCatcher.forceActiveFocus()
+        checkHelp(panel, ["Home / End", "Page Up / Down"], ["F", "G", "R", "N"])
+        panel.closeDetail(); settle(panel)
+        panel.openUpcomingCalendar(); settle(panel)
+        checkHelp(panel, ["Arrows", "Page Up / Down", "R"], ["F", "V"])
+        panel.closeSchedule(); settle(panel)
+        panel.openTeamSchedule("nhl:6"); settle(panel)
+        checkHelp(panel, ["Page Up / Down", "R"], ["Arrows", "F", "V"])
+        panel.closeSchedule(); settle(panel)
+        panel.openUtility("teams"); settle(panel)
+        var picker = find(panel.testHub, function(item) { return "setupGuideVisible" in item && "query" in item })
+        check(picker !== null, "Teams setup picker is missing")
+        naturalKey(panel, Qt.Key_Return)
+        check(picker.inputActive, "Activating Teams did not enter its search editor")
+        check(!panel.testUtilityScroll.interactive, "Teams acquired the outer scrolling owner")
+        picker.clearSearch(); picker.focusSearch(); wait(30)
+        keyClick(Qt.Key_Question); settle(panel)
+        same(picker.query, "?", "Question key did not remain literal search text")
+        check(!panel.helpOpen && picker.inputActive, "Question text opened help over search")
+        keyClick(Qt.Key_V); wait(30)
+        same(panel.testHub.destination, "teams", "Editor V unexpectedly reviewed leagues")
+        var editor = window.activeFocusItem
+        check(panel.testHelpButton.visible, "Settings has no pointer-accessible Help action")
+        mouseClick(panel.testHelpButton, panel.testHelpButton.width / 2,
+          panel.testHelpButton.height / 2, Qt.LeftButton, Qt.NoModifier, 20); settle(panel)
+        check(panel.helpOpen && shortcutKeys(panel).indexOf("V") !== -1, "Header Help did not show Teams context")
+        keyClick(Qt.Key_Escape); settle(panel)
+        same(window.activeFocusItem, editor, "Header Help did not restore the exact search editor")
+        check(picker.inputActive, "Header Help lost editor ownership")
+        picker.clearSearch(); naturalKey(panel, Qt.Key_Down)
+        checkHelp(panel, ["F", "/", "V"], ["G"])
+        naturalKey(panel, Qt.Key_V)
+        same(panel.testHub.destination, "sports", "Browse V did not review leagues")
+        same(panel.settingsDestination, "sports", "Root retained the stale Teams settings destination")
+        same(panel.testUtilityScroll.interactive, panel.testUtilityScroll.contentHeight > panel.testUtilityScroll.height,
+          "Review leagues did not hand outer scrolling to Sports")
+        check(panel.testUtilityScroll.contentHeight > panel.testUtilityScroll.height,
+          "Long leagues fixture does not exercise outer scrolling")
+        checkHelp(panel, ["Arrows"], ["V", "F", "G"])
+        panel.testHub.selectDestination("teams"); settle(panel)
+        check(!panel.testUtilityScroll.interactive, "Returning to Teams retained outer scrolling")
+        var review = findChild(picker, "reviewLeaguesButton")
+        check(review !== null, "Teams has no explicit Review leagues control")
+        mouseClick(review, review.width / 2, review.height / 2, Qt.LeftButton, Qt.NoModifier, 20); settle(panel)
+        same(panel.testHub.destination, "sports", "Pointer Review leagues did not open Sports")
+        check(panel.testUtilityScroll.interactive, "Pointer Review leagues left outer scrolling disabled")
+        same(JSON.stringify(store.settings), preferences, "Help/Review navigation changed preferences")
+        panel.closeUtility(); settle(panel)
+
+        store.feedbackAction = savedFeedback
+
+        // Run the real first-use empty action and the integrated TeamPicker,
+        // restoring only disposable in-memory fixture state afterward.
+        var savedSettings = store.settings, savedStates = fetch.leagueStates, savedGames = fetch.games
+        store.settings = Object.assign({}, savedSettings, {favoriteTeamIds: [], enabledLeagues: [], followedLeagueIds: []})
+        fetch.leagueStates = []; fetch.games = []
+        panel.selectDestination("following"); settle(panel)
+        check(textItem(panel, "Make this your scoreboard") !== null, "Actual empty Following lacks setup guidance")
+        var empty = panel.displayRows.findIndex(function(row) { return row.kind === "empty" && row.action && row.action.type === "choose-teams" })
+        check(empty >= 0 && panel.displayRows[empty].action.label === "Choose teams", "First-use action is unclear")
+        panel.setSelectedRow(empty); panel.testCatcher.forceActiveFocus(); naturalKey(panel, Qt.Key_Return)
+        check(panel.settingsOpen && panel.testHub.destination === "teams", "Choose teams did not reach Teams Settings")
+        check(picker.setupGuideVisible && picker.selectedCount === 0, "First-use Teams lacks its setup guide")
+        naturalKey(panel, Qt.Key_Return)
+        naturalKey(panel, Qt.Key_Down)
+        var beforeHeight = picker.implicitHeight
+        naturalKey(panel, Qt.Key_Return)
+        check(picker.setupGuideVisible && picker.selectedCount === 1, "First favorite collapsed session guidance")
+        same(picker.implicitHeight, beforeHeight, "First favorite shifted the integrated Teams layout")
+        picker.cursorIndex = picker.visibleTeams.length - 1; picker.ensureCursorVisible(); wait(60)
+        var bounds = picker.cursorBounds(), origin = picker.mapToItem(panel.testUtilityScroll, 0, 0)
+        check(origin.y + bounds.top >= -1 && origin.y + bounds.bottom <= panel.testUtilityScroll.height + 1,
+          "Last team row is clipped by the integrated settings viewport")
+        panel.closeUtility(); settle(panel)
+        store.settings = savedSettings; fetch.leagueStates = savedStates; fetch.games = savedGames
+        panel.selectDestination("following"); settle(panel)
+        same(JSON.stringify(store.settings), preferences, "First-use presentation did not restore in-memory preferences")
       }
       function checkScheduleSurface(panel, heading) {
         var page = panel.testSchedulePage
@@ -1290,6 +1442,7 @@ ShellRoot {
           check(store.isLeagueEnabled("nhl"), "In-memory league fixture was not restored")
           same(JSON.stringify(store.settings), JSON.stringify(savedFixtureSettings))
           checkActionFeedback(panel)
+          checkSetupAndHelp(panel)
           console.log("UI_PRESENTATION_PASS " + root.uiCase.name)
         } catch (error) {
           console.error("UI_PRESENTATION_FAIL " + String(error) + " " + error.stack)

@@ -66,6 +66,9 @@ the widget's bar section and supports horizontal and vertical bars.
 
 Open **Settings → Favorite teams** to search by team or filter by league.
 Favorites stay at the top of the picker and pin their games in league views.
+When no teams are selected, a short guide helps you get started. **Review leagues**
+explains Enable and Follow; selected teams whose scores are disabled are labeled.
+Picking a team never silently enables or follows its league.
 
 **Following** brings together favorite-team games, temporary game watches, and
 slates from leagues you follow. Its overview counts the loaded games; **All**,
@@ -201,6 +204,8 @@ up to 2.5 seconds to finish.
 | `F` | Cycle All / Live / Favorites in Following scores. |
 | `Menu` / `Shift+F10` | Open Game actions for the selected score row. |
 | `Ctrl+Z` | Undo the latest favorite or alert change outside editors and menus. |
+| `?` | Show shortcuts for the current view outside editors and menus. |
+| `V` | Review leagues while browsing Favorite teams. |
 | `F` / `/` | Filter leagues / search while browsing Favorite teams. |
 | Arrow keys | Move through the active chooser, rows, or detail/settings actions. Left/Right scrolls a long scoring table in details. |
 | Page Up / Page Down | Scroll game details or page through score rows. |
@@ -212,6 +217,8 @@ In Favorite teams, press Down or Enter from search to browse results; Enter on a
 result toggles its favorite state. Editors and open dropdowns own their keys. Tab follows Omarchy's neighboring-panel
 navigation rather than cycling through Sportray's actions. Native dropdowns,
 Game actions, and the calendar keep their own Tab navigation.
+Use the **?** button when shown for the same contextual keyboard help. Escape
+closes the help sheet and returns focus to the control you were using.
 
 Inside the global calendar, arrows move between dates, Page Up / Page Down change
 months, and Enter previews the focused day. In a team schedule, Page Up / Page Down
