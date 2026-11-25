@@ -113,6 +113,8 @@ FocusScope {
   signal closeRequested()
   signal retryRequested()
 
+  PresentationTokens { id: visual }
+
   implicitWidth: Commons.Style.space(368)
   implicitHeight: contentColumn.implicitHeight
   clip: true
@@ -465,72 +467,65 @@ FocusScope {
       BorderSurface {
         id: nextCard
         width: parent.width
-        height: root.nextEntry ? nextContent.implicitHeight + Commons.Style.spacing.lg * 2 : 0
+        height: root.nextEntry ? nextContent.implicitHeight + Commons.Style.spacing.md : 0
         visible: !root.globalMode && root.nextEntry !== null
-        color: Qt.alpha(Commons.Color.accent, 0.06)
+        color: visual.feature
         borderSpec: Commons.Border.none()
-        radius: Commons.Style.cornerRadius
+        radius: visual.featureRadius
         Column {
           id: nextContent
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.top: parent.top
-          anchors.margins: Commons.Style.spacing.lg
+          width: parent.width
           spacing: Commons.Style.spacing.sm
-          Row {
+          MatchupScoreboard {
+            id: nextScoreboard
+            objectName: "calendarNextMatchup"
             width: parent.width
+            game: root.nextEntry ? root.nextEntry.game : ({})
+            imageStore: root.imageStore
+            currentTime: root.currentTime
+            stale: root.loading || root.scheduleState.stale === true
+            teamLinksEnabled: false
+            kickerText: root.nextEntry && !root.loading && root.scheduleState.stale !== true
+                && root.nextEntry.game.status === "live" ? "Live now"
+              : root.nextEntry && !root.loading && root.scheduleState.stale !== true
+                && root.nextEntry.game.status === "intermission" ? "Intermission"
+              : root.completeFromAnchor ? "Next up" : "Next listed game"
+            dateText: root.nextEntry ? DateModel.shortDateLabel(root.nextEntry.dateKey) : ""
+            timeKnown: root.nextEntry ? root.nextEntry.timeKnown !== false : false
+            timeText: root.nextEntry && root.nextEntry.timeKnown === false ? "Time TBD" : ""
+            showStatus: root.nextEntry && root.nextEntry.game.status !== "scheduled"
+          }
+          Rectangle {
+            x: Commons.Style.spacing.lg
+            width: parent.width - x * 2
+            height: 1
+            color: visual.line
+          }
+          Item {
+            width: parent.width
+            height: Math.max(relativeNext.implicitHeight, jumpButton.implicitHeight)
             Text {
-              width: parent.width / 2
-              text: root.nextEntry && !root.loading && root.scheduleState.stale !== true
-                  && root.nextEntry.game.status === "live" ? "Live now"
-                : root.nextEntry && !root.loading && root.scheduleState.stale !== true
-                  && root.nextEntry.game.status === "intermission" ? "Intermission"
-                : root.completeFromAnchor ? "Next up" : "Next listed game"
-              textFormat: Text.PlainText
-              color: UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text,
-                UiContrast.composite(nextCard.color, Commons.Color.popups.background))
-              font.family: Typography.family
-              font.pixelSize: Commons.Style.font.bodySmall
-              font.weight: Font.DemiBold
-            }
-            Text {
-              width: parent.width / 2
+              id: relativeNext
+              anchors.left: parent.left
+              anchors.leftMargin: Commons.Style.spacing.lg
+              anchors.right: jumpButton.left
+              anchors.rightMargin: Commons.Style.spacing.sm
+              anchors.verticalCenter: parent.verticalCenter
               text: root.nextEntry ? root.relativeLabel(root.nextEntry.dateKey) : ""
               textFormat: Text.PlainText
-              color: Qt.alpha(Commons.Color.popups.text, 0.85)
-              font.family: Typography.family
-              font.pixelSize: Commons.Style.font.bodySmall
-              horizontalAlignment: Text.AlignRight
-            }
-          }
-          Text {
-            width: parent.width
-            text: root.nextEntry ? root.teamLabel(root.selectedTeam(root.nextEntry)) + " " + root.opponent(root.nextEntry) : ""
-            textFormat: Text.PlainText
-            color: Commons.Color.popups.text
-            font.family: Typography.family
-            font.pixelSize: Commons.Style.font.body
-            font.weight: Font.DemiBold
-            wrapMode: Text.WordWrap
-          }
-          Row {
-            width: parent.width
-            spacing: Commons.Style.spacing.sm
-            Text {
-              width: Math.max(0, parent.width - jumpButton.width - parent.spacing)
-              anchors.verticalCenter: parent.verticalCenter
-              text: root.nextEntry ? DateModel.shortDateLabel(root.nextEntry.dateKey) + " · " + root.entryTime(root.nextEntry) : ""
-              textFormat: Text.PlainText
-              color: Qt.alpha(Commons.Color.popups.text, 0.85)
+              color: visual.muted
               font.family: Typography.family
               font.pixelSize: Commons.Style.font.bodySmall
               wrapMode: Text.WordWrap
             }
             SemanticActionButton {
               id: jumpButton
+              anchors.right: parent.right
+              anchors.rightMargin: Commons.Style.spacing.md
               text: "View day"
               tooltipText: "Jump to the next listed game"
               textFontSize: Commons.Style.font.bodySmall
+              foreground: visual.accent
               focusable: true
               onClicked: if (root.nextEntry) root.dateSelected(root.nextEntry.dateKey)
             }
@@ -558,7 +553,7 @@ FocusScope {
           text: Qt.formatDate(DateModel.parseDateKey(root.windowStartKey), "MMM d") + " – "
             + Qt.formatDate(DateModel.parseDateKey(DateModel.addDays(root.windowStartKey, 34)), "MMM d, yyyy")
           textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          color: visual.muted
           font.family: Typography.family
           font.pixelSize: Commons.Style.font.caption
           wrapMode: Text.WordWrap
@@ -580,14 +575,15 @@ FocusScope {
         width: parent.width
         spacing: Commons.Style.spacing.sm
         Text {
+          objectName: "calendarMonthTitle"
           width: Math.max(0, parent.width - previousMonth.width - nextMonth.width - todayButton.width - parent.spacing * 3)
           height: previousMonth.height
           text: DateModel.isDateKey(root.displayedMonthKey)
-            ? Qt.formatDate(DateModel.parseDateKey(root.displayedMonthKey), "MMMM yyyy") : "Calendar"
+            ? Qt.formatDate(DateModel.parseDateKey(root.displayedMonthKey), width < Commons.Style.space(120) ? "MMM yyyy" : "MMMM yyyy") : "Calendar"
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Commons.Style.font.subtitle
+          font.pixelSize: visual.section
           font.weight: Font.DemiBold
           verticalAlignment: Text.AlignVCenter
           elide: Text.ElideRight
@@ -632,7 +628,7 @@ FocusScope {
             width: root.cellWidth
             text: modelData
             textFormat: Text.PlainText
-            color: Qt.alpha(Commons.Color.popups.text, 0.85)
+            color: visual.muted
             font.family: Typography.family
             font.pixelSize: Commons.Style.font.caption
             horizontalAlignment: Text.AlignHCenter
@@ -663,7 +659,7 @@ FocusScope {
               : dayHover.hovered ? Commons.Style.hoverFillFor(Commons.Color.popups.text, Commons.Color.accent) : "transparent"
             borderSpec: hasCursor ? Commons.Border.controlSpec("focus", Commons.Color.popups.text, Commons.Color.accent)
               : today ? Commons.Border.controlSpec("normal", Commons.Color.popups.text, Commons.Color.accent) : Commons.Border.none()
-            radius: Commons.Style.cornerRadius
+            radius: visual.radius
             Text {
               anchors.horizontalCenter: parent.horizontalCenter
               y: Commons.Style.spacing.xxs
@@ -713,7 +709,7 @@ FocusScope {
         Text {
           text: "Loaded game day"
           textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          color: visual.muted
           font.family: Typography.family
           font.pixelSize: Commons.Style.font.caption
         }
@@ -724,7 +720,7 @@ FocusScope {
         visible: root.globalMode && root.statusMessage !== "Select a day to load its games."
         text: "Select a day to load its games."
         textFormat: Text.PlainText
-        color: Qt.alpha(Commons.Color.popups.text, 0.85)
+        color: visual.muted
         font.family: Typography.family
         font.pixelSize: Commons.Style.font.caption
         wrapMode: Text.WordWrap
@@ -749,7 +745,7 @@ FocusScope {
           visible: root.globalMode
           text: DateModel.shortDateLabel(root.selectedDateKey || root.todayDateKey)
           textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          color: visual.muted
           font.family: Typography.family
           font.pixelSize: Commons.Style.font.caption
         }
@@ -758,7 +754,7 @@ FocusScope {
           visible: root.globalMode && root.globalDayLoaded && root.agendaEntries.length === 0 && !root.loading && !root.requestFailed
           text: "No games are listed in the loaded data."
           textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          color: visual.muted
           font.family: Typography.family
           font.pixelSize: Commons.Style.font.bodySmall
           wrapMode: Text.WordWrap

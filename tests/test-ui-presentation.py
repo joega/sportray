@@ -22,14 +22,16 @@ CASES = (
     {"name": "dark", "theme": "catppuccin", "width": 400, "fontSize": 12},
     {"name": "narrow", "theme": "catppuccin-latte", "width": 320, "fontSize": 12},
     {"name": "scaled", "theme": "catppuccin", "width": 400, "fontSize": 16},
+    {"name": "narrow-large", "theme": "catppuccin-latte", "width": 320, "fontSize": 16},
 )
 
 
 EXACT_COMPONENTS = tuple(Path("components") / name for name in (
     "UpcomingCalendar.qml", "AgendaGameRow.qml", "ActionFeedback.qml", "ShortcutHelp.qml",
-    "SettingsHub.qml", "SportsSettings.qml", "TeamPicker.qml", "GameRow.qml", "GameActions.qml", "TeamScheduleLink.qml",
+    "SettingsHub.qml", "SportsSettings.qml", "TeamPicker.qml", "SettingsView.qml", "TickerSettings.qml", "SettingsToggle.qml",
+    "GameRow.qml", "MatchupScoreboard.qml", "PresentationTokens.qml", "GameActions.qml", "TeamScheduleLink.qml", "DateCarousel.qml",
     "FollowingOverview.qml", "StatusNotice.qml", "LeagueStatus.qml", "StandingsStatus.qml", "NextGameCard.qml",
-    "GameDetailView.qml", "StandingsRow.qml", "TicketStrip.qml", "TicketOverlay.qml"))
+    "GameDetailView.qml", "StandingsRow.qml", "StandingsHeader.qml", "TicketStrip.qml", "TicketOverlay.qml"))
 
 
 def stage(base, case):

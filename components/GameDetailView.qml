@@ -40,6 +40,8 @@ Item {
   readonly property bool sourceAvailable: Boolean(root.detail.source
     && typeof root.detail.source.url === "string" && root.detail.source.url !== "")
 
+  PresentationTokens { id: visual }
+
   implicitHeight: detailColumn.implicitHeight
 
   function sourceMetadataFor(value) {
@@ -231,8 +233,7 @@ Item {
     if (!action) return null
     if (action.id === "back") return backButton
     if (action.id === "away-schedule" || action.id === "home-schedule") {
-      var row = participantRows.itemAt(action.id === "away-schedule" ? 0 : 1)
-      return row ? row.teamLink : null
+      return matchupScoreboard.teamLink(action.id === "away-schedule" ? "away" : "home")
     }
     if (action.id === "watch") return watchAction
     if (action.id === "source") return sourceLink
@@ -342,6 +343,23 @@ Item {
     + (watchAction.active ? "Game is watched." : "Game is not watched.")
   Accessible.role: Accessible.StaticText
 
+
+  component DetailGroup: Rectangle {
+    default property alias content: groupContent.data
+    property alias spacing: groupContent.spacing
+    implicitHeight: groupContent.implicitHeight + Commons.Style.space(24)
+    height: implicitHeight
+    color: visual.surface
+    radius: visual.radius
+    Column {
+      id: groupContent
+      x: Commons.Style.space(12)
+      y: Commons.Style.space(12)
+      width: Math.max(0, parent.width - x * 2)
+      spacing: Commons.Style.spacing.sm
+    }
+  }
+
   Flickable {
     id: detailScroll
     anchors.fill: parent
@@ -407,110 +425,21 @@ Item {
         width: parent.width
         spacing: Commons.Style.spacing.sm
 
-        Repeater {
-          id: participantRows
-          model: root.detail.participants
-          delegate: Row {
-            id: participantRow
-            required property var modelData
-            required property int index
-            property alias teamLink: participantTeamLink
-            readonly property string logoSource: root.imageStore && modelData.team && modelData.team.logoUrl
-              ? root.imageStore.sourceFor(modelData.team.logoUrl) : ""
-            width: parent.width
-            spacing: Commons.Style.spacing.sm
-
-            Item {
-              width: Commons.Style.space(36)
-              height: width
-              anchors.verticalCenter: parent.verticalCenter
-              Rectangle {
-                anchors.fill: parent
-                anchors.margins: -Commons.Style.space(2)
-                radius: Commons.Style.space(4)
-                color: "#f5f5f5"
-                visible: participantLogo.visible
-              }
-              Image {
-                id: participantLogo
-                anchors.fill: parent
-                source: participantRow.logoSource
-                sourceSize: Qt.size(width * 2, height * 2)
-                fillMode: Image.PreserveAspectFit
-                visible: status === Image.Ready
-                asynchronous: true
-              }
-              Text {
-                anchors.centerIn: parent
-                width: parent.width
-                text: participantRow.modelData.team ? root.teamLabel(participantRow.modelData).slice(0, 3) : "?"
-                textFormat: Text.PlainText
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
-                visible: !participantLogo.visible
-                color: Qt.alpha(Commons.Color.popups.text, 0.85)
-                font.family: Typography.family
-                font.pixelSize: Commons.Style.font.caption
-              }
-            }
-
-            Column {
-              width: Math.max(0, parent.width - teamScore.width
-                - Commons.Style.space(36) - parent.spacing * 2)
-              spacing: Commons.Style.spacing.xxs
-              anchors.verticalCenter: parent.verticalCenter
-              TeamScheduleLink {
-                id: participantTeamLink
-                width: parent.width
-                height: implicitHeight
-                team: participantRow.modelData.team
-                text: root.teamName(participantRow.modelData)
-                foreground: Commons.Color.popups.text
-                fontSize: Commons.Style.font.subtitle
-                bold: true
-                wrap: true
-                hasCursor: root.focusId === (participantRow.index === 0 ? "away-schedule" : "home-schedule")
-                onRequested: root.requestTeam(participantRow.index)
-              }
-              Text {
-                text: participantRow.index === 0 ? "Away" : "Home"
-                textFormat: Text.PlainText
-                color: Qt.alpha(Commons.Color.popups.text, 0.85)
-                font.family: Typography.family
-                font.pixelSize: Commons.Style.font.caption
-              }
-            }
-
-            Text {
-              id: teamScore
-              objectName: "detailScore" + participantRow.index
-              visible: !root.scheduledPresentation
-              width: root.scheduledPresentation ? 0 : Commons.Style.space(64)
-              anchors.verticalCenter: parent.verticalCenter
-              text: root.scoreLabel(participantRow.modelData)
-              textFormat: Text.PlainText
-              color: Commons.Color.popups.text
-              font.family: Typography.family
-              font.pixelSize: Commons.Style.font.display
-              font.features: ({"tnum": 1})
-              font.bold: true
-              horizontalAlignment: Text.AlignRight
-            }
-          }
-        }
-
-        Text {
-          objectName: "detailStatus"
+        MatchupScoreboard {
+          id: matchupScoreboard
           width: parent.width
-          text: Formatters.formatDetailStatus(root.detail.status)
-          textFormat: Text.PlainText
-          color: root.stale ? Commons.Color.urgent : root.livePresentation
-            ? UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
-            : Qt.alpha(Commons.Color.popups.text, 0.85)
-          font.family: Typography.family
-          font.pixelSize: root.scheduledPresentation ? Commons.Style.font.bodySmall : Commons.Style.font.body
-          font.weight: root.livePresentation ? Font.DemiBold : Font.Normal
-          wrapMode: Text.WordWrap
+          game: root.game
+          detail: root.detail
+          imageStore: root.imageStore
+          currentTime: root.currentTime
+          stale: root.stale
+          semanticPrefix: "detail"
+          awayHasCursor: root.focusId === "away-schedule"
+          homeHasCursor: root.focusId === "home-schedule"
+          onTeamScheduleRequested: function(teamId) {
+            root.requestTeam(root.detail.participants[0].team
+              && root.detail.participants[0].team.id === teamId ? 0 : 1)
+          }
         }
         Text {
           objectName: "detailOutcome"
@@ -518,7 +447,7 @@ Item {
           visible: root.finalPresentation && root.outcomeLabel() !== null
           text: root.outcomeLabel() || ""
           textFormat: Text.PlainText
-          color: Commons.Color.popups.text
+          color: visual.ink
           font.family: Typography.family
           font.pixelSize: Commons.Style.font.subtitle
           font.weight: Font.DemiBold
@@ -526,32 +455,11 @@ Item {
         }
       }
 
-      Column {
+      DetailGroup {
         objectName: "detailPregame"
         width: parent.width
-        visible: root.scheduledPresentation
+        visible: root.scheduledPresentation && root.oddsData !== null
         spacing: Commons.Style.spacing.sm
-        Text {
-          objectName: "detailStartTime"
-          width: parent.width
-          text: root.detail.timing.startTime ? root.timeLabel(root.detail.timing.startTime) : "Start time unavailable"
-          textFormat: Text.PlainText
-          color: Commons.Color.popups.text
-          font.family: Typography.family
-          font.pixelSize: Commons.Style.font.subtitle
-          font.weight: Font.DemiBold
-          wrapMode: Text.WordWrap
-        }
-        Text {
-          width: parent.width
-          visible: Boolean(root.detail.venue)
-          text: root.detail.venue || ""
-          textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
-          font.family: Typography.family
-          font.pixelSize: Commons.Style.font.bodySmall
-          wrapMode: Text.WordWrap
-        }
         Column {
           width: parent.width
           visible: root.oddsData !== null
@@ -620,7 +528,7 @@ Item {
       }
 
 
-      Column {
+      DetailGroup {
         width: parent.width
         visible: root.situationData !== null
         spacing: Commons.Style.spacing.sm
@@ -629,7 +537,7 @@ Item {
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Commons.Style.font.body
+          font.pixelSize: visual.section
           font.weight: Font.DemiBold
         }
         Text {
@@ -679,7 +587,7 @@ Item {
         }
       }
 
-      Column {
+      DetailGroup {
         width: parent.width
         visible: root.linesData !== null
         spacing: Commons.Style.spacing.sm
@@ -688,7 +596,7 @@ Item {
           textFormat: Text.PlainText
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: Commons.Style.font.body
+          font.pixelSize: visual.section
           font.weight: Font.DemiBold
         }
         Flickable {
@@ -775,7 +683,7 @@ Item {
         }
       }
 
-      Column {
+      DetailGroup {
         width: parent.width
         visible: root.statsData !== null
         spacing: Commons.Style.spacing.sm
@@ -787,7 +695,7 @@ Item {
             textFormat: Text.PlainText
             color: Commons.Color.popups.text
             font.family: Typography.family
-            font.pixelSize: Commons.Style.font.body
+            font.pixelSize: visual.section
             font.weight: Font.DemiBold
           }
           Repeater {

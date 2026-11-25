@@ -1,10 +1,12 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Item {
   id: root
+  PresentationTokens { id: visual }
 
   required property var settingsStore
   required property var notificationService
@@ -79,7 +81,7 @@ Item {
       textFormat: Text.PlainText
       width: parent.width
       text: "Alerts for your favorite teams and watched games."
-      color: Qt.alpha(Color.popups.text, 0.85)
+      color: visual.muted
       font.family: Typography.family
       font.pixelSize: Style.font.bodySmall
       wrapMode: Text.WordWrap
@@ -109,6 +111,7 @@ Item {
       hasCursor: root.cursorIndex === root.preferenceOptions.length
       textFontSize: Style.font.bodySmall
       textBold: true
+      foreground: visual.accent
       bordered: false
       tooltipText: "Send a test notification"
       onClicked: root.sendTestNotification()
@@ -120,7 +123,7 @@ Item {
       textFormat: Text.PlainText
       width: parent.width
       text: "Sends a preview even when alerts are disabled."
-      color: Qt.alpha(Color.popups.text, 0.85)
+      color: visual.muted
       font.family: Typography.family
       font.pixelSize: Style.font.bodySmall
       wrapMode: Text.WordWrap

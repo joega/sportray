@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SPEC = importlib.util.spec_from_file_location("sportray_agenda_staging", ROOT / "tests/test-ui-presentation.py")
 staging = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(staging)
-EXACT = ("components/UpcomingCalendar.qml", "components/AgendaGameRow.qml", "model/AgendaPresentation.js")
+EXACT = ("components/UpcomingCalendar.qml", "components/AgendaGameRow.qml", "components/NextGameCard.qml",
+         "components/MatchupScoreboard.qml", "components/PresentationTokens.qml", "model/AgendaPresentation.js")
 
 def fixture():
     sample = json.loads((ROOT / "tools/readme/sample-state.json").read_text())
@@ -35,8 +36,9 @@ def fixture():
     return {"team": entries, "global": global_entries}
 
 class AgendaPresentationTests(unittest.TestCase):
-    def test_four_native_layouts_preserve_grouped_agenda_actions_and_context(self):
-        cases = [case for case in staging.CASES if not os.environ.get("SPORTRAY_AGENDA_CASE") or case["name"] == os.environ["SPORTRAY_AGENDA_CASE"]]
+    def test_native_layouts_preserve_grouped_agenda_actions_and_context(self):
+        layouts = list(staging.CASES) + [dict(staging.CASES[2], name="narrow-large", fontSize=16)]
+        cases = [case for case in layouts if not os.environ.get("SPORTRAY_AGENDA_CASE") or case["name"] == os.environ["SPORTRAY_AGENDA_CASE"]]
         self.assertTrue(cases)
         for case in cases:
             with self.subTest(case=case["name"]), tempfile.TemporaryDirectory(prefix="sp-agenda-") as temporary:
@@ -57,11 +59,14 @@ class AgendaPresentationTests(unittest.TestCase):
                 if destination:
                     output=Path(destination)/case["name"];output.mkdir(parents=True,exist_ok=True)
                     (output/"agenda.log").write_text(transcript)
-                    (output/"source-evidence.json").write_text(json.dumps(evidence,indent=2))
+                    (output/"agenda-source-evidence.json").write_text(json.dumps(evidence,indent=2))
                     for path in captures.iterdir():shutil.copy2(path,output/path.name)
                 self.assertEqual(result.returncode,0,transcript)
                 self.assertIn("AGENDA_PRESENTATION_PASS "+case["name"],transcript)
                 for bad in ["AGENDA_PRESENTATION_FAIL","TypeError:","ReferenceError:","Binding loop detected","Error loading configuration","Unable to assign [undefined]"]:
                     self.assertNotIn(bad,transcript,transcript)
+                for name,digest in evidence.items():
+                    self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest,
+                                     "Production source changed during agenda acceptance: "+name)
 
 if __name__ == "__main__":unittest.main()

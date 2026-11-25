@@ -21,7 +21,7 @@ Item {
   default property alias contentItem: holder.children
   width: contentWidth
   height: contentHeight
-  function fittedContentWidth(value) { return value }
+  function fittedContentWidth(value) { return Math.min(value, root.parent ? root.parent.width : value) }
   function fittedContentHeight(value, maximum) { return Math.min(value, maximum || 640) }
   Ui.BorderSurface {
     id: card

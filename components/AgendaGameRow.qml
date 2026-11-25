@@ -25,9 +25,12 @@ Item {
   readonly property string scoreText: AgendaPresentation.score(root.modelData)
   readonly property real dateWidth: Commons.Style.space(47)
   readonly property real timeWidth: Math.ceil(Math.max(clockMetrics.advanceWidth, tbdMetrics.advanceWidth) + Commons.Style.spacing.xs)
-  readonly property real labelWidth: Math.max(1, body.width - root.dateWidth - root.timeWidth - Commons.Style.spacing.sm * 2)
+  readonly property bool stackedTime: body.width - root.dateWidth - root.timeWidth - Commons.Style.spacing.sm * 2 < Commons.Style.space(135)
+  readonly property real labelWidth: Math.max(1, body.width - root.dateWidth - Commons.Style.spacing.sm
+    - (root.stackedTime ? 0 : root.timeWidth + Commons.Style.spacing.sm))
   objectName: "agenda:" + root.gameId
   signal activated(string dateKey)
+  PresentationTokens { id: visual }
 
   width: parent ? parent.width : implicitWidth
   implicitHeight: (root.sectionLabel ? groupLabel.implicitHeight + Commons.Style.spacing.md : 0) + body.height
@@ -53,9 +56,9 @@ Item {
     visible: root.sectionLabel !== ""
     text: root.sectionLabel
     textFormat: Text.PlainText
-    color: Commons.Color.popups.text
+    color: visual.ink
     font.family: Typography.family
-    font.pixelSize: Commons.Style.font.bodySmall
+    font.pixelSize: visual.section
     font.weight: Font.DemiBold
     Accessible.ignored: true
   }
@@ -64,8 +67,9 @@ Item {
     id: body
     width: root.width
     y: root.sectionLabel ? groupLabel.implicitHeight + Commons.Style.spacing.md : 0
-    height: Math.max(Commons.Style.space(54), dateColumn.implicitHeight + Commons.Style.spacing.sm * 2,
-      matchupColumn.implicitHeight + Commons.Style.spacing.sm * 2, timeColumn.implicitHeight + Commons.Style.spacing.sm * 2)
+    height: Math.max(Commons.Style.space(68), dateColumn.implicitHeight + Commons.Style.spacing.md * 2,
+      matchupColumn.implicitHeight + (root.stackedTime ? timeColumn.implicitHeight + Commons.Style.spacing.xs : 0)
+        + Commons.Style.spacing.md * 2, timeColumn.implicitHeight + Commons.Style.spacing.md * 2)
 
     BorderSurface {
       id: surface
@@ -73,7 +77,7 @@ Item {
       color: root.activeFocus ? Commons.Style.focusFillFor(Commons.Color.popups.text, Commons.Color.accent)
         : rowHover.hovered ? Commons.Style.hoverFillFor(Commons.Color.popups.text, Commons.Color.accent) : "transparent"
       borderSpec: root.activeFocus ? Commons.Border.controlSpec("focus", Commons.Color.popups.text, Commons.Color.accent) : Commons.Border.none()
-      radius: Commons.Style.cornerRadius
+      radius: visual.radius
     }
 
     Column {
@@ -87,7 +91,7 @@ Item {
         width: parent.width
         text: root.globalMode ? root.leagueLabel : root.date ? root.date.weekday : "Date TBD"
         textFormat: Text.PlainText
-        color: Commons.Color.popups.text
+        color: visual.muted
         font.family: Typography.family
         font.pixelSize: Commons.Style.font.caption
         font.weight: root.globalMode ? Font.DemiBold : Font.Normal
@@ -96,12 +100,21 @@ Item {
       Text {
         width: parent.width
         visible: !root.globalMode
-        text: root.date ? root.date.monthLabel + " " + root.date.day : ""
+        text: root.date ? String(root.date.day) : ""
         textFormat: Text.PlainText
-        color: Commons.Color.popups.text
+        color: visual.ink
         font.family: Typography.family
-        font.pixelSize: Commons.Style.font.bodySmall
+        font.pixelSize: Math.round(Commons.Style.font.body * 1.667)
         font.weight: Font.DemiBold
+      }
+      Text {
+        width: parent.width
+        visible: !root.globalMode
+        text: root.date ? root.date.monthLabel : ""
+        textFormat: Text.PlainText
+        color: visual.muted
+        font.family: Typography.family
+        font.pixelSize: Commons.Style.font.caption
       }
     }
 
@@ -110,7 +123,8 @@ Item {
       objectName: "agendaMatchup"
       x: root.dateWidth + Commons.Style.spacing.sm
       width: root.labelWidth
-      anchors.verticalCenter: parent.verticalCenter
+      y: root.stackedTime ? (body.height - implicitHeight - timeColumn.implicitHeight - Commons.Style.spacing.xs) / 2
+        : (body.height - implicitHeight) / 2
       spacing: Commons.Style.spacing.xxs
       Repeater {
         model: root.globalMode ? [{team: root.game.awayTeam, prefix: ""}, {team: root.game.homeTeam, prefix: "at"}]
@@ -120,10 +134,10 @@ Item {
           required property var modelData
           width: matchupColumn.width
           spacing: Commons.Style.spacing.xs
-          height: Math.max(Commons.Style.space(20), participantName.implicitHeight)
+          height: Math.max(logoMark.height, participantName.implicitHeight)
           Item {
             id: logoMark
-            width: Commons.Style.space(20)
+            width: Commons.Style.space(root.globalMode ? 24 : 30)
             height: width
             anchors.verticalCenter: parent.verticalCenter
             readonly property string source: root.imageStore && participant.modelData.team && participant.modelData.team.logoUrl
@@ -160,7 +174,8 @@ Item {
             textFormat: Text.PlainText
             color: Commons.Color.popups.text
             font.family: Typography.family
-            font.pixelSize: Commons.Style.font.bodySmall
+            font.pixelSize: visual.body
+            font.weight: Font.Medium
             wrapMode: Text.Wrap
           }
         }
@@ -170,9 +185,10 @@ Item {
     Column {
       id: timeColumn
       objectName: "agendaTime"
-      width: root.timeWidth
-      anchors.right: parent.right
-      anchors.verticalCenter: parent.verticalCenter
+      width: root.stackedTime ? root.labelWidth : root.timeWidth
+      x: root.stackedTime ? matchupColumn.x : body.width - width
+      y: root.stackedTime ? matchupColumn.y + matchupColumn.implicitHeight + Commons.Style.spacing.xs
+        : (body.height - implicitHeight) / 2
       spacing: Commons.Style.spacing.xxs
       Text {
         width: parent.width
@@ -184,7 +200,7 @@ Item {
         font.pixelSize: Commons.Style.font.body
         font.weight: Font.DemiBold
         font.features: ({"tnum": 1})
-        horizontalAlignment: Text.AlignRight
+        horizontalAlignment: root.stackedTime ? Text.AlignLeft : Text.AlignRight
       }
       Text {
         width: parent.width
@@ -195,11 +211,11 @@ Item {
         font.family: Typography.family
         font.pixelSize: Commons.Style.font.caption
         font.features: ({"tnum": 1})
-        horizontalAlignment: Text.AlignRight
+        horizontalAlignment: root.stackedTime ? Text.AlignLeft : Text.AlignRight
         wrapMode: Text.Wrap
       }
     }
-    Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Commons.Color.popups.text; opacity: 0.10 }
+    Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: visual.line }
     HoverHandler { id: rowHover }
     MouseArea {
       anchors.fill: parent

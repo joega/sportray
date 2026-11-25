@@ -1,6 +1,7 @@
 import QtQuick
 import "../model/UiTypography.js" as Typography
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../model/DateModel.js" as DateModel
 
@@ -73,7 +74,7 @@ Item {
         height: dateRail.height
         text: DateModel.displayLabel(root.selectedDateKey,
           root.todayDateKey) + ", " + DateModel.shortDateLabel(root.selectedDateKey)
-        color: Color.popups.text
+        color: Commons.Color.popups.text
         font.family: Typography.family
         font.pixelSize: Style.font.body
         font.bold: true

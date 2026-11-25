@@ -10,6 +10,7 @@ import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
 Item {
   id: root
+  PresentationTokens { id: visual }
 
   required property var teams
   required property var leagues
@@ -218,9 +219,9 @@ Item {
         width: parent.width
         text: "Choose your teams"
         textFormat: Text.PlainText
-        color: Commons.Color.popups.text
+        color: visual.ink
         font.family: Typography.family
-        font.pixelSize: Style.font.subtitle
+        font.pixelSize: visual.section
         font.weight: Font.DemiBold
       }
       Text {
@@ -228,7 +229,7 @@ Item {
         width: parent.width
         text: "Star teams to collect their games in Following. Enable their leagues for scores."
         textFormat: Text.PlainText
-        color: Qt.alpha(Commons.Color.popups.text, 0.85)
+        color: visual.muted
         font.family: Typography.family
         font.pixelSize: Style.font.bodySmall
         wrapMode: Text.Wrap
@@ -252,9 +253,10 @@ Item {
           width: parent.width
           text: root.selectedCount + " selected"
           textFormat: Text.PlainText
-          color: Commons.Color.popups.text
+          color: visual.ink
           font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Style.font.body
+          font.weight: Font.DemiBold
           wrapMode: Text.Wrap
         }
         Text {
@@ -263,7 +265,7 @@ Item {
           visible: root.disabledSelectedCount > 0
           text: root.disabledSelectedCount + (root.disabledSelectedCount === 1 ? " needs league enabled" : " need leagues enabled")
           textFormat: Text.PlainText
-          color: Qt.alpha(Commons.Color.popups.text, 0.85)
+          color: visual.muted
           font.family: Typography.family
           font.pixelSize: Style.font.caption
           wrapMode: Text.Wrap
@@ -275,6 +277,7 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         text: "Review leagues"
+        foreground: visual.accent
         textFontSize: Style.font.caption
         tooltipText: "Review which leagues load scores and appear in Following (V)"
         focusable: true
@@ -348,7 +351,7 @@ Item {
       text: root.visibleTeams.length === 0 ? "No teams match this search."
         : "↓ Browse · F Filter · / Search · V Leagues"
       wrapMode: Text.WordWrap
-      color: Qt.alpha(Commons.Color.popups.text, 0.85)
+      color: visual.muted
       font.family: Typography.family
       font.pixelSize: Style.font.caption
     }
@@ -376,17 +379,17 @@ Item {
         readonly property string logoSource: root.imageStore && modelData.logoUrl
           ? root.imageStore.sourceFor(modelData.logoUrl) : ""
         width: teamList.width
-        height: Style.space(48)
+        height: Style.space(52)
 
         BorderSurface {
           id: teamSurface
           anchors.fill: parent
-          radius: Style.cornerRadius
+          radius: visual.radius
           color: index === root.cursorIndex
             ? Style.hoverFillFor(Commons.Color.popups.text, Commons.Color.accent)
             : root.isFavorite(modelData)
-              ? Style.selectedFillFor(Commons.Color.popups.text, Commons.Color.accent)
-              : "transparent"
+              ? visual.feature
+              : visual.surface
           borderSpec: index === root.cursorIndex
             ? Border.controlSpec("hover-cursor", Commons.Color.popups.text, Commons.Color.accent) : Border.none()
 
@@ -441,9 +444,10 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width
                 text: modelData.name || modelData.shortName || modelData.abbreviation || "Unnamed team"
-                color: Commons.Color.popups.text
+                color: visual.ink
                 font.family: Typography.family
-                font.pixelSize: Style.font.body
+                font.pixelSize: visual.body
+                font.weight: Font.Medium
                 elide: Text.ElideRight
               }
 
@@ -466,7 +470,7 @@ Item {
               anchors.verticalCenter: parent.verticalCenter
               iconName: root.isFavorite(modelData) ? "star" : "starOutline"
               fontSize: Style.font.title
-              color: root.isFavorite(modelData) ? Commons.Color.accent : Qt.alpha(Commons.Color.popups.text, 0.85)
+              color: root.isFavorite(modelData) ? visual.accent : visual.muted
               decorative: true
             }
           }
@@ -474,10 +478,11 @@ Item {
           Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
+            anchors.leftMargin: Style.spacing.md
+            anchors.rightMargin: Style.spacing.md
             anchors.bottom: parent.bottom
             height: 1
-            color: Commons.Color.popups.text
-            opacity: 0.10
+            color: visual.line
           }
 
           MouseArea {

@@ -149,7 +149,7 @@ def capture(output, logo_cache=None, theme_name="catppuccin-latte"):
         if output == (ROOT / "screenshots").resolve():
             shutil.copy2(output / "preview.png", ROOT / "preview.png")
             (output / "preview.png").unlink()
-        print("Captured seven native feature views and the 1280×720 preview in " + str(output))
+        print("Captured seven native feature views and the 1340×820 preview in " + str(output))
 
 
 if __name__ == "__main__":

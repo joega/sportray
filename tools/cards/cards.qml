@@ -309,11 +309,12 @@ ShellRoot {
             "Pregame uses the wrong presentation")
           check(!node("detailScore0").visible && !node("detailScore1").visible,
             "Pregame exposes unplayed score placeholders")
-          check(node("detailPregame").visible && node("detailStartTime").text.indexOf("Oct 11") !== -1,
+          check(node("detailPregame").visible && node("detailStartDate").text.indexOf("Oct 11") !== -1
+            && node("detailStartTime").text === "4:00 PM",
             "Pregame does not feature its normalized start")
           check(node("detailPregame").mapToItem(detail, 0, 0).y
             < node("detailActions").mapToItem(detail, 0, 0).y,
-            "Pregame timing, venue and odds follow actions")
+            "Attributed pregame odds follow actions")
           check(detail.implicitHeight < liveHeight - Commons.Style.space(40),
             "Sparse pregame did not become more compact")
           capture("detail-scheduled")

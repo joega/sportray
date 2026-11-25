@@ -25,7 +25,8 @@ Item {
   // Calendar rows pass an explicit bounded local-time label; the scoreboard
   // route keeps its own computed local start text.
   property string startTimeTextOverride: ""
-  readonly property bool childActionPressed: gameActions.pointerPressed || awayLink.pointerPressed || homeLink.pointerPressed
+  readonly property bool childActionPressed: gameActions.pointerPressed || featureDetails.pointerPressed
+    || (root.featured ? featuredScoreboard.childActionPressed : awayLink.pointerPressed || homeLink.pointerPressed)
   readonly property bool popupOpen: gameActions.popupOpen
   readonly property bool inputActive: gameActions.inputActive
   property real awayScoreHighlight: 0
@@ -112,7 +113,7 @@ Item {
   signal focusReturnRequested()
 
   width: parent ? parent.width : implicitWidth
-  implicitHeight: card.height
+  implicitHeight: root.featured ? featureColumn.implicitHeight : card.height
   height: implicitHeight
 
   function localStartDateTime(value) {
@@ -177,6 +178,7 @@ Item {
   function closeActions() { gameActions.close() }
   function focusActions() { return gameActions.focusTrigger() }
   function focusTeam(teamId) {
+    if (root.featured) return featuredScoreboard.focusTeam(teamId)
     var target = root.game.awayTeam && root.game.awayTeam.id === teamId ? awayLink
       : root.game.homeTeam && root.game.homeTeam.id === teamId ? homeLink : null
     if (!target || !target.available) return false
@@ -193,17 +195,68 @@ Item {
   Accessible.onPressAction: root.activatePrimaryAction()
   readonly property real logoSize: Commons.Style.space(20)
   readonly property real scoreColumnWidth: Commons.Style.space(44)
+  PresentationTokens { id: visual }
+
+  Rectangle {
+    anchors.fill: featureColumn
+    visible: root.featured
+    radius: visual.featureRadius
+    color: visual.feature
+    border.width: root.selected ? Math.max(1, Commons.Style.space(2)) : 0
+    border.color: visual.accent
+  }
+  Column {
+    id: featureColumn
+    width: parent.width
+    visible: root.featured
+    spacing: 0
+    MatchupScoreboard {
+      id: featuredScoreboard
+      width: parent.width
+      game: root.game
+      imageStore: root.imageStore
+      currentTime: root.currentTime
+      stale: root.stale
+      selected: false
+      awayScoreHighlight: root.awayScoreHighlight
+      homeScoreHighlight: root.homeScoreHighlight
+      onTeamScheduleRequested: function(teamId) { root.teamScheduleRequested(teamId) }
+    }
+    Rectangle { x: Commons.Style.space(14); width: parent.width-x*2; height: 1; color: visual.line }
+    Item {
+      id: featureFooter
+      width: parent.width
+      height: Math.max(featureDetails.implicitHeight, gameActions.implicitHeight) + Commons.Style.space(8)
+      SemanticActionButton {
+        id: featureDetails
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.rightMargin: gameActions.width + Commons.Style.spacing.sm
+        anchors.verticalCenter: parent.verticalCenter
+        text: "Game details  →"
+        textBold: true
+        textFontSize: Commons.Style.font.bodySmall
+        foreground: visual.accent
+        focusable: true
+        tooltipText: root.game.isValid === true ? "View game details" : "Game details unavailable"
+        enabled: root.game.isValid === true
+        onClicked: root.activatePrimaryAction()
+        Accessible.name: "View game details"
+      }
+    }
+  }
 
   BorderSurface {
     id: card
+    visible: !root.featured
     width: parent.width
     clip: true
     height: row.implicitHeight + Commons.Style.space(12)
-    color: "transparent"
+    color: visual.surface
     borderSpec: root.selected
       ? Commons.Border.controlSpec("focus", Commons.Color.popups.text, Commons.Color.accent)
       : Commons.Border.none()
-    radius: 0
+    radius: visual.radius
 
     Column {
       id: row
@@ -283,10 +336,9 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             height: parent.height
             team: root.game.awayTeam
-            text: root.awayLabel
-            foreground: Formatters.isWinningTeam(root.game, "away")
-              ? Commons.Color.accent : Commons.Color.popups.text
-            fontSize: root.live ? Commons.Style.font.subtitle : Commons.Style.font.body
+            text: root.game.awayTeam ? root.game.awayTeam.shortName || root.game.awayTeam.name || root.awayLabel : root.awayLabel
+            foreground: visual.ink
+            fontSize: visual.body
             bold: root.awayIsFavorite || Formatters.isWinningTeam(root.game, "away")
             onRequested: function(teamId) { root.teamScheduleRequested(teamId) }
           }
@@ -299,7 +351,7 @@ Item {
           text: root.awayScoreLabel
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: root.live ? Commons.Style.font.title : Commons.Style.font.subtitle
+            font.pixelSize: Commons.Style.font.heading
           font.features: ({"tnum": 1})
           font.bold: true
           horizontalAlignment: Text.AlignRight
@@ -383,10 +435,9 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             height: parent.height
             team: root.game.homeTeam
-            text: root.homeLabel
-            foreground: Formatters.isWinningTeam(root.game, "home")
-              ? Commons.Color.accent : Commons.Color.popups.text
-            fontSize: root.live ? Commons.Style.font.subtitle : Commons.Style.font.body
+            text: root.game.homeTeam ? root.game.homeTeam.shortName || root.game.homeTeam.name || root.homeLabel : root.homeLabel
+            foreground: visual.ink
+            fontSize: visual.body
             bold: root.homeIsFavorite || Formatters.isWinningTeam(root.game, "home")
             onRequested: function(teamId) { root.teamScheduleRequested(teamId) }
           }
@@ -399,7 +450,7 @@ Item {
           text: root.homeScoreLabel
           color: Commons.Color.popups.text
           font.family: Typography.family
-          font.pixelSize: root.live ? Commons.Style.font.title : Commons.Style.font.subtitle
+            font.pixelSize: Commons.Style.font.heading
           font.features: ({"tnum": 1})
           font.bold: true
           horizontalAlignment: Text.AlignRight
@@ -442,9 +493,11 @@ Item {
 
     GameActions {
       id: gameActions
+      parent: root.featured ? featureFooter : card
       anchors.right: parent.right
       anchors.rightMargin: Commons.Style.spacing.sm
-      y: Commons.Style.space(6) + Math.max(0, (Commons.Style.space(48) + Commons.Style.spacing.xs - height) / 2)
+      y: root.featured ? (featureFooter.height-height)/2
+        : Commons.Style.space(6) + Math.max(0, (Commons.Style.space(48) + Commons.Style.spacing.xs - height) / 2)
       width: implicitWidth
       height: implicitHeight
       game: root.game
@@ -460,7 +513,7 @@ Item {
       anchors.bottom: parent.bottom
       height: 1
       color: Commons.Color.popups.text
-      opacity: 0.10
+      opacity: 0
     }
   }
 }

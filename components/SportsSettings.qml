@@ -7,6 +7,7 @@ import qs.Ui
 
 Item {
   id: root
+  PresentationTokens { id: visual }
 
   required property var leagues
   required property var settingsStore
@@ -87,7 +88,7 @@ Item {
   Column {
     id: sportsColumn
     width: parent.width
-    spacing: Style.spacing.sm
+    spacing: Style.spacing.md
 
       Text {
       textFormat: Text.PlainText
@@ -101,9 +102,9 @@ Item {
           ? root.settingsStore.settings.followedLeagueIds.length : 0
         return count + " of " + root.leagues.length + " enabled · " + followed + " followed"
       }
-      color: UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
+      color: visual.accent
       font.family: Typography.family
-      font.pixelSize: Style.font.caption
+      font.pixelSize: Style.font.bodySmall
     }
 
     Text {
@@ -111,7 +112,7 @@ Item {
       text: "Enable: load scores and show the league.\nFollow: add its games to Following and Calendar."
       textFormat: Text.PlainText
       wrapMode: Text.WordWrap
-      color: Qt.alpha(Commons.Color.popups.text, 0.85)
+      color: visual.muted
       font.family: Typography.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -124,20 +125,28 @@ Item {
         required property var modelData
         required property int index
         width: sportsColumn.width
-        height: leagueColumn.implicitHeight + Style.spacing.md
+        height: leagueColumn.implicitHeight + Style.space(24)
+
+        Rectangle {
+          anchors.fill: parent
+          color: visual.surface
+          radius: visual.radius
+        }
 
         Column {
           id: leagueColumn
-          width: parent.width
+          x: Style.space(12)
+          y: Style.space(12)
+          width: parent.width - x * 2
           spacing: Style.spacing.xs
 
           Text {
             textFormat: Text.PlainText
             width: parent.width
             text: modelData ? (modelData.displayName || modelData.name || modelData.id) : ""
-            color: Commons.Color.popups.text
+            color: visual.ink
             font.family: Typography.family
-            font.pixelSize: Style.font.body
+            font.pixelSize: visual.body
             font.bold: true
           }
 
@@ -147,7 +156,7 @@ Item {
             text: root.isEnabled(modelData)
               ? (root.isFollowed(modelData) ? "Enabled · followed" : "Enabled · not followed")
               : "Disabled · unavailable in navigation"
-            color: Qt.alpha(Commons.Color.popups.text, 0.85)
+            color: visual.muted
             font.family: Typography.family
             font.pixelSize: Style.font.caption
           }
@@ -160,7 +169,7 @@ Item {
               width: (parent.width - Style.space(64) - parent.spacing * 3) / 2
               text: root.isEnabled(modelData) ? "Enabled" : "Enable"
               selected: root.isEnabled(modelData)
-              textFontSize: Style.font.caption
+              textFontSize: Style.font.bodySmall
               textBold: true
               focusable: true
               bordered: false
@@ -179,8 +188,8 @@ Item {
               width: (parent.width - Style.space(64) - parent.spacing * 3) / 2
               text: root.isFollowed(modelData) ? "Following" : "Follow"
               selected: root.isFollowed(modelData)
-              foreground: Commons.Color.popups.text
-              textFontSize: Style.font.caption
+              foreground: visual.ink
+              textFontSize: Style.font.bodySmall
               textBold: true
               focusable: true
               bordered: false
@@ -228,14 +237,6 @@ Item {
               Accessible.role: Accessible.Button
             }
           }
-        }
-        Rectangle {
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.bottom: parent.bottom
-          height: 1
-          color: Commons.Color.popups.text
-          opacity: 0.10
         }
       }
     }

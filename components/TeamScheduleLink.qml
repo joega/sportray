@@ -44,7 +44,7 @@ Item {
     font.bold: root.bold
     font.underline: pointer.containsMouse && root.available
     verticalAlignment: Text.AlignVCenter
-    wrapMode: root.wrap ? Text.WordWrap : Text.NoWrap
+    wrapMode: root.wrap ? Text.Wrap : Text.NoWrap
     elide: root.wrap ? Text.ElideNone : Text.ElideRight
   }
   MouseArea {

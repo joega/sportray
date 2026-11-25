@@ -71,8 +71,14 @@ explains Enable and Follow; selected teams whose scores are disabled are labeled
 Picking a team never silently enables or follows its league.
 
 **Following** brings together favorite-team games, temporary game watches, and
-slates from leagues you follow. Its overview counts the loaded games; **All**,
-**Live**, and **Favorites** help narrow a busy day. Live includes intermissions;
+slates from leagues you follow. One favorite matchup leads with larger logos,
+scores, and game status. It prioritizes live, upcoming, then completed games when
+you open the view or change its date or filter, and stays in place as scores
+update. Each game appears once; other games remain in compact groups. Dates
+without favorite-team games use the compact slate throughout.
+
+The filter beside the league chooser counts loaded games; **All**, **Live**,
+and **Favorites** help narrow a busy day. Live includes intermissions;
 Favorites includes favorite-team games. Filters reset to All when you reopen the
 panel. **Show all** returns from an empty filter without changing your follows.
 Under **Settings → Sports & leagues**:
@@ -88,7 +94,8 @@ without favoriting either team. **Alerts on** marks an active watch. These contr
 
 ## Scores and standings
 
-Use the league dropdown below the dates to switch views. The five-day date
+Use **Scores**, **Calendar**, and **Standings** to move between the main pages.
+The league dropdown below the dates chooses Following or a league. The five-day date
 carousel, previous/next arrows, and Today reset let you browse completed and
 upcoming slates. On an empty league day, **View day** jumps to its next scheduled
 game.
@@ -132,7 +139,7 @@ scroll position, and selected action.
 | Premier League | ✓ | ✓ |
 | MLS | ✓ | ✓ |
 
-Choose **Standings** in the header, or press **S**, to open the selected league's
+Choose the **Standings** tab, or press **S**, to open the selected league's
 table. From Following, choose a league first. **Scores** returns to its games;
 **Refresh** updates the table while standings are open.
 
@@ -157,7 +164,9 @@ Missing optional sections stay out of the way; long play descriptions wrap and
 long period tables scroll horizontally.
 Upcoming details emphasize the matchup, start time, venue, and available odds.
 Live details put the score and current situation first; completed games show
-the result before their scoring breakdown and stats.
+the result before their scoring breakdown and stats. The shared scoreboard
+keeps team identity and scores consistent with featured games and upcoming
+matchups; scoring, situation, and stats use separate readable groups.
 
 Open details follow the existing score feed, preserving scroll and action focus
 as data updates. An update message identifies retained scores if a request fails
@@ -298,9 +307,9 @@ cp /tmp/sportray-ui/ui-light/calendar-global.png screenshots/sportray-calendar-g
 </details>
 
 <details>
-<summary>Explore the proposed visual direction</summary>
+<summary>Explore the visual design</summary>
 
-A separate native design preview explores a featured matchup, quieter
+A separate native design preview illustrates a featured matchup, quieter
 navigation, scoreboard details, and weekly team schedules. It uses illustrative
 games and an isolated HOME; it does not change the installed plugin or saved
 preferences. Render light, dark, narrow, and larger-text review images, or open

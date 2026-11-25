@@ -1,10 +1,12 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../model/UiTypography.js" as Typography
 
 Item {
   id: root
+  PresentationTokens { id: visual }
   required property var settingsStore
   property int settingsRevision: 0
   property int cursorIndex: 0
@@ -67,63 +69,72 @@ Item {
     Repeater {
       id: optionRepeater
       model: root.options.slice(1)
-      delegate: Column {
+      delegate: Item {
         id: optionGroup
         required property var modelData
         required property int index
         width: column.width
-        spacing: Style.spacing.sm
+        height: optionColumn.implicitHeight + Style.space(24)
 
-        Text {
-          width: parent.width
-          text: optionGroup.modelData.label
-          textFormat: Text.PlainText
-          color: Color.popups.text
-          font.family: Typography.family
-          font.pixelSize: Style.font.body
-          font.bold: true
+        Rectangle {
+          anchors.fill: parent
+          color: visual.surface
+          radius: visual.radius
         }
-        Text {
-          width: parent.width
-          text: optionGroup.modelData.description
-          textFormat: Text.PlainText
-          wrapMode: Text.WordWrap
-          color: Qt.alpha(Color.popups.text, 0.85)
-          font.family: Typography.family
-          font.pixelSize: Style.font.bodySmall
-        }
-        Row {
-          width: parent.width
-          spacing: Style.spacing.xs
-          Repeater {
-            id: choiceRepeater
-            model: root.choices(optionGroup.modelData.key)
-            Button {
-              required property string modelData
-              width: (optionGroup.width - Style.spacing.xs * (choiceRepeater.count - 1)) / choiceRepeater.count
-              fontFamily: Typography.family
-              fontSize: Style.font.bodySmall
-              text: modelData.charAt(0).toUpperCase() + modelData.slice(1)
-              selected: root.value(optionGroup.modelData.key) === modelData
-              hasCursor: root.cursorIndex === optionGroup.index + 1 && selected
-              focusable: true
-              onClicked: {
-                root.cursorIndex = optionGroup.index + 1
-                root.setValue(optionGroup.modelData.key, modelData)
+
+        Column {
+          id: optionColumn
+          x: Style.space(12)
+          y: Style.space(12)
+          width: parent.width - x * 2
+          spacing: Style.spacing.sm
+
+          Text {
+            width: parent.width
+            text: optionGroup.modelData.label
+            textFormat: Text.PlainText
+            color: visual.ink
+            font.family: Typography.family
+            font.pixelSize: visual.body
+            font.bold: true
+          }
+          Text {
+            width: parent.width
+            text: optionGroup.modelData.description
+            textFormat: Text.PlainText
+            wrapMode: Text.WordWrap
+            color: visual.muted
+            font.family: Typography.family
+            font.pixelSize: Style.font.bodySmall
+          }
+          Row {
+            width: parent.width
+            spacing: Style.spacing.xs
+            Repeater {
+              id: choiceRepeater
+              model: root.choices(optionGroup.modelData.key)
+              Button {
+                required property string modelData
+                width: (optionColumn.width - Style.spacing.xs * (choiceRepeater.count - 1)) / choiceRepeater.count
+                fontFamily: Typography.family
+                fontSize: Style.font.bodySmall
+                text: modelData.charAt(0).toUpperCase() + modelData.slice(1)
+                selected: root.value(optionGroup.modelData.key) === modelData
+                foreground: selected ? visual.accent : visual.ink
+                hasCursor: root.cursorIndex === optionGroup.index + 1 && selected
+                focusable: true
+                onClicked: {
+                  root.cursorIndex = optionGroup.index + 1
+                  root.setValue(optionGroup.modelData.key, modelData)
+                }
+                Accessible.name: optionGroup.modelData.label + ": " + text
+                Accessible.role: Accessible.RadioButton
+                Accessible.checkable: true
+                Accessible.checked: selected
+                Accessible.onPressAction: root.setValue(optionGroup.modelData.key, modelData)
               }
-              Accessible.name: optionGroup.modelData.label + ": " + text
-              Accessible.role: Accessible.RadioButton
-              Accessible.checkable: true
-              Accessible.checked: selected
-              Accessible.onPressAction: root.setValue(optionGroup.modelData.key, modelData)
             }
           }
-        }
-        Rectangle {
-          width: parent.width
-          height: 1
-          color: Color.popups.text
-          opacity: 0.10
         }
       }
     }

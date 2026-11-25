@@ -17,6 +17,7 @@ import "model/GameDetailState.js" as GameDetailState
 import "model/LiveFavoriteRotationPolicy.js" as LiveFavoriteRotationPolicy
 import "model/PanelPresentation.js" as PanelPresentation
 import "model/FollowingPresentation.js" as FollowingPresentation
+import "model/FeaturePresentation.js" as FeaturePresentation
 import "model/NavigationContext.js" as NavigationContext
 import "model/TeamSchedulePolicy.js" as TeamSchedulePolicy
 import "model/ResultRows.js" as ResultRows
@@ -85,6 +86,8 @@ Panel {
   property string settingsDestination: "sports"
   property string activeDestination: "following"
   property string followingFilterId: "all"
+  property string featuredGameId: ""
+  property string featureContextKey: ""
   property var resultContextOrder: []
   property var navigationStack: []
   property var utilityReturnContext: null
@@ -171,9 +174,26 @@ Panel {
   readonly property var sportOptions: buildSportOptions()
   readonly property var sportsPicker: leaguePicker
   readonly property var activeView: viewForDestination(root.activeDestination)
-  readonly property var resultRows: ResultRows.flatten(
+  readonly property var unfeaturedRows: ResultRows.flatten(
     root.activeView, root.activeDestination, root.selectedDateLabel)
+  readonly property var resultRows: root.activeDestination === "following"
+    ? FeaturePresentation.rows(root.unfeaturedRows, root.featuredGameId) : root.unfeaturedRows
   readonly property var standingsService: root.service ? root.service.standingsService : null
+  PresentationTokens { id: visual }
+
+  function syncFeaturedGame() {
+    if (!root.opened || root.activeDestination !== "following") return
+    var key = root.resultContextKey("following")
+    if (root.featureContextKey !== key) {
+      root.featureContextKey = key
+      root.featuredGameId = ""
+    }
+    // Retain the canonical choice across polling, score/favorite changes and
+    // detail/Settings roundtrips. First data may arrive after opening.
+    if (!root.featuredGameId) root.featuredGameId = FeaturePresentation.choose(root.activeView.games)
+  }
+  onActiveViewChanged: root.deferPanelCallback(root.syncFeaturedGame)
+  onFollowingFilterIdChanged: root.deferPanelCallback(root.syncFeaturedGame)
   readonly property var notificationService: root.service ? root.service.notificationService : null
   readonly property var standingsState: {
     root.standingsRevision
@@ -314,7 +334,7 @@ Panel {
   }
 
   function openShortcutHelp() {
-    if (root.gameActionsOpen || sportsPicker.popupOpen || (root.scheduleOpen && upcomingCalendar.chooserOpen)) return
+    if (root.gameActionsOpen || sportsPicker.popupOpen || followingOverview.popupOpen || (root.scheduleOpen && upcomingCalendar.chooserOpen)) return
     root.helpReturnFocus = root.lastContentFocus || keyCatcher
     shortcutPopup.open()
   }
@@ -340,7 +360,7 @@ Panel {
   }
 
   function openUpcomingCalendar() {
-    if (root.settingsOpen || root.detailOpen || root.standingsOpen) return
+    if (root.settingsOpen || root.detailOpen) return
     if (root.scheduleOpen) { root.closeSchedule(); return }
     root.closeGameActions()
     root.pushNavigation(root.captureNavigationContext())
@@ -369,6 +389,18 @@ Panel {
     if (root.activeGameActionsRow && typeof root.activeGameActionsRow.closeActions === "function")
       root.activeGameActionsRow.closeActions()
     root.activeGameActionsRow = null
+  }
+
+  function leaveScheduleForPrimaryPage() {
+    // A primary-page choice exits a nested team/detail journey. Back keeps
+    // its separate semantic restoration path through closeSchedule().
+    root.hideSchedule()
+    root.detailOpen = false
+    root.detailGame = null
+    root.navigationStack = []
+    root.pendingResultFocus = null
+    root.resultActionFocus = ""
+    root.upcomingReturnContext = null
   }
 
   function openSelectedGameActions() {
@@ -756,7 +788,8 @@ Panel {
   function recalculatePanelHeight() {
     if (root.scheduleOpen) {
       root.panelContentHeightRequest = PanelLayout.clamp(header.height + contentColumn.spacing
-        + upcomingCalendar.implicitHeight, Style.space(320), Style.space(640))
+        + (primaryNavigation.visible ? primaryNavigation.height + contentColumn.spacing : 0)
+        + upcomingCalendar.implicitHeight, Style.space(320), Style.space(740))
       return
     }
     if (root.detailOpen) {
@@ -765,7 +798,7 @@ Panel {
         panel && panel.screen ? panel.screen.height : 0, {
           minimum: gameDetailView.scheduledPresentation ? Style.space(280) : Style.space(320),
           fixedCap: Style.space(600),
-          viewportFraction: 0.5
+          viewportFraction: 0.65
         })
       return
     }
@@ -775,7 +808,7 @@ Panel {
   function measuredPanelContentRequest() {
     var tokens = {
         compactMinimum: Style.space(280),
-        maximum: Style.space(640),
+        maximum: Style.space(740),
         scoreChrome: Style.space(112),
         section: Style.space(22),
         game: Style.space(88),
@@ -804,7 +837,8 @@ Panel {
       bodyHeight = scoreChrome.implicitHeight + Style.spacing.md
         + Math.max(0, Number(resultList.contentHeight) || 0)
     }
-    return PanelLayout.clamp(header.height + contentColumn.spacing + bodyHeight,
+    return PanelLayout.clamp(header.height + contentColumn.spacing
+      + (primaryNavigation.visible ? primaryNavigation.height + contentColumn.spacing : 0) + bodyHeight,
       tokens.compactMinimum, tokens.maximum)
   }
 
@@ -1135,6 +1169,8 @@ Panel {
       return
     }
     root.nowMs = Date.now()
+    root.featureContextKey = ""
+    root.featuredGameId = ""
     root.followingFilterId = "all"
     root.standingsOpen = false
     root.calendarOpen = false
@@ -1147,6 +1183,7 @@ Panel {
     root.activeDestination = "following"
     root.tabCursor = 0
     root.tabStripFocused = true
+    root.syncFeaturedGame()
     root.deferPanelCallback(function() {
       root.restoreResultPosition()
       keyCatcher.forceActiveFocus()
@@ -1161,6 +1198,7 @@ Panel {
   }
 
   onSelectedDateKeyChanged: {
+    root.deferPanelCallback(root.syncFeaturedGame)
     root.resultActionFocus = ""
     root.selectedRowIndex = -1
     root.selectedRowId = ""
@@ -1169,6 +1207,7 @@ Panel {
   }
 
   onActiveDestinationChanged: {
+    root.deferPanelCallback(root.syncFeaturedGame)
     root.resultActionFocus = ""
     root.standingsOpen = false
     root.calendarOpen = false
@@ -1468,8 +1507,8 @@ Panel {
     margin: 0
     gap: 0
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(400))
-    contentHeight: panel.fittedContentHeight(root.panelContentHeightRequest, Style.space(640))
+    contentWidth: panel.fittedContentWidth(Style.space(420))
+    contentHeight: panel.fittedContentHeight(root.panelContentHeightRequest, Style.space(740))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -1478,7 +1517,7 @@ Panel {
       // navigation keys before an active editor can receive them. Let the
       // editor own all keys, including Escape, while it has focus.
       blocked: root.helpOpen || root.scheduleOpen || root.gameActionsOpen || KeyboardRoutingPolicy.catcherBlocked(
-        settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen)
+        settingsHub.inputActive, (sportsPicker && sportsPicker.popupOpen) || followingOverview.popupOpen)
       onCloseRequested: root.detailOpen ? root.closeDetail()
         : root.settingsOpen ? root.closeUtility()
         : root.calendarOpen ? root.closeCalendar() : root.navigationStack.length ? root.goBack() : root.close()
@@ -1552,7 +1591,7 @@ Panel {
       Keys.onPressed: function(event) {
         if (event.accepted || root.helpOpen) return
         if (event.key === Qt.Key_Z && (event.modifiers & Qt.ControlModifier)
-            && !settingsHub.inputActive && !root.gameActionsOpen && !sportsPicker.popupOpen
+            && !settingsHub.inputActive && !root.gameActionsOpen && !sportsPicker.popupOpen && !followingOverview.popupOpen
             && !(root.scheduleOpen && upcomingCalendar.chooserOpen)) {
           event.accepted = root.undoLastAction(root.actionFeedbackState ? root.actionFeedbackState.id : undefined)
           if (event.accepted) return
@@ -1715,7 +1754,7 @@ Panel {
               : root.selectedDateKey === root.todayDateKey ? "Today"
               : DateModel.shortDateLabel(root.selectedDateKey)
             font.family: Typography.family
-            font.pixelSize: Style.font.title
+            font.pixelSize: Math.min(visual.title, header.width * 0.075)
             color: Commons.Color.popups.text
             font.bold: true
             elide: Text.ElideRight
@@ -1742,7 +1781,9 @@ Panel {
             SemanticActionButton {
               id: upcomingLeagues
               visible: root.scheduleOpen && !root.upcomingTeamId && !root.settingsOpen
-              text: "Leagues"
+              text: header.width < Style.space(360) ? "" : "Leagues"
+              iconName: "list"
+              fallbackText: "L"
               textFontSize: Style.font.caption
               tooltipText: "Choose followed leagues"
               focusable: true
@@ -1767,26 +1808,6 @@ Panel {
             height: refreshButton.implicitHeight
             onClicked: root.selectDate(root.todayDateKey)
             Accessible.name: "Show today"
-            Accessible.role: Accessible.Button
-            }
-
-            SemanticActionButton {
-            id: standingsButton
-            visible: !root.settingsOpen && !root.detailOpen && !root.scheduleOpen
-            bordered: true
-            iconName: root.standingsOpen ? "scores" : "list"
-            fallbackText: root.standingsOpen ? "S" : "T"
-            tooltipText: !root.activeLeagueSupportsStandings ? "Choose a league to view standings"
-              : root.standingsOpen ? "Show scores" : "Show standings"
-            text: root.standingsOpen ? "Scores" : "Standings"
-            textFontSize: Style.font.caption
-            textBold: true
-            textVerticalPadding: Style.spacing.controlPaddingY / 2
-            height: refreshButton.implicitHeight
-            focusable: true
-            onClicked: root.toggleStandings()
-            Accessible.name: !root.activeLeagueSupportsStandings ? "Choose a league for standings"
-              : root.standingsOpen ? "Show scores" : "Show standings"
             Accessible.role: Accessible.Button
             }
 
@@ -1889,10 +1910,56 @@ Panel {
           }
         }
 
+        Row {
+          id: primaryNavigation
+          width: parent.width
+          height: visible ? Style.space(36) : 0
+          visible: !root.settingsOpen && !root.detailOpen && (!root.scheduleOpen || !root.upcomingTeamId)
+          Repeater {
+            model: [{id: "scores", label: "Scores"}, {id: "calendar", label: "Calendar"}, {id: "standings", label: "Standings"}]
+            SemanticActionButton {
+              required property var modelData
+              readonly property bool current: modelData.id === "calendar" ? root.scheduleOpen
+                : modelData.id === "standings" ? root.standingsOpen && !root.scheduleOpen : !root.scheduleOpen && !root.standingsOpen
+              width: primaryNavigation.width / 3
+              height: primaryNavigation.height
+              text: modelData.label
+              textFontSize: Style.font.body
+              textBold: current
+              foreground: current ? visual.accent : visual.ink
+              focusable: true
+              onClicked: {
+                if (modelData.id === "calendar") { if (!root.scheduleOpen) root.openUpcomingCalendar() }
+                else if (modelData.id === "standings") {
+                  if (root.scheduleOpen) root.leaveScheduleForPrimaryPage()
+                  if (!root.standingsOpen) root.toggleStandings()
+                } else {
+                  if (root.scheduleOpen) root.leaveScheduleForPrimaryPage()
+                  root.standingsOpen = false
+                  root.deferPanelCallback(function() { keyCatcher.forceActiveFocus() })
+                }
+                root.recalculatePanelHeight()
+              }
+              Accessible.name: modelData.label
+              Accessible.role: Accessible.PageTab
+              Accessible.selected: current
+              Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width * 0.6
+                height: Math.max(1, Style.space(2))
+                radius: height / 2
+                color: parent.current ? visual.accent : "transparent"
+              }
+            }
+          }
+        }
+
         Item {
           id: panelBody
           width: parent.width
-          height: Math.max(0, parent.height - header.height - contentColumn.spacing)
+          height: Math.max(0, parent.height - header.height - contentColumn.spacing
+            - (primaryNavigation.visible ? primaryNavigation.height + contentColumn.spacing : 0))
 
           ActionFeedback {
             id: actionFeedbackView
@@ -2100,7 +2167,8 @@ Panel {
                   id: leaguePicker
                   anchors.left: activeSportIcon.right
                   anchors.leftMargin: Style.spacing.sm
-                  anchors.right: parent.right
+                  anchors.right: followingOverview.visible ? followingOverview.left : parent.right
+                  anchors.rightMargin: followingOverview.visible ? Style.spacing.sm : 0
                   label: "League"
                   showLabel: false
                   fontFamily: Typography.family
@@ -2113,15 +2181,15 @@ Panel {
                   Accessible.role: Accessible.ComboBox
                   Accessible.onPressAction: leaguePicker.open()
                 }
-              }
-
-              FollowingOverview {
-                id: followingOverview
-                width: parent.width
-                visible: root.followingControlsVisible
-                height: root.followingControlsVisible ? implicitHeight : 0
-                projection: root.followingProjection
-                onFilterSelected: function(filterId) { root.setFollowingFilter(filterId) }
+                FollowingOverview {
+                  id: followingOverview
+                  anchors.right: parent.right
+                  width: Math.min(Style.space(110), tabStrip.width * 0.35)
+                  visible: root.followingControlsVisible
+                  height: root.followingControlsVisible ? implicitHeight : 0
+                  projection: root.followingProjection
+                  onFilterSelected: function(filterId) { root.setFollowingFilter(filterId) }
+                }
               }
             }
 
@@ -2139,7 +2207,7 @@ Panel {
                 anchors.fill: parent
                 model: root.displayRows
                 currentIndex: root.selectedRowIndex
-                spacing: root.standingsOpen ? Style.spacing.xxs : Style.spacing.md
+                spacing: root.standingsOpen ? Style.spacing.xxs : Style.spacing.sm
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 interactive: contentHeight > height
@@ -2189,7 +2257,7 @@ Panel {
                       text: modelData.label || "Scores"
                       color: UiContrast.foreground(Commons.Color.accent, Commons.Color.popups.text, Commons.Color.popups.background)
                       font.family: Typography.family
-                      font.pixelSize: Style.font.caption
+                      font.pixelSize: visual.section
                       font.bold: true
                     }
 
@@ -2218,9 +2286,7 @@ Panel {
                         && typeof modelData.timeLabel === "string"
                         ? modelData.timeLabel : ""
                       selected: root.selectedRowId === (modelData ? modelData.rowId : "")
-                      featured: Boolean(gameValue.presentation
-                        && gameValue.presentation.isFavorite
-                        && gameValue.presentation.isLive)
+                      featured: modelData && modelData.featured === true
                       onPrimaryActionRequested: {
                         root.setSelectedRow(index)
                         root.resultActionFocus = ""
@@ -2344,6 +2410,8 @@ Panel {
                       width: parent.width
                       visible: modelData && modelData.kind === "next-game"
                       game: gameValue
+                      imageStore: root.logoImageStore
+                      currentTime: root.ambientNowMs
                       dateKey: modelData.dateKey || ""
                       onJumpRequested: root.selectDate(modelData.dateKey)
                     }

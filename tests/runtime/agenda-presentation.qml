@@ -65,9 +65,14 @@ ShellRoot {
           var date=findChild(row,"agendaDate"),matchup=findChild(row,"agendaMatchup"),time=findChild(row,"agendaTime")
           check(date&&matchup&&time,"Missing aligned column")
           check(date.x+date.width<=matchup.x+1,"Date overlaps matchup")
-          check(matchup.x+matchup.width<=time.x+1,"Matchup overlaps time")
+          if(row.stackedTime){
+            check(time.y>=matchup.y+matchup.height-1,"Stacked time overlaps matchup")
+            check(Math.abs(time.x-matchup.x)<1,"Stacked time is not aligned with matchup")
+            check(time.y+time.height<=time.parent.height+1,"Stacked time crosses row edge")
+          }else check(matchup.x+matchup.width<=time.x+1,"Matchup overlaps time")
           check(time.x+time.width<=row.width+1,"Time crosses row edge")
           check(matchup.width>0&&row.height>0,"Row lost readable space")
+          check(matchup.y>=-1&&matchup.y+matchup.height<=matchup.parent.height+1,"Matchup crosses row height")
         }
       }
       function run(){
@@ -77,6 +82,16 @@ ShellRoot {
           Commons.Style.fontFamily="JetBrainsMono Nerd Font";Commons.Style.fontBaseSize=root.uiCase.fontSize;Commons.Style.cornerRadius=8
           calendar.scheduleState=root.state(root.fixture.team,"nhl:6");wait(120)
           check(calendar.chooserOpen===false,"Closed chooser claimed ownership")
+          var nextMatchup=findChild(calendar,"calendarNextMatchup")
+          check(nextMatchup&&nextMatchup.game.id===root.fixture.team[0].game.id,"Next up does not use the exact normalized game")
+          check(nextMatchup.dateText.indexOf("Nov 25")!==-1&&!nextMatchup.showStatus,"Scheduled hero lost the exact date or exposed a retained clock")
+          var unknownTime=JSON.parse(JSON.stringify(root.fixture.team));unknownTime[0].timeKnown=false
+          calendar.scheduleState=root.state(unknownTime,"nhl:6");wait(25)
+          check(nextMatchup.startLabel==="Time TBD"&&!nextMatchup.timeKnown,"Unknown next time became a fabricated start time")
+          calendar.scheduleState=root.state(root.fixture.team,"nhl:6");wait(25)
+          var jump=items(calendar,function(item){return item.visible&&"tooltipText"in item&&item.tooltipText==="Jump to the next listed game"},[])[0]
+          check(jump,"Next up lost View day")
+          jump.forceActiveFocus();keyClick(Qt.Key_Return);check(root.selected===root.fixture.team[0].dateKey,"Next up View day opened a different fixture date")
           check(calendar.agendaEntries.length===root.fixture.team.length-1,"Featured game duplicated in later agenda")
           var gameRows=rows();check(gameRows.length===calendar.agendaEntries.length,"Week headings displaced game indexes")
           check(gameRows[0].sectionLabel==="This week","First week label missing")
@@ -111,6 +126,8 @@ ShellRoot {
           }
           check(Object.keys(reached).length===gameRows.length,"Native Tab could not reach every canonical game")
           calendar.teamId="";calendar.scheduleState=root.state(root.fixture.global,"");calendar.focusCalendar();wait(60)
+          var monthTitle=findChild(calendar,"calendarMonthTitle")
+          check(monthTitle&&!monthTitle.truncated,"Responsive month title clipped its month/year")
           checkColumns();check(rows().length===root.fixture.global.length,"Global agenda lost games")
           check(rows().some(function(row){return row.timeText==="Time TBD"}),"TBD became a fabricated time")
           check(rows().some(function(row){return row.timeText==="Live"&&row.scoreText!==""}),"Fresh live score/status missing")

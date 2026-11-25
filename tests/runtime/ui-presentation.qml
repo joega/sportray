@@ -551,8 +551,10 @@ ShellRoot {
         check(!panel.testScoreContent.visible, "Scores remain visible behind the schedule page")
         check(!panel.testDetail.visible, "Game details remain visible behind the schedule page")
         same(panel.testHeaderTitle.text, heading, "Schedule did not own the shared header")
+        check(!panel.testHeaderTitle.truncated, "Shared page title is clipped")
         same(findAll(panel, function(item) {
-          return item.visible && "text" in item && item.text === heading
+          return item.visible && "textFormat" in item && item.text === heading
+            && item.font.pixelSize >= panel.testHeaderTitle.font.pixelSize
         }).length, 1, "Schedule has a duplicate title")
         var point = page.mapToItem(window.contentItem, 0, 0)
         check(page.width > 0 && page.height > 0 && point.x >= -1 && point.y >= -1
@@ -568,6 +570,7 @@ ShellRoot {
         var futureDate = DateModel.addDays(root.sample.dateKey, 21)
         var calls = fetch.refreshCalls
         var cancels = fetch.upcomingCancellations.length
+        var priorTeamRequests = fetch.upcomingRequests.length
         check(panel.testCalendarButton.visible, "Calendar button is unavailable")
         naturalKey(panel, Qt.Key_G)
         check(panel.scheduleOpen && panel.opened && calendar.globalMode, "G must open the global calendar: "
@@ -578,7 +581,7 @@ ShellRoot {
         check(panel.testCatcher.blocked, "Calendar did not take keyboard ownership")
         check(calendar.width > 0 && calendar.width <= root.uiCase.width, "Calendar exceeds viewport width")
         checkScheduleSurface(panel, "Calendar")
-        same(fetch.upcomingRequests.length, 0, "Default global calendar requested a favorite-team schedule")
+        same(fetch.upcomingRequests.length, priorTeamRequests, "Default global calendar requested a favorite-team schedule")
         check(fetch.globalRequests.length > 0, "Global calendar did not request its selected day")
         same(fetch.globalRequests[0].leagues.join(","), store.settings.followedLeagueIds.join(","),
           "Global calendar must admit followed leagues independently of favorites")
@@ -595,7 +598,9 @@ ShellRoot {
           Qt.LeftButton, Qt.NoModifier, 20)
         settle(panel)
         check(panel.settingsOpen && !panel.testSchedulePage.visible,
-          "Calendar Leagues did not hand the panel to Settings")
+          "Calendar Leagues did not hand the panel to Settings " + JSON.stringify({settings:panel.settingsOpen,schedule:panel.scheduleOpen,
+            opened:panel.opened,details:panel.detailOpen,buttonWidth:leaguesAction.width,buttonHeight:leaguesAction.height,
+            position:leaguesAction.mapToItem(window.contentItem,0,0),focus:panel.testCatcher.activeFocus, blocked:panel.testCatcher.blocked}))
         same(panel.testHub.destination, "sports", "Leagues opened the wrong settings destination")
         naturalKey(panel, Qt.Key_Escape)
         checkScheduleSurface(panel, "Calendar")
@@ -869,6 +874,117 @@ ShellRoot {
         same(JSON.stringify(store.settings), originalSettings, "Presentation navigation changed preferences")
         same(panel.navigationStack.length, 0, "Completed Back routes leaked history")
       }
+      function checkProductionDirection(panel) {
+        panel.selectDestination("following")
+        panel.setFollowingFilter("all")
+        settle(panel)
+        var originalStates = fetch.leagueStates
+        var featuredId = panel.featuredGameId
+        check(featuredId !== "", "Loaded favorites did not select a featured matchup")
+        var featured = panel.resultRows.filter(function(row) { return row.featured })
+        same(featured.length, 1, "Following must have exactly one featured matchup")
+        same(featured[0].game.id, featuredId)
+        // Reopening All with unchanged loaded data must choose its feature
+        // immediately, without waiting for a score/setting signal to arrive.
+        panel.close(); panel.open(); settle(panel)
+        same(panel.featuredGameId, featuredId, "Reopening unchanged Following lost its featured matchup")
+        same(panel.resultRows.filter(function(row) { return row.featured }).length, 1)
+        var canonicalId = featured[0].rowId
+        var originalIds = panel.resultRows.filter(function(row) { return row.kind === "game" }).map(function(row) { return row.rowId }).sort()
+        fetch.leagueStates = originalStates.map(function(state) {
+          return Object.assign({}, state, {games: state.games.map(function(game) {
+            return game.id === featuredId ? Object.assign({}, game, {status: "final", clock: null, awayScore: 9}) : game
+          })})
+        })
+        wait(150)
+        same(panel.featuredGameId, featuredId, "Polling rotated the featured matchup")
+        featured = panel.resultRows.filter(function(row) { return row.featured })
+        same(featured.length, 1)
+        same(featured[0].rowId, canonicalId, "Score/state update replaced the canonical feature row")
+        same(featured[0].game.status, "final", "Feature retained an obsolete live state")
+        same(JSON.stringify(panel.resultRows.filter(function(row) { return row.kind === "game" }).map(function(row) { return row.rowId }).sort()), JSON.stringify(originalIds), "Featuring duplicated or dropped a game")
+        fetch.leagueStates = originalStates.map(function(state) {
+          return Object.assign({}, state, {games: state.games.filter(function(game) { return game.id !== featuredId })})
+        })
+        wait(150)
+        same(panel.featuredGameId, featuredId, "Missing feature silently promoted another game")
+        same(panel.resultRows.filter(function(row) { return row.featured }).length, 0)
+        fetch.leagueStates = originalStates
+        wait(150)
+
+        var filter = find(panel.testFollowingOverview, function(item) { return "options" in item && "popupOpen" in item })
+        check(filter !== null, "Following lost its native filter chooser")
+        filter.open(); wait(80)
+        check(filter.popupOpen && panel.testCatcher.blocked, "Filter chooser does not own keyboard input")
+        var filterId = panel.followingFilterId, undoCount = store.successfulUndos
+        var originalFeedback = store.feedbackAction
+        store.feedbackAction = {id: 701, summary: "Favorite updated", undone: false, severity: "info"}
+        keyClick(Qt.Key_F); keyClick(Qt.Key_Question); keyClick(Qt.Key_Z, Qt.ControlModifier); wait(80)
+        same(panel.followingFilterId, filterId, "Open chooser changed the hidden Following filter")
+        check(!panel.helpOpen, "Open chooser leaked ? into help")
+        same(store.successfulUndos, undoCount, "Open chooser allowed background Undo")
+        keyClick(Qt.Key_Escape); wait(80)
+        check(!filter.popupOpen)
+        store.feedbackAction = originalFeedback
+        panel.testCatcher.forceActiveFocus()
+
+        function navigation(label) {
+          return find(panel, function(item) { return item.visible && "current" in item && "tooltipText" in item && item.text === label })
+        }
+        function clickTab(label) {
+          var target = navigation(label)
+          check(target !== null, "Missing primary navigation " + label)
+          mouseClick(target, target.width/2, target.height/2)
+          wait(150)
+        }
+        panel.selectDestination("nhl"); settle(panel)
+        clickTab("Standings")
+        check(panel.standingsOpen, "Standings tab did not open the selected league")
+        clickTab("Calendar")
+        check(panel.scheduleOpen && !panel.upcomingTeamId, "Calendar tab failed from standings")
+        check(navigation("Calendar").current && !navigation("Standings").current, "Multiple primary pages appear selected")
+        clickTab("Scores")
+        check(!panel.scheduleOpen && !panel.standingsOpen && panel.activeDestination === "nhl", "Scores tab lost the selected league")
+        panel.selectDestination("following"); settle(panel)
+        clickTab("Standings")
+        check(panel.testLeaguePicker.popupOpen && panel.choosingStandingsLeague, "Following standings did not request a league")
+        var firstLeague = panel.tabItems[1].id
+        keyClick(Qt.Key_Down); keyClick(Qt.Key_Return); wait(150)
+        check(panel.standingsOpen && panel.activeDestination === firstLeague, "Native standings chooser did not open its league: " + panel.activeDestination + " expected " + firstLeague)
+        panel.selectDestination("following"); settle(panel)
+        same(panel.navigationStack.length, 0, "Primary navigation leaked history frames")
+        function nestedCalendar() {
+          var gameRow = panel.resultRows.filter(function(row) { return row.kind === "game" && row.game.league === "nhl" })[0]
+          panel.openGameDetail(gameRow.game)
+          panel.openTeamSchedule(gameRow.game.homeTeam.id)
+          settle(panel)
+          var calendar = panel.testUpcomingCalendar
+          var selector = find(calendar, function(item) { return item.visible && "popupOpen" in item && "options" in item })
+          selector.open(); wait(50)
+          var selectedIndex = selector.options.map(function(option) { return option.value }).indexOf(calendar.teamId)
+          check(selectedIndex > 0)
+          for (var i = 0; i < selectedIndex; i++) keyClick(Qt.Key_Up)
+          keyClick(Qt.Key_Return); wait(150)
+          check(panel.scheduleOpen && calendar.globalMode && panel.navigationStack.length > 0,
+            "Nested team selector did not expose global calendar")
+        }
+        nestedCalendar()
+        clickTab("Scores")
+        check(!panel.detailOpen && !panel.scheduleOpen && !panel.standingsOpen && !panel.navigationStack.length,
+          "Scores tab restored a nested detail instead of the root page")
+        nestedCalendar()
+        clickTab("Standings")
+        check(!panel.detailOpen && !panel.scheduleOpen && panel.testLeaguePicker.popupOpen,
+          "Standings tab retained a nested detail under its chooser")
+        keyClick(Qt.Key_Escape); wait(80)
+        panel.testCatcher.forceActiveFocus()
+        // The offscreen backend can retain hover after clicks reparent pages.
+        // Deliver an actual border click so a stale tooltip cannot cover the
+        // next header action. No editor or popup is open at this boundary.
+        mouseMove(window.contentItem, 2, window.height - 2, 20)
+        mouseClick(window.contentItem, 2, window.height - 2)
+        wait(80)
+      }
       function checkSettingsGeometry(panel, destination) {
         var hub = panel.testHub
         hub.selectDestination(destination)
@@ -956,6 +1072,7 @@ ShellRoot {
           panel.testList.positionViewAtBeginning()
           wait(80)
           capture("following")
+          checkProductionDirection(panel)
           checkSchedulePage(panel)
           checkFollowingPolish(panel)
 
@@ -966,6 +1083,11 @@ ShellRoot {
           panel.testCatcher.forceActiveFocus()
           naturalKey(panel, Qt.Key_Menu)
           check(panel.gameActionsOpen && panel.testCatcher.blocked, "Menu must own keyboard input")
+          // Moving selection can recycle the earlier offscreen ListView item
+          // at320px/16px. Inspect the canonical menu owner after activation.
+          check(panel.activeGameActionsRow && panel.activeGameActionsRow.game.id === panel.displayRows[first.index].game.id,
+            "Game actions opened for a different canonical row")
+          first.row = panel.activeGameActionsRow
           var actions = find(first.row, function(item) { return "actions" in item && "menuGameId" in item })
           check(actions !== null && actions.popupOpen, "Native game action popup missing")
           var actionDate = panel.selectedDateKey

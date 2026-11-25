@@ -1,20 +1,23 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "../model/UiTypography.js" as Typography
 
-// Keep the native switch and keyboard route, with an open settings-row surface.
+// Keep the native switch and keyboard route inside a quiet settings surface.
 Toggle {
   id: root
+  PresentationTokens { id: visual }
   property bool pointerHovered: false
   fontFamily: Typography.family
-  foreground: Color.popups.text
-  titleSize: Style.font.body
+  foreground: visual.ink
+  titleSize: visual.body
   descriptionSize: Style.font.bodySmall
   color: activeFocus ? Style.focusFillFor(foreground, accent)
-    : hasCursor || pointerHovered ? Style.hoverFillFor(foreground, accent) : "transparent"
+    : hasCursor || pointerHovered ? Style.hoverFillFor(foreground, accent) : visual.surface
   borderSpec: activeFocus ? Border.controlSpec("focus", foreground, accent)
     : hasCursor ? Border.controlSpec("hover-cursor", foreground, accent) : Border.none()
+  radius: visual.radius
   onHovered: function(value) { root.pointerHovered = value }
   Accessible.name: label
   Accessible.description: description
@@ -23,12 +26,4 @@ Toggle {
   Accessible.checked: checked
   Accessible.onToggleAction: if (root.enabled) root.clicked()
 
-  Rectangle {
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.bottom: parent.bottom
-    height: 1
-    color: Color.popups.text
-    opacity: 0.10
-  }
 }

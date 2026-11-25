@@ -1514,8 +1514,9 @@ test("settings are unified behind one hub with a deep-linkable favorite destinat
   assert.equal(hub.includes("Accessible.role: Accessible.PageTab"), true);
   assert.equal(hub.includes("y: sectionTabs.height"), true);
   assert.equal(hub.includes("selected: root.destination === modelData.id"), true);
-  assert.match(hub, /color: root\.destination === tabButton\.modelData\.id \? (?:Commons\.)?Color\.accent : "transparent"/);
-  assert.match(hub, /color: (?:Commons\.)?Color\.popups\.border/);
+  assert.match(hub, /PresentationTokens \{ id: visual \}/);
+  assert.match(hub, /color: root\.destination === tabButton\.modelData\.id \? visual\.accent : "transparent"/);
+  assert.match(hub, /color: visual\.line/);
   assert.equal(hub.includes("function reset(destination)"), true);
   assert.equal(readSource("components/SportsSettings.qml").includes('text: "Sports & leagues"'), false);
   assert.equal(readSource("components/TeamPicker.qml").includes('text: "Favorite teams"'), false);
@@ -1680,7 +1681,7 @@ test("panel presentation keeps canonical favorites when its QML import has no re
 test("score rows reserve theme focus chrome while keeping scores calm", () => {
   const source = readSource("components/GameRow.qml");
   assert.match(source, /Commons\.Border\.controlSpec\("focus", Commons\.Color\.popups\.text, Commons\.Color\.accent\)/);
-  assert.match(source, /color: "transparent"/);
+  assert.match(source, /color: visual\.surface/);
   assert.doesNotMatch(source, /color: root\.live \? Color\.urgent/);
   assert.match(source, /font\.features: \(\{"tnum": 1\}\)/);
 });
@@ -1715,8 +1716,10 @@ test("game cards expose normalized provider source links", () => {
   assert.equal(sourceButton.includes("root.game.link"), true);
   assert.equal(sourceButton.includes("omarchy-launch-browser"), true);
   assert.equal(sourceButton.includes('tooltipText: "Open " + root.sourceName + " game page"'), true);
-  assert.match(nextGameCard, /root\.game\.homeTeam\.primaryColor/);
-  assert.match(nextGameCard, /root\.venueName \? "   ·   " \+ root\.venueName/);
+  assert.match(nextGameCard, /MatchupScoreboard \{/);
+  assert.match(nextGameCard, /game: root\.game/);
+  assert.match(nextGameCard, /imageStore: root\.imageStore/);
+  assert.match(nextGameCard, /root\.venueName \? " · " \+ root\.venueName/);
 
   const direct = games.normalizeGame({
     league: "nhl", providerGameId: "unsafe-link", status: "scheduled",
@@ -1813,7 +1816,11 @@ test("detail status formatting removes duplicate and missing placeholders", () =
     "Start Aug 14, 3:00 PM · End Aug 14, 5:00 PM");
 
   const detail = readSource("components/GameDetailView.qml");
-  assert.match(detail, /Formatters\.formatDetailStatus\(root\.detail\.status\)/);
+  const matchup = readSource("components/MatchupScoreboard.qml");
+  assert.match(detail, /MatchupScoreboard \{/);
+  assert.match(detail, /detail: root\.detail/);
+  assert.match(matchup, /Formatters\.formatDetailStatus\(root\.presentationStatus\)/);
+  assert.match(matchup, /root\.normalized\.status/);
   assert.match(detail, /Formatters\.formatDetailTiming\(/);
   assert.equal(detail.includes("function stateLabel()"), false);
   assert.equal(detail.includes("function statusDetailLabel()"), false);
@@ -2610,10 +2617,15 @@ test("loaded game rows route to local detail while keeping the safe source actio
 test("game detail keeps missing scores neutral and hides unavailable optional sections", () => {
   const fixture = readGameDetailRouteFixture();
   const detail = readSource("components/GameDetailView.qml");
+  const matchup = readSource("components/MatchupScoreboard.qml");
   fixture.sparsePlaceholders.forEach((placeholder) => assert.equal(detail.includes(placeholder), true));
   assert.match(detail, /function valueOrDash\(value\)/);
-  assert.match(detail, /model: root\.detail\.participants/);
-  assert.match(detail, /root\.scoreLabel\(participantRow\.modelData\)/);
+  assert.match(detail, /detail: root\.detail/);
+  assert.match(matchup, /readonly property var participants: root\.normalized\.participants/);
+  assert.match(matchup, /Formatters\.formatScoreboardTeamScore\(/);
+  assert.match(matchup, /text: root\.scoreText\(0\)/);
+  assert.match(matchup, /text: root\.scoreText\(1\)/);
+  assert.match(matchup, /readonly property bool showScores: !root\.scheduled/);
   assert.match(detail, /root\.detail\.status/);
   assert.match(detail, /root\.detail\.timing\.startTime/);
   assert.match(detail, /root\.detail\.venue/);
@@ -2685,7 +2697,7 @@ test("game detail hides internal game ids and scrolls within the panel bounds", 
   assert.match(detail, /detailScroll\.contentY = 0/);
 });
 
-test("detail height requests cap at half the screen viewport", () => {
+test("detail height requests obey their supplied viewport fraction and fixed cap", () => {
   const tokens = {minimum: 320, fixedCap: 600, viewportFraction: 0.5};
   assert.equal(panelLayout.detailContentRequest(400, 720, tokens), 360);
   assert.equal(panelLayout.detailContentRequest(200, 720, tokens), 320);
@@ -2699,7 +2711,11 @@ test("detail height requests cap at half the screen viewport", () => {
   const panel = readSource("Panel.qml");
   assert.match(panel, /PanelLayout\.detailContentRequest\(/);
   assert.match(panel, /panel && panel\.screen \? panel\.screen\.height : 0/);
-  assert.match(panel, /viewportFraction: 0\.5/);
+  assert.match(panel, /viewportFraction: 0\.65/);
+  const productionTokens = {minimum: 320, fixedCap: 600, viewportFraction: 0.65};
+  assert.equal(panelLayout.detailContentRequest(900, 720, productionTokens), 468);
+  assert.equal(panelLayout.detailContentRequest(900, 1440, productionTokens), 600);
+  assert.equal(panelLayout.detailContentRequest(900, 0, productionTokens), 600);
 });
 
 test("NHL next-game lookup uses the schedule endpoint and keeps normalized games", () => {
@@ -4344,7 +4360,10 @@ test("nested pointer actions keep their tap out of the enclosing result row", ()
   assert.match(panel, /if \(!PointerInteractionPolicy\.allowsRowActivation\(parent\.nestedActionPressed\)\) return/);
   assert.match(action, /readonly property bool pointerPressed: actionMouse\.pressed/);
   assert.match(source, /readonly property bool pointerPressed: action\.pointerPressed/);
-  assert.match(gameRow, /readonly property bool childActionPressed: gameActions\.pointerPressed \|\| awayLink\.pointerPressed \|\| homeLink\.pointerPressed/);
+  assert.match(gameRow, /readonly property bool childActionPressed: gameActions\.pointerPressed \|\| featureDetails\.pointerPressed/);
+  assert.match(gameRow, /root\.featured \? featuredScoreboard\.childActionPressed : awayLink\.pointerPressed \|\| homeLink\.pointerPressed/);
+  assert.match(readSource("components/MatchupScoreboard.qml"),
+    /readonly property bool childActionPressed: awayTeamLink\.pointerPressed \|\| homeTeamLink\.pointerPressed/);
   assert.match(status, /readonly property bool pointerPressed: noticeView\.pointerPressed/);
   assert.match(nextCard, /sourceLink\.pointerPressed \|\| jumpButton\.pointerPressed/);
 });
@@ -4367,7 +4386,7 @@ test("active editors own catcher shortcuts while Escape and navigation stay rout
   assert.match(panel, /property bool scheduleOpen: false/);
   assert.match(panel, /id: upcomingPage/);
   assert.doesNotMatch(panel, /id: upcomingPopup/);
-  assert.match(panel, /settingsHub\.inputActive, sportsPicker && sportsPicker\.popupOpen/);
+  assert.match(panel, /settingsHub\.inputActive, \(sportsPicker && sportsPicker\.popupOpen\) \|\| followingOverview\.popupOpen/);
   assert.match(hub, /onEscapeRequested: root\.escapeRequested\(\)/);
   assert.match(picker, /if \(event\.key === Qt\.Key_Escape\)/);
 });
@@ -4526,7 +4545,9 @@ test("U2.1 result row identity stays canonical and Panel uses one virtualized re
   assert.equal(resultRows.gameIdentity({providerGameId: "GAME-9"}), "game-9");
   assert.equal(resultRows.gameIdentity({}), "");
   const panel = readSource("Panel.qml");
-  assert.equal(panel.includes("readonly property var resultRows: ResultRows.flatten"), true);
+  assert.equal(panel.includes("readonly property var unfeaturedRows: ResultRows.flatten"), true);
+  assert.equal(panel.includes('readonly property var resultRows: root.activeDestination === "following"'), true);
+  assert.equal(panel.includes("FeaturePresentation.rows(root.unfeaturedRows, root.featuredGameId) : root.unfeaturedRows"), true);
   assert.equal(panel.includes("ListView {\n                id: resultList"), true);
   assert.equal(panel.includes("Repeater {\n            model: root.activeDestination"), false);
   assert.equal(panel.includes("ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }"), true);
@@ -4537,7 +4558,8 @@ test("U2.1 result row identity stays canonical and Panel uses one virtualized re
   assert.equal(panel.includes("Qt.Key_End"), true);
   assert.equal(readSource("services/SportrayService.qml").includes("lookaheadLeagueId"), true);
   const nextCard = readSource("components/NextGameCard.qml");
-  assert.equal(nextCard.includes('text: "NEXT GAME"'), true);
+  assert.equal(nextCard.includes('kickerText: "Next game"'), true);
+  assert.equal(nextCard.includes('dateText: DateModel.shortDateLabel(root.dateKey)'), true);
   assert.equal(nextCard.includes('text: "View day"'), true);
   assert.equal(nextCard.includes('import "SemanticActionButton.qml"'), false);
   assert.equal(nextCard.includes('import "SemanticIcon.qml"'), false);
@@ -4550,7 +4572,7 @@ test("U2.1 uses a compact vertical sport chooser instead of a clipped tab strip"
   assert.equal(panel.includes("Dropdown {"), true);
   assert.equal(panel.includes("id: leaguePicker"), true);
   assert.equal(panel.includes("options: root.sportOptions"), true);
-  assert.equal(panel.includes("settingsHub.inputActive, sportsPicker && sportsPicker.popupOpen"), true);
+  assert.equal(panel.includes("settingsHub.inputActive, (sportsPicker && sportsPicker.popupOpen) || followingOverview.popupOpen"), true);
   assert.equal(panel.includes("orientation: ListView.Horizontal"), false);
   assert.equal(panel.includes("text: tabList.contentWidth > tabList.width"), false);
 });
@@ -4581,16 +4603,42 @@ test("header refresh state follows the visible scores, standings, or schedule re
   assert.match(panel, /tooltipText: root\.scheduleOpen[\s\S]*?root\.standingsOpen[\s\S]*?"Refresh standings"/);
 });
 
-test("the standings action has a visible label and explains its Following state", () => {
+test("primary navigation exposes labeled scores, calendar and standings routes", () => {
   const panel = readSource("Panel.qml");
-  const start = panel.indexOf("id: standingsButton");
-  const block = panel.slice(start, panel.indexOf("\n            }", start));
+  const start = panel.indexOf("id: primaryNavigation");
+  const block = panel.slice(start, panel.indexOf("id: panelBody", start));
   const property = (name, state) => vm.runInNewContext(block.match(new RegExp("^ *" + name + ": (.*)$", "m"))[1], {root: state});
-  const following = {settingsOpen: false, detailOpen: false, activeLeagueSupportsStandings: false, standingsOpen: false};
+  const following = {settingsOpen: false, detailOpen: false, scheduleOpen: false,
+    activeLeagueSupportsStandings: false, standingsOpen: false};
   assert.equal(property("visible", following), true);
   assert.equal(block.includes("enabled:"), false, "Following can open the league chooser");
-  assert.equal(property("text", following), "Standings");
-  assert.equal(property("text", {...following, standingsOpen: true}), "Scores");
+  assert.equal(property("visible", {...following, detailOpen: true}), false);
+  assert.equal(property("visible", {...following, settingsOpen: true}), false);
+  assert.equal(property("visible", {...following, scheduleOpen: true, upcomingTeamId: "nhl:6"}), false);
+  const items = vm.runInNewContext(block.match(/model: (\[\{id: "scores".*\}\])/)[1]);
+  assert.deepEqual(JSON.parse(JSON.stringify(items)), [
+    {id: "scores", label: "Scores"}, {id: "calendar", label: "Calendar"},
+    {id: "standings", label: "Standings"}]);
+  assert.match(block, /text: modelData\.label/);
+  assert.match(block, /Accessible\.role: Accessible\.PageTab/);
+  assert.match(block, /Accessible\.selected: current/);
+  const body = block.match(/onClicked: \{([\s\S]*?)\n              \}\n              Accessible\.name/)[1];
+  const calls = [], state = {...following,
+    openUpcomingCalendar() { calls.push("calendar"); this.scheduleOpen = true; },
+    hideSchedule() { calls.push("leave-schedule"); this.scheduleOpen = false; },
+    toggleStandings() { calls.push("standings"); this.standingsOpen = true; },
+    recalculatePanelHeight() { calls.push("height"); },
+    deferPanelCallback(callback) { callback(); }};
+  const leave = panel.match(/function leaveScheduleForPrimaryPage\([^)]*\) \{[\s\S]*?\n  \}/)[0];
+  state.leaveScheduleForPrimaryPage = vm.runInNewContext("(" + leave + ")", {root: state});
+  const activate = id => vm.runInNewContext("(function(){" + body + "})()", {
+    root: state, modelData: {id}, keyCatcher: {forceActiveFocus() { calls.push("focus"); }}});
+  activate("calendar"); assert.deepEqual(calls.splice(0), ["calendar", "height"]);
+  state.detailOpen = true; state.detailGame = {id:"example"}; state.navigationStack = [{surface:"detail"}];
+  activate("standings"); assert.deepEqual(calls.splice(0), ["leave-schedule", "standings", "height"]);
+  assert.equal(state.detailOpen, false); assert.equal(state.detailGame, null); assert.equal(state.navigationStack.length, 0);
+  activate("scores"); assert.deepEqual(calls.splice(0), ["focus", "height"]);
+  assert.equal(state.standingsOpen, false);
 });
 
 test("league and standings activation use the visible chooser instead of an invisible tab cursor", () => {
@@ -4930,6 +4978,14 @@ test("U3.3 keeps sparse states compact while dense and utility views stay bounde
   const hub = readSource("components/SettingsHub.qml");
   const picker = readSource("components/TeamPicker.qml");
   const loadingState = readSource("components/LoadingState.qml");
+  // The helper remains configurable for existing 640px callers. Production
+  // now admits a 740px content request, still fitted by the native screen host.
+  const productionTokens = {...tokens, maximum: 740};
+  assert.equal(panelLayout.contentRequest(Array.from({length: 12}, () => ({kind: "game"})),
+    "sports", false, productionTokens), 740);
+  assert.equal(panelLayout.contentRequest([{kind: "empty"}], "teams", true, productionTokens), 640);
+  assert.match(panel, /maximum: Style\.space\(740\)/);
+  assert.match(panel, /contentHeight: panel\.fittedContentHeight\(root\.panelContentHeightRequest, Style\.space\(740\)\)/);
   assert.equal(panel.includes("property int panelContentHeightRequest"), true);
   assert.equal(panel.includes("property bool panelHeightRecalculationPending"), true);
   assert.equal(panel.includes("PanelLayout.contentRequest"), true);
@@ -7176,9 +7232,9 @@ test("source links, logos, aggregate updates, and favorite checks stay bounded",
   const gameRow = readSource("components/GameRow.qml");
   assert.equal((gameRow.match(/sourceSize:/g) || []).length >= 2, true);
   assert.equal((gameRow.match(/cache: true/g) || []).length >= 2, true);
-  assert.match(gameRow, /TeamScheduleLink \{[\s\S]*text: root\.awayLabel/);
+  assert.match(gameRow, /TeamScheduleLink \{[\s\S]*text: root\.game\.awayTeam \? root\.game\.awayTeam\.shortName \|\| root\.game\.awayTeam\.name \|\| root\.awayLabel : root\.awayLabel/);
   assert.match(readSource("components/TeamScheduleLink.qml"), /textFormat: Text\.PlainText/);
-  assert.match(gameRow, /TeamScheduleLink \{[\s\S]*text: root\.homeLabel/);
+  assert.match(gameRow, /TeamScheduleLink \{[\s\S]*text: root\.game\.homeTeam \? root\.game\.homeTeam\.shortName \|\| root\.game\.homeTeam\.name \|\| root\.homeLabel : root\.homeLabel/);
   assert.match(gameRow, /id: detailText[\s\S]*?textFormat: Text\.PlainText/);
 
   const strip = readSource("components/TicketStrip.qml");
@@ -7245,7 +7301,7 @@ test("standings states retain tables and expose only available retry actions", (
 for (const suite of ["test-following-presentation.js", "test-navigation-context.js",
     "test-notice-presentation.js", "test-ticket-model.js", "test-ui-contrast.js", "test-agenda-presentation.js",
     "test-settings-preservation.js", "test-action-feedback.js", "test-score-change-presentation.js",
-    "test-shortcut-presentation.js"]) {
+    "test-shortcut-presentation.js", "test-feature-presentation.js"]) {
   require(path.join(__dirname, suite));
 }
 

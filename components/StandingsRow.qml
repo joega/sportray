@@ -6,6 +6,7 @@ import "../model/StandingsPresentation.js" as Presentation
 
 Item {
   id: root
+  PresentationTokens { id: visual }
   required property var standing
   property bool favorite: false
   property var settings: null
@@ -18,7 +19,7 @@ Item {
   readonly property bool childActionPressed: favoriteButton.pointerPressed || teamLink.pointerPressed
   signal teamScheduleRequested(string teamId)
   width: parent ? parent.width : implicitWidth
-  implicitHeight: Math.max(Commons.Style.space(42), favoriteButton.implicitHeight + Commons.Style.spacing.xs * 2)
+  implicitHeight: Math.max(Commons.Style.space(48), favoriteButton.implicitHeight + Commons.Style.spacing.xs * 2)
   height: implicitHeight
 
   function valueOrDash(value) { return value === null || value === undefined || value === "" ? "—" : String(value) }
@@ -49,9 +50,9 @@ Item {
 
   BorderSurface {
     anchors.fill: parent
-    color: root.favorite ? Qt.alpha(Commons.Color.accent, 0.05) : "transparent"
+    color: root.favorite ? visual.feature : visual.surface
     borderSpec: root.selected ? Commons.Border.controlSpec("focus", Commons.Color.popups.text, Commons.Color.accent) : Commons.Border.none()
-    radius: Commons.Style.cornerRadius
+    radius: visual.radius
   }
   Row {
     width: parent.width - root.geometry.padding * 2
@@ -63,9 +64,9 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       text: root.valueOrDash(root.standing.rank)
       textFormat: Text.PlainText
-      color: Qt.alpha(Commons.Color.popups.text, 0.85)
+      color: visual.muted
       font.family: Typography.family
-      font.pixelSize: Commons.Style.font.bodySmall
+      font.pixelSize: Commons.Style.font.body
       font.features: ({"tnum": 1})
       horizontalAlignment: Text.AlignHCenter
     }
@@ -97,7 +98,7 @@ Item {
         text: root.standing.team && root.standing.team.abbreviation ? root.standing.team.abbreviation : "?"
         textFormat: Text.PlainText
         visible: !logo.visible
-        color: Qt.alpha(Commons.Color.popups.text, 0.85)
+        color: visual.muted
         font.family: Typography.family
         font.pixelSize: Commons.Style.font.caption
         elide: Text.ElideRight
@@ -110,8 +111,8 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.geometry.teamWidth < Commons.Style.space(140) && root.standing.team && root.standing.team.abbreviation
           ? root.standing.team.abbreviation : root.teamLabel()
-        foreground: Commons.Color.popups.text
-        fontSize: Commons.Style.font.body
+        foreground: visual.ink
+        fontSize: visual.body
         bold: root.favorite
         height: parent.height
         team: root.standing.team
@@ -128,9 +129,9 @@ Item {
           width: root.geometry.metricsWidth / root.columns.length
           text: Presentation.metricValue(root.standing, modelData.key)
           textFormat: Text.PlainText
-          color: Commons.Color.popups.text
+          color: visual.ink
           font.family: Typography.family
-          font.pixelSize: Commons.Style.font.bodySmall
+          font.pixelSize: Commons.Style.font.body
           font.features: ({"tnum": 1})
           horizontalAlignment: Text.AlignRight
         }
@@ -143,7 +144,7 @@ Item {
       iconName: root.favorite ? "star" : "starOutline"
       size: Commons.Style.space(28)
       fontSize: Commons.Style.font.body
-      foreground: root.favorite ? Commons.Color.accent : Qt.alpha(Commons.Color.popups.text, 0.85)
+      foreground: root.favorite ? visual.accent : visual.muted
       tooltipText: (root.favorite ? "Remove " : "Add ") + root.teamLabel() + (root.favorite ? " from favorites" : " to favorites")
       focusable: true
       onClicked: root.toggleFavorite()
@@ -157,9 +158,10 @@ Item {
   Rectangle {
     anchors.left: parent.left
     anchors.right: parent.right
+    anchors.leftMargin: Commons.Style.spacing.md
+    anchors.rightMargin: Commons.Style.spacing.md
     anchors.bottom: parent.bottom
     height: 1
-    color: Commons.Color.popups.text
-    opacity: 0.08
+    color: visual.line
   }
 }

@@ -1,10 +1,12 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import "../model/UiTypography.js" as Typography
 import "../model/StandingsPresentation.js" as Presentation
 
 Column {
   id: root
+  PresentationTokens { id: visual }
   property string label: "Standings"
   property string leagueId: ""
   property bool seeded: false
@@ -16,9 +18,9 @@ Column {
     width: parent.width
     text: root.label
     textFormat: Text.PlainText
-    color: Color.popups.text
+    color: visual.ink
     font.family: Typography.family
-    font.pixelSize: Style.font.body
+    font.pixelSize: visual.section
     font.weight: Font.DemiBold
     wrapMode: Text.WordWrap
   }
@@ -30,18 +32,18 @@ Column {
       width: root.geometry.rankWidth
       text: root.seeded ? "Seed" : "#"
       textFormat: Text.PlainText
-      color: Qt.alpha(Color.popups.text, 0.85)
+      color: visual.muted
       font.family: Typography.family
-      font.pixelSize: Style.font.caption
+      font.pixelSize: Style.font.bodySmall
       horizontalAlignment: Text.AlignHCenter
     }
     Text {
       width: root.geometry.teamWidth
       text: "Team"
       textFormat: Text.PlainText
-      color: Qt.alpha(Color.popups.text, 0.85)
+      color: visual.muted
       font.family: Typography.family
-      font.pixelSize: Style.font.caption
+      font.pixelSize: Style.font.bodySmall
     }
     Row {
       width: root.geometry.metricsWidth
@@ -52,9 +54,9 @@ Column {
           width: root.geometry.metricsWidth / root.columns.length
           text: modelData.label
           textFormat: Text.PlainText
-          color: Qt.alpha(Color.popups.text, 0.85)
+          color: visual.muted
           font.family: Typography.family
-          font.pixelSize: Style.font.caption
+          font.pixelSize: Style.font.bodySmall
           horizontalAlignment: Text.AlignRight
         }
       }

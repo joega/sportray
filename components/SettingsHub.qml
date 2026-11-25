@@ -7,6 +7,7 @@ import "../model/LifecyclePolicy.js" as LifecyclePolicy
 
 Item {
   id: root
+  PresentationTokens { id: visual }
 
   required property var settingsStore
   property var imageStore: null
@@ -143,7 +144,7 @@ Item {
   Column {
     id: hubColumn
     width: parent.width
-    spacing: Style.spacing.sm
+    spacing: Style.spacing.md
 
     Item {
       id: sectionTabBlock
@@ -165,11 +166,11 @@ Item {
             width: sectionTabs.width / root.destinations.length
             text: modelData.shortLabel
             selected: root.destination === modelData.id
-            foreground: root.destination === modelData.id ? Commons.Color.popups.text : Qt.alpha(Commons.Color.popups.text, 0.85)
+            foreground: root.destination === modelData.id ? visual.accent : visual.muted
             hasCursor: !root.contentFocused && root.sectionCursor === index
             focusable: true
             fontFamily: Typography.family
-            fontSize: Style.font.body
+            fontSize: visual.body
             horizontalPadding: Style.spacing.xs
             radius: 0
             color: activeFocus ? Style.focusFillFor(foreground, Commons.Color.accent)
@@ -182,11 +183,12 @@ Item {
             Accessible.selected: root.destination === modelData.id
 
             Rectangle {
-              anchors.left: parent.left
-              anchors.right: parent.right
+              anchors.horizontalCenter: parent.horizontalCenter
+              width: parent.width * 0.58
               anchors.bottom: parent.bottom
               height: Math.max(1, Style.normalBorderWidth)
-              color: root.destination === tabButton.modelData.id ? Commons.Color.accent : "transparent"
+              radius: 1
+              color: root.destination === tabButton.modelData.id ? visual.accent : "transparent"
             }
           }
         }
@@ -197,7 +199,7 @@ Item {
         y: sectionTabs.height
         width: parent.width
         height: Math.max(1, Style.normalBorderWidth)
-        color: Commons.Color.popups.border
+        color: visual.line
       }
     }
 
